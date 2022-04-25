@@ -1,0 +1,23 @@
+(data_only_dirs
+  benchmarks
+  evaluation
+  scripts
+  tests
+)
+
+(env
+    (dev
+        (flags (:standard -w -8    ; Partial patter-matching
+                          -w -32   ; Unused value declaration
+                          -w -26   ; Unused var
+                          -w -27   ; Unused var strict
+                          -g
+                )
+        )
+    )
+)
+
+(rule
+    (alias test)
+    (action (run python3.9 run_tests.py))
+)

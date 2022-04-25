@@ -1,0 +1,33 @@
+opam-version: "2.0"
+name: "astral"
+version: "0.1"
+synopsis: "Decision procedure for strong-separation logic based on translation to SMT"
+maintainer: "Tomáš Dacík <xdacik00@stud.fit.vutbr.cz>"
+authors: [
+    "Tomáš Dacík <xdacik00@stud.fit.vutbr.cz>"
+    "Tomáš Vojnar <vojnar@fit.vutbr.cz>"
+]
+license: "MIT"
+homepage: "https://github.com/TDacik/Astral"
+dev-repo: "git://github.com/TDacik/Astral.git"
+bug-reports: "https://github.com/TDacik/Astral/issues"
+
+depends: [
+  "ocaml"
+  "dune"
+  "batteries"
+  "z3"
+  "dolmen"
+  "ocamlgraph"
+  "qcheck"
+  "yojson"
+  "ppx_compare"
+]
+
+build: [
+    ["cd src" "dune build"]
+]
+
+install: [
+    ["cd src" "dune install"]
+]

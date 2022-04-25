@@ -1,0 +1,37 @@
+(executable
+  (name astral)
+  (libraries
+    base
+    z3
+    dolmen
+    batteries
+    ocamlgraph
+    qcheck
+    alcotest
+    yojson
+    ppx_compare
+  )
+
+  (preprocess
+    (pps
+        ppx_compare
+    )
+  )
+
+  (modules_without_implementation
+    datatype_sig
+    set_sig
+    translation_sig
+    printer_sig
+  )
+
+)
+
+; (env (dev (flags (:standard -open Astral.Intro))))
+
+(include_subdirs unqualified)
+
+(install
+  (section bin)
+  (files (astral.exe as astral))
+)
