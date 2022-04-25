@@ -25,9 +25,9 @@ depends: [
 ]
 
 build: [
-    ["cd src" "dune build"]
+    ["dune build"]
 ]
 
 install: [
-    ["cd src" "dune install"]
+    ["dune install"]
 ]

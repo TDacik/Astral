@@ -7,7 +7,6 @@
     batteries
     ocamlgraph
     qcheck
-    alcotest
     yojson
     ppx_compare
   )
