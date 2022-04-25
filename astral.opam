@@ -25,9 +25,9 @@ depends: [
 ]
 
 build: [
-    ["dune build"]
+    ["dune" "build"]
 ]
 
 install: [
-    ["dune install"]
+    ["dune" "install"]
 ]
