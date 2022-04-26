@@ -5,26 +5,46 @@
 open SSL
 open Encodings
 
-open Results
-
 module Print = Printer.Make(struct let name = "Solver" end)
 
-let verify_model model phi = ()
+let verify_model_fn sh phi =
+  if not @@ SSL.is_positive phi then
+    let _ = Printf.printf "[MC] Model checking of negative formulas is not implemented" in
+    None
+  else
+    let verdict = ModelChecker.check sh phi in
+    if verdict then
+      let _ = Printf.printf "[MC] Model verified\n" in
+      Some true
+    else
+      let _ = Printf.printf "[MC] Incorrect model\n" in
+      Some false
 
 (** If phi is positive, remove all variables that does not appear in phi *)
 let normalise_vars phi vars =
   if SSL.is_positive phi then
     let phi_vars = SSL.get_vars phi in
-    List.filter (fun v -> List.mem v phi_vars) vars
+    let vars = List.filter (fun v -> List.mem v phi_vars) vars in
+    if List.mem Variable.Nil phi_vars then Variable.Nil :: vars
+    else vars
   else vars
 
 let normalise phi vars =
+  let phi =
+   if Options.sl_comp () then
+     let phi = SL_comp.preprocess phi in
+     let _ = Debug.formula ~suffix:"sl_comp_pre" phi in
+     phi
+   else phi
+  in
   let phi = SSL.normalise phi in
   let vars = normalise_vars phi vars in
   (phi, vars)
 
-let solve phi vars =
+let solve ?(verify_model=false) phi vars =
+  Debug.formula ~suffix:"original" phi;
   let phi, vars = normalise phi vars in
+  Debug.formula phi;
 
   (* Bound computation *)
   let g =
@@ -38,7 +58,7 @@ let solve phi vars =
     | Some x -> x
   in
   let info = Results.create_info phi vars g (s_min, s_max) h_bound in
-  match classify_fragment phi with
+  let result = match classify_fragment phi with
     | SymbolicHeap_SAT ->
       Print.info "Solving as satisfiability in SH-fragment\n";
       TranslationSH.solve info.formula info
@@ -54,3 +74,25 @@ let solve phi vars =
     | Arbitrary ->
       Print.info "Solving as arbitrary formula\n";
       TranslationN.solve info.formula info
+  in
+
+  Timer.add "Solver";
+
+  match result with
+  | Translation.Sat (sh, model, results) ->
+      Debug.model sh;
+      Printf.printf "SAT\n";
+      (* Model verification *)
+      if verify_model then
+        let verdict = verify_model_fn sh phi in
+        Results.set_verdict results verdict
+      else results
+  | Translation.Unsat (results, unsat_core) ->
+      Printf.printf "UNSAT\n";
+      if Options.unsat_core () then begin
+        Printf.printf "Unsat core:\n";
+        List.iter (fun a -> Format.printf " - %s\n" (Z3.Expr.to_string a)) unsat_core
+      end;
+      results
+  | Translation.Unknown (results, reason) ->
+      Printf.printf "Unknown: %s\n" reason; results

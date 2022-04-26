@@ -399,10 +399,8 @@ let translate_phi context phi =
     let size = Z3_utils.expr_size translated in
     let solver = init_solver context.solver in
 
-    if Options.debug () then begin
-      Debug.translated (context.solver, translated);
-      Debug.context context
-    end;
+    Debug.translated (context.solver, translated);
+    Debug.context context;
 
     Printf.printf "Translating
      - Stack bound: %d
@@ -417,20 +415,17 @@ let translate_phi context phi =
     match Solver.check solver [translated] (*to_assert_list translated*) with
     | SATISFIABLE ->
       let model = Option.get @@ Solver.get_model solver in
-
-      if Options.debug () then begin
-        Debug.smt_model model
-      end;
+      Debug.smt_model model;
       let sh = translate_model context model in
-      let results = Results.create info size `SAT in
+      let results = Results.create info (Some sh) size `SAT in
       Sat (sh, model, results)
     | UNSATISFIABLE ->
-      let results = Results.create info size `UNSAT in
+      let results = Results.create info None size `UNSAT in
       let unsat_core = Solver.get_unsat_core solver in
       Unsat (results, unsat_core)
     | UNKNOWN ->
       let reason = Solver.get_reason_unknown solver in
-      let results = Results.create info size `UNKNOWN in
+      let results = Results.create info None size `UNKNOWN in
       Unknown (results, reason)
 
 end

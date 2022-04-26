@@ -23,7 +23,9 @@ let location_bound phi g stack_bound = match SSL.classify_fragment phi with
   | Positive ->
       let max = 2 * stack_bound in
       let n = LengthGraph.nb_must_pointers g in
-      max - n
+      if not @@ List.mem Variable.Nil (SSL.get_vars phi)
+      then max - n
+      else max - 1 (* nil cannot have a successor *)
   (* TODO : tighter bounds for negative formulas *)
   | Arbitrary -> 4 * stack_bound
 

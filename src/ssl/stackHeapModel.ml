@@ -28,7 +28,18 @@ module Footprint = struct
     "{" ^ String.concat ", " names ^ "}"
 end
 
-module Stack = Map.Make(SSL.Variable)
+module Stack = struct
+  include Map.Make(SSL.Variable)
+
+  let find var stack =
+    try find var stack
+    with Not_found ->
+      failwith (Format.asprintf
+        "Internal error: Stack image of variable %a is undefined" SSL.Variable.pp var
+      )
+
+end
+
 module Heap = Map.Make(Location)
 
 type t = {
@@ -60,14 +71,20 @@ let get_stack sh = sh.stack
 
 let get_heap sh = sh.heap
 
-let get_footprint sh psi = SSL.Map.find psi sh.footprints
+let get_footprint sh psi =
+  try SSL.Map.find psi sh.footprints
+  with Not_found ->
+    failwith (Format.asprintf
+      "Internal error: No footprint certificate for sub-formula %a" SSL.pp psi
+    )
 
 (** Relevant only for subformulas of septraction *)
 let get_subformula_model sh psi =
   try {sh with heap = SSL.Map.find psi sh.heaps}
   with Not_found ->
-    Printf.printf "Formula: %s" (SSL.show psi);
-    raise Not_found
+    failwith (Format.asprintf
+      "Internal error: No witness heap for sub-formula %a" SSL.pp psi
+    )
 
 let stack_inverse sh loc =
   Stack.fold
