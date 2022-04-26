@@ -9,7 +9,7 @@ open Context
 
 let debug_dir = "astral_debug"
 
-let path_ast = debug_dir ^ "/" ^ "ast.dot"
+let path_ast file = debug_dir ^ "/" ^ file ^ ".dot"
 let path_smt_model = debug_dir ^ "/" ^ "smt_model.out"
 let path_model_dot = debug_dir ^ "/" ^ "model.dot"
 
@@ -23,7 +23,7 @@ let debug_out file content =
   close_out channel
 
 (** Recursively remove a directory *)
-let rec rm path = 
+let rec rm path =
   if Sys.is_directory path then begin
     Sys.readdir path
     |> Array.iter (fun f -> rm @@ Filename.concat path f);
@@ -46,9 +46,13 @@ let init () =
     Sys.mkdir debug_dir 0o775
   end
 
-let formula phi =
-  debug_out "phi.out" (SSL.show phi);
-  SSLUtils.out_ast path_ast phi
+let formula suffix phi =
+  let out_file =
+    if suffix = "" then "phi"
+    else "phi_" ^ suffix
+  in
+  debug_out (out_file ^ ".out") (SSL.show phi);
+  SSLUtils.out_ast (path_ast out_file) phi
 
 let context context =
   LengthGraph.output_file context.length_graph length_graph_dot;
@@ -74,8 +78,9 @@ let smt_model model =
   debug_out "smt_model.smt2" (Z3.Model.to_string model)
 
 (** Decorated functions *)
-let formula    = decorate formula
 let context    = decorate context
 let translated = decorate translated
 let model      = decorate model
 let smt_model  = decorate smt_model
+
+let formula ?(suffix="") = decorate (formula suffix)

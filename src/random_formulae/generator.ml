@@ -70,13 +70,11 @@ module Make (Params : PARAMS) = struct
     counter := !counter + 1;
     !counter
 
-  let check phi = match Solver.solve phi (SSL.get_vars phi) with
-    | Translation.Sat (sh, _, _) ->
-      Printf.printf "SAT\n\n";
-      ModelChecker.check sh phi
-    | _ ->
-      Printf.printf "UNSAT\n\n";
-      true
+  let check phi =
+    let res = Solver.solve phi (SSL.get_vars phi) ~verify_model:true in
+    match res.status with
+    | `SAT -> Option.get res.model_verified
+    | `UNSAT -> true
 
   let dump_assert store prefix phi =
     Format.printf "Testing: %a\n" SSL.pp phi;

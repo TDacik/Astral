@@ -4,7 +4,7 @@
 
 val init : unit -> unit
 
-val formula : SSL.t -> unit
+val formula : ?suffix:string -> SSL.t -> unit
 
 val context : Context.t -> unit
 

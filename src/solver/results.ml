@@ -17,6 +17,7 @@ type t = {
   info : info;
   size : int;
   status : status;
+  model : StackHeapModel.t option;
   model_verified : bool option;
 }
 
@@ -28,14 +29,15 @@ let create_info formula vars g stack_bound heap_bound = {
   heap_bound = heap_bound;
 }
 
-let create info size ?(model_verified=None) status = {
+let create info sh size ?(model_verified=None) status = {
   info = info;
   size = size;
   status = status;
+  model = sh;
   model_verified = model_verified;
 }
 
-let set_verdict result verdict = {result with model_verified = Some verdict}
+let set_verdict result verdict = {result with model_verified = verdict}
 
 let input_string res = SSL.show res.info.formula
 
