@@ -116,8 +116,29 @@ let parse_definitions defs_group =
       | _ -> acc
   ) [] defs
 
+(** Preprocessing on the level of the input file *)
+let preprocess file =
+  let channel = open_in file in
+  let content = really_input_string channel (in_channel_length channel) in
+  close_in channel;
+
+  (* Remove declare-heap command -- TODO: more general *)
+  let re = Str.regexp "(declare-heap (Loc Loc))" in
+  Str.global_replace re "" content
+
+let parse_aux file content =
+  let _, fn, _ = Parser.parse_input (`Contents (file, content)) in
+  let rec unpack generator acc =
+    match generator () with
+    | None -> acc
+    | Some x -> unpack generator (x :: acc)
+  in
+  List.rev @@ unpack fn []
+
+(** Parsing *)
 let parse file =
-  let _, statements = Parser.parse_file file in
+  let content = preprocess file in
+  let statements = parse_aux file content in
   let assertions, vars = List.fold_left
     (fun (assertions, vars) stmt -> match stmt.descr with
       | Antecedent term -> ((parse_term term) :: assertions, vars)
