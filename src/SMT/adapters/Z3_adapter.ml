@@ -2,23 +2,30 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
+open Adapter_sig
+
 type t = Z3.Expr.expr
 
-let context = ctx
+let context = ref (Z3.mk_context [])
 
 (** Translation of SMT expressions *)
-let translate = function
-  | Variable (x, _) -> failwith ""
+let rec translate = function
+  | SMT.Variable (x, _) -> failwith ""
 
-  | True -> Boolean.mk_true context
-  | False -> Boolean.mk_false context
-  | And es -> Boolean.mk_and context es
-  | Or es -> Boolean.mk_or context es
-  | Not e -> Boolean.mk_not context e
-  | Implies (e1, e2) -> Boolean.mk_implies context e1 e2
+  | SMT.True -> Z3.Boolean.mk_true !context
+  | SMT.False -> Z3.Boolean.mk_false !context
+  | SMT.And es -> Z3.Boolean.mk_and !context (List.map translate es)
+  | SMT.Or es -> Z3.Boolean.mk_or !context (List.map translate es)
+  | SMT.Not e -> Z3.Boolean.mk_not !context (translate e)
+  | SMT.Implies (e1, e2) -> Z3.Boolean.mk_implies !context (translate e1) (translate e2)
 
-  | Union (e1, e2) -> Set.mk_union context [e1; e2]
-  | Inter (e1, e2) -> Set.mk_inter context [e1; e2]
+  | SMT.Union sets -> Z3.Set.mk_union !context (List.map translate sets)
+  | SMT.Inter sets-> Z3.Set.mk_intersection !context (List.map translate sets)
 
 
-let solve = ()
+let solve (phi : SMT.term) =
+  let solver = Z3.Solver.mk_simple_solver ctx in
+  match Solver.check solver [translate phi] with
+  | Solver.SATISFIABLE -> SMT.Sat
+  | Solver.UNSATISFIABLE -> SMT.Unsat
+  | Solver.UNKNOWN -> SMT.Unknown

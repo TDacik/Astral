@@ -2,7 +2,6 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-open Z3
 open Batteries
 
 open SSL
@@ -15,7 +14,7 @@ type t = {
   vars : Variable.t list;
 
   (* Abstractions *)
-  length_graph : LengthGraph.G.t;
+  sl_graph : SL_graph.t;
 
   stack_bound : int * int;
   bound : int;
@@ -23,38 +22,37 @@ type t = {
   (* Translation context *)
   polarity : bool;
 
-  solver : Z3.context;
+  locs_sort : SMT.Sort.t;
+  footprint_sort : SMT.Sort.t;
+  heap_sort : SMT.Sort.t;
 
-  locs_sort : Z3.Sort.sort;
-  footprint_sort : Z3.Sort.sort;
-
-  heap : Expr.expr;
-  locs : Expr.expr list;
-  global_footprint : Expr.expr;
+  heap : SMT.Term.t;
+  locs : SMT.Term.t list;
+  global_footprint : SMT.Term.t;
 }
 
-let formula_footprint context psi =
-  let id = SSL.subformula_id context.phi psi in
+let formula_footprint ?(physically=true) context psi =
+  let id = SSL.subformula_id ~physically context.phi psi in
   Format.asprintf "footprint%d" id
 
 let formula_witness_heap context psi =
   let id = SSL.subformula_id context.phi psi in
   Format.asprintf "heap%d" id
 
-let init info solver locs_sort locs fp_sort global_fp heap =
+let init info locs_sort locs fp_sort global_fp heap_sort heap =
 {
   phi = info.formula;
   vars = info.variables;
 
-  length_graph = info.length_graph;
+  sl_graph = info.sl_graph;
   bound = info.heap_bound;
   stack_bound = info.stack_bound;
 
   polarity = true;
 
-  solver = solver;
   locs_sort = locs_sort;
   footprint_sort = fp_sort;
+  heap_sort = heap_sort;
 
   heap = heap;
   locs = locs;

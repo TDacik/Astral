@@ -10,30 +10,31 @@ module type LOCATIONS = sig
 
   (* {3 Functions used to build Astral's context} *)
 
-  val mk_sort_s : Z3.context -> string -> int -> Z3.Sort.sort
+  val mk_sort : string -> int -> SMT.sort
 
-  val mk_const_s : Z3.context -> Z3.Sort.sort -> string -> Z3.Expr.expr
+  val mk_const : SMT.sort -> string -> SMT.term
 
-  val enumeration : Z3.Sort.sort -> Z3.Expr.expr list
+  val enumeration : SMT.sort -> SMT.term list
 
   (* {3 functions already using Astral's context} *)
 
-  val var_to_expr : Context.t -> SSL.Variable.t -> Z3.Expr.expr
+  val var_to_expr : Context.t -> SSL.Variable.t -> SMT.term
 
-  val vars_to_exprs : Context.t -> Z3.Expr.expr list
+  val vars_to_exprs : Context.t -> SMT.term list
 
-  val location_lemmas : Context.t -> Z3.Expr.expr
 
-  val exists : Context.t -> (Z3.Expr.expr -> Z3.Expr.expr) -> Z3.Expr.expr
+  val location_lemmas : Context.t -> SMT.term
+
+  val exists : Context.t -> (SMT.term -> SMT.term) -> SMT.term
   (** First-order universal quantifier. *)
 
-  val forall : Context.t -> (Z3.Expr.expr -> Z3.Expr.expr) -> Z3.Expr.expr
+  val forall : Context.t -> (SMT.term -> SMT.term) -> SMT.term
   (** First-order universal quantifier. *)
 
-  val exists2 : Context.t -> (Z3.Expr.expr -> Z3.Expr.expr) -> Z3.Expr.expr
+  val exists2 : Context.t -> (SMT.term -> SMT.term) -> SMT.term
   (** Second-order existential quantifier. *)
 
-  val forall2 : Context.t -> (Z3.Expr.expr -> Z3.Expr.expr) -> Z3.Expr.expr
+  val forall2 : Context.t -> (SMT.term -> SMT.term) -> SMT.term
   (** Second-order universal quantifier. *)
 
 end
@@ -44,20 +45,20 @@ module type LIST_ENCODING = sig
 
   val semantics :
     Context.t ->
-    Z3.Expr.expr ->
-    Z3.Expr.expr ->
-    Z3.Expr.expr ->
+    SMT.term ->
+    SMT.term ->
+    SMT.term ->
     local_bound ->
-    Z3.Expr.expr
+    SMT.term
   (** semantics context x y fp *)
 
   val axioms :
     Context.t ->
-    Z3.Expr.expr ->
-    Z3.Expr.expr ->
-    Z3.Expr.expr ->
+    SMT.term ->
+    SMT.term ->
+    SMT.term ->
     local_bound ->
-    Z3.Expr.expr
+    SMT.term
   (** axioms context x y fp *)
 
 end
