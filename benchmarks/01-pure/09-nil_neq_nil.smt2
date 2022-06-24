@@ -4,6 +4,6 @@
 (declare-sort Loc 0)
 (declare-heap (Loc Loc))
 
-(distinct nil nil)
+(assert (distinct nil nil))
 
 (check-sat)

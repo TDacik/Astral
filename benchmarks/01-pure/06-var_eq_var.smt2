@@ -6,6 +6,6 @@
 
 (declare-const x Loc)
 
-(= x x)
+(assert (= x x))
 
 (check-sat)
