@@ -4,8 +4,6 @@
 
 open Batteries
 
-open SMT
-
 open Results
 open Context
 open StackHeapModel
@@ -13,9 +11,11 @@ open StackHeapModel
 open Quantifiers
 
 type result =
-  | Sat of StackHeapModel.t * Model.t * Results.t
+  | Sat of StackHeapModel.t * Results.t
   | Unsat of Results.t * SMT.term list
   | Unknown of Results.t * string
+
+module Print = Printer.Make(struct let name = "Translation" end)
 
 module Make (Encoding : Translation_sig.ENCODING) = struct
 
@@ -27,9 +27,9 @@ module Make (Encoding : Translation_sig.ENCODING) = struct
     let locs_card = info.heap_bound + 1 in (* one for nil *)
     let locs_sort = Locations.mk_sort "Loc" locs_card in
     let locs = Locations.enumeration locs_sort in
-    let fp_sort = Set.mk_sort "footprint" locs_sort in
-    let global_fp = Set.mk_var "global fp" locs_sort in
-    let heap_sort = Array.mk_sort "heap" locs_sort locs_sort in
+    let fp_sort = Set.mk_sort locs_sort in
+    let global_fp = Set.mk_var "global fp" fp_sort in
+    let heap_sort = Array.mk_sort locs_sort locs_sort in
     let heap = Array.mk_var "heap" heap_sort in
     Context.init info locs_sort locs fp_sort global_fp heap_sort heap
 
@@ -50,21 +50,21 @@ module Make (Encoding : Translation_sig.ENCODING) = struct
       )
 
   let mk_strongly_disjoint context footprint1 footprint2 =
-    let range1 = Set.mk_fresh_var "range" context.locs_sort in
-    let range2 = Set.mk_fresh_var "range" context.locs_sort in
+    let range1 = Set.mk_fresh_var "range" context.fp_sort in
+    let range2 = Set.mk_fresh_var "range" context.fp_sort in
 
-    let ls1 = Set.mk_fresh_var "locs" context.locs_sort in
-    let ls2 = Set.mk_fresh_var "locs" context.locs_sort in
+    let ls1 = Set.mk_fresh_var "locs" context.fp_sort in
+    let ls2 = Set.mk_fresh_var "locs" context.fp_sort in
 
     let is_range1 = mk_range context footprint1 range1 in
     let is_range2 = mk_range context footprint2 range2 in
 
-    let locs1 = Set.mk_union [footprint1; range1] in
-    let locs2 = Set.mk_union [footprint2; range2] in
+    let locs1 = Set.mk_union [footprint1; range1] context.fp_sort in
+    let locs2 = Set.mk_union [footprint2; range2] context.fp_sort in
 
-    let common_locs = Set.mk_inter [locs1; locs2] in
+    let common_locs = Set.mk_inter [locs1; locs2] context.fp_sort in
     let variables = Locations.vars_to_exprs context in
-    let stack_image = Set.mk_enumeration context.locs_sort variables in
+    let stack_image = Set.mk_enumeration context.fp_sort variables in
     let strongly_disjoint = Set.mk_subset common_locs stack_image in
 
     let axioms = Boolean.mk_and [is_range1; is_range2] in
@@ -90,7 +90,7 @@ module Make (Encoding : Translation_sig.ENCODING) = struct
   (* ==== Recursive translation of SL formulae ==== *)
 
   let rec translate context phi =
-    let fp = Set.mk_var (formula_footprint context phi) context.locs_sort in
+    let fp = Set.mk_var (formula_footprint context phi) context.fp_sort in
     match phi with
     | SSL.PointsTo (var1, var2) -> translate_pointsto context fp var1 var2
     | SSL.And (psi1, psi2) -> translate_and context fp psi1 psi2
@@ -186,7 +186,7 @@ and translate_star context fp psi1 psi2 =
   let prefix2, phi2, axioms2, fp2 = translate context psi2 in
 
   let separation = Set.mk_disjoint fp1 fp2 in
-  let fp' = Set.mk_union [fp1; fp2] in
+  let fp' = Set.mk_union [fp1; fp2] context.fp_sort in
 
   let fp_def = Set.mk_eq fp fp' in
 
@@ -331,7 +331,7 @@ let translate_phi context phi =
       (fun psi acc ->
         let id = SSL.subformula_id context.phi psi in
         let fp_name = Format.asprintf "footprint%d" id in
-        let fp_expr = Var.mk fp_name context.footprint_sort in
+        let fp_expr = Var.mk fp_name context.fp_sort in
         let set = [] (*Set.inverse_translation context.solver model fp_expr*) in
         let fp = Footprint.of_list @@ List.map translate_loc set in
         SSL.Map.add psi fp acc
@@ -346,7 +346,7 @@ let translate_phi context phi =
           let heap_expr = Var.mk heap_name context.heap_sort in
           let id = SSL.subformula_id context.phi psi2 in
           let fp_name = Format.asprintf "footprint%d" id in
-          let fp_expr = Var.mk fp_name context.footprint_sort in
+          let fp_expr = Var.mk fp_name context.fp_sort in
           let heap = translate_heap context model heap_expr fp_expr in
           SSL.Map.add phi heap acc
         | _ -> acc
@@ -378,23 +378,25 @@ let translate_phi context phi =
     (*TODO: Debug.qf_phi (context.solver, translated); *)
     Debug.context context;
 
-    Printf.printf "Translating
+    Print.debug "Translating
      - Stack bound: %d
      - Location bound:  %d\n"
       (snd info.stack_bound)
       info.heap_bound
      ;
 
-    Printf.printf "Running Z3 solver\n";
+    Print.debug "Running SMT solver\n";
     Timer.add "Astral";
 
-    let model, res = None, false (*ExplicitSolver.solve context translated quantifiers*) in
+    let model, res = ExplicitSolver.solve context translated quantifiers in
     if res then
+      (*
       let model = Option.get model in
       Debug.smt_model model;
       let sh = translate_model context model in
-      let results = Results.create info (Some sh) size `SAT in
-      Sat (sh, model, results)
+      *)
+      let results = Results.create info (None) size `SAT in
+      Sat (StackHeapModel.empty (), results)
 
     else
       let results = Results.create info None size `UNSAT in

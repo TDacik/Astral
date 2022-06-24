@@ -43,9 +43,9 @@ module Locations (Set : SET) = struct
 
   let forall ctx constructor = quantify ctx.locs_sort `Forall constructor
 
-  let exists2 ctx constructor = quantify2 ctx.footprint_sort `Exists2 constructor
+  let exists2 ctx constructor = quantify2 ctx.fp_sort `Exists2 constructor
 
-  let forall2 ctx constructor = quantify2 ctx.footprint_sort `Forall2 constructor
+  let forall2 ctx constructor = quantify2 ctx.fp_sort `Forall2 constructor
 
   (* ==== Location lemmas ==== *)
 

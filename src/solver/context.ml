@@ -23,7 +23,7 @@ type t = {
   polarity : bool;
 
   locs_sort : SMT.Sort.t;
-  footprint_sort : SMT.Sort.t;
+  fp_sort : SMT.Sort.t;
   heap_sort : SMT.Sort.t;
 
   heap : SMT.Term.t;
@@ -51,7 +51,7 @@ let init info locs_sort locs fp_sort global_fp heap_sort heap =
   polarity = true;
 
   locs_sort = locs_sort;
-  footprint_sort = fp_sort;
+  fp_sort = fp_sort;
   heap_sort = heap_sort;
 
   heap = heap;

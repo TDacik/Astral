@@ -40,7 +40,7 @@ module Make (A : SET) (Locations : LOCATIONS) = struct
     else
       List.range 0 `To (i - 1)
       |> List.map (mk_nth_succ ctx x)
-      |> Set.mk_enumeration ctx.footprint_sort
+      |> Set.mk_enumeration ctx.fp_sort
       |> Set.mk_eq fp
 
   let path_i ctx fp x y i =

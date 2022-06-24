@@ -25,11 +25,11 @@ end
 *)
 
 type sort =
-  | Integer of string
+  | Bool
+  | Integer
   | Finite of string * term list
-  | Set of string * sort
-  | Array of string * sort * sort
-  | Dummy (* TODO: remove *)
+  | Set of sort
+  | Array of sort * sort
 
 and term =
   | Constant of String.t
@@ -43,8 +43,8 @@ and term =
   | Membership of term * term
   | Subset of term * term
   | Disjoint of term * term
-  | Union of term list
-  | Inter of term list
+  | Union of term list * sort (* Is sort necessary *)
+  | Inter of term list * sort (* Is sort necessary *)
   | Diff of term * term
   | Compl of term
   | Enumeration of term list * sort
@@ -73,7 +73,7 @@ and term =
 
 let rec substitute ?(bounded=[]) phi x term = match phi with
   | Variable (var, sort) ->
-      if String.equal x var then term
+      if String.equal (match x with Variable (s, _) -> s) var then term
       else Variable (var, sort)
 
   (* Quantifiers *)
@@ -87,7 +87,16 @@ module Sort = struct
 
   type t = sort
 
-  let to_string t = "(TODO)"
+  let get_elem_sort = function Set (elem_sort) -> elem_sort
+  let get_dom_sort = function Array (dom_sort, _) -> dom_sort
+  let get_range_sort = function Array (_, range_sort) -> range_sort
+
+  let rec to_string = function
+    | Bool -> "boolean"
+    | Integer -> "integer"
+    | Finite (name, _) -> "finite " ^ name
+    | Set (elem_sort) -> (to_string elem_sort) ^ " set"
+    | Array (dom, range) -> Format.asprintf "%s -> %s" (to_string dom) (to_string range)
 
 end
 
@@ -97,8 +106,37 @@ module Term = struct
 
   let size _ = 0 (* TODO *)
 
+  let rec get_sort = function
+    | Variable (_, sort) -> sort
 
-  let to_string t = "(TODO)"
+    (* Sets *)
+    | Membership _ | Subset _ | Disjoint _ -> Bool
+    | Union (_, sort) -> sort
+    | Inter (_, sort) -> sort
+    | Diff (s1, _) -> get_sort s1
+    | Compl s -> get_sort s
+    | Enumeration (_, sort) -> sort
+
+    | ConstArr (const) -> failwith "TODO"
+    | Select (a, _) -> get_sort a
+    | Store (a, _, _) -> get_sort a
+
+    | Equal _ -> Bool
+    | Distinct _ -> Bool
+    | And _ -> Bool
+    | Or _ -> Bool
+    | Not _ -> Bool
+    | Implies _ -> Bool
+    | Iff _ -> Bool
+    | True -> Bool
+    | False -> Bool
+
+    (* Quantifiers *)
+    | Exists _ | Forall _ -> Bool
+
+  let to_string = function
+    | Variable (x, sort) -> Format.asprintf "%s : %s" x (Sort.to_string sort)
+    | Constant c -> c
 
 end
 
@@ -106,11 +144,14 @@ module Var = struct
 
   let index = ref (-1)
 
-  let mk name sort = Variable (name, sort)
+  let mk name sort =
+    if String.contains name ' '
+    then Variable ("|" ^ name ^ "|", sort)
+    else Variable (name, sort)
 
   let mk_fresh name sort =
     index := !index + 1;
-    Variable (Format.asprintf "%s#%d" name !index, sort)
+    Variable (Format.asprintf "%s!%d" name !index, sort)
 
 end
 
@@ -122,6 +163,7 @@ module Equality = struct
   let mk_var = Var.mk
   let mk_fresh_var = Var.mk_fresh
 
+  let get_sort = Term.get_sort
 end
 
 module Boolean = struct
@@ -158,7 +200,7 @@ module Array = struct
 
   include Equality
 
-  let mk_sort name dom range = Array (name, dom, range)
+  let mk_sort dom range = Array (dom, range)
 
   let mk_const t = ConstArr t
   let mk_select arr x = Select (arr, x)
@@ -168,21 +210,23 @@ end
 module Set = struct
 
   include Equality
+  let get_elem_sort set = match get_sort set with
+    | Set (elem_sort) -> elem_sort
 
-  let mk_sort name elem_sort = Set (name, elem_sort)
+  let mk_sort elem_sort = Set elem_sort
 
   let mk_mem elem set = Membership (elem, set)
   let mk_subset s1 s2 = Subset (s1, s2)
   let mk_disjoint s1 s2 = Disjoint (s1, s2)
 
-  let mk_union ts = Union ts
-  let mk_inter ts = Inter ts
+  let mk_union ts sort = Union (ts, sort)
+  let mk_inter ts sort = Inter (ts, sort)
   let mk_diff t1 t2 = Diff (t1, t2)
   let mk_compl t = Compl t
   let mk_enumeration sort elements = Enumeration (elements, sort)
 
-  let mk_eq_empty set = Equal (set, Enumeration ([], Dummy))
-  let mk_eq_singleton set x = Equal (set, Enumeration ([x], Dummy))
+  let mk_eq_empty set = Equal (set, Enumeration ([], get_sort set))
+  let mk_eq_singleton set x = Equal (set, Enumeration ([x], get_sort set))
 
 end
 
@@ -194,9 +238,49 @@ module Quantifier = struct
 end
 
 module Model = struct
-  type t
-  let get_const_interp_e _ _ = None
-  let evaluate _ _ _ = None
+
+  include Map.Make(String)
+
+  (*
+  include Map.Make(String)
+  let eval model = function
+    | Constant c ->
+    | Variable (name, sort) -> find name
+
+    (* Sets *)
+    | Membership (x, set) ->
+        if List.mem ...
+    | Subset of term * term
+    | Disjoint of term * term
+    | Union of term list * sort (* Is sort necessary *)
+    | Inter of term list * sort (* Is sort necessary *)
+    | Diff of term * term
+    | Compl of term
+    | Enumeration of term list * sort
+
+  (* Arrays *)
+  | ConstArr of term
+  | Select of term * term
+  | Store of term * term * term
+
+  (* Boolean *)
+  | Equal of term * term
+  | Distinct of term list
+  | And of term list
+  | Or of term list
+  | Not of term
+  | Implies of term * term
+  | Iff of term * term
+  | True
+  | False
+
+  (* Quantifiers *)
+  | Exists of term * term
+  | Forall of term * term
+*)
+  let get_const_interp_e _ _ = failwith ""
+  let evaluate _ _ _ = failwith ""
+
 end
 
 
