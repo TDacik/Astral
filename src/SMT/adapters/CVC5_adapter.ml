@@ -6,11 +6,39 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-type t = string
+open Solver_utils
+
+module Batlist = Batteries.List
+
+(* === Declarations === *)
+
+type formula = string (* in smtlib2 format *)
+
+type model = SMT.Model.t
+
+type status =
+ | SMT_Sat of model
+ | SMT_Unsat of SMT.Term.t list
+ | SMT_Unknown of string
+
+let name = "cvc5"
+
+
+(* === Initialization === *)
 
 let defs = ref []
 
 let declarations = ref ""
+
+let check_installation () =
+  match Sys.command "cvc5 --version >/dev/null 2>/dev/null" with
+  | 0 -> ()
+  | _ -> raise Not_available
+
+let init () =
+  check_installation ();
+  defs := [];
+  declarations := ""
 
 let add_declaration str =
   if List.mem str !defs
@@ -18,6 +46,9 @@ let add_declaration str =
   else
     declarations := !declarations ^ "\n" ^ str;
     defs := str :: !defs
+
+
+(* === Translation === *)
 
 let rec translate term = match term with
   | SMT.Variable (x, sort) ->
@@ -72,7 +103,10 @@ let rec translate term = match term with
       (translate_sort @@ SMT.Term.get_sort x)
       (translate phi)
 
+  | SMT.IntConst i -> Format.asprintf "%d" i
   | SMT.Plus (e1, e2) -> Format.asprintf "(+ %s %s)" (translate e1) (translate e2)
+  | SMT.Minus (e1, e2) -> Format.asprintf "(- %s %s)" (translate e1) (translate e2)
+  | SMT.Mult (e1, e2) -> Format.asprintf "(* %s %s)" (translate e1) (translate e2)
 
 and translate_sort = function
   | SMT.Bool -> "Bool"
@@ -81,7 +115,7 @@ and translate_sort = function
   | SMT.Array (d, r) -> "(Array " ^ (translate_sort d) ^ " " ^ (translate_sort r) ^ ")"
   | SMT.Finite (name, consts) ->
       (* Datatype with constant constructors only *)
-      let constructors = String.concat " " @@ List.map (fun c -> "(loc" ^ SMT.Term.to_string c ^ ")") consts in
+      let constructors = String.concat " " @@ List.map (fun c -> "(|" ^ c ^ "|)") consts in
       let decl = "(declare-datatypes ((Loc 0)) ((" ^ constructors ^ ")))" in
       add_declaration decl;
       name
@@ -90,8 +124,11 @@ and translate_expr_list exprs =
   List.map translate exprs
   |> String.concat " "
 
+(* === Solver === *)
+
 let solve phi =
-  let smt_query = Format.asprintf "(set-logic ALL)\n%s\n(assert %s)\n(check-sat)"
+  let smt_query = Format.asprintf
+  "(set-logic ALL)\n%s\n(assert %s)\n(check-sat)\n(get-info :reason-unknown)\n(get-model)"
     !declarations
     (translate phi)
   in
@@ -99,11 +136,31 @@ let solve phi =
   let answer_filename = Filename.temp_file "cvc_answer" ".txt" in
   Printf.fprintf query_channel "%s" smt_query;
   close_out query_channel;
-  let retcode = Sys.command ("cvc5 " ^ query_filename ^ " > " ^ answer_filename) in
+  let retcode =
+    Sys.command ("cvc5 --produce-models " ^ query_filename ^ " > " ^ answer_filename)
+  in
 
   (* Read answer *)
   let channel = open_in answer_filename in
-  match input_line channel with
-  | "sat" -> SMT.SMT_Sat
-  | "unsat" -> SMT.SMT_Unsat
-  | other -> failwith other
+  let status_line = input_line channel in
+  let reason_unknown = input_line channel in
+  let model =
+    In_channel.input_all channel
+    |> String.split_on_char '\n'
+    |> Batlist.drop 1
+    |> List.rev
+    |> Batlist.drop 2
+    |> List.rev
+    |> String.concat "\n"
+  in
+
+  match status_line with
+  | "sat" -> SMT_Sat (ModelParser.parse model)
+  | "unsat" -> SMT_Unsat [] (* TODO: unsat core *)
+  | "unknown" -> SMT_Unknown reason_unknown
+  | error -> failwith ("[ERROR cvc5] " ^ error)
+
+
+(* === Model manipulation === *)
+
+let eval = SMT.Model.eval

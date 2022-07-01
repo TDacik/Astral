@@ -2,14 +2,35 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-type t = Z3.Expr.expr
+open Solver_utils
+
+(* === Declarations === *)
+
+type formula = Z3.Expr.expr
+
 type model = Z3.Model.model
+
+type status =
+ | SMT_Sat of model
+ | SMT_Unsat of SMT.Term.t list
+ | SMT_Unknown of string
+
+let name = "Z3"
+
+(* === Initialization === *)
 
 let context = ref (Z3.mk_context [])
 
-(** Translation of SMT expressions *)
+let solver = ref (Z3.Solver.mk_simple_solver !context)
+
+let init () =
+  context := Z3.mk_context [];
+  solver := Z3.Solver.mk_simple_solver !context
+
+(* === Translation === *)
+
 let rec translate = function
-  | SMT.Constant name -> failwith "translation of constant not implemented"
+  | SMT.Constant (name, sort) -> Z3.Expr.mk_const_s !context name (translate_sort sort)
   | SMT.Variable (x, sort) -> Z3.Expr.mk_const_s !context x (translate_sort sort)
 
   | SMT.True -> Z3.Boolean.mk_true !context
@@ -23,10 +44,7 @@ let rec translate = function
   | SMT.Iff (e1, e2) -> Z3.Boolean.mk_iff !context (translate e1) (translate e2)
 
   | SMT.Membership (x, s) -> Z3.Set.mk_membership !context (translate x) (translate s)
-  | SMT.Subset (s1, s2) ->
-      let _ = Format.printf "%s\n" (SMT.Term.to_string s1) in
-      let _ = Format.printf "%s : %s\n" (Z3.Expr.to_string (translate s1)) (Z3.Sort.to_string @@ Z3.Expr.get_sort (translate s1)) in
-      Z3.Set.mk_subset !context (translate s1) (translate s2)
+  | SMT.Subset (s1, s2) -> Z3.Set.mk_subset !context (translate s1) (translate s2)
   | SMT.Union (sets, _) -> Z3.Set.mk_union !context (List.map translate sets)
   | SMT.Inter (sets, _) -> Z3.Set.mk_intersection !context (List.map translate sets)
   | SMT.Diff (s1, s2) -> Z3.Set.mk_difference !context (translate s1) (translate s2)
@@ -47,6 +65,12 @@ let rec translate = function
   | SMT.Select (a, i) -> Z3.Z3Array.mk_select !context (translate a) (translate i)
   | SMT.Store (a, i, v) -> Z3.Z3Array.mk_store !context (translate a) (translate i) (translate v)
 
+
+  | SMT.IntConst i -> Z3.Arithmetic.Integer.mk_numeral_i !context i
+  | SMT.Plus (e1, e2) -> Z3.Arithmetic.mk_add !context [translate e1; translate e2]
+  | SMT.Minus (e1, e2) -> Z3.Arithmetic.mk_sub !context [translate e1; translate e2]
+  | SMT.Mult (e1, e2) -> Z3.Arithmetic.mk_mul !context [translate e1; translate e2]
+
   | SMT.Exists (x, phi) ->
       let binder_e = translate x in
       Z3.Quantifier.mk_exists_const !context [binder_e] (translate phi) None [] [] None None
@@ -60,24 +84,50 @@ let rec translate = function
 and translate_sort = function
   | SMT.Bool -> Z3.Boolean.mk_sort !context
   | SMT.Integer -> Z3.Arithmetic.Integer.mk_sort !context
-  | SMT.Finite (name, consts) ->
-      Z3.Enumeration.mk_sort_s !context name (List.map SMT.Term.to_string consts)
+  | SMT.Finite (name, cs) -> Z3.Enumeration.mk_sort_s !context name cs
   | SMT.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
   | SMT.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
 
-let solve (phi : SMT.term) =
-  let solver = Z3.Solver.mk_simple_solver !context in
-  Printf.printf "%s\n" (Z3.SMT.benchmark_to_smtstring !context
-    "Input for solver"
-    "ALL"
-    "unknown"
-    ""
-    []
-    (translate phi)
-  );
-  match Z3.Solver.check solver [translate phi] with
-  | Z3.Solver.SATISFIABLE -> SMT.SMT_Sat
-  | Z3.Solver.UNSATISFIABLE -> SMT.SMT_Unsat
-  | Z3.Solver.UNKNOWN -> SMT.SMT_Unknown
+(* === Solver === *)
 
-let evaluate term model = None
+let solve phi =
+  let phi = translate phi in
+  match Z3.Solver.check !solver [phi] with
+  | Z3.Solver.SATISFIABLE ->
+      let model = Option.get @@ Z3.Solver.get_model !solver in
+      SMT_Sat model
+
+  (* TODO: unsat core *)
+  | Z3.Solver.UNSATISFIABLE ->
+      let unsat_core = [] in
+      SMT_Unsat unsat_core
+
+  | Z3.Solver.UNKNOWN ->
+      let reason = Z3.Solver.get_reason_unknown !solver in
+      SMT_Unknown reason
+
+(* === Model manipulation === *)
+
+let rec inverse_translate model sort expr = match sort with
+  | SMT.Finite _ -> SMT.Enumeration.mk_const sort (Z3.Expr.to_string expr)
+  | SMT.Set _ ->
+    let elem_sort = Z3.Z3Array.get_domain @@ Z3.Expr.get_sort expr in
+    let elems = Z3.Enumeration.get_consts elem_sort in
+    List.fold_left
+    (fun acc elem ->
+      match Z3.Model.eval model (Z3.Set.mk_membership !context elem expr) false with
+      | Some res ->
+          if Z3.Boolean.is_true res then elem :: acc
+          else acc
+      | None -> failwith "Internal error"
+    ) [] elems
+    |> List.map (inverse_translate model (SMT.Sort.get_elem_sort sort))
+    |> SMT.Set.mk_enumeration (SMT.Sort.get_elem_sort sort)
+
+  | _ -> failwith ("Cannot convert Z3 expression:" ^ Z3.Expr.to_string expr)
+
+let eval model term =
+  try
+    let sort = SMT.Term.get_sort term in
+    inverse_translate model sort @@ Option.get @@ Z3.Model.eval model (translate term) true
+  with Invalid_argument _ | Z3.Error _ -> raise Evaluation_failed
