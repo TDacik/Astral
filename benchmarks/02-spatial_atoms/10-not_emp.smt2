@@ -4,6 +4,6 @@
 (declare-sort Loc 0)
 (declare-heap (Loc Loc))
 
-(assert emp)
+(assert (not emp))
 
 (check-sat)
