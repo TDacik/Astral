@@ -372,23 +372,28 @@ let translate_phi context phi =
       info.heap_bound
      ;
 
-    Print.debug "Running backend SMT solver\n";
-    Timer.add "Astral";
-
     (* Quantifier elimination *)
+    Print.debug "Eliminating quantifiers\n";
+    Timer.add "Quantifier elimination";
+
     let phi = match Options.quantifier_elim_method () with
       | `None -> QuantifierElimination.none translated quantifiers
       | `Expand -> QuantifierElimination.expand context translated quantifiers
     in
 
+    Print.debug "Running backend SMT solver\n";
+    Timer.add "Astral";
+
     (* Solve *)
     Backend.init ();
+    Debug.backend_translated (Backend.show_formula (Backend.translate phi));
 
     match Backend.solve phi with
     | SMT_Sat model ->
       (*Debug.smt_model model;*)
       let sh = translate_model context model in
       Debug.model sh;
+      Debug.backend_model (Backend.show_model model);
       let results = Results.create info (Some sh) size `SAT in
       Sat (StackHeapModel.empty (), results)
 

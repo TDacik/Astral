@@ -164,3 +164,9 @@ let solve phi =
 (* === Model manipulation === *)
 
 let eval = SMT.Model.eval
+
+
+(* === Debugging === *)
+
+let show_formula phi = phi
+let show_model model = SMT.Model.show model

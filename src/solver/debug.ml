@@ -70,11 +70,21 @@ let model sh =
 let smt_model model =
   debug_out "smt_model.out" (SMT.Model.show model)
 
+
+(* === Backend's data === *)
+
+let backend_translated str = debug_out "backend_translated.smt2" str
+let backend_model str = debug_out "backend_model.smt2" str
+
+
 (** Decorated functions *)
 let context    = decorate context
 let qf_phi     = decorate qf_phi
 let translated = decorate translated
 let model      = decorate model
 let smt_model  = decorate smt_model
+
+let backend_translated = decorate backend_translated
+let backend_model = decorate backend_model
 
 let formula ?(suffix="") = decorate (formula suffix)

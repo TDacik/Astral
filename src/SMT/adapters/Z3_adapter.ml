@@ -131,3 +131,9 @@ let eval model term =
     let sort = SMT.Term.get_sort term in
     inverse_translate model sort @@ Option.get @@ Z3.Model.eval model (translate term) true
   with Invalid_argument _ | Z3.Error _ -> raise Evaluation_failed
+
+
+(* === Debugging === *)
+
+let show_formula phi = Z3.Expr.to_string phi
+let show_model model = Z3.Model.to_string model
