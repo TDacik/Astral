@@ -47,7 +47,7 @@ module Variable = struct
 
   type t =
     | Var of var
-    | Term of LIA.t
+    | Term of SMT.Term.t
     | Nil
   [@@deriving compare, equal]
 
@@ -76,7 +76,7 @@ module Variable = struct
 
   let show = function
     | Var var -> var.name
-    | Term t -> LIA.show t
+    | Term t -> SMT.Term.show t
     | Nil -> "nil"
 
   let hash v = match v with
@@ -136,6 +136,10 @@ let get_arity = function
   | Eq (v1, v2) -> Atom (v1, v2)
   | Neq (v1, v2) -> Atom (v1, v2)
 
+let is_atom phi = match get_arity phi with
+  | Atom _ -> true
+  | _ -> false
+
 (** Transform suitable negations to guarded form *)
 let rec _normalise = function
   | And (f1, f2) -> begin match f1, f2 with
@@ -164,7 +168,7 @@ let rec _normalise = function
   | Septraction (f1, f2) -> Septraction (_normalise f1, _normalise f2)
   | atom -> atom
 
-(* Normalise until fixpoint *)
+(** Perform normalisation until fixpoint is reached *)
 let rec normalise phi =
   let phi' = _normalise phi in
   if equal phi' phi then phi'
@@ -185,9 +189,10 @@ let rec fold (fn : t -> 'a -> 'a) phi (acc : 'a) = match get_arity phi with
 exception NotSubformula
 
 (* TODO: more effectively *)
-let subformula_id phi psi =
+let subformula_id ?(physically=true) phi psi =
   let rec subformula_id phi psi id =
-    if phi == psi then (Some id, id)
+    let eq = if physically then (==) else (=) in
+    if eq phi psi then (Some id, id)
     else match get_arity phi with
     | Atom _ -> (None, id)
     | Unary phi' -> subformula_id phi' psi (id+1)

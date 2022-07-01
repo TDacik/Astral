@@ -17,6 +17,3 @@ module EncodingSH = struct
   open ListEncoding.Make(Set)(Locations)
   module ListEncoding = SymbolicHeaps
 end
-
-module TranslationN = Translation.Make(Encoding)
-module TranslationSH = Translation.Make(EncodingSH)

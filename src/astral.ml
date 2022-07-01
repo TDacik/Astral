@@ -13,7 +13,7 @@ let run () =
   end;
 
   let input_file = match Options.input_file () with
-    | None -> Options.exit_usage 1; ""
+    | None -> Options.exit_usage 1
     | Some file -> file
   in
   let phi, vars = SmtlibParser.parse input_file in
