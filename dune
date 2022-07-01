@@ -1,13 +1,11 @@
 (data_only_dirs
   benchmarks
-  evaluation
   scripts
-  tests
 )
 
 (env
     (dev
-        (flags (:standard -w -8    ; Partial patter-matching
+        (flags (:standard -w -8    ; Partial pattern-matching
                           -w -32   ; Unused value declaration
                           -w -26   ; Unused var
                           -w -27   ; Unused var strict
@@ -17,7 +15,9 @@
     )
 )
 
+;; Tests
+
 (rule
-    (alias test)
-    (action (run python3.9 run_tests.py))
+    (alias runtest)
+    (action (run bash -c "cd scripts; python3.9 run_tests.py"))
 )

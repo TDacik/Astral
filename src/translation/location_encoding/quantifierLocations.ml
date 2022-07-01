@@ -13,7 +13,7 @@ module Locations (Set : SET) = struct
 
   let mk_sort str n =
     let names =
-      List.map (fun x -> Enumeration.mk_const (Format.asprintf "%d" x)) (List.range 1 `To n)
+      List.map (fun x -> Format.asprintf "%d" x) (List.range 1 `To n)
     in
     Enumeration.mk_sort str names
 

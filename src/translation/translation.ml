@@ -8,8 +8,6 @@ open Results
 open Context
 open StackHeapModel
 
-open Quantifiers
-
 type result =
   | Sat of StackHeapModel.t * Results.t
   | Unsat of Results.t * SMT.term list
@@ -17,10 +15,11 @@ type result =
 
 module Print = Printer.Make(struct let name = "Translation" end)
 
-module Make (Encoding : Translation_sig.ENCODING) = struct
+module Make (Encoding : Translation_sig.ENCODING) (Backend : Solver_sig.SOLVER) = struct
 
   open Encoding
   open SMT
+  open Quantifiers
 
   (** Initialization of Z3 context and translation context *)
   let init phi info =
@@ -83,9 +82,7 @@ module Make (Encoding : Translation_sig.ENCODING) = struct
 
   let term_to_expr context x = match x with
     | SSL.Variable.Var _ | SSL.Variable.Nil -> Locations.var_to_expr context x
-    (* TODO:
-    | SSL.Variable.Term t -> LIA.translate context.solver t
-    *)
+    | SSL.Variable.Term t -> t
 
   (* ==== Recursive translation of SL formulae ==== *)
 
@@ -143,9 +140,9 @@ module Make (Encoding : Translation_sig.ENCODING) = struct
   and translate_not context fp' phi =
     let prefix, psi, axioms, fp = translate {context with polarity = not context.polarity} phi in
 
-    (*
-    let prefix = QuantifierTree.join_choice [Exists fp'] (QuantifierPrefix.negate prefix) in
-    *)
+    let q = Quantifier.mk_exists fp' in
+    let prefix = QuantifierPrefix.prepend q (QuantifierPrefix.negate prefix) in
+
     let not_psi = Boolean.mk_not psi in
     let not_fp = Set.mk_distinct [fp; fp'] in
     let semantics = Boolean.mk_or [not_psi; not_fp] in
@@ -178,7 +175,8 @@ module Make (Encoding : Translation_sig.ENCODING) = struct
     let fp_def = Boolean.mk_or [case1_fp; case2_fp] in
     let axioms = Boolean.mk_and [axioms1; axioms2; fp_def] in
 
-    let prefix = QuantifierPrefix.join_choice prefix1 prefix2 `Exists fp [fp1; fp2] in
+    let prefix = QuantifierPrefix.join_choice prefix1 prefix2 `Exists ~range:(Some [fp1; fp2]) fp
+    in
     (prefix, semantics, axioms, fp)
 
 and translate_star context fp psi1 psi2 =
@@ -284,47 +282,43 @@ let translate_phi context phi =
 
   (* ==== Translation of SMT model to stack-heap model ==== *)
 
-  let translate_loc expr =
-    let name = Term.to_string expr in
-    try int_of_string @@ List.nth (String.split_on_char '|' name) 1
-    with _ -> failwith ("Cannot convert numeral " ^ name)
+  let translate_loc loc =
+    try
+      Term.show loc
+      |> String.split_on_char '|'
+      |> (fun xs -> List.nth xs 1)
+      |> int_of_string
+    with _ ->
+      try int_of_string @@ Term.show loc
+      with _ -> failwith ("Cannot convert location " ^ Term.show loc)
 
   let nil_interp context model =
     let e = Var.mk (SSL.Variable.show Nil) context.locs_sort in
-    match Model.get_const_interp_e model e with
-    | Some loc -> translate_loc loc
-    | None -> failwith "No interpretation of nil"
+    Backend.eval model e
 
   let translate_stack context model =
     List.fold_left
       (fun stack var ->
-        let var_expr =
-          Var.mk (SSL.Variable.show var) context.locs_sort
+        let var_expr = Var.mk (SSL.Variable.show var) context.locs_sort in
+        let loc =
+          try Backend.eval model var_expr
+          with Not_found -> nil_interp context model
         in
-        match Model.get_const_interp_e model var_expr with
-        | Some loc ->
-            Stack.add var (translate_loc loc) stack
-        (* If some variable is not part of the model, we can safely map it to nil *)
-        | None ->
-            let nil_loc = nil_interp context model in
-            Stack.add var nil_loc stack
+        Stack.add var (translate_loc loc) stack
       ) Stack.empty context.vars
 
-  let translate_heap context model heap fp =
-    let fp = [] (*TODO: Set.inverse_translation model fp*) in
-    match Model.get_const_interp_e model heap with
-    | Some heap_expr ->
-        List.fold_left
-        (fun heap loc ->
-          let heap_image = Array.mk_select heap_expr loc in
-          let loc_name = translate_loc loc in
-          let image_name = match Model.evaluate model heap_image false with
-          | Some loc -> translate_loc loc
-          | None -> failwith ("No interpretation of" ^ string_of_int @@ loc_name)
-          in
-          Heap.add loc_name image_name heap
-        ) Heap.empty fp
-    | None -> failwith ("No interpretation of heap")
+  let translate_heap context model heap_term fp =
+    let fp = SMT.Set.get_elems @@ Backend.eval model fp in
+    List.fold_left
+      (fun heap loc ->
+        let heap_image = Array.mk_select heap_term loc in
+        let loc_name = translate_loc loc in
+        let image_name =
+          Backend.eval model heap_image
+          |> translate_loc
+        in
+        Heap.add loc_name image_name heap
+      ) Heap.empty fp
 
   let translate_footprints context model =
     SSL.fold
@@ -332,7 +326,7 @@ let translate_phi context phi =
         let id = SSL.subformula_id context.phi psi in
         let fp_name = Format.asprintf "footprint%d" id in
         let fp_expr = Var.mk fp_name context.fp_sort in
-        let set = [] (*Set.inverse_translation context.solver model fp_expr*) in
+        let set = SMT.Set.get_elems @@ Backend.eval model fp_expr in
         let fp = Footprint.of_list @@ List.map translate_loc set in
         SSL.Map.add psi fp acc
       ) context.phi SSL.Map.empty
@@ -362,14 +356,6 @@ let translate_phi context phi =
 
   (* ==== Solver ==== *)
 
-  (*
-  let to_assert_list phi =
-    let phi = Expr.simplify phi None in
-    if Boolean.is_and phi
-    then Expr.get_args phi
-    else [phi]
-  *)
-
   let solve phi info =
     let context = init phi info in
     let translated, quantifiers = translate_phi context phi in
@@ -379,44 +365,39 @@ let translate_phi context phi =
     Debug.context context;
 
     Print.debug "Translating
-     - Stack bound: %d
+     - Stack bound: [%d, %d]
      - Location bound:  %d\n"
+      (fst info.stack_bound)
       (snd info.stack_bound)
       info.heap_bound
      ;
 
-    Print.debug "Running SMT solver\n";
+    Print.debug "Running backend SMT solver\n";
     Timer.add "Astral";
 
-    let model, res = ExplicitSolver.solve context translated quantifiers in
-    if res then
-      (*
-      let model = Option.get model in
-      Debug.smt_model model;
+    (* Quantifier elimination *)
+    let phi = match Options.quantifier_elim_method () with
+      | `None -> QuantifierElimination.none translated quantifiers
+      | `Expand -> QuantifierElimination.expand context translated quantifiers
+    in
+
+    (* Solve *)
+    Backend.init ();
+
+    match Backend.solve phi with
+    | SMT_Sat model ->
+      (*Debug.smt_model model;*)
       let sh = translate_model context model in
-      *)
-      let results = Results.create info (None) size `SAT in
+      Debug.model sh;
+      let results = Results.create info (Some sh) size `SAT in
       Sat (StackHeapModel.empty (), results)
 
-    else
+    | SMT_Unsat core ->
       let results = Results.create info None size `UNSAT in
-      Unsat (results, []) (*TODO: unsat core *)
-    (*
-    (*to_assert_list translated*) with
-    | SATISFIABLE ->
-      let model = Option.get @@ Solver.get_model solver in
-      Debug.smt_model model;
-      let sh = translate_model context model in
-      let results = Results.create info (Some sh) size `SAT in
-      Sat (sh, model, results)
-    | UNSATISFIABLE ->
-      let results = Results.create info None size `UNSAT in
-      let unsat_core = Solver.get_unsat_core solver in
-      Unsat (results, unsat_core)
-    | UNKNOWN ->
-      let reason = Solver.get_reason_unknown solver in
+      Unsat (results, core)
+
+    | SMT_Unknown reason ->
       let results = Results.create info None size `UNKNOWN in
       Unknown (results, reason)
-    *)
 
 end

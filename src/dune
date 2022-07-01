@@ -20,13 +20,11 @@
   (modules_without_implementation
     datatype_sig
     set_sig
+    solver_sig
     translation_sig
     printer_sig
   )
-
 )
-
-; (env (dev (flags (:standard -open Astral.Intro))))
 
 (include_subdirs unqualified)
 
