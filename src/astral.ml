@@ -21,14 +21,12 @@ let run () =
   Timer.add "Parsing";
 
   (* Translate input formula to other format and exit *)
-  match Options.convertor () with
+  let _ = match Options.convertor () with
     | None -> ()
     | Some (module Convertor) ->
       Printf.printf "Translating %s to sloth format\n" "TODO.smt2";
       Convertor.dump "TODO" phi
-  ;
-
-
+  in
 
   Debug.init ();
 

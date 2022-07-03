@@ -144,10 +144,18 @@ let solve phi =
   let channel = open_in answer_filename in
   let status_line = input_line channel in
   let reason_unknown = input_line channel in
+
+  (* TODO: update to In_channel.input_all ...; in ocaml 4.14 *)
+  let rec input_all channel acc =
+    try
+      input_all channel (acc ^ "\n" ^ input_line channel)
+    with End_of_file -> acc
+  in
+
   let model =
-    In_channel.input_all channel
+    input_all channel ""
     |> String.split_on_char '\n'
-    |> Batlist.drop 1
+    |> Batlist.drop 2
     |> List.rev
     |> Batlist.drop 2
     |> List.rev
