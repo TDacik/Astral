@@ -5,6 +5,8 @@
 open SSL
 open Batteries
 
+let name = "predicate unfolding"
+
 let generate_locs n =
   List.range 1 `To n
   |> List.map (fun i -> Format.asprintf "loc%d" i)
@@ -36,3 +38,11 @@ let rec unfold phi n = match phi with
   | Septraction (f1, f2) -> Septraction (unfold f1 n, unfold f2 n)
   | LS (x, y) -> unfold_ls n x y
   | atom -> atom
+
+(* TODO: bound *)
+let convert phi = SSL.show @@ unfold phi 10
+
+let dump file phi =
+  let channel = open_out_gen [Open_creat; Open_wronly] 0o666 file in
+  Printf.fprintf channel "%s\n" (convert phi);
+  close_out channel

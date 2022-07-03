@@ -13,7 +13,7 @@ let run () =
   end;
 
   let input_file = match Options.input_file () with
-    | None -> Options.exit_usage 1
+    | None -> Options.exit_usage 1; ""
     | Some file -> file
   in
   let phi, vars = SmtlibParser.parse input_file in
@@ -21,25 +21,14 @@ let run () =
   Timer.add "Parsing";
 
   (* Translate input formula to other format and exit *)
-  let _ = match Options.translate () with
+  match Options.convertor () with
     | None -> ()
-    | Some mode ->
-      let path = Option.get @@ Options.output_path () in
-      begin match mode with
-        | "sloth" -> begin
-          Printf.printf "Translating %s to sloth format\n" path;
-          SlothTranslator.dump path phi
-        end
-        | "grasshopper" -> begin
-          Printf.printf "Translating %s to grasshopper format\n" path;
-          GrasshopperTranslator.dump path phi
-        end
-        | "unfold" -> begin
-          Printf.printf "Unfolding %s\n" path;
-          SmtlibPrinter.dump path (PredicateUnfolding.unfold phi (2 * List.length vars));
-        end;
-      end
-  in
+    | Some (module Convertor) ->
+      Printf.printf "Translating %s to sloth format\n" "TODO.smt2";
+      Convertor.dump "TODO" phi
+  ;
+
+
 
   Debug.init ();
 

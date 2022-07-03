@@ -2,6 +2,8 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
+open Options_sig
+
 let usage_msg = "astral <input>"
 
 let _debug = ref false
@@ -55,15 +57,35 @@ let quickcheck_store () = !_quickcheck_store
 let _profile = ref false
 let profile () = !_profile
 
+(* == Quantifier Elimination == *)
+
+let _quantifier_elim_method = ref "expand"
+let quantifier_elim_method () = match !_quantifier_elim_method with
+  | "expand" -> `Expand
+  | "none" -> `None
+  | other -> failwith ("unknown quantifier elimination method `" ^ other ^ "`")
+
+(* == Backend == *)
+
+let _backend = ref "z3"
+let backend () = match !_backend with
+  | "cvc5" -> (module CVC5_adapter : Solver_sig.SOLVER)
+  | "z3" -> (module Z3_adapter : Solver_sig.SOLVER)
+  | other -> failwith ("unknown backend `" ^ other ^ "`")
+
+(* == Conversions and preprocessings to other formats == *)
+
+let _convertor = ref "none"
+let convertor () = match !_convertor with
+  | "none" -> None
+  | "sloth" -> Some (module Sloth_convertor : CONVERTOR)
+  | "grasshopper" -> Some (module Grasshopper_convertor : CONVERTOR)
+  | "list_unfold" -> Some (module Predicate_unfolding : CONVERTOR)
+  | other -> failwith ("unknown conversion option `" ^ other ^ "`")
+
 (* == Translation == *)
 
-let _translate = ref ""
-
 let _out_path = ref ""
-
-let translate () = match !_translate with
-  | "" -> None
-  | mode -> Some mode
 
 let output_path () = match !_out_path with
   | "" -> None
@@ -76,13 +98,17 @@ let speclist =
     ("--unsat-core", Arg.Set _unsat_core, "Print unsat core");
     ("--json-output", Arg.Set_string _json_output_file, "Store solver's result as json");
 
+    ("--quantifier-elim-method", Arg.Set_string _quantifier_elim_method,
+      "Method used to quantifier elimination in translated formulae (default expand)");
+    ("--backend", Arg.Set_string _backend, "Backend SMT solver (default cvc5)");
+
     ("--no-abstraction", Arg.Clear _abstraction, "Do not compute precise bounds");
     ("--no-local-bounds", Arg.Clear _local_bounds, "Do not use list-length bounds");
     ("--loc-bound", Arg.Int set_location_bound, "Force location bound");
 
     ("--sl-comp", Arg.Set _sl_comp, "Preprocessing for SL-comp");
 
-    ("--translate", Arg.Set_string _translate, "Translate input formula to other format (sloth | grasshopper | unfold)");
+    ("--convertor", Arg.Set_string _convertor, "Convert input formula to other format (sloth | grasshopper | list_unfold)");
     ("--output", Arg.Set_string _out_path, "Output path of translation");
 
     ("--quickcheck", Arg.Int set_quickcheck_runs, "Run test on random formulae");
