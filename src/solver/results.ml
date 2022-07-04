@@ -6,7 +6,7 @@
 type info = {
   formula : SSL.formula;
   variables : SSL.Variable.t list;
-  length_graph : LengthGraph.t;
+  sl_graph : SL_graph.t;
   stack_bound : int * int;
   heap_bound : int;
 }
@@ -24,7 +24,7 @@ type t = {
 let create_info formula vars g stack_bound heap_bound = {
   formula = formula;
   variables = vars;
-  length_graph = g;
+  sl_graph = g;
   stack_bound = stack_bound;
   heap_bound = heap_bound;
 }

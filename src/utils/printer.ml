@@ -6,11 +6,11 @@ open Printer_sig
 
 module Make (P : PRINTER) = struct
 
-  let info msg = Printf.printf msg
+  let info msg = Format.printf msg
 
-  let warning msg = Printf.printf msg
+  let warning msg = Format.printf msg
 
   let debug msg =
-    if Options.debug () then Printf.printf msg
-    else Printf.ifprintf stdout msg
+    if Options.debug () then Format.printf msg
+    else Format.ifprintf Format.std_formatter msg
 end

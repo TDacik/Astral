@@ -2,7 +2,7 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
-open Solver_sig
+open Backend_sig
 open Translation_sig
 
 type result =
@@ -10,7 +10,7 @@ type result =
   | Unsat of Results.t * SMT.term list
   | Unknown of Results.t * string
 
-module Make (Encoding : ENCODING) (Solver : SOLVER) : sig
+module Make (Encoding : ENCODING) (Solver : BACKEND) : sig
 
   val solve : SSL.t -> Results.info -> result
 
