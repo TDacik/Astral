@@ -235,6 +235,14 @@ let rec has_unique_shape phi = match phi with
   | Eq _ | Neq _ | PointsTo _ -> true
   | And (psi1, psi2) | Star (psi1, psi2) -> has_unique_shape psi1 && has_unique_shape psi2
 
+let rec is_list_free phi = match get_arity phi with
+  | Atom _ -> begin match phi with
+    | LS _ -> false
+    | _ -> true
+  end
+  | Unary psi -> is_list_free phi
+  | Binary (psi1, psi2) -> is_list_free psi1 && is_list_free psi2
+
 type fragment =
   | SymbolicHeap_SAT
   | SymbolicHeap_ENTL

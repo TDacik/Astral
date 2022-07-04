@@ -133,6 +133,8 @@ val has_unique_footprint : formula -> bool
 val has_unique_shape : formula -> bool
 (** There is at most one h such that (s,h) |= \phi *)
 
+val is_list_free : formula -> bool
+
 val fold_on_vars : (Variable.t -> 'a -> 'a) -> 'a -> t -> 'a
 
 val iter_on_subformulas : (t -> unit) -> t -> unit

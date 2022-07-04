@@ -106,15 +106,11 @@ module Make (A : SET) (Locations : LOCATIONS) = struct
 
     let axioms (ctx : Context.t) fp x y _ =
       let cond1 = Boolean.mk_eq x y in
-      let cond2 = Boolean.mk_and [
-        (Boolean.mk_eq (mk_succ ctx x) y);
-        (Boolean.mk_not @@ Boolean.mk_eq x y)
-      ]
-      in
+      let cond2 = Boolean.mk_distinct [x; y] in
       let fp1 = Set.mk_eq_empty fp in
       let fp2 = Set.mk_eq_singleton fp x in
-      let case1 = Boolean.mk_implies cond1 fp1 in
-      let case2 = Boolean.mk_implies cond2 fp2 in
+      let case1 = Boolean.mk_iff cond1 fp1 in
+      let case2 = Boolean.mk_iff cond2 fp2 in
       Boolean.mk_and [case1; case2]
 
   end
