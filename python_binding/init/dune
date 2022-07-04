@@ -5,7 +5,7 @@
       (flags
         -g
         -I /usr/include/python3.9
-        -I /home/tom/.opam/astral/lib/ocaml ;TODO
+        -I $CAML_LD_LIBRARY_PATH
       )
       (names py_init_c)
   )
