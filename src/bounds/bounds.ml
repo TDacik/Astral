@@ -1,4 +1,7 @@
-(* Computation of location and list-length bounds
+(* Computation of model bounds:
+ *
+ *  1. location bound     ... minimal cardinality of location sort
+ *  2. list-length bounds ... interval <min, max> for a length of each ls predicate
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
@@ -40,7 +43,7 @@ let location_bound phi g stack_bound = match SSL.classify_fragment phi with
       let n = SL_graph.nb_must_pointers g in
       if not @@ List.mem Variable.Nil (SSL.get_vars phi)
       then max - n
-      else max - n (*- 1 nil cannot have a successor *)
+      else max - n - 1(* nil cannot have a successor *)
   (* TODO : tighter bounds for negative formulas *)
   | Arbitrary -> 4 * stack_bound
 
