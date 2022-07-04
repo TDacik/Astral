@@ -1,0 +1,24 @@
+;; Astral.py
+
+(executables
+ (names astral_py)
+ (modes (byte shared_object))
+
+ (flags :standard -linkall -g)
+  (libraries
+    astral_lib
+    pythonlib
+    ppx_let
+    py_init
+  )
+
+  (preprocess
+    (pps
+       ppx_compare
+       ppx_python
+       ppx_let
+    )
+  )
+)
+
+(include_subdirs unqualified)

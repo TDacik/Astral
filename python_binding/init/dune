@@ -1,0 +1,15 @@
+(library
+  (name py_init)
+  (foreign_stubs
+    (language c)
+      (flags
+        -g
+        -I /usr/include/python3.9
+        -I /home/tom/.opam/astral/lib/ocaml ;TODO
+      )
+      (names py_init_c)
+  )
+  (flags :standard -linkall -g)
+)
+
+(include_subdirs no)
