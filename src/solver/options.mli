@@ -2,7 +2,7 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
-open Solver_sig
+open Backend_sig
 open Options_sig
 
 val parse : unit -> unit
@@ -39,7 +39,7 @@ val profile : unit -> bool
 
 val quantifier_elim_method : unit -> [ `None | `Expand]
 
-val backend : unit -> (module SOLVER)
+val backend : unit -> (module BACKEND)
 
 val sl_comp : unit -> bool
 

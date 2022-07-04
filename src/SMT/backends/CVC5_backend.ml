@@ -30,13 +30,13 @@ let defs = ref []
 
 let declarations = ref ""
 
-let check_installation () =
+let is_available () =
   match Sys.command "cvc5 --version >/dev/null 2>/dev/null" with
-  | 0 -> ()
-  | _ -> raise Not_available
+  | 0 -> true
+  | _ -> false
 
 let init () =
-  check_installation ();
+  if not @@ is_available () then raise Not_available;
   defs := [];
   declarations := ""
 

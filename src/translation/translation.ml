@@ -15,7 +15,7 @@ type result =
 
 module Print = Printer.Make(struct let name = "Translation" end)
 
-module Make (Encoding : Translation_sig.ENCODING) (Backend : Solver_sig.SOLVER) = struct
+module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND) = struct
 
   open Encoding
   open SMT
@@ -386,6 +386,7 @@ let translate_phi context phi =
 
     (* Solve *)
     Backend.init ();
+
     Debug.backend_translated (Backend.show_formula (Backend.translate phi));
 
     match Backend.solve phi with

@@ -23,6 +23,8 @@ let context = ref (Z3.mk_context [])
 
 let solver = ref (Z3.Solver.mk_simple_solver !context)
 
+let is_available () = true
+
 let init () =
   context := Z3.mk_context [];
   solver := Z3.Solver.mk_simple_solver !context

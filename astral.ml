@@ -2,7 +2,10 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
+open Astral_lib
+
 let run () =
+  Printf.printf "run\n";
 
   Options.parse ();
 
@@ -37,6 +40,7 @@ let run () =
   else ()
 
 let () =
+  Printf.printf "toplevel\n";
   Printexc.record_backtrace true;
   run ();
   Timer.finish ();

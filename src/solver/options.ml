@@ -3,6 +3,7 @@
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
 open Options_sig
+open Backend_sig
 
 let usage_msg = "astral <input>"
 
@@ -69,8 +70,8 @@ let quantifier_elim_method () = match !_quantifier_elim_method with
 
 let _backend = ref "z3"
 let backend () = match !_backend with
-  | "cvc5" -> (module CVC5_adapter : Solver_sig.SOLVER)
-  | "z3" -> (module Z3_adapter : Solver_sig.SOLVER)
+  | "cvc5" -> (module CVC5_backend : BACKEND)
+  | "z3" -> (module Z3_backend : BACKEND)
   | other -> failwith ("unknown backend `" ^ other ^ "`")
 
 (* == Conversions and preprocessings to other formats == *)

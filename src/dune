@@ -1,5 +1,5 @@
-(executable
-  (name astral)
+(library
+  (name astral_lib)
   (libraries
     base
     z3
@@ -20,15 +20,11 @@
   (modules_without_implementation
     datatype_sig
     set_sig
-    solver_sig
+    backend_sig
     translation_sig
     printer_sig
+    options_sig
   )
 )
 
 (include_subdirs unqualified)
-
-(install
-  (section bin)
-  (files (astral.exe as astral))
-)
