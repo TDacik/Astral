@@ -4,9 +4,18 @@
 
 module Quantifier : sig
 
+  type range =
+    | All
+    | Range of SMT.term list
+
   type t =
-    | Forall of Z3.Expr.expr
-    | Exists of Z3.Expr.expr
+    | Forall of SMT.term * range
+    | Exists of SMT.term * range
+
+  val mk_exists : SMT.term -> t
+  val mk_forall : SMT.term -> t
+  val mk_exists_range : SMT.term -> SMT.term list -> t
+  val mk_forall_range : SMT.term -> SMT.term list -> t
 
   val negate : t -> t
 
@@ -14,7 +23,7 @@ module Quantifier : sig
 
   val is_existential : t -> bool
 
-  val apply : Context.t -> Z3.Expr.expr -> t -> Z3.Expr.expr
+  val apply : SMT.term -> t -> SMT.term
   (** Apply quantifier to a formula *)
 
   val show : t -> string
@@ -30,14 +39,18 @@ module QuantifierPrefix : sig
 
   val add : t -> Quantifier.t -> t
 
-  val concat : t -> t -> t
+  val prepend : Quantifier.t -> t -> t
+
+  val join : t -> t -> t
+
+  val join_choice : t -> t -> [`Exists | `Forall] -> ?range:SMT.Term.t list option -> SMT.Term.t -> t
 
   val negate : t -> t
 
   val drop_implicit : t -> t
   (** Drop implicit existential quantifiers from prefix *)
 
-  val apply : Context.t -> Z3.Expr.expr -> t -> Z3.Expr.expr
+  val apply : SMT.term -> t -> SMT.term
   (** Apply prefix to a formula *)
 
   val show : t -> string

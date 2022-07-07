@@ -2,9 +2,12 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
+open Backend_sig
+open Options_sig
+
 val parse : unit -> unit
 
-val input_file : unit -> string option
+val input_path : unit -> string
 
 val debug : unit -> bool
 
@@ -24,15 +27,18 @@ val location_bound : unit -> int option
 
 val incremental : unit -> bool
 
-val translate : unit -> string option
-
-val output_path : unit -> string option
+val convertor : unit -> ((module CONVERTOR) * string) option
+(** Return convertor module and output path. *)
 
 val quickcheck_runs : unit -> int
 
 val quickcheck_store : unit -> bool
 
 val profile : unit -> bool
+
+val quantifier_elim_method : unit -> [ `None | `Expand]
+
+val backend : unit -> (module BACKEND)
 
 val sl_comp : unit -> bool
 

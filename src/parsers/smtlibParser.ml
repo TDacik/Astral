@@ -16,13 +16,11 @@ module TypeEnv = TypeEnvironment
 open Std.Term
 open Std.Statement
 
-open Dolmen_std.Id
-
 exception ParserError of string
 
 (** Parse ssl application *)
 let rec parse_app term operands = match term.term with
-  | Symbol id -> begin match id.name with
+  | Symbol id -> begin match Format.asprintf "%a" Dolmen_std.Id.print id with
     (* n-ary connectives *)
     | "sep" -> SSL.mk_star @@ List.map parse_term operands
     | "and" -> SSL.mk_and @@ List.map parse_term operands
@@ -55,35 +53,57 @@ and parse_atom operands =
   if List.length operands <> 2 then raise (ParserError "Expected two variables")
   else (parse_symbol @@ List.nth operands 0, parse_symbol @@ List.nth operands 1)
 
-(** TODO: do this properly *)
 and parse_constant (id : Dolmen_std.Id.t) =
-    let name = Format.asprintf "%a" Dolmen_std.Id.print id in
-    if name = "emp"                   then (SSL.mk_emp ())
-    else if name = "(_ emp Loc Loc)"  then (SSL.mk_emp ())
-    else if name = "true"             then (SSL.mk_true ())
-    else if name = "false"            then (SSL.mk_false ())
-    else raise (ParserError (Format.asprintf "Unkown constant: %s" name))
+  match Format.asprintf "%a" Dolmen_std.Id.print id with
+    | "emp" -> SSL.mk_emp ()
+    | "sep.emp" -> SSL.mk_emp ()          (* compatibility with cvc5 *)
+    | "(_ emp Loc Loc)" -> SSL.mk_emp ()  (* compatibility with SL-COMP *)
+    | "true" -> SSL.mk_true ()
+    | "false" -> SSL.mk_false ()
+    | other -> raise (ParserError (Format.asprintf "Unkown constant: %s" other))
 
 and parse_term term = match term.term with
   | App (t, terms) -> parse_app t terms
   | Symbol id -> parse_constant id
   | _ -> failwith (Format.asprintf "Not supporter term: %a" Std.Term.print term)
 
-and symbol_to_var term symbol = match symbol.name with
+and parse_smt_term t = match t.term with
+  | App (fn, [x; y]) ->
+      let tx = parse_smt_term x in
+      let ty = parse_smt_term y in
+      begin match fn.term with
+        | Symbol id -> begin match Format.asprintf "%a" Dolmen_std.Id.print id with
+          | "+" -> SMT.LIA.mk_plus tx ty
+          | "-" -> SMT.LIA.mk_minus tx ty
+          | "*" -> SMT.LIA.mk_mult tx ty
+          | s -> failwith ("[LIA parser] Unknown symbol " ^ s)
+        end
+      end
+  | Symbol id ->
+    let name = Format.asprintf "%a" Dolmen_std.Id.print id in
+    let re = Str.regexp "[0-9]+" in
+    if Str.string_match re name 0
+    then SMT.LIA.mk_const (int_of_string name)
+    else match name with
+    | _ -> SMT.LIA.mk_var name
+
+and symbol_to_var term symbol =
+  match Format.asprintf "%a" Dolmen_std.Id.print symbol with
   | "nil" -> SSL.Variable.Nil
   | var ->
       try
         begin match TypeEnv.type_of var with
           | Loc -> SSL.Variable.mk var
-          | Int -> SSL.Variable.Term (LIA.Var var)
+          | Int -> SSL.Variable.Term (SMT.LIA.mk_var var)
         end
-      with _ -> SSL.Variable.Term (LIA.parse term)
+      with _ -> SSL.Variable.Term (parse_smt_term term)
 
-and parse_sort id = match id.name with
+and parse_sort id =
+  match Format.asprintf "%a" Dolmen_std.Id.print id with
   | "Loc" -> SSL.Sort.Loc
   | "Int" -> SSL.Sort.Int
   | "Bool" -> SSL.Sort.Bool
-  | _ -> failwith ("Unsopported sort" ^ id.name)
+  | other -> failwith ("Unsopported sort" ^ other)
 
 and parse_symbol term = match term.term with
   (* Convert symbol to variable *)
@@ -93,7 +113,7 @@ and parse_symbol term = match term.term with
   (* Parse SSL connective *)
   | App (_, [t]) -> parse_symbol t
   (* Parse data constraints *)
-  | App _ -> SSL.Variable.Term (LIA.parse term)
+  | App _ -> SSL.Variable.Term (parse_smt_term term)
 
   | _ -> failwith (Format.asprintf "Not supporter term: %a" Std.Term.print term)
 
@@ -108,7 +128,8 @@ let parse_definitions defs_group =
         | Binder (_, _, t) -> begin match t.term with
           | Symbol id ->
               let sort = parse_sort id in
-              TypeEnv.declare a.id.name sort;
+              let name = Format.asprintf "%a" Dolmen_std.Id.print a.id in
+              TypeEnv.declare name sort;
               symbol_to_var t a.id :: acc
           | _ -> acc
         end
@@ -116,8 +137,29 @@ let parse_definitions defs_group =
       | _ -> acc
   ) [] defs
 
+(** Preprocessing on the level of the input file *)
+let preprocess file =
+  let channel = open_in file in
+  let content = really_input_string channel (in_channel_length channel) in
+  close_in channel;
+
+  (* Remove declare-heap command -- TODO: more general *)
+  let re = Str.regexp "(declare-heap (Loc Loc))" in
+  Str.global_replace re "" content
+
+let parse_aux file content =
+  let _, fn, _ = Parser.parse_input (`Contents (file, content)) in
+  let rec unpack generator acc =
+    match generator () with
+    | None -> acc
+    | Some x -> unpack generator (x :: acc)
+  in
+  List.rev @@ unpack fn []
+
+(** Parsing *)
 let parse file =
-  let _, statements = Parser.parse_file file in
+  let content = preprocess file in
+  let statements = parse_aux file content in
   let assertions, vars = List.fold_left
     (fun (assertions, vars) stmt -> match stmt.descr with
       | Antecedent term -> ((parse_term term) :: assertions, vars)

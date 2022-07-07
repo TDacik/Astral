@@ -24,7 +24,7 @@ module Variable : sig
 
   type t =
     | Var of var
-    | Term of LIA.t
+    | Term of SMT.Term.t
     | Nil
 
   include PRINTABLE with type t := t
@@ -72,9 +72,11 @@ val get_arity : formula -> arity
 
 val size : formula -> int
 
-val subformula_id : formula -> formula -> int
+val subformula_id : ?physically:bool -> formula -> formula -> int
 
 (** {2 Fragments} *)
+
+val is_atom : formula -> bool
 
 val is_symbolic_heap : formula -> bool
 
@@ -130,6 +132,8 @@ val has_unique_footprint : formula -> bool
 
 val has_unique_shape : formula -> bool
 (** There is at most one h such that (s,h) |= \phi *)
+
+val is_list_free : formula -> bool
 
 val fold_on_vars : (Variable.t -> 'a -> 'a) -> 'a -> t -> 'a
 

@@ -6,10 +6,10 @@ open Printer_sig
 
 module Make (P : PRINTER) : sig
 
-  val info : ('a, out_channel, unit) format -> 'a
+  val info : ('a, Format.formatter, unit) format -> 'a
 
-  val warning : ('a, out_channel, unit) format -> 'a
+  val warning : ('a, Format.formatter, unit) format -> 'a
 
-  val debug : ('a, out_channel, unit) format -> 'a
+  val debug : ('a, Format.formatter, unit) format -> 'a
 
 end

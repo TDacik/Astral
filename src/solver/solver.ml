@@ -44,13 +44,14 @@ let normalise phi vars =
 let solve ?(verify_model=false) phi vars =
   Debug.formula ~suffix:"original" phi;
   let phi, vars = normalise phi vars in
+
   Debug.formula phi;
 
   (* Bound computation *)
   let g =
     if Options.abstraction ()
-    then LengthGraph.compute phi |> MustAllocations.refine_graph phi
-    else LengthGraph.top ()
+    then SL_graph.compute phi (*|> MustAllocations.refine_graph phi*)
+    else SL_graph.empty
   in
   let s_min, s_max = Bounds.stack_bound g phi vars in
   let h_bound = match Options.location_bound () with
@@ -58,41 +59,50 @@ let solve ?(verify_model=false) phi vars =
     | Some x -> x
   in
   let info = Results.create_info phi vars g (s_min, s_max) h_bound in
+
+  (* Create solver module *)
+
+  let module Solver = (val Options.backend () : Backend_sig.BACKEND) in
+
   let result = match classify_fragment phi with
     | SymbolicHeap_SAT ->
-      Print.info "Solving as satisfiability in SH-fragment\n";
-      TranslationSH.solve info.formula info
+      Print.debug "Solving as satisfiability in SH-fragment\n";
+      let module Translation = Translation.Make(EncodingSH)(Solver) in
+      Translation.solve info.formula info
 
     | SymbolicHeap_ENTL ->
-      Print.info "Solving as entailment in SH-fragment\n";
-      TranslationN.solve info.formula info
+      Print.debug "Solving as entailment in SH-fragment\n";
+      let module Translation = Translation.Make(Encoding)(Solver) in
+      Translation.solve info.formula info
 
     | Positive ->
-      Print.info "Solving as positive formula\n";
-      TranslationN.solve info.formula info
+      Print.debug "Solving as positive formula\n";
+      let module Translation = Translation.Make(Encoding)(Solver) in
+      Translation.solve info.formula info
 
     | Arbitrary ->
-      Print.info "Solving as arbitrary formula\n";
-      TranslationN.solve info.formula info
+      Print.debug "Solving as arbitrary formula\n";
+      let module Translation = Translation.Make(Encoding)(Solver) in
+      Translation.solve info.formula info
   in
 
   Timer.add "Solver";
 
   match result with
-  | Translation.Sat (sh, model, results) ->
-      Debug.model sh;
-      Printf.printf "SAT\n";
+  | Translation.Sat (sh, results) ->
+      (*TODO: Debug.model sh;*)
+      Print.info "sat\n";
       (* Model verification *)
       if verify_model then
         let verdict = verify_model_fn sh phi in
         Results.set_verdict results verdict
       else results
   | Translation.Unsat (results, unsat_core) ->
-      Printf.printf "UNSAT\n";
+      Print.info "unsat\n";
       if Options.unsat_core () then begin
         Printf.printf "Unsat core:\n";
-        List.iter (fun a -> Format.printf " - %s\n" (Z3.Expr.to_string a)) unsat_core
+        List.iter (fun a -> Format.printf " - %s\n" (SMT.Term.show a)) unsat_core
       end;
       results
   | Translation.Unknown (results, reason) ->
-      Printf.printf "Unknown: %s\n" reason; results
+      Printf.printf "unknown: %s\n" reason; results

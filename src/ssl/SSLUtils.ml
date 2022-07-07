@@ -78,12 +78,16 @@ module Dot = Graph.Graphviz.Dot
   (struct
     include G
 
+    let show_label = function `Left -> "L" | `Right -> "R"
+
     let graph_attributes _ = [`Rankdir `TopToBottom]
     let default_vertex_attributes _ = []
     let vertex_name v = v
     let vertex_attributes _ = []
     let get_subgraph _ = None
-    let edge_attributes e = [`Dir `None]
+    let edge_attributes e =
+      let label = show_label @@ E.label e in
+      [`Dir `None; `Label label]
     let default_edge_attributes _ = []
 end)
 
