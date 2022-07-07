@@ -7,7 +7,7 @@ open Options_sig
 
 val parse : unit -> unit
 
-val input_file : unit -> string option
+val input_path : unit -> string
 
 val debug : unit -> bool
 
@@ -27,9 +27,8 @@ val location_bound : unit -> int option
 
 val incremental : unit -> bool
 
-val convertor : unit -> (module CONVERTOR) option
-
-val output_path : unit -> string option
+val convertor : unit -> ((module CONVERTOR) * string) option
+(** Return convertor module and output path. *)
 
 val quickcheck_runs : unit -> int
 

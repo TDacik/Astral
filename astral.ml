@@ -5,7 +5,6 @@
 open Astral_lib
 
 let run () =
-  Printf.printf "run\n";
 
   Options.parse ();
 
@@ -15,10 +14,7 @@ let run () =
     exit 0;
   end;
 
-  let input_file = match Options.input_file () with
-    | None -> Options.exit_usage 1; ""
-    | Some file -> file
-  in
+  let input_file = Options.input_path () in
   let phi, vars = SmtlibParser.parse input_file in
 
   Timer.add "Parsing";
@@ -26,9 +22,9 @@ let run () =
   (* Translate input formula to other format and exit *)
   let _ = match Options.convertor () with
     | None -> ()
-    | Some (module Convertor) ->
-      Printf.printf "Translating %s to sloth format\n" "TODO.smt2";
-      Convertor.dump "TODO" phi
+    | Some ((module Convertor), path) ->
+      Printf.printf "Translating %s to sloth format\n" path;
+      Convertor.dump path phi
   in
 
   Debug.init ();
@@ -40,8 +36,7 @@ let run () =
   else ()
 
 let () =
-  Printf.printf "toplevel\n";
-  Printexc.record_backtrace true;
+  if Options.debug () then Printexc.record_backtrace true else ();
   run ();
   Timer.finish ();
   Timer.report ()
