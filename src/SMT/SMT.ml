@@ -62,8 +62,50 @@ let rec substitute ?(bounded=[]) phi x term = match phi with
   | Exists (binder, phi) -> substitute ~bounded:(binder :: bounded) phi x term
   | Forall (binder, phi) -> substitute ~bounded:(binder :: bounded) phi x term
 
-  (* TODO: others *)
-  | _ -> phi
+  | Membership (elem, set) ->
+      Membership (substitute ~bounded elem x term, substitute ~bounded set x term)
+  | Subset (set1, set2) ->
+      Subset (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
+  | Disjoint (set1, set2) ->
+      Disjoint (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
+  | Union (sets, sort) ->
+      Union (List.map (fun t -> substitute ~bounded t x term) sets, sort)
+  | Inter (sets, sort) ->
+      Inter (List.map (fun t -> substitute ~bounded t x term) sets, sort)
+  | Diff (set1, set2) ->
+      Diff (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
+  | Compl set ->
+      Compl (substitute ~bounded set x term)
+  | Enumeration (terms, sort) ->
+      Enumeration (List.map (fun t -> substitute ~bounded t x term) terms, sort)
+
+  (* Boolean *)
+  | Equal (t1, t2) ->
+      Equal (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+  | Distinct terms ->
+      Distinct (List.map (fun t -> substitute ~bounded t x term) terms)
+  | And terms ->
+      And (List.map (fun t -> substitute ~bounded t x term) terms)
+  | Or terms ->
+      Or (List.map (fun t -> substitute ~bounded t x term) terms)
+  | Not t ->
+      Not (substitute ~bounded t x term)
+  | Implies (t1, t2) ->
+      Implies (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+  | Iff (t1, t2) ->
+      Iff (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+  | True -> True
+  | False -> False
+
+  | ConstArr t ->
+      ConstArr (substitute ~bounded t x term)
+  | Select (arr, i) ->
+      Select (substitute ~bounded arr x term, substitute ~bounded i x term)
+  | Store (arr, i, v) ->
+      Store (substitute ~bounded arr x term,
+             substitute ~bounded i x term,
+             substitute ~bounded v x term
+            )
 
 module Sort = struct
 
