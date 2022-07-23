@@ -7,28 +7,20 @@ open Batteries
 
 let name = "predicate unfolding"
 
-let generate_locs n =
-  List.range 1 `To n
-  |> List.map (fun i -> Format.asprintf "loc%d" i)
-  |> List.map Variable.mk
-
-let rec unfold_ls locs n x y = match n with
-  | 0 -> Eq (x,y)
+(** Unfold ls(x,y) n times *)
+let rec unfold_ls_n n x y = match n with
+  | 0 -> Eq (x, y)
   | n ->
-    let aux = List.map
-      (fun l ->
-        let ptr = PointsTo (x, l) in
-        let unfolding = unfold_ls (List.remove locs l) (n-1) l y in
-        Star (ptr, unfolding)
-      ) locs
-    in
-    let ls = Star (Neq (x,y), mk_or aux) in
-    Or (Eq (x,y), ls)
+      let l = Variable.mk_fresh "l" in
+      Star (Neq (x,y), Star (PointsTo (x, l), unfold_ls_n (n-1) l y))
 
 let unfold_ls n x y =
-  let locs = generate_locs n in
-  unfold_ls locs n x y
+  BatList.range 0 `To n
+  |> BatList.map (fun n -> unfold_ls_n n x y)
+  |> SSL.mk_or
 
+(** Recursively apply unfolding on all subformulae *)
+(** TODO: use some kind of fold/map? *)
 let rec unfold phi n = match phi with
   | And (f1, f2) -> And (unfold f1 n, unfold f2 n)
   | Or (f1, f2) -> Or (unfold f1 n, unfold f2 n)
@@ -39,10 +31,6 @@ let rec unfold phi n = match phi with
   | LS (x, y) -> unfold_ls n x y
   | atom -> atom
 
-(* TODO: bound *)
-let convert phi = SSL.show @@ unfold phi 10
+let convert phi n = Smtlib_convertor.translate_all (unfold phi n)
 
-let dump file phi =
-  let channel = open_out_gen [Open_creat; Open_wronly] 0o666 file in
-  Printf.fprintf channel "%s\n" (convert phi);
-  close_out channel
+let dump file phi n = Smtlib_convertor.dump file (unfold phi n)

@@ -23,8 +23,14 @@ let run () =
   let _ = match Options.convertor () with
     | None -> ()
     | Some ((module Convertor), path) ->
-      Printf.printf "Translating %s to sloth format\n" path;
-      Convertor.dump path phi
+      Printf.printf "Translating %s to %s format\n" path Convertor.name;
+      let phi = SSL.normalise phi in
+      let g = SL_graph.empty in
+      let _, s_max = Bounds.stack_bound g phi vars in
+      let bound = Bounds.location_bound phi g s_max in
+      let lbound = if SSL.is_symbolic_heap phi then 1 else bound in
+      Convertor.dump path phi lbound;
+      exit 0
   in
 
   Debug.init ();
