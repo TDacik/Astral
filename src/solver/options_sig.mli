@@ -6,8 +6,8 @@ module type CONVERTOR = sig
 
   val name : string
 
-  val convert : SSL.t -> string
+  val convert : SSL.t -> int -> string
 
-  val dump : string -> SSL.t -> unit
+  val dump : string -> SSL.t -> string -> int -> unit
 
 end

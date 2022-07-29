@@ -13,7 +13,7 @@ let path_ast file = debug_dir ^ "/" ^ file ^ ".dot"
 let path_smt_model = debug_dir ^ "/" ^ "smt_model.out"
 let path_model_dot = debug_dir ^ "/" ^ "model.dot"
 
-let sl_graph_dot = debug_dir ^ "/" ^ "length_graph.dot"
+let sl_graph_dot = debug_dir ^ "/" ^ "sl_graph.dot"
 
 let debug_out file content =
   let path = debug_dir ^ "/" ^ file in
@@ -74,6 +74,7 @@ let smt_model model =
 (* === Backend's data === *)
 
 let backend_translated str = debug_out "backend_translated.smt2" str
+let backend_simplified str = debug_out "backend_simplified.smt2" str
 let backend_model str = debug_out "backend_model.smt2" str
 
 
@@ -85,6 +86,7 @@ let model      = decorate model
 let smt_model  = decorate smt_model
 
 let backend_translated = decorate backend_translated
+let backend_simplified = decorate backend_simplified
 let backend_model = decorate backend_model
 
 let formula ?(suffix="") = decorate (formula suffix)

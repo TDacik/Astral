@@ -33,4 +33,4 @@ let rec unfold phi n = match phi with
 
 let convert phi n = Smtlib_convertor.translate_all (unfold phi n)
 
-let dump file phi n = Smtlib_convertor.dump file (unfold phi n)
+let dump file phi status n = Smtlib_convertor.dump file (unfold phi n) status

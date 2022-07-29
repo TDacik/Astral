@@ -21,6 +21,8 @@ val unsat_core : unit -> bool
 
 val abstraction : unit -> bool
 
+val strong_separation : unit -> bool
+
 val local_bounds : unit -> bool
 
 val location_bound : unit -> int option

@@ -58,9 +58,10 @@ and parse_constant (id : Dolmen_std.Id.t) =
     | "emp" -> SSL.mk_emp ()
     | "sep.emp" -> SSL.mk_emp ()          (* compatibility with cvc5 *)
     | "(_ emp Loc Loc)" -> SSL.mk_emp ()  (* compatibility with SL-COMP *)
+    | "(_ emp Loc\nLoc)" -> SSL.mk_emp ()  (* TODO: ... *)
     | "true" -> SSL.mk_true ()
     | "false" -> SSL.mk_false ()
-    | other -> raise (ParserError (Format.asprintf "Unkown constant: %s" other))
+    | other -> raise (ParserError (Format.asprintf "Unknown constant: %s" other))
 
 and parse_term term = match term.term with
   | App (t, terms) -> parse_app t terms
@@ -89,7 +90,7 @@ and parse_smt_term t = match t.term with
 
 and symbol_to_var term symbol =
   match Format.asprintf "%a" Dolmen_std.Id.print symbol with
-  | "nil" -> SSL.Variable.Nil
+  | "nil" | "sep.nil" | "(sep.nil)" | "(as sep.nil Loc)" -> SSL.Variable.Nil
   | var ->
       try
         begin match TypeEnv.type_of var with
@@ -155,6 +156,15 @@ let parse_aux file content =
     | Some x -> unpack generator (x :: acc)
   in
   List.rev @@ unpack fn []
+
+let get_status file =
+  let channel = open_in file in
+  let content = really_input_string channel (in_channel_length channel) in
+  let re_status = Str.regexp "(set-info :status \\([a-z]*\\))" in
+  try
+    let _ = Str.search_forward re_status content 0 in
+    Str.matched_group 1 content
+  with Not_found -> "unknown"
 
 (** Parsing *)
 let parse file =

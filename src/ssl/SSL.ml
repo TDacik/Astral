@@ -55,7 +55,7 @@ module Variable = struct
     | Var _ | Nil -> true
     | Term _ -> false
 
-  let mk_fresh name =
+  let mk_new name =
     let fresh_id = !id in
     id := !id + 1;
     let var = Var {id = fresh_id; sort = Sort.Loc; name = name} in
@@ -66,7 +66,9 @@ module Variable = struct
     try
       let id = IDS.find !ids name in
       Var {id = id; sort = Sort.Loc; name = name}
-    with Not_found -> mk_fresh name
+    with Not_found -> mk_new name
+
+  let mk_fresh name = mk (Format.asprintf "%s!%d" name !id)
 
   let mk_int name =
     try
@@ -180,6 +182,14 @@ let rec size phi = match get_arity phi with
   | Unary phi -> 1 + size phi
   | Binary (phi1, phi2) -> 1 + size phi1 + size phi2
 
+let rec chunk_size = function
+  | Eq _ | Neq _ | PointsTo _ | LS _ -> 1
+  | Star (psi1, psi2) -> chunk_size psi1 + chunk_size psi2
+  | Septraction (_, psi2) -> chunk_size psi2
+  | And (psi1, psi2) | Or (psi1, psi2) | GuardedNeg (psi1, psi2) ->
+      max (chunk_size psi1) (chunk_size psi2)
+  | Not psi -> chunk_size psi
+
 (** Fold using preorder traversal of AST *)
 let rec fold (fn : t -> 'a -> 'a) phi (acc : 'a) = match get_arity phi with
   | Atom _ -> fn phi acc
@@ -234,6 +244,7 @@ let rec is_positive phi = match get_arity phi with
 let rec has_unique_shape phi = match phi with
   | Eq _ | Neq _ | PointsTo _ -> true
   | And (psi1, psi2) | Star (psi1, psi2) -> has_unique_shape psi1 && has_unique_shape psi2
+  | _ -> false
 
 let rec is_list_free phi = match get_arity phi with
   | Atom _ -> begin match phi with
@@ -276,9 +287,11 @@ let rec _get_vars f = match f with
   | Eq (v1, v2) -> List.filter Variable.is_var [v1; v2]
   | Neq (v1, v2) -> List.filter Variable.is_var [v1; v2]
 
-let get_vars ?(with_nil=true) f =
-  let vars = if with_nil then Variable.Nil :: _get_vars f else _get_vars f in
-  List.sort_uniq Variable.compare vars
+let get_vars ?(with_nil=true) phi =
+  let vars = List.sort_uniq Variable.compare (_get_vars phi) in
+  if with_nil
+  then vars
+  else BatList.remove vars Variable.Nil
 
 (* ==== Constructors ==== *)
 

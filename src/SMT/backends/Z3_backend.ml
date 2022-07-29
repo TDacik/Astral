@@ -39,7 +39,9 @@ let rec translate = function
   | SMT.False -> Z3.Boolean.mk_false !context
   | SMT.Equal (t1, t2) -> Z3.Boolean.mk_eq !context (translate t1) (translate t2)
   | SMT.Distinct ts -> Z3.Boolean.mk_distinct !context (List.map translate ts)
-  | SMT.And es -> Z3.Boolean.mk_and !context (List.map translate es)
+  | SMT.And es ->
+      begin try Z3.Boolean.mk_and !context (List.map translate es)
+      with e -> let _ = Printf.printf "%s" (SMT.Term.show (SMT.And es)) in raise e end
   | SMT.Or es -> Z3.Boolean.mk_or !context (List.map translate es)
   | SMT.Not e -> Z3.Boolean.mk_not !context (translate e)
   | SMT.Implies (e1, e2) -> Z3.Boolean.mk_implies !context (translate e1) (translate e2)
@@ -107,6 +109,8 @@ let solve phi =
   | Z3.Solver.UNKNOWN ->
       let reason = Z3.Solver.get_reason_unknown !solver in
       SMT_Unknown reason
+
+let simplify phi = Z3.Expr.simplify phi None
 
 (* === Model manipulation === *)
 

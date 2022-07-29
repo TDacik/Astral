@@ -9,4 +9,4 @@ val unfold : SSL.t -> int -> SSL.t
 
 val convert : SSL.t -> int -> string
 
-val dump : string -> SSL.t -> int -> unit
+val dump : string -> SSL.t -> string -> int -> unit

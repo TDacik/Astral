@@ -59,7 +59,6 @@ let solve ?(verify_model=false) phi vars =
     | Some x -> x
   in
   let info = Results.create_info phi vars g (s_min, s_max) h_bound in
-
   (* Create solver module *)
 
   let module Solver = (val Options.backend () : Backend_sig.BACKEND) in

@@ -51,6 +51,7 @@ let add_declaration str =
 (* === Translation === *)
 
 let rec translate term = match term with
+  | SMT.Constant (x, _) -> "|" ^ x ^ "|"
   | SMT.Variable (x, sort) ->
       let def = Format.asprintf "(declare-const %s %s)" x (translate_sort sort) in
       add_declaration def;
@@ -124,21 +125,45 @@ and translate_expr_list exprs =
   List.map translate exprs
   |> String.concat " "
 
+let simplify phi = phi
+
 (* === Solver === *)
 
 let solve phi =
   let smt_query = Format.asprintf
-  "(set-logic ALL)\n%s\n(assert %s)\n(check-sat)\n(get-info :reason-unknown)\n(get-model)"
+  "(set-logic ALL)\n(set-option :produce-models true)\n%s\n(assert %s)\n(check-sat)\n(get-info :reason-unknown)\n(get-model)"
     !declarations
     (translate phi)
   in
   let query_filename, query_channel = Filename.open_temp_file "cvc_query" ".smt2" in
-  let answer_filename = Filename.temp_file "cvc_answer" ".txt" in
+  let answer_filename, answer_channel = Filename.open_temp_file "cvc_answer" ".txt" in
   Printf.fprintf query_channel "%s" smt_query;
   close_out query_channel;
-  let retcode =
-    Sys.command ("cvc5 --produce-models " ^ query_filename ^ " > " ^ answer_filename)
+
+  let input = Unix.descr_of_in_channel @@ open_in query_filename in
+  let output = Unix.descr_of_out_channel answer_channel in
+  let pid =
+    Unix.create_process
+      "cvc5"
+      [| "--produce-models" |]
+      input
+      output
+      Unix.stderr
   in
+
+  (* Register cleaning action *)
+  let clean = Sys.Signal_handle
+    (fun _ ->
+      Unix.kill pid Sys.sigkill;
+      Printf.printf "interrupted";
+      exit 0
+    )
+  in
+  Sys.set_signal Sys.sigint clean;
+
+  (* Wait for the result *)
+  let _ = Unix.wait () in
+  close_out answer_channel;
 
   (* Read answer *)
   let channel = open_in answer_filename in
@@ -157,7 +182,7 @@ let solve phi =
     |> String.split_on_char '\n'
     |> Batlist.drop 2
     |> List.rev
-    |> Batlist.drop 2
+    |> Batlist.drop 1
     |> List.rev
     |> String.concat "\n"
   in

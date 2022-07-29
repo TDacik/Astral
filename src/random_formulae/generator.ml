@@ -54,10 +54,11 @@ module Make (Params : PARAMS) = struct
       | n ->
           if true then
           (QCheck.Gen.oneof [
-              (*QCheck.Gen.map2 gen_and  (self (n/2)) (self (n/2));*)
+              QCheck.Gen.map2 gen_and  (self (n/2)) (self (n/2));
               QCheck.Gen.map2 gen_star (self (n/2)) (self (n/2));
-              (*QCheck.Gen.map2 gen_gneg (self (n/2)) (self (n/2));*)
-              QCheck.Gen.map2 gen_septraction (self (n/2)) (self (n/2))
+              QCheck.Gen.map2 gen_gneg (self (n/2)) (self (n/2));
+              QCheck.Gen.map2 gen_or (self (n/2)) (self (n/2));
+              (*QCheck.Gen.map2 gen_septraction (self (n/2)) (self (n/2))*)
             ])
           else (QCheck.Gen.oneof [
             QCheck.Gen.map2 gen_and  (self (n/2)) (self (n/2));
@@ -68,7 +69,8 @@ module Make (Params : PARAMS) = struct
           ])
     ))
 
-  let arbitrary_formula = QCheck.make gen_formula
+  let arbitrary_formula = QCheck.make @@ QCheck.Gen.map2 gen_gneg gen_formula gen_formula
+  (*let arbitrary_formula = QCheck.make gen_formula*)
 
   (* === Benchmark generation === *)
 
@@ -93,7 +95,7 @@ module Make (Params : PARAMS) = struct
         if Params.unfold then Predicate_unfolding.unfold phi 3 (* TODO: bound *)
         else phi
       in
-      Smtlib_convertor.dump path phi
+      Smtlib_convertor.dump path phi "unknown"
     end;
     res
 

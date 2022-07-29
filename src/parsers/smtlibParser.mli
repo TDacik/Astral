@@ -2,5 +2,7 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
+val get_status : string -> string
+
 val parse : string -> SSL.t * SSL.Variable.t list
 (** Parse a smtlib file given by path *)

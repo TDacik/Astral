@@ -66,7 +66,8 @@ let convert_all phi =
 
 let convert phi _ = convert phi
 
-let dump file phi _ =
+let dump file phi status _ =
   let channel = open_out_gen [Open_creat; Open_wronly] 0o666 (file ^ ".spl") in
+  Printf.fprintf channel "//status: %s\n\n" status;
   Printf.fprintf channel "%s\n" (convert_all phi);
   close_out channel

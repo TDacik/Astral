@@ -81,7 +81,8 @@ let translate_all phi =
   ^ ")\n\n"
   ^ "(check-sat)"
 
-let dump file phi =
+let dump file phi status =
   let channel = open_out_gen [Open_creat; Open_wronly] 0o666 file in
+  Printf.fprintf channel "(set-option :status %s)\n\n" status;
   Printf.fprintf channel "%s\n" (translate_all phi);
   close_out channel

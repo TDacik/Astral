@@ -74,7 +74,15 @@ let _backend = ref "z3"
 let backend () = match !_backend with
   | "cvc5" -> (module CVC5_backend : BACKEND)
   | "z3" -> (module Z3_backend : BACKEND)
+  (*| "parallel" -> (module Parallel : BACKEND)*)
   | other -> failwith ("unknown backend `" ^ other ^ "`")
+
+(* == Separation == *)
+
+let _separation = ref "strong"
+let strong_separation () = match !_separation with
+  | "strong" -> true
+  | "weak" -> false
 
 (* == Conversions and preprocessings to other formats == *)
 
@@ -88,7 +96,7 @@ let convertor () = match !_convertor with
   | "none" -> None
   | "sloth" -> Some ((module Sloth_convertor : CONVERTOR), output_path ".smt2")
   | "grasshopper" -> Some ((module Grasshopper_convertor : CONVERTOR), output_path ".spl")
-  | "list_unfold" -> Some ((module Predicate_unfolding : CONVERTOR), output_path ".smt2")
+  | "list_unfold" -> Some ((module Predicate_unfolding : CONVERTOR), output_path "_unfold.smt2")
   | other -> failwith ("unknown conversion option `" ^ other ^ "`")
 
 let speclist =
@@ -105,6 +113,7 @@ let speclist =
     ("--no-abstraction", Arg.Clear _abstraction, "Do not compute precise bounds");
     ("--no-local-bounds", Arg.Clear _local_bounds, "Do not use list-length bounds");
     ("--loc-bound", Arg.Int set_location_bound, "Force location bound");
+    ("--separation", Arg.Set_string _separation, "Separation (weak | strong");
 
     ("--sl-comp", Arg.Set _sl_comp, "Preprocessing for SL-comp");
 

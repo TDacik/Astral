@@ -20,6 +20,8 @@ type t = {
   bound : int;
 
   (* Translation context *)
+  can_scolemise : bool;
+  under_star : bool;
   polarity : bool;
 
   locs_sort : SMT.Sort.t;
@@ -39,6 +41,15 @@ let formula_witness_heap context psi =
   let id = SSL.subformula_id context.phi psi in
   Format.asprintf "heap%d" id
 
+(** Compute powerset of list *)
+let rec powerset = function
+  | [] -> [[]]
+  | x :: xs ->
+      let ps = powerset xs in
+      ps @ List.map (fun s -> x :: s) ps
+
+let locations_powerset context = powerset context.locs
+
 let init info locs_sort locs fp_sort global_fp heap_sort heap =
 {
   phi = info.formula;
@@ -48,6 +59,8 @@ let init info locs_sort locs fp_sort global_fp heap_sort heap =
   bound = info.heap_bound;
   stack_bound = info.stack_bound;
 
+  can_scolemise = true;
+  under_star = false;
   polarity = true;
 
   locs_sort = locs_sort;

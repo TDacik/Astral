@@ -72,6 +72,8 @@ val get_arity : formula -> arity
 
 val size : formula -> int
 
+val chunk_size : formula -> int
+
 val subformula_id : ?physically:bool -> formula -> formula -> int
 
 (** {2 Fragments} *)
@@ -131,7 +133,7 @@ val has_unique_footprint : formula -> bool
 (** Note: stronger than positive *)
 
 val has_unique_shape : formula -> bool
-(** There is at most one h such that (s,h) |= \phi *)
+(** There is at most one h such that (s,h) |= formula *)
 
 val is_list_free : formula -> bool
 

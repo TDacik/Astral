@@ -4,10 +4,10 @@
 
 module M1 = Generator.Make
   (struct
-    let n_vars = 5
-    let depth = 4
+    let n_vars = 8
+    let depth = 100
     let lists = false
-    let unfold = true
+    let unfold = false
   end)
 
 let run n = M1.generate n (Options.quickcheck_store ()) "test"

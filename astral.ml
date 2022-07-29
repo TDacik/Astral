@@ -29,7 +29,7 @@ let run () =
       let _, s_max = Bounds.stack_bound g phi vars in
       let bound = Bounds.location_bound phi g s_max in
       let lbound = if SSL.is_symbolic_heap phi then 1 else bound in
-      Convertor.dump path phi lbound;
+      Convertor.dump path phi (SmtlibParser.get_status input_file) lbound;
       exit 0
   in
 
