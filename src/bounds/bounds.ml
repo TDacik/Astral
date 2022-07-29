@@ -40,13 +40,11 @@ let location_bound phi g stack_bound = match SSL.classify_fragment phi with
   | Positive ->
       let max = 2 * stack_bound in
       let n = SL_graph.nb_must_pointers g in
-      Printf.printf "%d\n" max;
       if not @@ List.mem Variable.Nil (SSL.get_vars phi)
       then max - n
       else max - n (* - 1 nil cannot have a successor *)
   (* TODO : tighter bounds for negative formulas *)
   | Arbitrary ->
-      Printf.printf "%d\n" stack_bound;
       2 * stack_bound + chunk_size phi
 
 (* Given length abstraction, location bound and two variables x and y, compute bound on
