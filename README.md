@@ -1,5 +1,12 @@
 # Astral
+
+<img align="left" width="200" src="https://excel.fit.vutbr.cz/submissions/2022/038/38_nahled.png">
+
 Astral is a prototype implementation of a decision procedure for a fragment of [strong-separation logic](https://arxiv.org/abs/2001.06235) (SSL) based on a translation to SMT. Currently supported fragments are satisfiability and entailment for quantifier-free symbolic heaps with lists, and boolean combination of SL atoms (i.e., divisions QF_SHLS_SAT, QF_SHLS_ENTL and QF_BSL_SAT as defined in [SL-COMP](https://sl-comp.github.io/)).
+
+<br>
+<br>
+<br>
 
 ## Strong-Separation Logic
 
@@ -52,7 +59,10 @@ After cloning the repository, run `opam install .` to install Astral. Then the s
 ## Contact
 If you have any questions, do not hesitate to contact the tool/method authors:
 * **Tomáš Dacík** <[xdacik00@stud.fit.vutbr.cz](mailto:xdacik00@stud.fit.vutbr.cz)>
-* [**Tomáš Vojnar**](https://www.fit.vut.cz/person/vojnar/) <[vojnar@fit.vutbr.cz](mailto:vojnar@fit.vutbr.cz)>
+* [**Adam Rogalewicz**](https://www.fit.vut.cz/person/rogalew/.en) <[rogalew@fit.vut.cz](mailto:rogalew@fit.vut.cz)>
+* [**Tomáš Vojnar**](https://www.fit.vut.cz/person/vojnar/) <[vojnar@fit.vut.cz](mailto:vojnar@fit.vut.cz)>
+* [**Florian Zuleger**](https://informatics.tuwien.ac.at/people/florian-zuleger)<[florian.zuleger@tuwien.ac.at](mailto:florian.zuleger@tuwien.ac.at)>
+
 
 ## License
 The tool is available under MIT license.
