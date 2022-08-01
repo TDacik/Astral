@@ -2,7 +2,7 @@
 
 <img align="left" width="200" src="https://excel.fit.vutbr.cz/submissions/2022/038/38_nahled.png">
 
-Astral is a prototype implementation of a decision procedure for a fragment of [strong-separation logic](https://arxiv.org/abs/2001.06235) (SSL) based on a translation to SMT. Currently supported fragments are satisfiability and entailment for quantifier-free symbolic heaps with lists, and boolean combination of SL atoms (i.e., divisions QF_SHLS_SAT, QF_SHLS_ENTL and QF_BSL_SAT as defined in [SL-COMP](https://sl-comp.github.io/)).
+Astral is a prototype implementation of a decision procedure for a fragment of [strong-separation logic](https://arxiv.org/abs/2001.06235) (SSL) based on a translation to SMT. The supported fragment allow arbitrary mixing and nesting of boolean and spatial connectives, with an exception that septractions do not lie under negations.
 
 <br>
 <br>
