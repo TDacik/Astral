@@ -19,11 +19,9 @@ val verify_model : unit -> bool
 
 val unsat_core : unit -> bool
 
-val abstraction : unit -> bool
-
 val strong_separation : unit -> bool
 
-val local_bounds : unit -> bool
+val list_bounds : unit -> bool
 
 val location_bound : unit -> int option
 
@@ -37,8 +35,6 @@ val quickcheck_runs : unit -> int
 val quickcheck_store : unit -> bool
 
 val profile : unit -> bool
-
-val quantifier_elim_method : unit -> [ `None | `Expand]
 
 val backend : unit -> (module BACKEND)
 
