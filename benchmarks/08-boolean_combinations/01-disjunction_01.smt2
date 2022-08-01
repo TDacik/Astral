@@ -12,7 +12,7 @@
 (assert (not
   (or
     (pto x y)
-    emp
+    sep.emp
   )
 ))
 
