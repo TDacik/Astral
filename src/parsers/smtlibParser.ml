@@ -13,8 +13,11 @@ module Parser = Make
 
 module TypeEnv = TypeEnvironment
 
-open Std.Term
-open Std.Statement
+module Term = Std.Term
+module Statement = Std.Statement
+
+open Term
+open Statement
 
 exception ParserError of string
 
@@ -166,16 +169,24 @@ let get_status file =
     Str.matched_group 1 content
   with Not_found -> "unknown"
 
+let parse_option term input = match term.term with
+  | App (t1, [t2]) ->
+    begin match Format.asprintf "%a" Term.print t1, Format.asprintf "%a" Term.print t2 with
+      | (":status", "sat") -> Input.set_status `Sat input
+      | (":status", "unsat") -> Input.set_status `Unsat input
+      | (":status", "unknown") -> Input.set_status `Unknown input
+      | _ -> input
+  end
+  | _ -> input
+
 (** Parsing *)
 let parse file =
   let content = preprocess file in
   let statements = parse_aux file content in
-  let assertions, vars = List.fold_left
-    (fun (assertions, vars) stmt -> match stmt.descr with
-      | Antecedent term -> ((parse_term term) :: assertions, vars)
-      | Decls def_group -> (assertions, vars @ parse_definitions def_group)
-      | _ -> (assertions, vars)
-    ) ([], []) statements
-  in
-  let phi = SSL.mk_and assertions in
-  (phi, vars)
+  List.fold_left
+    (fun input stmt -> match stmt.descr with
+      | Set_info term -> parse_option term input
+      | Antecedent term -> Input.add_assertion (parse_term term) input
+      | Decls def_group -> Input.add_variables (parse_definitions def_group) input
+      | _ -> input
+    ) Input.default statements

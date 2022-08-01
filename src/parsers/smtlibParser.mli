@@ -4,5 +4,5 @@
 
 val get_status : string -> string
 
-val parse : string -> SSL.t * SSL.Variable.t list
+val parse : string -> Input.t
 (** Parse a smtlib file given by path *)

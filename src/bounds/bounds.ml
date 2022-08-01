@@ -50,7 +50,7 @@ let location_bound phi g stack_bound = match SSL.classify_fragment phi with
 (* Given length abstraction, location bound and two variables x and y, compute bound on
    length of list between x y *)
 let rec local_bound context x y =
-  if not @@ Options.local_bounds () then (0, context.bound)
+  if not @@ Options.list_bounds () then (0, context.bound)
   else
   let g = context.sl_graph in
   let _, stack_bound = stack_bound g context.phi context.vars in
