@@ -46,10 +46,10 @@ let location_bound () = match !_location_bound with
       else failwith "Location bound has to be positive integer"
 
 let _list_bounds = ref true
-let list_bounds () = !_local_bounds
+let list_bounds () = !_list_bounds
 
-let _incremental = ref true
-let incremental () = !_incremental
+let _compute_sl_graph = ref true
+let compute_sl_graph () = !_compute_sl_graph
 
 let _sl_comp = ref false
 let sl_comp () = !_sl_comp
@@ -100,7 +100,8 @@ let speclist =
     ("--unsat-core", Arg.Set _unsat_core, "Print unsat core");
     ("--json-output", Arg.Set_string _json_output_file, "Store solver's result as json");
     ("--backend", Arg.Set_string _backend, "Backend SMT solver (default cvc5)");
-    ("--no-list-bounds", Arg.Clear _local_bounds, "Do not use list-length bounds");
+    ("--no-list-bounds", Arg.Clear _list_bounds, "Do not use list-length bounds");
+    ("--compute-sl-graph", Arg.Clear _compute_sl_graph, "Force location bound");
     ("--loc-bound", Arg.Int set_location_bound, "Force location bound");
     ("--separation", Arg.Set_string _separation, "Separation (weak | strong");
     ("--sl-comp", Arg.Set _sl_comp, "Preprocessing for SL-comp");
