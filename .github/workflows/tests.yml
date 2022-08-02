@@ -24,5 +24,8 @@ jobs:
           apt update
           apt install -y python3.9
 
-      - name : Run tests
-        run : python3.9 scripts/run_tests.py
+      - name: Install Astral
+        run: opam install .
+
+      - name: Run tests
+        run: python3.9 scripts/run_tests.py
