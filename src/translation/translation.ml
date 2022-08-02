@@ -261,7 +261,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let phi1, axioms1, footprints1 = translate {context with heap = h1} psi1 fp1 in
     let phi2, axioms2, footprints2 = translate {context with heap = h1} psi2 fp2 in
 
-    let eq_fp = heaps_equal_on_footprint context context.heap h1 fp1 in
+    let eq_fp = heaps_equal_on_footprint context context.heap h1 (Set.mk_diff fp2 fp1) in
 
     let disjoint = Set.mk_disjoint fp1 domain in
     let axioms = Boolean.mk_and [axioms1; axioms2] in
