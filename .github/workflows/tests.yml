@@ -10,10 +10,16 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    container: .github/workflows/.
+    container: ocaml/opam:ubuntu-20.04-ocaml-4.12
 
     steps:
-      - uses: actions/checkout@v2
+      - name: Checkout repository
+        uses: actions/checkout@v2
 
-      - name : run-tests
+      - name: Install python
+        run: |
+          sudo apt update
+          sudo apt install -y python3.9
+
+      - name : Run tests
         run : python3.9 scripts/run_tests.py
