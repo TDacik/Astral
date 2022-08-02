@@ -10,12 +10,10 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
+    container: .github/workflows/.
+
     steps:
       - uses: actions/checkout@v2
-
-      - name : install-astral
-        run : docker build .github/workflows/.
-        run : opam install .
 
       - name : run-tests
         run : python3.9 scripts/run_tests.py
