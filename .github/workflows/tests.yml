@@ -10,7 +10,10 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    container: ocaml/opam:ubuntu-20.04-ocaml-4.12
+
+    container:
+      image: ocaml/opam:ubuntu-20.04-ocaml-4.12
+      options: --user root
 
     steps:
       - name: Checkout repository
@@ -18,8 +21,8 @@ jobs:
 
       - name: Install python
         run: |
-          sudo apt update
-          sudo apt install -y python3.9
+          apt update
+          apt install -y python3.9
 
       - name : Run tests
         run : python3.9 scripts/run_tests.py
