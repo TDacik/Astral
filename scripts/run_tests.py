@@ -29,8 +29,9 @@ class Runner:
 
     def smoke_test(self):
         """Verify whether Astral is correctly installed."""
-        process = run(["astral", "--help"], stdout=PIPE, stderr=PIPE)
-        if process.returncode != 0:
+        try:
+            process = run(["astral", "--help"], stdout=PIPE, stderr=PIPE)
+        except FileNotFoundError:
             print("Astral is not correctly installed")
             exit(1)
 
