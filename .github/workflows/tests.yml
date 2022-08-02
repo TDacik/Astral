@@ -22,7 +22,7 @@ jobs:
       - name: Install python
         run: |
           apt update
-          apt install -y python3.9
+          apt install -y python3
 
       - name: Install Astral
         run: |
@@ -30,4 +30,4 @@ jobs:
           opam install .
 
       - name: Run tests
-        run: python3.9 scripts/run_tests.py
+        run: python3 scripts/run_tests.py

@@ -59,7 +59,6 @@ class Runner:
 
 
 if __name__ == "__main__":
-    print("A")
     runner = Runner()
     runner.smoke_test()
 
