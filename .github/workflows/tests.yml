@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y python3 ligmp3-dev
+          apt install -y python3 libgmp3-dev
 
       - name: Install Astral
         run: |
