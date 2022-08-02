@@ -15,6 +15,8 @@ def print_err(text):
 def print_bench_name(root, dirs):
     print(os.path.basename(root))
 
+astral_bin = "_build/default/astral.exe"
+
 class Runner:
     def __init__(self, backend="z3", timeout=10):
         self.backend = backend
@@ -30,13 +32,13 @@ class Runner:
     def smoke_test(self):
         """Verify whether Astral is correctly installed."""
         try:
-            process = run(["astral", "--help"], stdout=PIPE, stderr=PIPE)
+            process = run([astral_bin, "--help"], stdout=PIPE, stderr=PIPE)
         except FileNotFoundError:
-            print("Astral is not correctly installed")
+            print_err("Astral is not correctly installed")
             exit(1)
 
     def run(self, path, name):
-        command = ["astral", "--backend", self.backend, os.path.join(path,name)]
+        command = [astral_bin, "--backend", self.backend, os.path.join(path,name)]
         try:
             process = run(command, timeout=self.timeout, stdout=PIPE, stderr=PIPE)
             stdout = process.stdout.decode().strip()
@@ -63,7 +65,7 @@ if __name__ == "__main__":
     runner = Runner()
     runner.smoke_test()
 
-    for root, dirs, files in sorted(os.walk("../benchmarks/")):
+    for root, dirs, files in sorted(os.walk("benchmarks/")):
         # Ignore debug directories
         if os.path.basename(root) == "astral_debug":
             continue
