@@ -19,10 +19,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Install python
+      - name: Install dependencies
         run: |
           apt update
-          apt install -y python3
+          apt install -y python3 ligmp3-dev
 
       - name: Install Astral
         run: |
