@@ -15,7 +15,7 @@ def print_err(text):
 def print_bench_name(root, dirs):
     print(os.path.basename(root))
 
-astral_bin = "_build/default/astral.exe"
+astral_bin = "astral"
 
 class Runner:
     def __init__(self, backend="z3", timeout=10):
