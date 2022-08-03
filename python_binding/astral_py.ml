@@ -3,12 +3,12 @@
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
 open Astral_lib
+
 open Base
 open Python_lib
 open Python_lib.Let_syntax
 
-open PythonTypes
-
+open Python_types
 open Solver_api
 
 let f = Defunc.Of_python.create ~type_name:"formula" ~conv:formula_of_python

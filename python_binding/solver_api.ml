@@ -1,20 +1,21 @@
-(** Simplified result of solver *)
+(* Simplified result of solver
+ *
+ * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
 open Astral_lib
 open StackHeapModel
 
-open PythonTypes
+open Python_types
 
 open Python_lib
 
 type result =
-  | SAT of model
-  | UNSAT
-  | UNKNOWN of string
+  | Sat of model
+  | Unsat
+  | Unknown of string
 [@@deriving python]
 
 let convert_model sh =
-  Printf.printf "%s\n" (to_string sh);
   let s = Stack.bindings sh.stack in
   let h = Heap.bindings sh.heap in
   (s, h)
@@ -22,6 +23,6 @@ let convert_model sh =
 let solve phi vars =
   let result = Solver.solve phi vars in
   match result.status with
-  | `SAT -> SAT (Obj.magic convert_model @@ Option.get result.model)
-  | `UNSAT -> UNSAT
-  | `UNKNOWN -> UNKNOWN ""
+  | `SAT -> Sat (Obj.magic convert_model @@ Option.get result.model)
+  | `UNSAT -> Unsat
+  | `UNKNOWN -> Unknown ""
