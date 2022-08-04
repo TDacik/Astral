@@ -24,13 +24,11 @@ jobs:
           apt update
           apt install -y python3 libgmp3-dev
 
-      - name: Setup opam
-        uses: actions/cache@v3
+      - name: Setup OCaml
+        uses: ocaml/setup-ocaml@v1
         
       - name: Install dependencies
-        run: |
-          opam init -y --disable-sandboxing
-          opam install . --deps-only
+        run: opam install . --deps-only
 
       - name: Install Astral
         run: opam install .
