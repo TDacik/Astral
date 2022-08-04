@@ -60,6 +60,14 @@ let rec translate term = match term with
   | SMT.False -> "false"
   | SMT.Equal (e1, e2) -> Format.asprintf "(= %s %s)" (translate e1) (translate e2)
   | SMT.Distinct es -> Format.asprintf "(distinct %s)" (translate_expr_list es)
+
+  (* Handle special cases of 0-ary and 1-ary boolean connectives *)
+  (* TODO: perform as simplification?? *)
+  | SMT.And [] -> "true"
+  | SMT.Or [] -> "false"
+  | SMT.And [e] -> translate e
+  | SMT.Or [e] -> translate e
+
   | SMT.And es -> Format.asprintf "(and %s)" (translate_expr_list es)
   | SMT.Or es -> Format.asprintf "(or %s)" (translate_expr_list es)
   | SMT.Not e -> Format.asprintf "(not %s)" (translate e)
