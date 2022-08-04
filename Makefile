@@ -11,7 +11,7 @@ build:
 install:
 	dune install
 
-clena:
+clean:
 	dune clean
 
 make:

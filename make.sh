@@ -14,9 +14,9 @@ LIBS="
 
 OPAM_LIBS="$OPAM_SWITCH_PREFIX/lib"
 
-for l in $LIBS
+for lib in $LIBS
 do
-  export LIBRARY_PATH="$OPAM_LIBS/$l:$LIBRARY_PATH"
+  export LIBRARY_PATH="$OPAM_LIBS/$lib:$LIBRARY_PATH"
 done
 
 dune build
