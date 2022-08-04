@@ -5,10 +5,24 @@
 open Options_sig
 open Backend_sig
 
-let usage_msg = "astral <input>"
+let usage_msg = "astral [options] <input>"
+
+(* ==== Input ==== *)
+
+let _input_path = ref None
+let input_path () = match !_input_path with
+  | Some path -> path
+  | None -> failwith "No input file was specified"
+
+(* ==== Output ==== *)
 
 let _debug = ref false
 let debug () = !_debug
+
+let _json_output_file = ref ""
+let json_output_file () = !_json_output_file
+
+(* ==== Additional features ==== *)
 
 let _verify_model = ref false
 let verify_model () = !_verify_model
@@ -16,16 +30,12 @@ let verify_model () = !_verify_model
 let _unsat_core = ref false
 let unsat_core () = !_unsat_core
 
-let _abstraction = ref true
-let abstraction () = !_abstraction
-
-let _json_output_file = ref ""
-let json_output_file () = !_json_output_file
-
-let _input_file = ref None
-let input_file () = !_input_file
-
 (* ==== Translation options ==== *)
+
+let _separation = ref "strong"
+let strong_separation () = match !_separation with
+  | "strong" -> true
+  | "weak" -> false
 
 let _location_bound = ref None
 let set_location_bound x = _location_bound := Some x
@@ -35,16 +45,16 @@ let location_bound () = match !_location_bound with
       if x > 0 then Some x
       else failwith "Location bound has to be positive integer"
 
-let _local_bounds = ref true
-let local_bounds () = !_local_bounds
+let _list_bounds = ref true
+let list_bounds () = !_list_bounds
 
-let _incremental = ref true
-let incremental () = !_incremental
+let _compute_sl_graph = ref true
+let compute_sl_graph () = !_compute_sl_graph
 
 let _sl_comp = ref false
 let sl_comp () = !_sl_comp
 
-(* == Quickcheck == *)
+(* ==== Quickcheck ==== *)
 
 let _quickcheck_runs = ref 0
 let set_quickcheck_runs x = _quickcheck_runs := x
@@ -53,44 +63,35 @@ let quickcheck_runs () = !_quickcheck_runs
 let _quickcheck_store = ref false
 let quickcheck_store () = !_quickcheck_store
 
-(* == Profiling == *)
+(* ==== Profiling ==== *)
 
 let _profile = ref false
 let profile () = !_profile
 
-(* == Quantifier Elimination == *)
-
-let _quantifier_elim_method = ref "expand"
-let quantifier_elim_method () = match !_quantifier_elim_method with
-  | "expand" -> `Expand
-  | "none" -> `None
-  | other -> failwith ("unknown quantifier elimination method `" ^ other ^ "`")
-
-(* == Backend == *)
+(* ==== SMT Backend ==== *)
 
 let _backend = ref "z3"
 let backend () = match !_backend with
   | "cvc5" -> (module CVC5_backend : BACKEND)
   | "z3" -> (module Z3_backend : BACKEND)
+  (*| "parallel" -> (module Parallel : BACKEND)*)
   | other -> failwith ("unknown backend `" ^ other ^ "`")
 
-(* == Conversions and preprocessings to other formats == *)
+(* ==== Conversions and preprocessing ==== *)
+
+let _out_path = ref ""
+let output_path suffix = match !_out_path with
+  | "" -> (input_path ()) ^ suffix
+  | path -> path
 
 let _convertor = ref "none"
 let convertor () = match !_convertor with
   | "none" -> None
-  | "sloth" -> Some (module Sloth_convertor : CONVERTOR)
-  | "grasshopper" -> Some (module Grasshopper_convertor : CONVERTOR)
-  | "list_unfold" -> Some (module Predicate_unfolding : CONVERTOR)
+  | "sloth" -> Some ((module Sloth_convertor : CONVERTOR), output_path ".smt2")
+  | "grasshopper" -> Some ((module Grasshopper_convertor : CONVERTOR), output_path ".spl")
+  | "list_unfold" -> Some ((module Predicate_unfolding : CONVERTOR), output_path "_unfold.smt2")
   | other -> failwith ("unknown conversion option `" ^ other ^ "`")
 
-(* == Translation == *)
-
-let _out_path = ref ""
-
-let output_path () = match !_out_path with
-  | "" -> None
-  | path -> Some path
 
 let speclist =
   [
@@ -98,28 +99,26 @@ let speclist =
     ("--verify-model", Arg.Set _verify_model, "Verify obtained model");
     ("--unsat-core", Arg.Set _unsat_core, "Print unsat core");
     ("--json-output", Arg.Set_string _json_output_file, "Store solver's result as json");
-
-    ("--quantifier-elim-method", Arg.Set_string _quantifier_elim_method,
-      "Method used to quantifier elimination in translated formulae (default expand)");
     ("--backend", Arg.Set_string _backend, "Backend SMT solver (default cvc5)");
-
-    ("--no-abstraction", Arg.Clear _abstraction, "Do not compute precise bounds");
-    ("--no-local-bounds", Arg.Clear _local_bounds, "Do not use list-length bounds");
+    ("--no-list-bounds", Arg.Clear _list_bounds, "Do not use list-length bounds");
+    ("--compute-sl-graph", Arg.Clear _compute_sl_graph, "Force location bound");
     ("--loc-bound", Arg.Int set_location_bound, "Force location bound");
-
+    ("--separation", Arg.Set_string _separation, "Separation (weak | strong");
     ("--sl-comp", Arg.Set _sl_comp, "Preprocessing for SL-comp");
-
-    ("--convertor", Arg.Set_string _convertor, "Convert input formula to other format (sloth | grasshopper | list_unfold)");
+    ("--convertor", Arg.Set_string _convertor,
+     "Convert input formula to other format (sloth | grasshopper | list_unfold)");
     ("--output", Arg.Set_string _out_path, "Output path of translation");
-
     ("--quickcheck", Arg.Int set_quickcheck_runs, "Run test on random formulae");
     ("--store", Arg.Set _quickcheck_store, "Store formulae generated by Quickcheck");
-    ("--profile", Arg.Set _profile, "Print profiling information")
+    ("--profile", Arg.Set _profile, "Print profiling information");
+
+    (* Do not show '-help' *)
+    ("-help", Arg.Unit ignore, "");
   ]
 
 let input_fn filename = match filename with
-  | "" -> ()
-  | _ -> _input_file := Some filename
+  | "" -> failwith "No input file"
+  | _ -> _input_path := Some filename
 
 let json_output () = match !_json_output_file with
   | "" -> false

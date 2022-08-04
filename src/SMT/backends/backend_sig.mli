@@ -30,6 +30,8 @@ module type BACKEND = sig
   val eval : model -> SMT.Term.t -> SMT.Term.t
   (** Evaluate term in a model. *)
 
+  val simplify : formula -> formula
+
   val show_formula : formula -> string
 
   val show_model : model -> string

@@ -90,6 +90,7 @@ let projection g labels =
 let projection_eq g = projection g [Equality]
 let projection_neq g = projection g [Disequality]
 let projection_pointer g = projection g [Pointer]
+let projection_ls g = projection g [List]
 let spatial_projection g = projection g [Pointer; List]
 
 (* TODO: transitivity *)
@@ -105,22 +106,25 @@ let must_pointer g x y =
   let g = projection_pointer g in
   G.mem_edge g x y
 
+let must_ls g x y =
+  let g = projection_ls g in
+  G.mem_edge g x y
+
 let nb_must_pointers g =
   let g = projection_pointer g in
   let vertices = G.fold_edges (fun x y acc -> x :: acc) g [] in
-  List.length vertices
+  List.length @@ List.sort_uniq G.V.compare vertices
+
+let must_alloc g =
+  let vs = G.fold_vertex List.cons g [] in
+  List.filter (fun x -> List.exists (fun y -> must_pointer g x y || (must_ls g x y && must_neq g x y)) vs) vs
 
 let nb_allocated g =
-  let g = projection_pointer g in
-  let vertices = G.fold_edges (fun x y acc -> x :: acc) g [] in
-  List.length vertices
+  let alloc = must_alloc g in
+  List.length alloc
 
 let must_path g x y max =
-  Printf.printf "max: %d\n" max;
   let g = projection_pointer g in
-  let channel = open_out "a.dot" in
-  G.output_graph channel g;
-  close_out channel;
   try
     let _, weight = G.shortest_path g x y in
     weight

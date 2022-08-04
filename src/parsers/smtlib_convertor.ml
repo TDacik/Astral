@@ -29,7 +29,7 @@ let header =
 
 let pretty_var var = match var with
   | Variable.Var _ -> Variable.show var
-  | Variable.Nil -> "(as nil Loc)"
+  | Variable.Nil -> "(as sep.nil Loc)"
 
 let translate_vars phi =
   SSL.get_vars phi
@@ -43,7 +43,7 @@ let pretty_atom phi =
   let str, v1, v2 = match phi with
     | LS (v1, v2) -> ("ls", v1, v2)
     | PointsTo (v1, v2) -> ("pto", v1, v2)
-    | Eq (v1, v2) -> ("eq", v1, v2)
+    | Eq (v1, v2) -> ("=", v1, v2)
     | Neq (v1, v2) -> ("distinct", v1, v2)
   in
   let v1, v2 = pretty_var v1, pretty_var v2 in
@@ -81,7 +81,8 @@ let translate_all phi =
   ^ ")\n\n"
   ^ "(check-sat)"
 
-let dump file phi =
+let dump file phi status =
   let channel = open_out_gen [Open_creat; Open_wronly] 0o666 file in
+  Printf.fprintf channel "(set-option :status %s)\n\n" status;
   Printf.fprintf channel "%s\n" (translate_all phi);
   close_out channel

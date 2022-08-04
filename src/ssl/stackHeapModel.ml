@@ -189,11 +189,9 @@ module HeapGraph = struct
 end
 
 let get_heap_graph sh =
-  let heap = sh.heap in
-  Heap.fold
-    (fun source target g ->
-       HeapGraph.add_edge g source target
-    ) heap HeapGraph.empty
+  HeapGraph.empty
+  |> Stack.fold (fun _ loc g -> HeapGraph.add_vertex g loc) sh.stack
+  |> Heap.fold (fun x y g -> HeapGraph.add_edge g x y) sh.heap
 
 let get_path sh x y = HeapGraph.get_path (get_heap_graph sh) x y
 

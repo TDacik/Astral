@@ -89,7 +89,9 @@ module Make (A : SET) (Locations : LOCATIONS) = struct
 
   module Classic = struct
 
-    let semantics ctx fp x y bound = reach ctx x y bound
+    let semantics ctx fp x y bound =
+      let reach = reach ctx x y bound in
+      Boolean.mk_and [reach; path ctx fp x y bound]
 
     let axioms ctx fp x y bound = path ctx fp x y bound
 
@@ -100,18 +102,17 @@ module Make (A : SET) (Locations : LOCATIONS) = struct
   module SymbolicHeaps = struct
 
     let semantics (ctx : Context.t) fp x y _ =
-      let case1 = Boolean.mk_eq x y in
-      let case2 = Boolean.mk_eq (mk_succ ctx x) y in
+      let cond1 = Boolean.mk_eq x y in
+      let cond2 = Boolean.mk_and [
+        Boolean.mk_distinct [x; y];
+        Boolean.mk_eq (mk_succ ctx x) y;
+      ]
+      in
+      let case1 = Boolean.mk_and [cond1; Set.mk_eq_empty fp] in
+      let case2 = Boolean.mk_and [cond2; Set.mk_eq_singleton fp x ] in
       Boolean.mk_or [case1; case2]
 
-    let axioms (ctx : Context.t) fp x y _ =
-      let cond1 = Boolean.mk_eq x y in
-      let cond2 = Boolean.mk_distinct [x; y] in
-      let fp1 = Set.mk_eq_empty fp in
-      let fp2 = Set.mk_eq_singleton fp x in
-      let case1 = Boolean.mk_iff cond1 fp1 in
-      let case2 = Boolean.mk_iff cond2 fp2 in
-      Boolean.mk_and [case1; case2]
+    let axioms _ _ _ _ _ = Boolean.mk_true ()
 
   end
 

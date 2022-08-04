@@ -7,7 +7,7 @@ open Options_sig
 
 val parse : unit -> unit
 
-val input_file : unit -> string option
+val input_path : unit -> string
 
 val debug : unit -> bool
 
@@ -19,25 +19,22 @@ val verify_model : unit -> bool
 
 val unsat_core : unit -> bool
 
-val abstraction : unit -> bool
+val strong_separation : unit -> bool
 
-val local_bounds : unit -> bool
+val list_bounds : unit -> bool
 
 val location_bound : unit -> int option
 
-val incremental : unit -> bool
+val compute_sl_graph : unit -> bool
 
-val convertor : unit -> (module CONVERTOR) option
-
-val output_path : unit -> string option
+val convertor : unit -> ((module CONVERTOR) * string) option
+(** Return convertor module and output path. *)
 
 val quickcheck_runs : unit -> int
 
 val quickcheck_store : unit -> bool
 
 val profile : unit -> bool
-
-val quantifier_elim_method : unit -> [ `None | `Expand]
 
 val backend : unit -> (module BACKEND)
 

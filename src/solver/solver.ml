@@ -3,9 +3,16 @@
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
 open SSL
+open Input
 open Encodings
 
 module Print = Printer.Make(struct let name = "Solver" end)
+
+(** Verify result against status specified in the input *)
+let verify_status input = function
+  | Translation.Sat _ -> input.status == `Sat || input.status == `Unknown
+  | Translation.Unsat _ -> input.status == `Unsat || input.status == `Unknown
+  | Translation.Unknown _ -> true
 
 let verify_model_fn sh phi =
   if not @@ SSL.is_positive phi then
@@ -41,7 +48,8 @@ let normalise phi vars =
   let vars = normalise_vars phi vars in
   (phi, vars)
 
-let solve ?(verify_model=false) phi vars =
+let solve ?(verify_model=false) input =
+  let phi, vars = Input.get_ssl_input input in
   Debug.formula ~suffix:"original" phi;
   let phi, vars = normalise phi vars in
 
@@ -49,7 +57,7 @@ let solve ?(verify_model=false) phi vars =
 
   (* Bound computation *)
   let g =
-    if Options.abstraction ()
+    if Options.compute_sl_graph ()
     then SL_graph.compute phi (*|> MustAllocations.refine_graph phi*)
     else SL_graph.empty
   in
@@ -59,7 +67,6 @@ let solve ?(verify_model=false) phi vars =
     | Some x -> x
   in
   let info = Results.create_info phi vars g (s_min, s_max) h_bound in
-
   (* Create solver module *)
 
   let module Solver = (val Options.backend () : Backend_sig.BACKEND) in
@@ -87,6 +94,19 @@ let solve ?(verify_model=false) phi vars =
   in
 
   Timer.add "Solver";
+
+  let res_string = match result with
+    | Translation.Sat _ -> "sat"
+    | Translation.Unsat _ -> "unsat"
+    | Translation.Unknown _ -> "unknown"
+  in
+
+  if not @@ verify_status input result then
+  begin
+    let expected = Input.get_status_str input in
+    Print.info "Internal error: result %s (expected %s)\n" res_string expected;
+    exit 2
+  end;
 
   match result with
   | Translation.Sat (sh, results) ->

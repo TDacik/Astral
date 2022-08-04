@@ -9,6 +9,7 @@
     qcheck
     yojson
     ppx_compare
+    ;domainslib
   )
 
   (preprocess

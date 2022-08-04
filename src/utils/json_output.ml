@@ -6,7 +6,7 @@ open Results
 
 let json_repr results =
   `Assoc [
-    "Name",                 `String (Option.get @@ Options.input_file ());
+    "Name",                 `String (Options.input_path ());
     "Formula",              `String (Results.input_string results);
     "Formula size",         `Int results.size;
     "# variables",          `Int (List.length @@ SSL.get_vars ~with_nil:false

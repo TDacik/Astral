@@ -7,6 +7,6 @@ val name : string
 val unfold : SSL.t -> int -> SSL.t
 (** Bounded unfolding of list-segment predicates *)
 
-val convert : SSL.t -> string
+val convert : SSL.t -> int -> string
 
-val dump : string -> SSL.t -> unit
+val dump : string -> SSL.t -> string -> int -> unit

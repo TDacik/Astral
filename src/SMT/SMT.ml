@@ -51,20 +51,6 @@ and term =
   | Exists of term * term
   | Forall of term * term
 
-(* ==== Syntactic manipulation ==== *)
-
-let rec substitute ?(bounded=[]) phi x term = match phi with
-  | Variable (var, sort) ->
-      if String.equal (match x with Variable (s, _) -> s) var then term
-      else Variable (var, sort)
-
-  (* Quantifiers *)
-  | Exists (binder, phi) -> substitute ~bounded:(binder :: bounded) phi x term
-  | Forall (binder, phi) -> substitute ~bounded:(binder :: bounded) phi x term
-
-  (* TODO: others *)
-  | _ -> phi
-
 module Sort = struct
 
   type t = sort
@@ -86,6 +72,10 @@ module Var = struct
 
   type t = var
 
+  let get_name t = match t with
+    | Variable (name, sort) -> name
+    | _ -> failwith "not a variable"
+
   let compare (x1, _) (x2, _) = String.compare x1 x2
 
   let index = ref (-1)
@@ -106,8 +96,6 @@ end
 module Term = struct
 
   type t = term
-
-  let size _ = 0 (* TODO *)
 
   let equal _ _ = true
 
@@ -142,6 +130,41 @@ module Term = struct
     (* Quantifiers *)
     | Exists _ | Forall _ -> Bool
 
+  let rec map_vars fn term =
+    let map_vars = map_vars fn in
+    match term with
+      | Constant (c, sort) -> Constant (c, sort)
+      | Variable (x, sort) -> fn x sort
+      | IntConst i -> IntConst i
+      | Plus (x, y) -> Plus (map_vars x, map_vars y)
+      | Minus (x, y) -> Minus (map_vars x, map_vars y)
+      | Mult (x, y) -> Mult (map_vars x, map_vars y)
+
+      | Membership (elem, set) -> Membership (map_vars elem, map_vars set)
+      | Subset (set1, set2) -> Subset (map_vars set1, map_vars set2)
+      | Disjoint (set1, set2) -> Disjoint (map_vars set1, map_vars set2)
+      | Union (sets, sort) -> Union (List.map map_vars sets, sort)
+      | Inter (sets, sort) -> Inter (List.map map_vars sets, sort)
+      | Diff (set1, set2) -> Diff (map_vars set1, map_vars set2)
+      | Compl set -> Compl (map_vars set)
+      | Enumeration (enum, sort) -> Enumeration (List.map map_vars enum, sort)
+
+
+      | ConstArr (const) -> ConstArr (map_vars const)
+      | Store (a, i, v) -> Store (map_vars a, map_vars i, map_vars v)
+      | Select (a, i) -> Select (map_vars a, map_vars i)
+
+      | Equal (x, y) -> Equal (map_vars x, map_vars y)
+      | Distinct xs -> Distinct (List.map map_vars xs)
+      | And xs -> And (List.map map_vars xs)
+      | Or xs -> Or (List.map map_vars xs)
+      | Not x -> Not (map_vars x)
+      | Implies (x, y) -> Implies (map_vars x, map_vars y)
+      | Iff (x, y) -> Iff (map_vars x, map_vars y)
+      | True -> True
+      | False -> False
+
+
   let rec show = function
     | Constant (c, _) -> c
     | Variable (x, sort) -> Var.show (x, sort)
@@ -151,7 +174,13 @@ module Term = struct
     | Minus (x, y) -> Format.asprintf "(%s - %s)" (show x) (show y)
     | Mult (x, y) -> Format.asprintf "(%s * %s)" (show x) (show y)
 
-    (* TODO: sets *)
+    | Membership (elem, set) -> Format.asprintf "(member %s %s)" (show elem) (show set)
+    | Subset (set1, set2) -> Format.asprintf "(subset %s %s)" (show set1) (show set2)
+    | Disjoint (set1, set2) -> Format.asprintf "(disjoint %s %s)" (show set1) (show set2)
+    | Union (sets, sort) -> "(union " ^ (List.map show sets |> String.concat ",") ^ ")"
+    | Inter (sets, sort) -> "(inter " ^ (List.map show sets |> String.concat ",") ^ ")"
+    | Diff (set1, set2) -> Format.asprintf "(minus %s %s)" (show set2) (show set2)
+    | Compl set -> Format.asprintf "(complement %s)" (show set)
     | Enumeration (enum, sort) ->
       begin match enum with
       | [] -> "∅"
@@ -172,7 +201,104 @@ module Term = struct
     | True -> "true"
     | False -> "false"
 
-    (* TODO: quantifiers *)
+  let rec size = function
+    | Constant (c, _) -> 1
+    | Variable (x, sort) -> 1
+
+    | IntConst i -> 1
+    | Plus (x, y) -> 1 + size x + size y
+    | Minus (x, y) -> 1 + size x + size y
+    | Mult (x, y) -> 1 + size x + size y
+
+    | Membership (elem, set) -> 1 + size elem + size set
+    | Subset (set1, set2) -> 1 + size set1 + size set2
+    | Disjoint (set1, set2) -> 1 + size set1 + size set2
+    | Union (sets, sort) -> List.fold_left (fun acc x -> acc + size x) 1 sets
+    | Inter (sets, sort) -> List.fold_left (fun acc x -> acc + size x) 1 sets
+    | Diff (set1, set2) -> 1 + size set1 + size set2
+    | Compl set -> 1 + size set
+    | Enumeration (enum, sort) -> List.fold_left (fun acc x -> acc + size x) 1 enum
+
+    | ConstArr (const) -> 1
+    | Store (a, i, v) -> 1 + size a + size i + size v
+    | Select (a, i) -> 1 + size a + size i
+
+    | Equal (x, y) -> 1 + size x + size y
+    | Distinct xs | And xs | Or xs -> List.fold_left (fun acc x -> acc + size x) 1 xs
+    | Not x -> 1 + size x
+    | Implies (x, y)
+    | Iff (x, y) -> 1 + size x + size y
+    | True -> 1
+    | False -> 1
+    | Exists (binder, phi) | Forall (binder, phi) -> 1 + size binder + size phi
+
+    (* ==== Syntactic manipulation ==== *)
+
+    let rec substitute ?(bounded=[]) phi x term = match phi with
+      | Constant _ -> phi
+      | Variable (var, sort) ->
+          begin try
+            if String.equal (match x with Variable (s, _) -> s) var then term
+            else Variable (var, sort)
+          with _ -> failwith (Format.asprintf "%s" (show x))
+          end
+      (* Quantifiers *)
+      | Exists (binder, phi) -> substitute ~bounded:(binder :: bounded) phi x term
+      | Forall (binder, phi) -> substitute ~bounded:(binder :: bounded) phi x term
+
+  | Membership (elem, set) ->
+      Membership (substitute ~bounded elem x term, substitute ~bounded set x term)
+  | Subset (set1, set2) ->
+      Subset (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
+  | Disjoint (set1, set2) ->
+      Disjoint (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
+  | Union (sets, sort) ->
+      Union (List.map (fun t -> substitute ~bounded t x term) sets, sort)
+  | Inter (sets, sort) ->
+      Inter (List.map (fun t -> substitute ~bounded t x term) sets, sort)
+  | Diff (set1, set2) ->
+      Diff (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
+  | Compl set ->
+      Compl (substitute ~bounded set x term)
+  | Enumeration (terms, sort) ->
+      Enumeration (List.map (fun t -> substitute ~bounded t x term) terms, sort)
+
+  (* Boolean *)
+  | Equal (t1, t2) ->
+      Equal (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+  | Distinct terms ->
+      Distinct (List.map (fun t -> substitute ~bounded t x term) terms)
+  | And terms ->
+      And (List.map (fun t -> substitute ~bounded t x term) terms)
+  | Or terms ->
+      Or (List.map (fun t -> substitute ~bounded t x term) terms)
+  | Not t ->
+      Not (substitute ~bounded t x term)
+  | Implies (t1, t2) ->
+      Implies (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+  | Iff (t1, t2) ->
+      Iff (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+  | True -> True
+  | False -> False
+
+    | IntConst i -> IntConst i
+    | Plus (t1, t2) ->
+        Plus (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+    | Minus (t1, t2) ->
+        Minus (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+    | Mult (t1, t2) ->
+        Mult (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+
+  | ConstArr t ->
+      ConstArr (substitute ~bounded t x term)
+  | Select (arr, i) ->
+      Select (substitute ~bounded arr x term, substitute ~bounded i x term)
+  | Store (arr, i, v) ->
+      Store (substitute ~bounded arr x term,
+             substitute ~bounded i x term,
+             substitute ~bounded v x term
+            )
+
 end
 
 module Equality = struct
@@ -250,6 +376,7 @@ module Set = struct
   let mk_sort elem_sort = Set elem_sort
 
   let mk_empty sort = Enumeration ([], sort)
+  let mk_singleton elem = Enumeration ([elem], Set (get_sort elem))
 
   let mk_mem elem set = Membership (elem, set)
   let mk_subset s1 s2 = Subset (s1, s2)
@@ -266,6 +393,26 @@ module Set = struct
 
   (* Accessors *)
   let get_elems = function Enumeration (elems, _) -> elems
+
+  let rec simplify (term : Term.t) = match term with
+    | Union (sets, sort) ->
+        let sets = List.map simplify sets in
+        begin try
+          let xs = List.fold_left (fun acc set -> match set with
+            | Enumeration (xs, _) -> acc @ xs
+            | _ -> failwith ""
+          ) [] sets
+          in
+          Enumeration (xs, sort)
+        with _ -> term
+        end
+    | term -> term
+
+  let may_disjoint set1 set2 = match simplify set1, simplify set2 with
+    | Enumeration (e1, _), Enumeration (e2, _) ->
+        not @@ List.exists (fun x -> List.mem x e2) e1
+        && not @@ List.exists (fun x -> List.mem x e1) e2
+    | _ -> true
 
 end
 

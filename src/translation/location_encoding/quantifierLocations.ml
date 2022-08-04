@@ -49,28 +49,23 @@ module Locations (Set : SET) = struct
 
   (* ==== Location lemmas ==== *)
 
-  (* Convention: if phi has n variables, locations n+1, ... are anonymous
+  (* Convention: if phi has n variables, locations n+1, ... are anonymous *)
   let annonymous context =
     Enumeration.get_constants context.locs_sort
     |> List.drop (List.length context.vars)
 
-  let location_lemmas context =
-    let annonymous = annonymous context in
+  let location_lemmas context = Boolean.mk_true ()
+    (*let annonymous = annonymous context in
+    let named = vars_to_exprs context in
 
-    let definition = List.map
-      (fun var ->
-        Boolean.mk_distinct (var :: annonymous)
-      ) (vars_to_exprs context)
-      |> Boolean.mk_and
-    in
     let no_annon_succ = List.map
       (fun loc ->
-        let succ = Z3Array.mk_select context.heap loc in
-        Boolean.mk_distinct (loc :: annonymous)
-      ) (vars_to_exprs context)
+        let succ = Array.mk_select context.heap loc in
+        Boolean.mk_distinct (succ :: annonymous)
+      ) annonymous
       |> Boolean.mk_and
     in
-    Boolean.mk_and [definition; no_annon_succ]*)
-  let location_lemmas ctx = Boolean.mk_true ()
 
+    Boolean.mk_and [no_annon_succ]
+    *)
 end

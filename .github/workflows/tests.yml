@@ -1,0 +1,44 @@
+# Workflow for running tests
+#
+# Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022
+
+name: tests
+
+on: [push, pull_request]
+
+jobs:
+
+  build:
+    runs-on: ubuntu-latest
+
+    container:
+      image: ocaml/opam:ubuntu-20.04-ocaml-4.12
+      options: --user root
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Install dependencies
+        run: |
+          apt update
+          apt install -y python3 libgmp3-dev
+
+      - name: Setup OCaml
+        uses: ocaml/setup-ocaml@v1
+        
+      - name: Install dependencies
+        run: opam install . --deps-only
+
+      - name: Install Astral
+        run: opam install .
+
+      - name: Add opam binaries to path
+        run: | 
+          echo "/home/opam/.opam/4.12/bin" >> $GITHUB_PATH
+          echo $GITHUB_PATH
+          astral --help
+          /home/opam/.opam/4.12/bin/astral --help
+
+      - name: Run tests
+        run: python3 scripts/run_tests.py

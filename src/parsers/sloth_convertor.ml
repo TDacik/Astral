@@ -34,7 +34,10 @@ let rec convert = function
 
 let convert_all phi = (convert_vars phi) ^ "\n\n(assert " ^ (convert phi) ^ ")\n"
 
-let dump file phi =
+let convert phi _ = convert phi
+
+let dump file phi status _ =
   let channel = open_out_gen [Open_creat; Open_wronly] 0o666 file in
+  Printf.fprintf channel ";; %s\n\n" status;
   Printf.fprintf channel "%s\n" (convert_all phi);
   close_out channel

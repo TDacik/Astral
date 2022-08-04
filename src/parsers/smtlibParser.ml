@@ -13,8 +13,11 @@ module Parser = Make
 
 module TypeEnv = TypeEnvironment
 
-open Std.Term
-open Std.Statement
+module Term = Std.Term
+module Statement = Std.Statement
+
+open Term
+open Statement
 
 exception ParserError of string
 
@@ -58,9 +61,10 @@ and parse_constant (id : Dolmen_std.Id.t) =
     | "emp" -> SSL.mk_emp ()
     | "sep.emp" -> SSL.mk_emp ()          (* compatibility with cvc5 *)
     | "(_ emp Loc Loc)" -> SSL.mk_emp ()  (* compatibility with SL-COMP *)
+    | "(_ emp Loc\nLoc)" -> SSL.mk_emp ()  (* TODO: ... *)
     | "true" -> SSL.mk_true ()
     | "false" -> SSL.mk_false ()
-    | other -> raise (ParserError (Format.asprintf "Unkown constant: %s" other))
+    | other -> raise (ParserError (Format.asprintf "Unknown constant: %s" other))
 
 and parse_term term = match term.term with
   | App (t, terms) -> parse_app t terms
@@ -89,7 +93,7 @@ and parse_smt_term t = match t.term with
 
 and symbol_to_var term symbol =
   match Format.asprintf "%a" Dolmen_std.Id.print symbol with
-  | "nil" -> SSL.Variable.Nil
+  | "nil" | "sep.nil" | "(sep.nil)" | "(as sep.nil Loc)" -> SSL.Variable.Nil
   | var ->
       try
         begin match TypeEnv.type_of var with
@@ -156,16 +160,33 @@ let parse_aux file content =
   in
   List.rev @@ unpack fn []
 
+let get_status file =
+  let channel = open_in file in
+  let content = really_input_string channel (in_channel_length channel) in
+  let re_status = Str.regexp "(set-info :status \\([a-z]*\\))" in
+  try
+    let _ = Str.search_forward re_status content 0 in
+    Str.matched_group 1 content
+  with Not_found -> "unknown"
+
+let parse_option term input = match term.term with
+  | App (t1, [t2]) ->
+    begin match Format.asprintf "%a" Term.print t1, Format.asprintf "%a" Term.print t2 with
+      | (":status", "sat") -> Input.set_status `Sat input
+      | (":status", "unsat") -> Input.set_status `Unsat input
+      | (":status", "unknown") -> Input.set_status `Unknown input
+      | _ -> input
+  end
+  | _ -> input
+
 (** Parsing *)
 let parse file =
   let content = preprocess file in
   let statements = parse_aux file content in
-  let assertions, vars = List.fold_left
-    (fun (assertions, vars) stmt -> match stmt.descr with
-      | Antecedent term -> ((parse_term term) :: assertions, vars)
-      | Decls def_group -> (assertions, vars @ parse_definitions def_group)
-      | _ -> (assertions, vars)
-    ) ([], []) statements
-  in
-  let phi = SSL.mk_and assertions in
-  (phi, vars)
+  List.fold_left
+    (fun input stmt -> match stmt.descr with
+      | Set_info term -> parse_option term input
+      | Antecedent term -> Input.add_assertion (parse_term term) input
+      | Decls def_group -> Input.add_variables (parse_definitions def_group) input
+      | _ -> input
+    ) Input.default statements

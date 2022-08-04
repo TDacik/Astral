@@ -18,4 +18,6 @@ val smt_model : SMT.Model.t -> unit
 
 val backend_translated : string -> unit
 
+val backend_simplified : string -> unit
+
 val backend_model : string -> unit
