@@ -6,17 +6,9 @@
 
 (declare-const x Loc)
 (declare-const y Loc)
-(declare-const z Loc)
 
-(assert
-  (sep
-    (pto x y)
-    (pto y z)
-    (distinct y z)
-    (distinct x z)
-  )
-)
+(assert (ls x y))
 
-(assert (not (ls x z)))
+(assert (not (ls x y)))
 
 (check-sat)

@@ -1,5 +1,5 @@
 (set-info :source Astral)
-(set-info :status unsat)
+(set-info :status sat)
 
 (declare-sort Loc 0)
 (declare-heap (Loc Loc))
@@ -12,7 +12,6 @@
   (sep
     (pto x y)
     (pto y z)
-    (distinct y z)
     (distinct x z)
   )
 )
