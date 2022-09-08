@@ -21,7 +21,7 @@ let convert_model sh =
   (s, h)
 
 let solve phi vars =
-  let result = Solver.solve phi vars in
+  let result = Api.solve phi vars in
   match result.status with
   | `SAT -> Sat (Obj.magic convert_model @@ Option.get result.model)
   | `UNSAT -> Unsat
