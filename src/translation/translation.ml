@@ -256,16 +256,18 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let h1 = Array.mk_var h1_name context.heap_sort in
 
     let fp1 = formula_footprint context psi1 in
-    let fp2 = Set.mk_union [domain; fp1] context.fp_sort in
+    let fp2 = formula_footprint context psi2 in
+    let fp = Set.mk_diff fp2 fp1 in
 
     let phi1, axioms1, footprints1 = translate {context with heap = h1} psi1 fp1 in
     let phi2, axioms2, footprints2 = translate {context with heap = h1} psi2 fp2 in
 
-    let eq_fp = heaps_equal_on_footprint context context.heap h1 (Set.mk_diff fp2 fp1) in
+    let eq_fp = heaps_equal_on_footprint context context.heap h1 fp in
 
-    let disjoint = Set.mk_disjoint fp1 domain in
+    let subset = Set.mk_subset fp1 fp2 in
+    let domain_def = Set.mk_eq domain fp in
     let axioms = Boolean.mk_and [axioms1; axioms2] in
-    let semantics = Boolean.mk_and [phi1; phi2; disjoint; eq_fp] in
+    let semantics = Boolean.mk_and [phi1; phi2; subset; domain_def; eq_fp] in
     let footprints =
       BatList.cartesian_product footprints1 footprints2
       |> List.map (fun (s1, s2) -> Set.mk_diff s2 s1)
