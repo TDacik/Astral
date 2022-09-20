@@ -4,7 +4,7 @@
 
 name: tests
 
-on: []
+on: [push, pull_request]
 
 jobs:
 
@@ -24,13 +24,21 @@ jobs:
           apt update
           apt install -y python3 libgmp3-dev
 
+      - name: Setup OCaml
+        uses: ocaml/setup-ocaml@v1
+        
+      - name: Install dependencies
+        run: opam install . --deps-only
+
       - name: Install Astral
-        run: |
-          opam init -y --disable-sandboxing
-          opam install .
+        run: opam install .
 
       - name: Add opam binaries to path
-        run: echo "/home/opam/.opam/4.12/bin" >> $GITHUB_PATH
+        run: | 
+          echo "/home/opam/.opam/4.12/bin" >> $GITHUB_PATH
+          echo $GITHUB_PATH
+          astral --help
+          /home/opam/.opam/4.12/bin/astral --help
 
       - name: Run tests
         run: python3 scripts/run_tests.py
