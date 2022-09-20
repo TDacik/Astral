@@ -101,16 +101,30 @@ let rec translate term = match term with
     Format.asprintf "(store %s %s %s)" (translate a) (translate i) (translate x)
 
   | SMT.Forall (x, phi) ->
-    Format.asprintf "(forall ((%s %s)) %s)"
+    let x_sort = SMT.Term.get_sort x in
+    begin match x_sort with
+    | Finite (_, cs) ->
+      let es = List.map (fun c -> SMT.Term.substitute phi x (SMT.Constant (c, x_sort))) cs in
+      Format.asprintf "(and %s)" (translate_expr_list es)
+    | _ ->
+      Format.asprintf "(forall ((%s %s)) %s)"
       (translate x)
-      (translate_sort @@ SMT.Term.get_sort x)
+      (translate_sort x_sort)
       (translate phi)
+    end
 
   | SMT.Exists (x, phi) ->
+    let x_sort = SMT.Term.get_sort x in
+    begin match x_sort with
+    | Finite (_, cs) ->
+      let es = List.map (fun c -> SMT.Term.substitute phi x (SMT.Constant (c, x_sort))) cs in
+      Format.asprintf "(or %s)" (translate_expr_list es)
+    | _ ->
     Format.asprintf "(exists ((%s %s)) %s)"
       (translate x)
-      (translate_sort @@ SMT.Term.get_sort x)
+      (translate_sort x_sort)
       (translate phi)
+    end
 
   | SMT.IntConst i -> Format.asprintf "%d" i
   | SMT.Plus (e1, e2) -> Format.asprintf "(+ %s %s)" (translate e1) (translate e2)

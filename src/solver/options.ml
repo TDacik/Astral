@@ -70,11 +70,16 @@ let profile () = !_profile
 
 (* ==== SMT Backend ==== *)
 
-let _backend = ref "z3"
+let _backend = ref "cvc5"
 let backend () = match !_backend with
   | "cvc5" -> (module CVC5_backend : BACKEND)
   | "z3" -> (module Z3_backend : BACKEND)
   (*| "parallel" -> (module Parallel : BACKEND)*)
+  | other -> failwith ("unknown backend `" ^ other ^ "`")
+
+let set_backend = function
+  | "cvc5" -> _backend := "cvc5"
+  | "z3" -> _backend := "z3"
   | other -> failwith ("unknown backend `" ^ other ^ "`")
 
 (* ==== Conversions and preprocessing ==== *)

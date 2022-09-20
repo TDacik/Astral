@@ -38,6 +38,8 @@ val profile : unit -> bool
 
 val backend : unit -> (module BACKEND)
 
+val set_backend : string -> unit
+
 val sl_comp : unit -> bool
 
 val exit_usage : int -> unit

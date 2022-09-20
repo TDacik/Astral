@@ -10,6 +10,7 @@ and sort =
   | Finite of String.t * string list
   | Set of sort
   | Array of sort * sort
+  | Bitvector of sort * int (* Sort of indices *)
 
 and term =
   | Constant of String.t * sort
@@ -35,6 +36,15 @@ and term =
   | ConstArr of term
   | Select of term * term
   | Store of term * term * term
+
+  (* Bitvectors -- only minimal signature *)
+  | BitConst of term * int * sort
+  | BitIndex of term * term
+  | BitAnd of term list * sort
+  | BitOr of term list * sort
+  | BitXor of term list * sort
+  | BitImplies of term * term
+  | BitCompl of term
 
   (* Boolean *)
   | Equal of term * term
@@ -65,6 +75,7 @@ module Sort = struct
     | Finite (name, _) -> name
     | Set (elem_sort) -> Format.asprintf "(set %s)" (show elem_sort)
     | Array (dom, range) -> Format.asprintf "(array %s -> %s)" (show dom) (show range)
+    | Bitvector (indices, width) -> Format.asprintf "(bitvector %d)" width
 
 end
 
@@ -117,6 +128,15 @@ module Term = struct
     | Select (a, _) -> Sort.get_range_sort @@ get_sort a
     | Store (a, _, _) -> get_sort a
 
+    (* Bitvectors *)
+    | BitConst (_, width, index_sort) -> Bitvector (index_sort, width)
+    | BitIndex _ -> Bool
+    | BitAnd (_, sort) -> sort
+    | BitOr (_, sort) -> sort
+    | BitXor (_, sort) -> sort
+    | BitImplies (bv1, _) -> get_sort bv1
+    | BitCompl bv -> get_sort bv
+
     | Equal _ -> Bool
     | Distinct _ -> Bool
     | And _ -> Bool
@@ -149,10 +169,17 @@ module Term = struct
       | Compl set -> Compl (map_vars set)
       | Enumeration (enum, sort) -> Enumeration (List.map map_vars enum, sort)
 
-
       | ConstArr (const) -> ConstArr (map_vars const)
       | Store (a, i, v) -> Store (map_vars a, map_vars i, map_vars v)
       | Select (a, i) -> Select (map_vars a, map_vars i)
+
+      | BitConst (bit, width, sort) -> BitConst (map_vars bit, width, sort)
+      | BitIndex (bv, index) -> BitIndex (map_vars bv, map_vars index)
+      | BitAnd (bvs, sort) -> BitAnd (List.map map_vars bvs, sort)
+      | BitOr (bvs, sort) -> BitOr (List.map map_vars bvs, sort)
+      | BitXor (bvs, sort) -> BitXor (List.map map_vars bvs, sort)
+      | BitImplies (bv1, bv2) -> BitImplies (map_vars bv1, map_vars bv2)
+      | BitCompl bv -> BitCompl (map_vars bv)
 
       | Equal (x, y) -> Equal (map_vars x, map_vars y)
       | Distinct xs -> Distinct (List.map map_vars xs)
@@ -191,6 +218,14 @@ module Term = struct
     | Store (a, i, v) -> Format.asprintf "%s[%s <- %s]" (show a) (show i) (show v)
     | Select (a, i) -> Format.asprintf "%s[%s]" (show a) (show i)
 
+    | BitConst (bit, width, sort) -> Format.asprintf "[TODO] bitvectors"
+    | BitIndex (bv, index) -> Format.asprintf "[TODO] bitvectors"
+    | BitAnd (bvs, sort) -> Format.asprintf "[TODO] bitvectors"
+    | BitOr (bvs, sort) -> Format.asprintf "[TODO] bitvectors"
+    | BitXor (bv1, bv2) -> Format.asprintf "[TODO] bitvectors"
+    | BitImplies (bv1, bv2) -> Format.asprintf "[TODO] bitvectors"
+    | BitCompl bv -> Format.asprintf "[TODO] bitvecors"
+
     | Equal (x, y) -> Format.asprintf "(%s = %s)" (show x) (show y)
     | Distinct xs -> "(distinct " ^ (List.map show xs |> String.concat ",") ^ ")"
     | And xs -> "(and " ^ (List.map show xs |> String.concat ",") ^ ")"
@@ -222,6 +257,14 @@ module Term = struct
     | ConstArr (const) -> 1
     | Store (a, i, v) -> 1 + size a + size i + size v
     | Select (a, i) -> 1 + size a + size i
+
+    | BitConst (bit, width, sort) -> 1 + size bit
+    | BitIndex (bv, index) -> 1 + size bv + size index
+    | BitAnd (bvs, sort) -> 1 + List.fold_left (fun acc x -> acc + size x) 0 bvs
+    | BitOr (bvs, sort) -> 1 + List.fold_left (fun acc x -> acc + size x) 0 bvs
+    | BitXor (bvs, sort) -> 1 + List.fold_left (fun acc x -> acc + size x) 0 bvs
+    | BitImplies (bv1, bv2) -> 1 + size bv1 + size bv2
+    | BitCompl bv -> 1 + size bv
 
     | Equal (x, y) -> 1 + size x + size y
     | Distinct xs | And xs | Or xs -> List.fold_left (fun acc x -> acc + size x) 1 xs
@@ -364,6 +407,27 @@ module Array = struct
 
   let mk_const t = ConstArr t
   let mk_select arr x = Select (arr, x)
+
+end
+
+module Bitvector = struct
+
+  include Equality
+
+  let mk_sort width = Bitvector (Integer, width)
+
+  let mk_custom_sort sort = match sort with
+    | Finite (_, elements) -> Bitvector (sort, List.length elements)
+    | _ -> failwith "Invalid argument"
+
+  let mk_const c width sort = BitConst (c, width, sort)
+  let mk_index bv i = BitIndex (bv, i)
+
+  let mk_and bvs sort = BitAnd (bvs, sort)
+  let mk_or bvs sort = BitOr (bvs, sort)
+  let mk_xor bvs sort = BitXor (bvs, sort)
+  let mk_implies bv1 bv2 = BitImplies (bv1, bv2)
+  let mk_compl bv = BitCompl bv
 
 end
 
