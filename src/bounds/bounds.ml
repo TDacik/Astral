@@ -61,17 +61,17 @@ let rec local_bound context x y =
       let try1 = context.bound - SL_graph.nb_allocated g + 1 in
       (0, min try1 stack_bound)
     else
-      let try1 = SL_graph.must_path g x y context.bound in
+      let min_path, try1 = SL_graph.must_path g x y context.bound in
       let try2 = context.bound - SL_graph.nb_must_forks g in
       let try3 = try
         let ptrs, lists = SL_graph.predict_footprint g x y in
         let context' = {context with polarity = true} in
         List.length ptrs
-        + (List.length @@ List.map (fun phi -> match phi with LS (x, y) ->
-           local_bound context' x y) lists)
+        + (BatList.sum @@ List.map (fun phi -> match phi with LS (x, y) ->
+           snd @@ local_bound context' x y) lists)
       with _ -> try2
       in
-      (0, (min (min try1 (min try2 try3)) stack_bound))
+      (min_path, (min (min try1 (min try2 try3)) stack_bound))
   in
   Printer.debug "Length bound of ls(%s, %s): [%d, %d]\n"
     (Variable.show x)
