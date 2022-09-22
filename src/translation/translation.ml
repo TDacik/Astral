@@ -182,30 +182,44 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let footprints = footprints1 @ footprints2 in
     (semantics, axioms, footprints)
 
+  (** Translation of separating conjunction using scolemisation *)
+  and translate_star_scolemised context domain psi1 psi2 =
+    let fp1 = formula_footprint context psi1 in
+    let fp2 = formula_footprint context psi2 in
+
+    let semantics1, axioms1, footprints1 = translate context psi1 fp1 in
+    let semantics2, axioms2, footprints2 = translate context psi2 fp2 in
+    let disjoint = Set.mk_disjoint fp1 fp2 in
+    let fp_union = Set.mk_union [fp1; fp2] context.fp_sort in
+    let domain_def = Set.mk_eq domain fp_union in
+
+    let axioms = Boolean.mk_and [axioms1; axioms2] in
+
+    (* Classical semantics *)
+    if SSL.has_unique_footprint psi1 && SSL.has_unique_footprint psi2
+       || not @@ Options.strong_separation ()
+    then
+      (Boolean.mk_and [phi1; phi2; disjoint; domain_def], axioms, [])
+
+    (* Strong-separating semantics *)
+    else
+      let axiom, str_disjoint = mk_strongly_disjoint context fp1 fp2 in
+      let axioms = Boolean.mk_and [axioms; axiom] in
+      (Boolean.mk_and [phi1; phi2; disjoint; str_disjoint; domain_def], axioms, [])
+
+  (** Translation of separating conjunction that cannot be scolemised *)
+  and translate_star_quant context domain psi1 psi2 =
+    let phi1, axioms1, footprints1 = translate context psi1 domain in
+    let phi2, axioms2, footprints2 = translate context psi2 domain in
+
+
+
   and translate_star context domain psi1 psi2 =
     let context = {context with under_star = not context.can_scolemise} in
-    if context.can_scolemise then begin
-      let fp1 = formula_footprint context psi1 in
-      let fp2 = formula_footprint context psi2 in
-      let phi1, axioms1, footprints1 = translate context psi1 fp1 in
-      let phi2, axioms2, footprints2 = translate context psi2 fp2 in
-      let disjoint = Set.mk_disjoint fp1 fp2 in
-      let fp_union = Set.mk_union [fp1; fp2] context.fp_sort in
-      let domain_def = Set.mk_eq domain fp_union in
-      let axioms = Boolean.mk_and [axioms1; axioms2] in
-      if SSL.has_unique_footprint psi1 && SSL.has_unique_footprint psi2
-         || not @@ Options.strong_separation ()
-      then
-        (Boolean.mk_and [phi1; phi2; disjoint; domain_def], axioms, [])
-      else
-       let axiom, str_disjoint = mk_strongly_disjoint context fp1 fp2 in
-       let axioms = Boolean.mk_and [axioms; axiom] in
-       (Boolean.mk_and [phi1; phi2; disjoint; str_disjoint; domain_def], axioms, [])
-    end
+    if context.can_scolemise then translate_star_scolemised context domain psi1 psi2
+    else translate_star_quant context domain psi1 psi2
     (* Generation of axioms for each footprint *)
     else begin
-      let phi1, axioms1, footprints1 = translate context psi1 domain in
-      let phi2, axioms2, footprints2 = translate context psi2 domain in
       let fp_worklist =
         BatList.cartesian_product footprints1 footprints2
         |> List.filter (fun (fp1, fp2) -> SMT.Set.may_disjoint fp1 fp2)
@@ -251,6 +265,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let axioms = Boolean.mk_and [axioms1; axioms2] in
     (semantics, axioms, footprints1)
 
+  (** Translation of septractions *)
   and translate_septraction (context : Context.t) domain phi psi1 psi2 =
     let h1_name = Context.formula_witness_heap context phi in
     let h1 = Array.mk_var h1_name context.heap_sort in
