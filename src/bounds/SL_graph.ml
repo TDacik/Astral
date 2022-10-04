@@ -106,7 +106,6 @@ let spatial_projection g = projection g [Pointer; List]
 
 let must_eq g x y =
   let g = projection_eq g in
-  G.output_file g "project_eq.dot";
   G.mem_edge g x y
 
 let must_neq g x y =
