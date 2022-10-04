@@ -10,31 +10,31 @@ module type LOCATIONS = sig
 
   (* {3 Functions used to build Astral's context} *)
 
-  val mk_sort : string -> int -> SMT.sort
+  val mk_sort : string -> int -> SMT.Sort.t
 
-  val mk_const : SMT.sort -> string -> SMT.term
+  val mk_const : SMT.Sort.t -> string -> SMT.Term.t
 
-  val enumeration : SMT.sort -> SMT.term list
+  val enumeration : SMT.Sort.t -> SMT.Term.t list
 
   (* {3 functions already using Astral's context} *)
 
-  val var_to_expr : Context.t -> SSL.Variable.t -> SMT.term
+  val var_to_expr : Context.t -> SSL.Variable.t -> SMT.Term.t
 
-  val vars_to_exprs : Context.t -> SMT.term list
+  val vars_to_exprs : Context.t -> SMT.Term.t list
 
 
-  val location_lemmas : Context.t -> SMT.term
+  val location_lemmas : Context.t -> SMT.Term.t
 
-  val exists : Context.t -> (SMT.term -> SMT.term) -> SMT.term
+  val exists : Context.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
   (** First-order universal quantifier. *)
 
-  val forall : Context.t -> (SMT.term -> SMT.term) -> SMT.term
+  val forall : Context.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
   (** First-order universal quantifier. *)
 
-  val exists2 : Context.t -> (SMT.term -> SMT.term) -> SMT.term
+  val exists2 : Context.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
   (** Second-order existential quantifier. *)
 
-  val forall2 : Context.t -> (SMT.term -> SMT.term) -> SMT.term
+  val forall2 : Context.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
   (** Second-order universal quantifier. *)
 
 end
@@ -45,20 +45,20 @@ module type LIST_ENCODING = sig
 
   val semantics :
     Context.t ->
-    SMT.term ->
-    SMT.term ->
-    SMT.term ->
+    SMT.Term.t ->
+    SMT.Term.t ->
+    SMT.Term.t ->
     local_bound ->
-    SMT.term
+    SMT.Term.t
   (** semantics context x y fp *)
 
   val axioms :
     Context.t ->
-    SMT.term ->
-    SMT.term ->
-    SMT.term ->
+    SMT.Term.t ->
+    SMT.Term.t ->
+    SMT.Term.t ->
     local_bound ->
-    SMT.term
+    SMT.Term.t
   (** axioms context x y fp *)
 
 end

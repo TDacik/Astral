@@ -52,10 +52,12 @@ let add_declaration str =
 
 let rec translate term = match term with
   | SMT.Constant (x, _) -> "|" ^ x ^ "|"
-  | SMT.Variable (x, sort) ->
-      let def = Format.asprintf "(declare-const %s %s)" x (translate_sort sort) in
+  | SMT.Variable (_, sort, _) ->
+      let name = SMT.Term.show term in
+      let def = Format.asprintf "(declare-const %s %s)" name (translate_sort sort) in
       add_declaration def;
-      x
+      name
+
   | SMT.True -> "true"
   | SMT.False -> "false"
   | SMT.Equal (e1, e2) -> Format.asprintf "(= %s %s)" (translate e1) (translate e2)
@@ -118,11 +120,11 @@ let rec translate term = match term with
   | SMT.Mult (e1, e2) -> Format.asprintf "(* %s %s)" (translate e1) (translate e2)
 
 and translate_sort = function
-  | SMT.Bool -> "Bool"
-  | SMT.Integer -> "Int"
-  | SMT.Set (elem_sort) -> "(Set " ^ translate_sort elem_sort ^ ")"
-  | SMT.Array (d, r) -> "(Array " ^ (translate_sort d) ^ " " ^ (translate_sort r) ^ ")"
-  | SMT.Finite (name, consts) ->
+  | SMT.Sort.Bool -> "Bool"
+  | SMT.Sort.Integer -> "Int"
+  | SMT.Sort.Set (elem_sort) -> "(Set " ^ translate_sort elem_sort ^ ")"
+  | SMT.Sort.Array (d, r) -> "(Array " ^ (translate_sort d) ^ " " ^ (translate_sort r) ^ ")"
+  | SMT.Sort.Finite (name, consts) ->
       (* Datatype with constant constructors only *)
       let constructors = String.concat " " @@ List.map (fun c -> "(|" ^ c ^ "|)") consts in
       let decl = "(declare-datatypes ((Loc 0)) ((" ^ constructors ^ ")))" in

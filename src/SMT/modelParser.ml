@@ -17,12 +17,12 @@ open Std.Statement
 
 let rec parse_sort sort = match sort.term with
   | Builtin b -> begin match b with
-    | Bool -> SMT.Bool
-    | Int -> SMT.Integer
+    | Bool -> SMT.Sort.Bool
+    | Int -> SMT.Sort.Integer
   end
-  | App (t1, [t2]) -> SMT.Set (parse_sort t2)
-  | App (t1, [t2; t3]) -> SMT.Array (parse_sort t2, parse_sort t3)
-  | Symbol id -> SMT.Finite (Format.asprintf "%a" Std.Term.print sort, [])
+  | App (t1, [t2]) -> SMT.Sort.Set (parse_sort t2)
+  | App (t1, [t2; t3]) -> SMT.Sort.Array (parse_sort t2, parse_sort t3)
+  | Symbol id -> SMT.Sort.Finite (Format.asprintf "%a" Std.Term.print sort, [])
   | _ -> failwith (Format.asprintf "%a" Std.Term.print sort)
 
 let parse_symbol symbol sort =
@@ -78,7 +78,7 @@ let parse_def (def : Std.Statement.def) =
   in
   let sort = parse_sort def.ret_ty in
   let interp = parse_term def.body sort in
-  ((name, sort), interp)
+  (SMT.Term.Variable (name, sort, 0), interp)
 
 let parse_stmt stmt = match stmt.descr with
   | Defs defs -> List.map parse_def defs.contents

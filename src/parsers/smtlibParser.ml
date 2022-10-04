@@ -175,6 +175,7 @@ let parse_option term input = match term.term with
       | (":status", "sat") -> Input.set_status `Sat input
       | (":status", "unsat") -> Input.set_status `Unsat input
       | (":status", "unknown") -> Input.set_status `Unknown input
+      | (":location-bound", n) -> Input.set_expected_loc_bound (int_of_string n) input
       | _ -> input
   end
   | _ -> input

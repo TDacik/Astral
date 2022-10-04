@@ -31,9 +31,11 @@ let init () =
 
 (* === Translation === *)
 
-let rec translate = function
+let rec translate t = match t with
   | SMT.Constant (name, sort) -> Z3.Expr.mk_const_s !context name (translate_sort sort)
-  | SMT.Variable (x, sort) -> Z3.Expr.mk_const_s !context x (translate_sort sort)
+  | SMT.Variable (x, sort, d) ->
+      let name = SMT.Term.show t in
+      Z3.Expr.mk_const_s !context name (translate_sort sort)
 
   | SMT.True -> Z3.Boolean.mk_true !context
   | SMT.False -> Z3.Boolean.mk_false !context
@@ -50,7 +52,13 @@ let rec translate = function
   | SMT.Membership (x, s) -> Z3.Set.mk_membership !context (translate x) (translate s)
   | SMT.Subset (s1, s2) -> Z3.Set.mk_subset !context (translate s1) (translate s2)
   | SMT.Union (sets, _) -> Z3.Set.mk_union !context (List.map translate sets)
-  | SMT.Inter (sets, _) -> Z3.Set.mk_intersection !context (List.map translate sets)
+  | SMT.Inter (sets, _) ->
+      begin
+        try Z3.Set.mk_intersection !context (List.map translate sets)
+        with e ->
+          let _ = Printf.printf "===\nErr: %s\n===\n" (SMT.Term.show @@ List.hd sets) in
+          raise e
+      end
   | SMT.Diff (s1, s2) -> Z3.Set.mk_difference !context (translate s1) (translate s2)
   | SMT.Compl s -> Z3.Set.mk_complement !context (translate s)
 
@@ -86,11 +94,11 @@ let rec translate = function
       |> Z3.Quantifier.expr_of_quantifier
 
 and translate_sort = function
-  | SMT.Bool -> Z3.Boolean.mk_sort !context
-  | SMT.Integer -> Z3.Arithmetic.Integer.mk_sort !context
-  | SMT.Finite (name, cs) -> Z3.Enumeration.mk_sort_s !context name cs
-  | SMT.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
-  | SMT.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
+  | SMT.Sort.Bool -> Z3.Boolean.mk_sort !context
+  | SMT.Sort.Integer -> Z3.Arithmetic.Integer.mk_sort !context
+  | SMT.Sort.Finite (name, cs) -> Z3.Enumeration.mk_sort_s !context name cs
+  | SMT.Sort.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
+  | SMT.Sort.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
 
 (* === Solver === *)
 
@@ -115,8 +123,8 @@ let simplify phi = Z3.Expr.simplify phi None
 (* === Model manipulation === *)
 
 let rec inverse_translate model sort expr = match sort with
-  | SMT.Finite _ -> SMT.Enumeration.mk_const sort (Z3.Expr.to_string expr)
-  | SMT.Set _ ->
+  | SMT.Sort.Finite _ -> SMT.Enumeration.mk_const sort (Z3.Expr.to_string expr)
+  | SMT.Sort.Set _ ->
     let elem_sort = Z3.Z3Array.get_domain @@ Z3.Expr.get_sort expr in
     let elems = Z3.Enumeration.get_consts elem_sort in
     List.fold_left

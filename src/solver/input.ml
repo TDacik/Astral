@@ -7,21 +7,26 @@ type status = [ `Sat | `Unsat | `Unknown ]
 type t = {
   phi : SSL.formula list;     (* Conjunction of top-level assertions *)
   vars : SSL.Variable.t list; (* List of all declared variables *)
-  status : status;            (* Expected status *)
 
   check_sat : bool;
   get_model : bool;
   get_unsat_core : bool;
+
+  (* Expected values *)
+  status : status;
+  location_bound : int option;
 }
 
 let default = {
   phi = [];
   vars = [];
-  status = `Unknown;
 
   check_sat = false;
   get_model = false;
   get_unsat_core = false;
+
+  status = `Unknown;
+  location_bound = None;
 }
 
 let get_ssl_input input =
@@ -44,3 +49,5 @@ let set_check_sat opt t = {t with check_sat = opt}
 let set_get_model opt t = {t with get_model = opt}
 
 let set_unsat_core opt t = {t with get_unsat_core = opt}
+
+let set_expected_loc_bound bound t = {t with location_bound = Some bound}
