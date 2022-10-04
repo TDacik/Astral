@@ -41,9 +41,7 @@ let rec translate t = match t with
   | SMT.False -> Z3.Boolean.mk_false !context
   | SMT.Equal (t1, t2) -> Z3.Boolean.mk_eq !context (translate t1) (translate t2)
   | SMT.Distinct ts -> Z3.Boolean.mk_distinct !context (List.map translate ts)
-  | SMT.And es ->
-      begin try Z3.Boolean.mk_and !context (List.map translate es)
-      with e -> let _ = Printf.printf "%s" (SMT.Term.show (SMT.And es)) in raise e end
+  | SMT.And es -> Z3.Boolean.mk_and !context (List.map translate es)
   | SMT.Or es -> Z3.Boolean.mk_or !context (List.map translate es)
   | SMT.Not e -> Z3.Boolean.mk_not !context (translate e)
   | SMT.Implies (e1, e2) -> Z3.Boolean.mk_implies !context (translate e1) (translate e2)
@@ -52,13 +50,7 @@ let rec translate t = match t with
   | SMT.Membership (x, s) -> Z3.Set.mk_membership !context (translate x) (translate s)
   | SMT.Subset (s1, s2) -> Z3.Set.mk_subset !context (translate s1) (translate s2)
   | SMT.Union (sets, _) -> Z3.Set.mk_union !context (List.map translate sets)
-  | SMT.Inter (sets, _) ->
-      begin
-        try Z3.Set.mk_intersection !context (List.map translate sets)
-        with e ->
-          let _ = Printf.printf "===\nErr: %s\n===\n" (SMT.Term.show @@ List.hd sets) in
-          raise e
-      end
+  | SMT.Inter (sets, _) -> Z3.Set.mk_intersection !context (List.map translate sets)
   | SMT.Diff (s1, s2) -> Z3.Set.mk_difference !context (translate s1) (translate s2)
   | SMT.Compl s -> Z3.Set.mk_complement !context (translate s)
 
@@ -76,7 +68,6 @@ let rec translate t = match t with
       Z3.Z3Array.mk_const_array !context (Z3.Expr.get_sort @@ translate const) (translate const)
   | SMT.Select (a, i) -> Z3.Z3Array.mk_select !context (translate a) (translate i)
   | SMT.Store (a, i, v) -> Z3.Z3Array.mk_store !context (translate a) (translate i) (translate v)
-
 
   | SMT.IntConst i -> Z3.Arithmetic.Integer.mk_numeral_i !context i
   | SMT.Plus (e1, e2) -> Z3.Arithmetic.mk_add !context [translate e1; translate e2]

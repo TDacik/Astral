@@ -191,8 +191,8 @@ module Term = struct
     | Constant (c, _) -> c
     | Variable (v, sort, id) ->
       begin match id with
-        | 0 -> Format.asprintf "%s : %s" v (Sort.show sort)
-        | x -> Format.asprintf "%s!%d : %s" v x (Sort.show sort)
+        | 0 -> Format.asprintf "%s" v
+        | x -> Format.asprintf "%s!%d" v x
       end
 
     | IntConst i -> Format.asprintf "%d" i
@@ -421,7 +421,7 @@ let construct cons (f : Term.t list -> Term.t list -> Term.t list) (acc : Term.t
   in
   match vars with
   | [] -> Term.Enumeration (List.sort Stdlib.compare folded, sort)
-  | cs -> cons (folded @ cs) sort
+  | cs -> cons ((Term.Enumeration (folded, sort)) :: cs) sort
 
 module Set = struct
 

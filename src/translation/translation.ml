@@ -28,7 +28,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let fp_sort = Set.mk_sort locs_sort in
     let global_fp = Set.mk_var "global fp" fp_sort in
     let heap_sort = Array.mk_sort locs_sort locs_sort in
-    let heap = Array.mk_var "heap" heap_sort in
+    let heap = Set.mk_var "heap" heap_sort in
     Context.init info locs_sort locs fp_sort global_fp heap_sort heap
 
   (* ==== Helper functions for constructing common terms ==== *)
@@ -210,6 +210,9 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         BatList.cartesian_product footprints1 footprints2
         |> List.filter (fun (fp1, fp2) -> SMT.Set.may_disjoint fp1 fp2)
       in
+      Print.debug "Number of footprints: %d\n" (List.length fp_worklist);
+      List.iter (fun (fp1, fp2) -> Print.debug "%s U %s\n" (Term.show fp1) (Term.show fp2))
+       fp_worklist;
 
       let lst =
         fp_worklist
@@ -219,7 +222,9 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
             let disjoint = Set.mk_disjoint fp1 fp2 in
             let fp_union = Set.mk_union [fp1; fp2] context.fp_sort in
             let domain_def = Set.mk_eq domain fp_union in
-            if SSL.has_unique_footprint psi1 && SSL.has_unique_footprint psi2 then
+            if SSL.has_unique_footprint psi1 && SSL.has_unique_footprint psi2
+               || not @@ Options.strong_separation ()
+            then
               Boolean.mk_and [phi1; phi2; disjoint; domain_def], Boolean.mk_true ()
             else
               let axioms, str_disjoint = mk_strongly_disjoint context fp1 fp2 in
@@ -289,7 +294,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 let translate_phi context phi =
   let footprint = formula_footprint context phi in
   let phi, axioms, _ = translate context phi context.global_footprint in
-  let nil = Var.mk "nil" context.locs_sort in
+  let nil = SMT.Variable.mk "nil" context.locs_sort in
   let nil_not_in_fp = Boolean.mk_not (Set.mk_mem nil context.global_footprint) in
 
   let heap_nil = Array.mk_select context.heap nil in
@@ -313,14 +318,14 @@ let translate_phi context phi =
       with _ -> failwith ("Cannot convert location " ^ Term.show loc)
 
   let nil_interp context model =
-    let e = Var.mk (SSL.Variable.show Nil) context.locs_sort in
+    let e = SMT.Variable.mk (SSL.Variable.show Nil) context.locs_sort in
     try Backend.eval model e
     with _ -> failwith "No interpretation of nil"
 
   let translate_stack context model =
     List.fold_left
       (fun stack var ->
-        let var_expr = Var.mk (SSL.Variable.show var) context.locs_sort in
+        let var_expr = SMT.Variable.mk (SSL.Variable.show var) context.locs_sort in
         let loc =
           try Backend.eval model var_expr
           with Not_found -> nil_interp context model
@@ -349,7 +354,7 @@ let translate_phi context phi =
       (fun psi acc ->
         let id = SSL.subformula_id context.phi psi in
         let fp_name = Format.asprintf "footprint%d" id in
-        let fp_expr = Var.mk fp_name context.fp_sort in
+        let fp_expr = SMT.Variable.mk fp_name context.fp_sort in
         let set = SMT.Set.get_elems @@ Backend.eval model fp_expr in
         let fp = Footprint.of_list @@ List.map translate_loc set in
         SSL.Map.add psi fp acc
@@ -380,7 +385,6 @@ let translate_phi context phi =
     StackHeapModel.init ~heaps s h
 
   (* ==== Solver ==== *)
-
   let solve phi info =
     let context = init phi info in
     let phi = translate_phi context phi in
