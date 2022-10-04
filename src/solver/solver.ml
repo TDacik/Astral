@@ -29,7 +29,7 @@ let verify_model_fn sh phi =
 
 (** If phi is positive, remove all variables that does not appear in phi *)
 let normalise_vars phi vars =
-  if SSL.is_positive phi then
+  if SSL.is_positive phi || Options.ignore_unused_vars () then
     let phi_vars = SSL.get_vars phi in
     let vars = List.filter (fun v -> List.mem v phi_vars) vars in
     if List.mem Variable.Nil phi_vars then Variable.Nil :: vars

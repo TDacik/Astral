@@ -14,6 +14,9 @@ let input_path () = match !_input_path with
   | Some path -> path
   | None -> failwith "No input file was specified"
 
+let _ignore_unused_vars = ref false
+let ignore_unused_vars () = !_ignore_unused_vars
+
 (* ==== Output ==== *)
 
 let _debug = ref false
@@ -104,6 +107,8 @@ let speclist =
     ("--compute-sl-graph", Arg.Clear _compute_sl_graph, "Force location bound");
     ("--loc-bound", Arg.Int set_location_bound, "Force location bound");
     ("--separation", Arg.Set_string _separation, "Separation (weak | strong");
+    ("--ignore-unused-vars", Arg.Set _ignore_unused_vars, "Ignore variables that do not occur
+      in the input formula");
     ("--sl-comp", Arg.Set _sl_comp, "Preprocessing for SL-comp");
     ("--convertor", Arg.Set_string _convertor,
      "Convert input formula to other format (sloth | grasshopper | list_unfold)");
