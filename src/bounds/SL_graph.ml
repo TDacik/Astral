@@ -22,6 +22,7 @@ module SL_edge = struct
     | _ -> failwith "length undefined"
 
   let show = function
+    | No          -> "X" (* TODO *)
     | Pointer     -> "→"
     | List        -> "⇝"
     | Equality    -> "="
@@ -92,16 +93,21 @@ let projection g labels =
       else g
     ) g G.empty
 
-let projection_eq g = projection g [Equality]
+let projection_eq g =
+  let proj = projection g [Equality] in
+  let proj_mirror = G.mirror proj in
+  G.union proj proj_mirror
+  |> G.transitive_closure ~reflexive:true
+
 let projection_neq g = projection g [Disequality]
 let projection_pointer g = projection g [Pointer]
 let projection_ls g = projection g [List]
 let spatial_projection g = projection g [Pointer; List]
 
-(* TODO: transitivity *)
 let must_eq g x y =
   let g = projection_eq g in
-  G.mem_edge g x y || G.mem_edge g y x
+  G.output_file g "project_eq.dot";
+  G.mem_edge g x y
 
 let must_neq g x y =
   let g = projection_neq g in
