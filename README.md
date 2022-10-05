@@ -58,9 +58,9 @@ After cloning the repository, run `opam install .` to install Astral. Then the s
 
 ## Contact
 If you have any questions, do not hesitate to contact the tool/method authors:
-* **Tomáš Dacík** <[xdacik00@stud.fit.vutbr.cz](mailto:xdacik00@stud.fit.vutbr.cz)>
+* **Tomáš Dacík** <[idacik@fit.vut.cz](mailto:idacik@fit.vut.cz)>
 * [**Adam Rogalewicz**](https://www.fit.vut.cz/person/rogalew/.en) <[rogalew@fit.vut.cz](mailto:rogalew@fit.vut.cz)>
-* [**Tomáš Vojnar**](https://www.fit.vut.cz/person/vojnar/) <[vojnar@fit.vut.cz](mailto:vojnar@fit.vut.cz)>
+* [**Tomáš Vojnar**](https://www.fit.vut.cz/person/vojnar/.en) <[vojnar@fit.vut.cz](mailto:vojnar@fit.vut.cz)>
 * [**Florian Zuleger**](https://informatics.tuwien.ac.at/people/florian-zuleger)<[florian.zuleger@tuwien.ac.at](mailto:florian.zuleger@tuwien.ac.at)>
 
 

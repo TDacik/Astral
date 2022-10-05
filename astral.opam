@@ -4,8 +4,10 @@ version: "0.1"
 synopsis: "Decision procedure for strong-separation logic based on translation to SMT"
 maintainer: "Tomáš Dacík <xdacik00@stud.fit.vutbr.cz>"
 authors: [
-    "Tomáš Dacík <xdacik00@stud.fit.vutbr.cz>"
-    "Tomáš Vojnar <vojnar@fit.vutbr.cz>"
+    "Tomáš Dacík <idacik@fit.vut.cz>"
+    "Adam Rogalewicz <rogalew@fit.vut.cz>"
+    "Tomáš Vojnar <vojnar@fit.vut.cz>"
+    "Florian Zuleger<florian.zuleger@tuwien.ac.at>"
 ]
 license: "MIT"
 homepage: "https://github.com/TDacik/Astral"
