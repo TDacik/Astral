@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ubuntu/ubuntu:latest
+      image: ubuntu:latest
       options: --user root
 
     steps:
