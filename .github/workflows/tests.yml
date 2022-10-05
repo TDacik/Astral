@@ -11,9 +11,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    container:
-      image: ubuntu:latest
-      options: --user root
+    #container:
+    #  image: ubuntu:latest
+    #  options: --user root
 
     steps:
       - name: Checkout repository
@@ -21,8 +21,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt update
-          apt install -y python3 libgmp3-dev make gcc curl
+          sudo apt update
+          sudo apt install -y python3 libgmp3-dev
 
       - name: Setup OCaml
         uses: ocaml/setup-ocaml@v2
