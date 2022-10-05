@@ -11,9 +11,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    container:
-      image: ocaml/opam:ubuntu-20.04-ocaml-4.12
-      options: --user root
+    #container:
+    #  image: ocaml/opam:ubuntu-20.04-ocaml-4.12
+    #  options: --user root
 
     steps:
       - name: Checkout repository
@@ -26,6 +26,8 @@ jobs:
 
       - name: Setup OCaml
         uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: 4.12
 
       - name: Install dependencies
         run: opam install . --deps-only
