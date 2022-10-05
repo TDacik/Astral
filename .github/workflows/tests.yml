@@ -19,10 +19,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-        - name: Install dependencies
-          run: |
-            apt update
-            apt install -y python3 libgmp3-dev
+      - name: Install dependencies
+        run: |
+          apt update
+          apt install -y python3 libgmp3-dev
 
       - name: Setup OCaml
         uses: ocaml/setup-ocaml@v2
