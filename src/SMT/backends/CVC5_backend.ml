@@ -119,6 +119,10 @@ let rec translate term = match term with
   | SMT.Minus (e1, e2) -> Format.asprintf "(- %s %s)" (translate e1) (translate e2)
   | SMT.Mult (e1, e2) -> Format.asprintf "(* %s %s)" (translate e1) (translate e2)
 
+  | SMT.Forall2 _ | SMT.Exists2 _ ->
+      failwith "Internal error: second order quantification should be removed before \
+                translating to backend solver"
+
 and translate_sort = function
   | SMT.Sort.Bool -> "Bool"
   | SMT.Sort.Integer -> "Int"

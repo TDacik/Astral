@@ -84,6 +84,11 @@ let rec translate t = match t with
       Z3.Quantifier.mk_forall_const !context [binder_e] (translate phi) None [] [] None None
       |> Z3.Quantifier.expr_of_quantifier
 
+  | SMT.Forall2 _ | SMT.Exists2 _ ->
+      failwith "Internal error: second order quantification should be removed before \
+                translating to backend solver"
+
+
 and translate_sort = function
   | SMT.Sort.Bool -> Z3.Boolean.mk_sort !context
   | SMT.Sort.Integer -> Z3.Arithmetic.Integer.mk_sort !context

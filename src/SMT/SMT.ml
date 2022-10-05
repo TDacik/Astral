@@ -69,9 +69,13 @@ module Term = struct
     | True
     | False
 
-    (* Quantifiers *)
+    (* First-order quantifiers *)
     | Exists of term * term
     | Forall of term * term
+
+    (* Bounded Second-order quantifiers *)
+    | Exists2 of term * term * term list
+    | Forall2 of term * term * term list
 
   type t = term
 
@@ -114,8 +118,6 @@ module Term = struct
         end
 
     (** TODO: missing cases *)
-
-
     | _ -> false
 
   (** Equality on terms is defined using their identity *)
@@ -150,7 +152,7 @@ module Term = struct
     | False -> Bool
 
     (* Quantifiers *)
-    | Exists _ | Forall _ -> Bool
+    | Exists _ | Forall _ | Exists2 _ | Forall2 _ -> Bool
 
   let rec map_vars fn term =
     let map_vars = map_vars fn in
@@ -259,6 +261,7 @@ module Term = struct
     | True -> 1
     | False -> 1
     | Exists (binder, phi) | Forall (binder, phi) -> 1 + size binder + size phi
+    | Exists2 (binder, phi, _) | Forall2 (binder, phi, _) -> 1 + size binder + size phi
 
     (* ==== Syntactic manipulation ==== *)
 
@@ -274,6 +277,9 @@ module Term = struct
       (* Quantifiers *)
       | Exists (binder, phi) -> substitute ~bounded:(binder :: bounded) phi x term
       | Forall (binder, phi) -> substitute ~bounded:(binder :: bounded) phi x term
+
+      | Exists2 (binder, phi, _) -> substitute ~bounded:(binder :: bounded) phi x term
+      | Forall2 (binder, phi, _) -> substitute ~bounded:(binder :: bounded) phi x term
 
       | Membership (elem, set) ->
         Membership (substitute ~bounded elem x term, substitute ~bounded set x term)
@@ -484,6 +490,9 @@ module Quantifier = struct
 
   let mk_forall x phi = Term.Forall (x, phi)
   let mk_exists x phi = Term.Exists (x, phi)
+
+  let mk_forall2 x phi range = Term.Forall2 (x, phi, range)
+  let mk_exists2 x phi range = Term.Exists2 (x, phi, range)
 
 end
 
