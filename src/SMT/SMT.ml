@@ -517,8 +517,6 @@ module Model = struct
     | Compl s -> failwith "TODO: eval compl"
     | Enumeration (elems, _) -> failwith "TODO"
 
-    | Select (arr, i) -> eval model (Array.mk_select (eval model arr) i)
-    (*
     | Select (ConstArr x, _) -> eval model x
     | Select (Store (a, i, v), j) ->
         let im = eval model i in
@@ -526,7 +524,8 @@ module Model = struct
         if LIA.are_equal_consts i j
         then eval model v
         else eval model (Select (a, j))
-    *)
+    | Select (arr, i) -> eval model (Array.mk_select (eval model arr) i)
+
     | _ -> failwith ("TODO: eval other: " ^ Term.show t)
 end
 

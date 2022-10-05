@@ -25,8 +25,8 @@ jobs:
           apt install -y python3 libgmp3-dev
 
       - name: Setup OCaml
-        uses: ocaml/setup-ocaml@v1
-        
+        uses: ocaml/setup-ocaml@v2
+
       - name: Install dependencies
         run: opam install . --deps-only
 
@@ -34,7 +34,7 @@ jobs:
         run: opam install .
 
       - name: Add opam binaries to path
-        run: | 
+        run: |
           echo "/home/opam/.opam/4.12/bin" >> $GITHUB_PATH
           echo $GITHUB_PATH
           astral --help
