@@ -34,6 +34,8 @@ module type BACKEND = sig
 
   val show_formula : formula -> string
 
+  val to_smt_benchmark : formula -> string
+
   val show_model : model -> string
 
 end
