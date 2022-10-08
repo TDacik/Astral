@@ -146,4 +146,15 @@ let eval model term =
 (* === Debugging === *)
 
 let show_formula phi = Z3.Expr.to_string phi
+
 let show_model model = Z3.Model.to_string model
+
+let to_smt_benchmark phi =
+  Z3.SMT.benchmark_to_smtstring
+    !context
+    "Input for solver"
+    "ALL"
+    "unknown"
+    ""
+    []
+    phi
