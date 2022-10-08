@@ -56,6 +56,7 @@ type formula =
   | PointsTo of Variable.t * Variable.t
   | Eq of Variable.t * Variable.t
   | Neq of Variable.t * Variable.t
+  | Var of Variable.t
 
 type t = formula
 
@@ -64,7 +65,7 @@ include COMPARABLE with type t := t
 include COLLECTIONS with type t := t
 
 type arity =
-  | Atom of Variable.t * Variable.t
+  | Atom of Variable.t list
   | Unary of formula
   | Binary of formula * formula
 
@@ -119,6 +120,10 @@ val mk_star : formula list -> formula
 val mk_and : formula list -> formula
 
 val mk_or : formula list -> formula
+
+val mk_implies : formula -> formula -> formula
+
+val mk_iff : formula -> formula -> formula
 
 val mk_septraction : formula -> formula -> formula
 

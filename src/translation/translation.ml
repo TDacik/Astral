@@ -28,7 +28,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let fp_sort = Set.mk_sort locs_sort in
     let global_fp = Set.mk_var "global fp" fp_sort in
     let heap_sort = Array.mk_sort locs_sort locs_sort in
-    let heap = Set.mk_var "heap" heap_sort in
+    let heap = Array.mk_var "heap" heap_sort in
     Context.init info locs_sort locs fp_sort global_fp heap_sort heap
 
   (* ==== Helper functions for constructing common terms ==== *)
@@ -99,6 +99,13 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     | SSL.LS (var1, var2) -> translate_ls context domain var1 var2
     | SSL.Not (psi) -> translate_not context domain psi
     | SSL.GuardedNeg (psi1, psi2) -> translate_guarded_neg context domain psi1 psi2
+    | SSL.Var var -> translate_var context domain var
+
+  and translate_var context domain var =
+    let semantics = term_to_expr context var in
+    let axioms = Boolean.mk_true () in
+    let footprints = [Set.mk_empty context.fp_sort] in
+    (semantics, axioms, footprints)
 
   and translate_pointsto context domain x y =
     let x = Locations.var_to_expr context x in
@@ -391,6 +398,7 @@ let translate_phi context phi =
     let size = SMT.Term.size phi in
 
     Debug.context context;
+    Debug.translated phi;
     Print.debug "Translating
      - Stack bound: [%d, %d]
      - Location bound:  %d\n"
@@ -402,14 +410,16 @@ let translate_phi context phi =
     Print.debug "Running backend SMT solver\n";
     Timer.add "Astral";
 
-    (* Solve *)
     Backend.init ();
 
     Debug.backend_translated (Backend.show_formula @@ Backend.translate phi);
     Debug.backend_simplified (Backend.show_formula @@ Backend.simplify @@ Backend.translate phi);
+    Debug.backend_smt_benchmark (Backend.to_smt_benchmark @@ Backend.translate phi);
 
+    (* Solve *)
     match Backend.solve phi with
     | SMT_Sat model ->
+      (*Debug.smt_model model;*)
       Debug.backend_model (Backend.show_model model);
       let sh = translate_model context model in
       Debug.model sh;

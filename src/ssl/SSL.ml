@@ -13,6 +13,7 @@ module Sort = struct
   let show = function
     | Loc -> "Loc"
     | Int -> "Int"
+    | Bool -> "Bool"
 
   module Self = struct
     type nonrec t = t
@@ -114,6 +115,7 @@ type formula =
   | PointsTo of Variable.t * Variable.t
   | Eq of Variable.t * Variable.t
   | Neq of Variable.t * Variable.t
+  | Var of Variable.t
 
 type t = formula
 
@@ -122,7 +124,7 @@ let compare = Stdlib.compare
 let equal x y = (Stdlib.compare x y) == 0
 
 type arity =
-  | Atom of Variable.t * Variable.t
+  | Atom of Variable.t list
   | Unary of formula
   | Binary of formula * formula
 
@@ -133,10 +135,11 @@ let get_arity = function
   | GuardedNeg (f1, f2) -> Binary (f1, f2)
   | Star (f1, f2) -> Binary (f1, f2)
   | Septraction (f1, f2) -> Binary (f1, f2)
-  | LS (v1, v2) -> Atom (v1, v2)
-  | PointsTo (v1, v2) -> Atom (v1, v2)
-  | Eq (v1, v2) -> Atom (v1, v2)
-  | Neq (v1, v2) -> Atom (v1, v2)
+  | LS (v1, v2) -> Atom [v1; v2]
+  | PointsTo (v1, v2) -> Atom [v1; v2]
+  | Eq (v1, v2) -> Atom [v1; v2]
+  | Neq (v1, v2) -> Atom [v1; v2]
+  | Var v -> Atom [v]
 
 let is_atom phi = match get_arity phi with
   | Atom _ -> true
@@ -178,12 +181,13 @@ let rec normalise phi =
 
 (** Size is number of nodes in AST *)
 let rec size phi = match get_arity phi with
-  | Atom _ -> 1
+  | Atom vars -> 1 + List.length vars (*TODO: term size? *)
   | Unary phi -> 1 + size phi
   | Binary (phi1, phi2) -> 1 + size phi1 + size phi2
 
+(** What exactly is the chunk size of single variable? *)
 let rec chunk_size = function
-  | Eq _ | Neq _ | PointsTo _ | LS _ -> 1
+  | Eq _ | Neq _ | PointsTo _ | LS _ | Var _ -> 1
   | Star (psi1, psi2) -> chunk_size psi1 + chunk_size psi2
   | Septraction (_, psi2) -> chunk_size psi2
   | And (psi1, psi2) | Or (psi1, psi2) | GuardedNeg (psi1, psi2) ->
@@ -301,6 +305,8 @@ let mk_pto x y = PointsTo (x, y)
 let mk_ls x y = LS (x, y)
 
 let mk_not phi = Not phi
+let mk_implies lhs rhs = Or (Not lhs, rhs)
+let mk_iff lhs rhs = And (mk_implies lhs rhs, mk_implies rhs lhs)
 let mk_emp () = Eq (Variable.Nil, Variable.Nil)
 let mk_not_emp () = Not (Eq (Variable.Nil, Variable.Nil))
 let mk_false () = GuardedNeg (mk_emp (), mk_emp ())
@@ -353,6 +359,7 @@ let rec show = function
   | PointsTo (v1, v2) -> Format.asprintf "%a ↦ %a" Variable.pp v1 Variable.pp v2
   | Eq (v1, v2) -> Format.asprintf "%a = %a" Variable.pp v1 Variable.pp v2
   | Neq (v1, v2) -> Format.asprintf "%a ≠ %a" Variable.pp v1 Variable.pp v2
+  | Var v -> Format.asprintf "%a" Variable.pp v
 
 (* ==== Datatype ==== *)
 

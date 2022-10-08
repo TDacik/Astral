@@ -10,13 +10,15 @@ val context : Context.t -> unit
 
 val qf_phi : Z3.context * Z3.Expr.expr -> unit
 
-val translated : string -> unit
+val translated : SMT.Term.t -> unit
 
 val model : StackHeapModel.t -> unit
 
 val smt_model : SMT.Model.t -> unit
 
 val backend_translated : string -> unit
+
+val backend_smt_benchmark : string -> unit
 
 val backend_simplified : string -> unit
 
