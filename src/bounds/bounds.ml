@@ -34,6 +34,20 @@ let stack_bound g phi vars =
   let try1 = List.length partition in
   (0, try1)
 
+let location_bound_atomic phi stack_bound = match phi with
+  | And (psi1, psi2) ->
+      max (location_bound_atomic psi1 stack_bound) (location_bound_atomic psi2 stack_bound)
+  | Or (_, _) -> failwith "TODO"
+  | Not psi -> location_bound_atomic
+  | GuardedNeg (f1, f2) -> Binary (f1, f2)
+  | Star (f1, f2) -> Binary (f1, f2)
+  | Septraction (f1, f2) -> Binary (f1, f2)
+  | LS (v1, v2) -> Atom [v1; v2]
+  | PointsTo (v1, v2) -> Atom [v1; v2]
+  | Eq (v1, v2) -> Atom [v1; v2]
+  | Neq (v1, v2) -> Atom [v1; v2]
+  | Var v -> Atom [v]
+
 let location_bound phi g stack_bound = match SSL.classify_fragment phi with
   | SymbolicHeap_SAT -> stack_bound
   | SymbolicHeap_ENTL -> stack_bound + 1
@@ -44,6 +58,7 @@ let location_bound phi g stack_bound = match SSL.classify_fragment phi with
       then max - n
       else max - n (* - 1 nil cannot have a successor *)
   (* TODO : tighter bounds for negative formulas *)
+  | AtomicBoolean -> location_bound_atomic phi stack_bound
   | Arbitrary ->
       2 * stack_bound + chunk_size phi
 

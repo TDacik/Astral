@@ -394,11 +394,6 @@ let translate_phi context phi =
   (* ==== Solver ==== *)
   let solve phi info =
     let context = init phi info in
-    let phi = translate_phi context phi in
-    let size = SMT.Term.size phi in
-
-    Debug.context context;
-    Debug.translated phi;
     Print.debug "Translating
      - Stack bound: [%d, %d]
      - Location bound:  %d\n"
@@ -406,6 +401,12 @@ let translate_phi context phi =
       (snd info.stack_bound)
       info.heap_bound
      ;
+
+    let phi = translate_phi context phi in
+    let size = SMT.Term.size phi in
+
+    Debug.context context;
+    Debug.translated phi;
 
     Print.debug "Running backend SMT solver\n";
     Timer.add "Astral";
