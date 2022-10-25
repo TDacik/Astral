@@ -379,6 +379,9 @@ module Enumeration = struct
   let get_constants sort = match sort with
     | Finite (_, consts) -> List.map (mk_const sort) consts
 
+  let cardinality sort = match sort with
+    | Finite (_, consts) -> List.length consts
+
 end
 
 module LIA = struct

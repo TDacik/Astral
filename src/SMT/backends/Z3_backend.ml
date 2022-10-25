@@ -2,8 +2,6 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-open Solver_utils
-
 (* === Declarations === *)
 
 type formula = Z3.Expr.expr
@@ -33,7 +31,20 @@ let init () =
 
 let rec translate = function
   | SMT.Constant (name, sort) -> Z3.Expr.mk_const_s !context name (translate_sort sort)
-  | SMT.Variable (x, sort) -> Z3.Expr.mk_const_s !context x (translate_sort sort)
+  | SMT.Variable (x, sort) ->
+      let var = Z3.Expr.mk_const_s !context x (translate_sort sort) in
+      begin match sort with
+      (* Generate finitness axiom *)
+      | SMT.Finite _ ->
+        let card = SMT.Enumeration.cardinality sort in
+        let lower_bound = Z3.Arithmetic.Integer.mk_numeral_i !context 0 in
+        let upper_bound = Z3.Arithmetic.Integer.mk_numeral_i !context card in
+        let axiom_lower = Z3.Arithmetic.mk_ge !context var lower_bound in
+        let axiom_upper = Z3.Arithmetic.mk_lt !context var upper_bound in
+        Z3.Solver.add !solver [axiom_lower; axiom_upper]
+      | _ -> ()
+      end;
+      var
 
   | SMT.True -> Z3.Boolean.mk_true !context
   | SMT.False -> Z3.Boolean.mk_false !context
@@ -88,7 +99,7 @@ let rec translate = function
 and translate_sort = function
   | SMT.Bool -> Z3.Boolean.mk_sort !context
   | SMT.Integer -> Z3.Arithmetic.Integer.mk_sort !context
-  | SMT.Finite (name, cs) -> Z3.Enumeration.mk_sort_s !context name cs
+  | SMT.Finite (name, _) -> Z3.Arithmetic.Integer.mk_sort !context
   | SMT.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
   | SMT.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
 
@@ -114,11 +125,20 @@ let simplify phi = Z3.Expr.simplify phi None
 
 (* === Model manipulation === *)
 
+(** Translation of Z3's term representation to SMT.
+
+    @param model   Z3 model
+    @param expr    Z3 expression to be translated
+    @param sort    SMT sort of the expression
+*)
 let rec inverse_translate model sort expr = match sort with
   | SMT.Finite _ -> SMT.Enumeration.mk_const sort (Z3.Expr.to_string expr)
-  | SMT.Set _ ->
-    let elem_sort = Z3.Z3Array.get_domain @@ Z3.Expr.get_sort expr in
-    let elems = Z3.Enumeration.get_consts elem_sort in
+  | SMT.Set elem_sort ->
+    (* We assume that the element sort is always finite enumeration. *)
+    let elems =
+      SMT.Enumeration.get_constants elem_sort
+      |> List.map translate
+    in
     List.fold_left
     (fun acc elem ->
       match Z3.Model.eval model (Z3.Set.mk_membership !context elem expr) false with
@@ -127,8 +147,8 @@ let rec inverse_translate model sort expr = match sort with
           else acc
       | None -> failwith "Internal error"
     ) [] elems
-    |> List.map (inverse_translate model (SMT.Sort.get_elem_sort sort))
-    |> SMT.Set.mk_enumeration (SMT.Sort.get_elem_sort sort)
+    |> List.map (inverse_translate model elem_sort)
+    |> SMT.Set.mk_enumeration elem_sort
 
   | _ -> failwith ("Cannot convert Z3 expression:" ^ Z3.Expr.to_string expr)
 
@@ -136,7 +156,11 @@ let eval model term =
   try
     let sort = SMT.Term.get_sort term in
     inverse_translate model sort @@ Option.get @@ Z3.Model.eval model (translate term) true
-  with Invalid_argument _ | Z3.Error _ -> raise Evaluation_failed
+  with Invalid_argument _ | Z3.Error _ as e ->
+    Printf.printf "=== Term evaluation failed :\n";
+    Printf.printf "Term: %s\n\n" (SMT.Term.show term);
+    Printf.printf "Model:\n %s\n\n" (Z3.Model.to_string model);
+    raise e
 
 
 (* === Debugging === *)

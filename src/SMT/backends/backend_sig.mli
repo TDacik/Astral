@@ -5,10 +5,10 @@
 module type BACKEND = sig
 
   type formula
-  (** Inner representation of a formula. *)
+  (** Internal representation of a formula. *)
 
   type model
-  (** Inner representation of a model. *)
+  (** Internal representation of a model. *)
 
   type status =
     | SMT_Sat of model              (* Model *)
@@ -16,16 +16,20 @@ module type BACKEND = sig
     | SMT_Unknown of string         (* Reason *)
 
   val name : string
-  (** Name of the solver. *)
+  (** Name of the solver used for logging. *)
 
   val is_available : unit -> bool
+  (** Check whether given solver is correctly installed. *)
 
   val init : unit -> unit
   (** @raise Not_available if the solver is not available. *)
 
   val translate : SMT.Term.t -> formula
+  (** Translate formula to solver's internal representation. *)
 
   val solve : SMT.Term.t -> status
+  (** Translate formula to solver's internal representation and check its
+      satisfiability. *)
 
   val eval : model -> SMT.Term.t -> SMT.Term.t
   (** Evaluate term in a model. *)

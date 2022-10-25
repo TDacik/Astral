@@ -182,7 +182,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let footprints = footprints1 @ footprints2 in
     (semantics, axioms, footprints)
 
-  (** Translation of separating conjunction using scolemisation *)
+  (** Translation of separating conjunction using scolemisation
   and translate_star_scolemised context domain psi1 psi2 =
     let fp1 = formula_footprint context psi1 in
     let fp2 = formula_footprint context psi2 in
@@ -207,13 +207,6 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       let axioms = Boolean.mk_and [axioms; axiom] in
       (Boolean.mk_and [phi1; phi2; disjoint; str_disjoint; domain_def], axioms, [])
 
-  (** Translation of separating conjunction that cannot be scolemised *)
-  and translate_star_quant context domain psi1 psi2 =
-    let phi1, axioms1, footprints1 = translate context psi1 domain in
-    let phi2, axioms2, footprints2 = translate context psi2 domain in
-
-
-
   and translate_star context domain psi1 psi2 =
     let context = {context with under_star = not context.can_scolemise} in
     if context.can_scolemise then translate_star_scolemised context domain psi1 psi2
@@ -234,6 +227,67 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
             let fp_union = Set.mk_union [fp1; fp2] context.fp_sort in
             let domain_def = Set.mk_eq domain fp_union in
             if SSL.has_unique_footprint psi1 && SSL.has_unique_footprint psi2 then
+              Boolean.mk_and [phi1; phi2; disjoint; domain_def], Boolean.mk_true ()
+            else
+              let axioms, str_disjoint = mk_strongly_disjoint context fp1 fp2 in
+              Boolean.mk_and [phi1; phi2; disjoint; str_disjoint; domain_def], axioms
+
+          )
+      in
+      let semantics = Boolean.mk_or (List.map fst lst) in
+      let axioms = Boolean.mk_and (List.map snd lst) in
+      let axioms = Boolean.mk_and [axioms1; axioms2; axioms] in
+      let footprints =
+        fp_worklist
+        |> List.map (fun (s1, s2) -> Set.mk_union [s1; s2] context.fp_sort)
+      in
+      (semantics, axioms, footprints)
+    end
+  *)
+
+  and translate_star context domain psi1 psi2 =
+    let context = {context with under_star = not context.can_scolemise} in
+    if context.can_scolemise then begin
+      let fp1 = formula_footprint context psi1 in
+      let fp2 = formula_footprint context psi2 in
+      let phi1, axioms1, footprints1 = translate context psi1 fp1 in
+      let phi2, axioms2, footprints2 = translate context psi2 fp2 in
+      let disjoint = Set.mk_disjoint fp1 fp2 in
+      let fp_union = Set.mk_union [fp1; fp2] context.fp_sort in
+      let domain_def = Set.mk_eq domain fp_union in
+      let axioms = Boolean.mk_and [axioms1; axioms2] in
+      if SSL.has_unique_footprint psi1 && SSL.has_unique_footprint psi2
+         || not @@ Options.strong_separation ()
+      then
+        (Boolean.mk_and [phi1; phi2; disjoint; domain_def], axioms, [])
+      else
+       let axiom, str_disjoint = mk_strongly_disjoint context fp1 fp2 in
+       let axioms = Boolean.mk_and [axioms; axiom] in
+       (Boolean.mk_and [phi1; phi2; disjoint; str_disjoint; domain_def], axioms, [])
+    end
+    (* Generation of axioms for each footprint *)
+    else begin
+      let phi1, axioms1, footprints1 = translate context psi1 domain in
+      let phi2, axioms2, footprints2 = translate context psi2 domain in
+      let fp_worklist =
+        BatList.cartesian_product footprints1 footprints2
+        |> List.filter (fun (fp1, fp2) -> SMT.Set.may_disjoint fp1 fp2)
+      in
+      Print.debug "Number of footprints: %d\n" (List.length fp_worklist);
+      List.iter (fun (fp1, fp2) -> Print.debug "%s U %s\n" (Term.show fp1) (Term.show fp2))
+       fp_worklist;
+
+      let lst =
+        fp_worklist
+        |> List.map (fun (fp1, fp2) ->
+            let phi1 = SMT.Term.substitute phi1 domain fp1 in
+            let phi2 = SMT.Term.substitute phi2 domain fp2 in
+            let disjoint = Set.mk_disjoint fp1 fp2 in
+            let fp_union = Set.mk_union [fp1; fp2] context.fp_sort in
+            let domain_def = Set.mk_eq domain fp_union in
+            if SSL.has_unique_footprint psi1 && SSL.has_unique_footprint psi2
+               || not @@ Options.strong_separation ()
+            then
               Boolean.mk_and [phi1; phi2; disjoint; domain_def], Boolean.mk_true ()
             else
               let axioms, str_disjoint = mk_strongly_disjoint context fp1 fp2 in
