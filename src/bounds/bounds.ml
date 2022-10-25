@@ -33,7 +33,8 @@ let stack_bound g phi vars =
   let partition = BatList.unique ~eq:(partition_equality g) alloc_vars in
   let try1 = List.length partition in
   (0, try1)
-(*
+
+  (*
 let rec location_bound_atomic phi stack_bound = match phi with
   | And (psi1, psi2) ->
       max (location_bound_atomic psi1 stack_bound) (location_bound_atomic psi2 stack_bound)
