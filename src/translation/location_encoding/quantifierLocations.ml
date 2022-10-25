@@ -17,23 +17,23 @@ module Locations (Set : SET) = struct
     in
     Enumeration.mk_sort str names
 
-  let mk_const sort str = Var.mk str sort
+  let mk_const sort str = SMT.Variable.mk str sort
 
-  let var_to_expr context var = Var.mk (SSL.Variable.show var) context.locs_sort
+  let var_to_expr context var = SMT.Variable.mk (SSL.Variable.show var) context.locs_sort
 
   let vars_to_exprs context = List.map (var_to_expr context) context.vars
 
   let enumeration sort = Enumeration.get_constants sort
 
   let quantify sort quantifier expr_constructor =
-    let binder_e = Var.mk_fresh "l" sort in
+    let binder_e = SMT.Variable.mk_fresh "l" sort in
     let expr = expr_constructor binder_e in
     match quantifier with
     | `Forall -> Quantifier.mk_forall binder_e expr
     | `Exists -> Quantifier.mk_exists binder_e expr
 
   let quantify2 sort quantifier expr_constructor =
-    let binder_e = Var.mk_fresh "L" sort in
+    let binder_e = SMT.Variable.mk_fresh "L" sort in
     let expr = expr_constructor binder_e in
     match quantifier with
     | `Forall2 -> Quantifier.mk_forall binder_e expr

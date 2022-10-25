@@ -18,3 +18,11 @@ let declare var sort =
 let type_of var =
   try M.find var !env
   with Not_found -> failwith (Format.asprintf "Variable %s is not declared" var)
+
+let show () =
+  let content =
+    M.bindings !env
+    |> List.map (fun (var, sort) -> Format.asprintf "%s :%a" var SSL.Sort.pp sort)
+    |> String.concat " "
+  in
+  "{" ^ content ^ "}"

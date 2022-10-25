@@ -36,7 +36,11 @@ let rec parse_app term operands = match term.term with
     (* unary connectives *)
     | "not" -> SSL.Not (parse_unary_op operands)
     (* binary atoms *)
-    | "=" -> SSL.Eq (fst @@ parse_atom operands, snd @@ parse_atom operands)
+    | "=" ->
+        begin
+          try SSL.mk_eq (fst @@ parse_atom operands) (snd @@ parse_atom operands)
+          with _ -> SSL.mk_iff (fst @@ parse_binary_op operands) (snd @@ parse_binary_op operands)
+        end
     | "distinct" ->
         SSL.Neq (fst @@ parse_atom operands, snd @@ parse_atom operands) (* TODO: n-ary distinct *)
     | "pto" -> SSL.PointsTo (fst @@ parse_atom operands, snd @@ parse_atom operands)
@@ -56,7 +60,7 @@ and parse_atom operands =
   if List.length operands <> 2 then raise (ParserError "Expected two variables")
   else (parse_symbol @@ List.nth operands 0, parse_symbol @@ List.nth operands 1)
 
-and parse_constant (id : Dolmen_std.Id.t) =
+and parse_constant term (id : Dolmen_std.Id.t) =
   match Format.asprintf "%a" Dolmen_std.Id.print id with
     | "emp" -> SSL.mk_emp ()
     | "sep.emp" -> SSL.mk_emp ()          (* compatibility with cvc5 *)
@@ -64,11 +68,11 @@ and parse_constant (id : Dolmen_std.Id.t) =
     | "(_ emp Loc\nLoc)" -> SSL.mk_emp ()  (* TODO: ... *)
     | "true" -> SSL.mk_true ()
     | "false" -> SSL.mk_false ()
-    | other -> raise (ParserError (Format.asprintf "Unknown constant: %s" other))
+    | other -> SSL.Var (symbol_to_var term id)
 
 and parse_term term = match term.term with
   | App (t, terms) -> parse_app t terms
-  | Symbol id -> parse_constant id
+  | Symbol id -> parse_constant term id
   | _ -> failwith (Format.asprintf "Not supporter term: %a" Std.Term.print term)
 
 and parse_smt_term t = match t.term with
@@ -88,8 +92,9 @@ and parse_smt_term t = match t.term with
     let re = Str.regexp "[0-9]+" in
     if Str.string_match re name 0
     then SMT.LIA.mk_const (int_of_string name)
-    else match name with
-    | _ -> SMT.LIA.mk_var name
+    else match TypeEnv.type_of name with
+    | Int -> SMT.LIA.mk_var name
+    | Bool -> SMT.Boolean.mk_var name
 
 and symbol_to_var term symbol =
   match Format.asprintf "%a" Dolmen_std.Id.print symbol with
@@ -99,6 +104,7 @@ and symbol_to_var term symbol =
         begin match TypeEnv.type_of var with
           | Loc -> SSL.Variable.mk var
           | Int -> SSL.Variable.Term (SMT.LIA.mk_var var)
+          | Bool -> SSL.Variable.Term (SMT.Boolean.mk_var var)
         end
       with _ -> SSL.Variable.Term (parse_smt_term term)
 
@@ -134,7 +140,11 @@ let parse_definitions defs_group =
               let sort = parse_sort id in
               let name = Format.asprintf "%a" Dolmen_std.Id.print a.id in
               TypeEnv.declare name sort;
-              symbol_to_var t a.id :: acc
+              (* Only location variables *)
+              begin match sort with
+              | Loc -> symbol_to_var t a.id :: acc
+              | _ -> acc
+              end
           | _ -> acc
         end
       end
@@ -175,6 +185,7 @@ let parse_option term input = match term.term with
       | (":status", "sat") -> Input.set_status `Sat input
       | (":status", "unsat") -> Input.set_status `Unsat input
       | (":status", "unknown") -> Input.set_status `Unknown input
+      | (":location-bound", n) -> Input.set_expected_loc_bound (int_of_string n) input
       | _ -> input
   end
   | _ -> input

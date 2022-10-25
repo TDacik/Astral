@@ -27,6 +27,8 @@ val location_bound : unit -> int option
 
 val compute_sl_graph : unit -> bool
 
+val ignore_unused_vars : unit -> bool
+
 val convertor : unit -> ((module CONVERTOR) * string) option
 (** Return convertor module and output path. *)
 

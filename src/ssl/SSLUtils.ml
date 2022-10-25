@@ -38,6 +38,7 @@ module AST = struct
       | PointsTo (v1, v2) -> Format.asprintf "%a ↦ %a" Variable.pp v1 Variable.pp v2
       | Eq (v1, v2) -> Format.asprintf "%a = %a" Variable.pp v1 Variable.pp v2
       | Neq (v1, v2) -> Format.asprintf "%a ≠ %a" Variable.pp v1 Variable.pp v2
+      | Var v -> Format.asprintf "%a" Variable.pp v
       (*
       | True -> "true"
       | False -> "false"

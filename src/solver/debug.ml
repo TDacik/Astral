@@ -61,19 +61,20 @@ let context context =
 let qf_phi (context, phi) =
   debug_out "phi_base.smt2" (Z3.Expr.to_string phi)
 
-let translated str = debug_out "translated.smt" str
+let translated phi =
+  debug_out "translated.out" (SMT.Term.show phi)
+
+let smt_model model = debug_out "smt_model.out" (SMT.Model.show model)
 
 let model sh =
   debug_out "sh.out" (StackHeapModel.to_string sh);
   StackHeapModel.output_graph path_model_dot sh
 
-let smt_model model =
-  debug_out "smt_model.out" (SMT.Model.show model)
-
 
 (* === Backend's data === *)
 
 let backend_translated str = debug_out "backend_translated.smt2" str
+let backend_smt_benchmark str = debug_out "solver_input.smt2" str
 let backend_simplified str = debug_out "backend_simplified.smt2" str
 let backend_model str = debug_out "backend_model.smt2" str
 
@@ -85,8 +86,9 @@ let translated = decorate translated
 let model      = decorate model
 let smt_model  = decorate smt_model
 
-let backend_translated = decorate backend_translated
-let backend_simplified = decorate backend_simplified
-let backend_model = decorate backend_model
+let backend_translated    = decorate backend_translated
+let backend_simplified    = decorate backend_simplified
+let backend_model         = decorate backend_model
+let backend_smt_benchmark = decorate backend_smt_benchmark
 
 let formula ?(suffix="") = decorate (formula suffix)

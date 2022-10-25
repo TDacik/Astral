@@ -99,6 +99,13 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     | SSL.LS (var1, var2) -> translate_ls context domain var1 var2
     | SSL.Not (psi) -> translate_not context domain psi
     | SSL.GuardedNeg (psi1, psi2) -> translate_guarded_neg context domain psi1 psi2
+    | SSL.Var var -> translate_var context domain var
+
+  and translate_var context domain var =
+    let semantics = term_to_expr context var in
+    let axioms = Boolean.mk_true () in
+    let footprints = [Set.mk_empty context.fp_sort] in
+    (semantics, axioms, footprints)
 
   and translate_pointsto context domain x y =
     let x = Locations.var_to_expr context x in
@@ -325,16 +332,18 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let h1 = Array.mk_var h1_name context.heap_sort in
 
     let fp1 = formula_footprint context psi1 in
-    let fp2 = Set.mk_union [domain; fp1] context.fp_sort in
+    let fp2 = formula_footprint context psi2 in
+    let fp = Set.mk_diff fp2 fp1 in
 
     let phi1, axioms1, footprints1 = translate {context with heap = h1} psi1 fp1 in
     let phi2, axioms2, footprints2 = translate {context with heap = h1} psi2 fp2 in
 
-    let eq_fp = heaps_equal_on_footprint context context.heap h1 (Set.mk_diff fp2 fp1) in
+    let eq_fp = heaps_equal_on_footprint context context.heap h1 fp in
 
-    let disjoint = Set.mk_disjoint fp1 domain in
+    let subset = Set.mk_subset fp1 fp2 in
+    let domain_def = Set.mk_eq domain fp in
     let axioms = Boolean.mk_and [axioms1; axioms2] in
-    let semantics = Boolean.mk_and [phi1; phi2; disjoint; eq_fp] in
+    let semantics = Boolean.mk_and [phi1; phi2; subset; domain_def; eq_fp] in
     let footprints =
       BatList.cartesian_product footprints1 footprints2
       |> List.map (fun (s1, s2) -> Set.mk_diff s2 s1)
@@ -356,7 +365,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 let translate_phi context phi =
   let footprint = formula_footprint context phi in
   let phi, axioms, _ = translate context phi context.global_footprint in
-  let nil = Var.mk "nil" context.locs_sort in
+  let nil = SMT.Variable.mk "nil" context.locs_sort in
   let nil_not_in_fp = Boolean.mk_not (Set.mk_mem nil context.global_footprint) in
 
   let heap_nil = Array.mk_select context.heap nil in
@@ -380,14 +389,14 @@ let translate_phi context phi =
       with _ -> failwith ("Cannot convert location " ^ Term.show loc)
 
   let nil_interp context model =
-    let e = Var.mk (SSL.Variable.show Nil) context.locs_sort in
+    let e = SMT.Variable.mk (SSL.Variable.show Nil) context.locs_sort in
     try Backend.eval model e
     with _ -> failwith "No interpretation of nil"
 
   let translate_stack context model =
     List.fold_left
       (fun stack var ->
-        let var_expr = Var.mk (SSL.Variable.show var) context.locs_sort in
+        let var_expr = SMT.Variable.mk (SSL.Variable.show var) context.locs_sort in
         let loc =
           try Backend.eval model var_expr
           with Not_found -> nil_interp context model
@@ -416,7 +425,7 @@ let translate_phi context phi =
       (fun psi acc ->
         let id = SSL.subformula_id context.phi psi in
         let fp_name = Format.asprintf "footprint%d" id in
-        let fp_expr = Var.mk fp_name context.fp_sort in
+        let fp_expr = SMT.Variable.mk fp_name context.fp_sort in
         let set = SMT.Set.get_elems @@ Backend.eval model fp_expr in
         let fp = Footprint.of_list @@ List.map translate_loc set in
         SSL.Map.add psi fp acc
@@ -447,13 +456,8 @@ let translate_phi context phi =
     StackHeapModel.init ~heaps s h
 
   (* ==== Solver ==== *)
-
   let solve phi info =
     let context = init phi info in
-    let phi = translate_phi context phi in
-    let size = SMT.Term.size phi in
-
-    Debug.context context;
     Print.debug "Translating
      - Stack bound: [%d, %d]
      - Location bound:  %d\n"
@@ -462,17 +466,25 @@ let translate_phi context phi =
       info.heap_bound
      ;
 
+    let phi = translate_phi context phi in
+    let size = SMT.Term.size phi in
+
+    Debug.context context;
+    Debug.translated phi;
+
     Print.debug "Running backend SMT solver\n";
     Timer.add "Astral";
 
-    (* Solve *)
     Backend.init ();
 
     Debug.backend_translated (Backend.show_formula @@ Backend.translate phi);
     Debug.backend_simplified (Backend.show_formula @@ Backend.simplify @@ Backend.translate phi);
+    Debug.backend_smt_benchmark (Backend.to_smt_benchmark @@ Backend.translate phi);
 
+    (* Solve *)
     match Backend.solve phi with
     | SMT_Sat model ->
+      (*Debug.smt_model model;*)
       Debug.backend_model (Backend.show_model model);
       let sh = translate_model context model in
       Debug.model sh;

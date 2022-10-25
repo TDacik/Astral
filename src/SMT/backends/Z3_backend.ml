@@ -29,13 +29,14 @@ let init () =
 
 (* === Translation === *)
 
-let rec translate = function
+let rec translate t = match t with
   | SMT.Constant (name, sort) -> Z3.Expr.mk_const_s !context name (translate_sort sort)
-  | SMT.Variable (x, sort) ->
-      let var = Z3.Expr.mk_const_s !context x (translate_sort sort) in
+  | SMT.Variable (x, sort, _) ->
+      let name = SMT.Term.show t in
+      let var = Z3.Expr.mk_const_s !context name (translate_sort sort) in
       begin match sort with
       (* Generate finitness axiom *)
-      | SMT.Finite _ ->
+      | SMT.Sort.Finite _ ->
         let card = SMT.Enumeration.cardinality sort in
         let lower_bound = Z3.Arithmetic.Integer.mk_numeral_i !context 0 in
         let upper_bound = Z3.Arithmetic.Integer.mk_numeral_i !context card in
@@ -50,9 +51,7 @@ let rec translate = function
   | SMT.False -> Z3.Boolean.mk_false !context
   | SMT.Equal (t1, t2) -> Z3.Boolean.mk_eq !context (translate t1) (translate t2)
   | SMT.Distinct ts -> Z3.Boolean.mk_distinct !context (List.map translate ts)
-  | SMT.And es ->
-      begin try Z3.Boolean.mk_and !context (List.map translate es)
-      with e -> let _ = Printf.printf "%s" (SMT.Term.show (SMT.And es)) in raise e end
+  | SMT.And es -> Z3.Boolean.mk_and !context (List.map translate es)
   | SMT.Or es -> Z3.Boolean.mk_or !context (List.map translate es)
   | SMT.Not e -> Z3.Boolean.mk_not !context (translate e)
   | SMT.Implies (e1, e2) -> Z3.Boolean.mk_implies !context (translate e1) (translate e2)
@@ -80,7 +79,6 @@ let rec translate = function
   | SMT.Select (a, i) -> Z3.Z3Array.mk_select !context (translate a) (translate i)
   | SMT.Store (a, i, v) -> Z3.Z3Array.mk_store !context (translate a) (translate i) (translate v)
 
-
   | SMT.IntConst i -> Z3.Arithmetic.Integer.mk_numeral_i !context i
   | SMT.Plus (e1, e2) -> Z3.Arithmetic.mk_add !context [translate e1; translate e2]
   | SMT.Minus (e1, e2) -> Z3.Arithmetic.mk_sub !context [translate e1; translate e2]
@@ -96,12 +94,17 @@ let rec translate = function
       Z3.Quantifier.mk_forall_const !context [binder_e] (translate phi) None [] [] None None
       |> Z3.Quantifier.expr_of_quantifier
 
+  | SMT.Forall2 _ | SMT.Exists2 _ ->
+      failwith "Internal error: second order quantification should be removed before \
+                translating to backend solver"
+
+
 and translate_sort = function
-  | SMT.Bool -> Z3.Boolean.mk_sort !context
-  | SMT.Integer -> Z3.Arithmetic.Integer.mk_sort !context
-  | SMT.Finite (name, _) -> Z3.Arithmetic.Integer.mk_sort !context
-  | SMT.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
-  | SMT.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
+  | SMT.Sort.Bool -> Z3.Boolean.mk_sort !context
+  | SMT.Sort.Integer -> Z3.Arithmetic.Integer.mk_sort !context
+  | SMT.Sort.Finite (name, cs) -> Z3.Enumeration.mk_sort_s !context name cs
+  | SMT.Sort.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
+  | SMT.Sort.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
 
 (* === Solver === *)
 
@@ -132,8 +135,8 @@ let simplify phi = Z3.Expr.simplify phi None
     @param sort    SMT sort of the expression
 *)
 let rec inverse_translate model sort expr = match sort with
-  | SMT.Finite _ -> SMT.Enumeration.mk_const sort (Z3.Expr.to_string expr)
-  | SMT.Set elem_sort ->
+  | SMT.Sort.Finite _ -> SMT.Enumeration.mk_const sort (Z3.Expr.to_string expr)
+  | SMT.Sort.Set elem_sort ->
     (* We assume that the element sort is always finite enumeration. *)
     let elems =
       SMT.Enumeration.get_constants elem_sort
@@ -166,4 +169,15 @@ let eval model term =
 (* === Debugging === *)
 
 let show_formula phi = Z3.Expr.to_string phi
+
 let show_model model = Z3.Model.to_string model
+
+let to_smt_benchmark phi =
+  Z3.SMT.benchmark_to_smtstring
+    !context
+    "Input for solver"
+    "ALL"
+    "unknown"
+    ""
+    []
+    phi

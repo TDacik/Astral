@@ -5,3 +5,5 @@
 val declare : string -> SSL.Sort.t -> unit
 
 val type_of : string -> SSL.Sort.t
+
+val show : unit -> string

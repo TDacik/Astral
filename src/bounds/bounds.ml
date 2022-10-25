@@ -33,7 +33,21 @@ let stack_bound g phi vars =
   let partition = BatList.unique ~eq:(partition_equality g) alloc_vars in
   let try1 = List.length partition in
   (0, try1)
-
+(*
+let rec location_bound_atomic phi stack_bound = match phi with
+  | And (psi1, psi2) ->
+      max (location_bound_atomic psi1 stack_bound) (location_bound_atomic psi2 stack_bound)
+  | Or (_, _) -> failwith "TODO"
+  | Not psi -> location_bound_atomic
+  | GuardedNeg (f1, f2) -> Binary (f1, f2)
+  | Star (f1, f2) -> Binary (f1, f2)
+  | Septraction (f1, f2) -> Binary (f1, f2)
+  | LS (v1, v2) -> Atom [v1; v2]
+  | PointsTo (v1, v2) -> Atom [v1; v2]
+  | Eq (v1, v2) -> Atom [v1; v2]
+  | Neq (v1, v2) -> Atom [v1; v2]
+  | Var v -> Atom [v]
+*)
 let location_bound phi g stack_bound = match SSL.classify_fragment phi with
   | SymbolicHeap_SAT -> stack_bound
   | SymbolicHeap_ENTL -> stack_bound + 1
@@ -44,6 +58,7 @@ let location_bound phi g stack_bound = match SSL.classify_fragment phi with
       then max - n
       else max - n (* - 1 nil cannot have a successor *)
   (* TODO : tighter bounds for negative formulas *)
+  (*| AtomicBoolean -> location_bound_atomic phi stack_bound *)
   | Arbitrary ->
       2 * stack_bound + chunk_size phi
 
@@ -61,17 +76,17 @@ let rec local_bound context x y =
       let try1 = context.bound - SL_graph.nb_allocated g + 1 in
       (0, min try1 stack_bound)
     else
-      let try1 = SL_graph.must_path g x y context.bound in
+      let min_path, try1 = SL_graph.must_path g x y context.bound in
       let try2 = context.bound - SL_graph.nb_must_forks g in
       let try3 = try
         let ptrs, lists = SL_graph.predict_footprint g x y in
         let context' = {context with polarity = true} in
         List.length ptrs
-        + (List.length @@ List.map (fun phi -> match phi with LS (x, y) ->
-           local_bound context' x y) lists)
+        + (BatList.sum @@ List.map (fun phi -> match phi with LS (x, y) ->
+           snd @@ local_bound context' x y) lists)
       with _ -> try2
       in
-      (0, (min (min try1 (min try2 try3)) stack_bound))
+      (min_path, (min (min try1 (min try2 try3)) stack_bound))
   in
   Printer.debug "Length bound of ls(%s, %s): [%d, %d]\n"
     (Variable.show x)

@@ -2,68 +2,15 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-type var = String.t * sort
-
-and sort =
-  | Bool
-  | Integer
-  | Finite of String.t * string list
-  | Set of sort
-  | Array of sort * sort
-  | Bitvector of sort * int (* Sort of indices *)
-
-and term =
-  | Constant of String.t * sort
-  | Variable of var
-
-  (* LIA *)
-  | IntConst of int
-  | Plus of term * term
-  | Minus of term * term
-  | Mult of term * term
-
-  (* Sets *)
-  | Membership of term * term
-  | Subset of term * term
-  | Disjoint of term * term
-  | Union of term list * sort (* TODO: Is sort necessary? *)
-  | Inter of term list * sort (* TODO: Is sort necessary? *)
-  | Diff of term * term
-  | Compl of term
-  | Enumeration of term list * sort
-
-  (* Arrays *)
-  | ConstArr of term
-  | Select of term * term
-  | Store of term * term * term
-
-  (* Bitvectors -- only minimal signature *)
-  | BitConst of term * int * sort
-  | BitIndex of term * term
-  | BitAnd of term list * sort
-  | BitOr of term list * sort
-  | BitXor of term list * sort
-  | BitImplies of term * term
-  | BitCompl of term
-
-  (* Boolean *)
-  | Equal of term * term
-  | Distinct of term list
-  | And of term list
-  | Or of term list
-  | Not of term
-  | Implies of term * term
-  | Iff of term * term
-  | True
-  | False
-
-  (* Quantifiers *)
-  | Exists of term * term
-  | Forall of term * term
-
 module Sort = struct
 
-  type t = sort
+  type t =
+    | Bool
+    | Integer
+    | Finite of String.t * string list
+    | Set of t
+    | Array of t * t
+    | Bitvector of t * int
 
   let get_elem_sort = function Set (elem_sort) -> elem_sort
   let get_dom_sort = function Array (dom_sort, _) -> dom_sort
@@ -77,44 +24,121 @@ module Sort = struct
     | Array (dom, range) -> Format.asprintf "(array %s -> %s)" (show dom) (show range)
     | Bitvector (indices, width) -> Format.asprintf "(bitvector %d)" width
 
-end
+  module Self = struct
+    type nonrec t = t
+    let show = show
+  end
 
-module Var = struct
-
-  type t = var
-
-  let get_name t = match t with
-    | Variable (name, sort) -> name
-    | _ -> failwith "not a variable"
-
-  let compare (x1, _) (x2, _) = String.compare x1 x2
-
-  let index = ref (-1)
-
-  let mk name sort =
-    if String.contains name ' '
-    then Variable ("|" ^ name ^ "|", sort)
-    else Variable (name, sort)
-
-  let mk_fresh name sort =
-    index := !index + 1;
-    Variable (Format.asprintf "%s!%d" name !index, sort)
-
-  let show (x, sort) = Format.asprintf "%s : %s" x (Sort.show sort)
+  include Datatype.Printable(Self)
 
 end
 
 module Term = struct
 
+  type term =
+    | Constant of String.t * Sort.t
+    | Variable of String.t * Sort.t * Int.t
+
+    (* LIA *)
+    | IntConst of int
+    | Plus of term * term
+    | Minus of term * term
+    | Mult of term * term
+
+    (* Sets *)
+    | Membership of term * term
+    | Subset of term * term
+    | Disjoint of term * term
+    | Union of term list * Sort.t (* TODO: Is sort necessary? *)
+    | Inter of term list * Sort.t (* TODO: Is sort necessary? *)
+    | Diff of term * term
+    | Compl of term
+    | Enumeration of term list * Sort.t
+
+    (* Arrays *)
+    | ConstArr of term
+    | Select of term * term
+    | Store of term * term * term
+
+    (* Bitvectors *)
+    | BitConst of term * int * Sort.t
+    | BitIndex of term * term
+    | BitAnd of term list * Sort.t
+    | BitOr of term list * Sort.t
+    | BitXor of term list * Sort.t
+    | BitImplies of term * term
+    | BitCompl of term
+
+    (* Boolean *)
+    | Equal of term * term
+    | Distinct of term list
+    | And of term list
+    | Or of term list
+    | Not of term
+    | Implies of term * term
+    | Iff of term * term
+    | True
+    | False
+
+    (* First-order quantifiers *)
+    | Exists of term * term
+    | Forall of term * term
+
+    (* Bounded Second-order quantifiers *)
+    | Exists2 of term * term list * term
+    | Forall2 of term * term list * term
+
   type t = term
 
-  let equal _ _ = true
+  let mk_eq t1 t2 = Equal (t1, t2)
+  let mk_distinct ts = Distinct ts
 
-  let compare _ _ = 0 (* TODO *)
+  let rec is_constant = function
+    | Constant _ | IntConst _ -> true
+    | ConstArr c -> is_constant c
+    | Enumeration (cs, _) -> List.for_all is_constant cs
+    | _ -> false
+
+  (* TODO: what about sorts? *)
+  let rec identical t1 t2 = match t1, t2 with
+    | Constant (c1, _), Constant (c2, _) -> String.equal c1 c2
+    | Variable (v1, _, id1), Variable (v2, _, id2) -> String.equal v1 v2 && Int.equal id1 id2
+
+    | Membership (elem1, set1) , Membership (elem2, set2) -> identical elem1 elem2 && identical set1 set2
+    | Subset (lhs1, rhs1) , Subset (lhs2, rhs2) -> identical lhs1 lhs2 && identical lhs2 rhs2
+    | Disjoint (lhs1, rhs1) , Disjoint (lhs2, rhs2) -> identical lhs1 lhs2 && identical lhs2 rhs2
+    | Union (sets1, _) , Union (sets2, _) ->
+        begin
+          try List.for_all2 identical sets1 sets2
+          with Invalid_argument _ -> false
+        end
+    | Inter (sets1, _) , Inter (sets2, _) ->
+        begin
+          try List.for_all2 identical sets1 sets2
+          with Invalid_argument _ -> false
+        end
+    | Diff (lhs1, rhs1) , Diff (lhs2, rhs2) -> identical lhs1 lhs2 && identical rhs1 rhs2
+    | Compl set1 , Compl set2 -> identical set1 set2
+    | Enumeration (enum1, _) , Enumeration (enum2, _) ->
+        (* Complexity *)
+        let enum1 = BatList.sort Stdlib.compare enum1 in
+        let enum2 = BatList.sort Stdlib.compare enum2 in
+        begin
+          try List.for_all2 identical enum1 enum2
+          with Invalid_argument _ -> false
+        end
+
+    (** TODO: missing cases *)
+    | _ -> false
+
+  (** Equality on terms is defined using their identity *)
+  let equal = identical
+
+  let compare t1 t2 = if equal t1 t2 then 0 else Stdlib.compare t1 t2
 
   let rec get_sort = function
     | Constant (_, sort) -> sort
-    | Variable (_, sort) -> sort
+    | Variable (_, sort, _) -> sort
 
     (* Sets *)
     | Membership _ | Subset _ | Disjoint _ -> Bool
@@ -148,13 +172,13 @@ module Term = struct
     | False -> Bool
 
     (* Quantifiers *)
-    | Exists _ | Forall _ -> Bool
+    | Exists _ | Forall _ | Exists2 _ | Forall2 _ -> Bool
 
   let rec map_vars fn term =
     let map_vars = map_vars fn in
     match term with
       | Constant (c, sort) -> Constant (c, sort)
-      | Variable (x, sort) -> fn x sort
+      | Variable (x, sort, id) -> fn (x ^ string_of_int id) sort
       | IntConst i -> IntConst i
       | Plus (x, y) -> Plus (map_vars x, map_vars y)
       | Minus (x, y) -> Minus (map_vars x, map_vars y)
@@ -194,7 +218,11 @@ module Term = struct
 
   let rec show = function
     | Constant (c, _) -> c
-    | Variable (x, sort) -> Var.show (x, sort)
+    | Variable (v, sort, id) ->
+      begin match id with
+        | 0 -> Format.asprintf "%s" v
+        | x -> Format.asprintf "%s!%d" v x
+      end
 
     | IntConst i -> Format.asprintf "%d" i
     | Plus (x, y) -> Format.asprintf "(%s + %s)" (show x) (show y)
@@ -210,8 +238,8 @@ module Term = struct
     | Compl set -> Format.asprintf "(complement %s)" (show set)
     | Enumeration (enum, sort) ->
       begin match enum with
-      | [] -> "∅"
-      | s -> "{" ^ (List.map show s |> String.concat ",") ^ "}"
+        | [] -> "∅"
+        | s -> "{" ^ (List.map show s |> String.concat ",") ^ "}"
       end
 
     | ConstArr (const) -> Format.asprintf "(\\x. x = %s)" (show const)
@@ -236,9 +264,11 @@ module Term = struct
     | True -> "true"
     | False -> "false"
 
+    | _ -> "TODO"
+
   let rec size = function
     | Constant (c, _) -> 1
-    | Variable (x, sort) -> 1
+    | Variable (x, sort, _) -> 1
 
     | IntConst i -> 1
     | Plus (x, y) -> 1 + size x + size y
@@ -274,92 +304,107 @@ module Term = struct
     | True -> 1
     | False -> 1
     | Exists (binder, phi) | Forall (binder, phi) -> 1 + size binder + size phi
+    | Exists2 (binder, _, phi) | Forall2 (binder, _, phi) -> 1 + size binder + size phi
 
     (* ==== Syntactic manipulation ==== *)
 
     let rec substitute ?(bounded=[]) phi x term = match phi with
       | Constant _ -> phi
-      | Variable (var, sort) ->
-          begin try
-            if String.equal (match x with Variable (s, _) -> s) var then term
-            else Variable (var, sort)
-          with _ -> failwith (Format.asprintf "%s" (show x))
-          end
+      (** TODO: Handling of sorts in comparison *)
+      | Variable (var1, sort1, id1) ->
+          let var2, sort2, id2 = match x with Variable (var2, sort2, id2) -> var2, sort2, id2 in
+          if String.equal var1 var2 && Int.equal id1 id2
+          then term
+          else phi
+
       (* Quantifiers *)
       | Exists (binder, phi) -> substitute ~bounded:(binder :: bounded) phi x term
       | Forall (binder, phi) -> substitute ~bounded:(binder :: bounded) phi x term
 
-  | Membership (elem, set) ->
-      Membership (substitute ~bounded elem x term, substitute ~bounded set x term)
-  | Subset (set1, set2) ->
-      Subset (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
-  | Disjoint (set1, set2) ->
-      Disjoint (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
-  | Union (sets, sort) ->
-      Union (List.map (fun t -> substitute ~bounded t x term) sets, sort)
-  | Inter (sets, sort) ->
-      Inter (List.map (fun t -> substitute ~bounded t x term) sets, sort)
-  | Diff (set1, set2) ->
-      Diff (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
-  | Compl set ->
-      Compl (substitute ~bounded set x term)
-  | Enumeration (terms, sort) ->
-      Enumeration (List.map (fun t -> substitute ~bounded t x term) terms, sort)
+      | Exists2 (binder, _, phi) -> substitute ~bounded:(binder :: bounded) phi x term
+      | Forall2 (binder, _, phi) -> substitute ~bounded:(binder :: bounded) phi x term
 
-  (* Boolean *)
-  | Equal (t1, t2) ->
-      Equal (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
-  | Distinct terms ->
-      Distinct (List.map (fun t -> substitute ~bounded t x term) terms)
-  | And terms ->
-      And (List.map (fun t -> substitute ~bounded t x term) terms)
-  | Or terms ->
-      Or (List.map (fun t -> substitute ~bounded t x term) terms)
-  | Not t ->
-      Not (substitute ~bounded t x term)
-  | Implies (t1, t2) ->
-      Implies (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
-  | Iff (t1, t2) ->
-      Iff (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
-  | True -> True
-  | False -> False
+      | Membership (elem, set) ->
+        Membership (substitute ~bounded elem x term, substitute ~bounded set x term)
+      | Subset (set1, set2) ->
+        Subset (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
+      | Disjoint (set1, set2) ->
+        Disjoint (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
+      | Union (sets, sort) ->
+        Union (List.map (fun t -> substitute ~bounded t x term) sets, sort)
+      | Inter (sets, sort) ->
+        Inter (List.map (fun t -> substitute ~bounded t x term) sets, sort)
+      | Diff (set1, set2) ->
+        Diff (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
+      | Compl set ->
+        Compl (substitute ~bounded set x term)
+      | Enumeration (terms, sort) ->
+        Enumeration (List.map (fun t -> substitute ~bounded t x term) terms, sort)
 
-    | IntConst i -> IntConst i
-    | Plus (t1, t2) ->
+      (* Boolean *)
+      | Equal (t1, t2) ->
+        Equal (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+      | Distinct terms ->
+        Distinct (List.map (fun t -> substitute ~bounded t x term) terms)
+      | And terms ->
+        And (List.map (fun t -> substitute ~bounded t x term) terms)
+      | Or terms ->
+        Or (List.map (fun t -> substitute ~bounded t x term) terms)
+      | Not t ->
+        Not (substitute ~bounded t x term)
+      | Implies (t1, t2) ->
+        Implies (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+      | Iff (t1, t2) ->
+        Iff (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+      | True -> True
+      | False -> False
+
+      | IntConst i -> IntConst i
+      | Plus (t1, t2) ->
         Plus (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
-    | Minus (t1, t2) ->
+      | Minus (t1, t2) ->
         Minus (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
-    | Mult (t1, t2) ->
+      | Mult (t1, t2) ->
         Mult (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
 
-  | ConstArr t ->
-      ConstArr (substitute ~bounded t x term)
-  | Select (arr, i) ->
-      Select (substitute ~bounded arr x term, substitute ~bounded i x term)
-  | Store (arr, i, v) ->
-      Store (substitute ~bounded arr x term,
-             substitute ~bounded i x term,
-             substitute ~bounded v x term
-            )
+      | ConstArr t ->
+        ConstArr (substitute ~bounded t x term)
+      | Select (arr, i) ->
+        Select (substitute ~bounded arr x term, substitute ~bounded i x term)
+      | Store (arr, i, v) ->
+        Store (substitute ~bounded arr x term,
+          substitute ~bounded i x term,
+          substitute ~bounded v x term
+        )
 
 end
 
-module Equality = struct
+module Variable = struct
 
-  let mk_eq t1 t2 = Equal (t1, t2)
-  let mk_distinct ts = Distinct ts
+  include Term
 
-  let mk_var = Var.mk
-  let mk_fresh_var = Var.mk_fresh
+  let get_name t = match t with
+    | Term.Variable (name, sort, id) -> name
+    | _ -> failwith "not a variable"
 
-  let get_sort = Term.get_sort
+  let index = ref (-1)
+
+  let mk name sort =
+    if String.contains name ' '
+    then Term.Variable ("|" ^ name ^ "|", sort, 0)
+    else Term.Variable (name, sort, 0)
+
+  let mk_fresh name sort =
+    index := !index + 1;
+    Term.Variable (name, sort, !index)
+
 end
 
 module Boolean = struct
 
-  include Equality
+  include Term
 
-  let mk_var name = mk_var name Bool
+  let mk_var name = Variable.mk name Bool
 
   let mk_false () = False
   let mk_true () = True
@@ -373,22 +418,24 @@ end
 
 module Enumeration = struct
 
+  include Term
+
   let mk_const sort name = Constant (name, sort)
 
-  let mk_sort name constant_names = Finite (name, constant_names)
+  let mk_sort name constant_names = Sort.Finite (name, constant_names)
   let get_constants sort = match sort with
-    | Finite (_, consts) -> List.map (mk_const sort) consts
+    | Sort.Finite (_, consts) -> List.map (mk_const sort) consts
 
   let cardinality sort = match sort with
-    | Finite (_, consts) -> List.length consts
+    | Sort.Finite (_, consts) -> List.length consts
 
 end
 
 module LIA = struct
 
-  include Equality
+  include Term
 
-  let mk_var name = mk_var name Integer
+  let mk_var name = Variable.mk name Integer
 
   let mk_const i = IntConst i
   let mk_plus t1 t2 = Plus (t1, t2)
@@ -404,9 +451,12 @@ end
 
 module Array = struct
 
-  include Equality
+  include Term
 
-  let mk_sort dom range = Array (dom, range)
+  let mk_var = Variable.mk
+  let mk_fresh_var = Variable.mk_fresh
+
+  let mk_sort dom range = Sort.Array (dom, range)
 
   let mk_const t = ConstArr t
   let mk_select arr x = Select (arr, x)
@@ -415,12 +465,12 @@ end
 
 module Bitvector = struct
 
-  include Equality
+  include Term
 
-  let mk_sort width = Bitvector (Integer, width)
+  let mk_sort width = Sort.Bitvector (Integer, width)
 
   let mk_custom_sort sort = match sort with
-    | Finite (_, elements) -> Bitvector (sort, List.length elements)
+    | Sort.Finite (_, elements) -> Sort.Bitvector (sort, List.length elements)
     | _ -> failwith "Invalid argument"
 
   let mk_const c width sort = BitConst (c, width, sort)
@@ -434,13 +484,28 @@ module Bitvector = struct
 
 end
 
+(** Utility for smart constructors *)
+let construct cons (f : Term.t list -> Term.t list -> Term.t list) (acc : Term.t list) terms sort =
+  let consts, vars = List.partition Term.is_constant terms in
+  let folded = List.fold_left
+    (fun acc x -> match x with
+      | Term.Enumeration (cs, _) -> f cs acc
+    ) acc consts
+  in
+  match vars with
+  | [] -> Term.Enumeration (List.sort Stdlib.compare folded, sort)
+  | cs -> cons ((Term.Enumeration (folded, sort)) :: cs) sort
+
 module Set = struct
 
-  include Equality
-  let get_elem_sort set = match get_sort set with
-    | Set (elem_sort) -> elem_sort
+  include Term
 
-  let mk_sort elem_sort = Set elem_sort
+  let mk_var = Variable.mk
+  let mk_fresh_var = Variable.mk_fresh
+
+  let get_elem_sort set = Sort.get_elem_sort @@ Term.get_sort set
+
+  let mk_sort elem_sort = Sort.Set elem_sort
 
   let mk_empty sort = Enumeration ([], sort)
   let mk_singleton elem = Enumeration ([elem], Set (get_sort elem))
@@ -449,7 +514,7 @@ module Set = struct
   let mk_subset s1 s2 = Subset (s1, s2)
   let mk_disjoint s1 s2 = Disjoint (s1, s2)
 
-  let mk_union ts sort = Union (ts, sort)
+  let mk_union ts sort = construct (fun es sort -> Union (es, sort)) (@) [] ts sort
   let mk_inter ts sort = Inter (ts, sort)
   let mk_diff t1 t2 = Diff (t1, t2)
   let mk_compl t = Compl t
@@ -461,6 +526,8 @@ module Set = struct
   (* Accessors *)
   let get_elems = function Enumeration (elems, _) -> elems
 
+  let simplify t = t
+  (*
   let rec simplify (term : Term.t) = match term with
     | Union (sets, sort) ->
         let sets = List.map simplify sets in
@@ -470,12 +537,15 @@ module Set = struct
             | _ -> failwith ""
           ) [] sets
           in
-          Enumeration (xs, sort)
+          (* TODO: complexity of sorting ~~> use sets instead *)
+          Enumeration (BatList.sort Stdlib.compare xs, sort)
         with _ -> term
         end
     | term -> term
+  *)
 
-  let may_disjoint set1 set2 = match simplify set1, simplify set2 with
+  (** Check whether two sets can be disjoint *)
+  let may_disjoint set1 set2 = match set1, set2 with
     | Enumeration (e1, _), Enumeration (e2, _) ->
         not @@ List.exists (fun x -> List.mem x e2) e1
         && not @@ List.exists (fun x -> List.mem x e1) e2
@@ -485,26 +555,31 @@ end
 
 module Quantifier = struct
 
-  let mk_forall x phi = Forall (x, phi)
-  let mk_exists x phi = Exists (x, phi)
+  let mk_forall x phi = Term.Forall (x, phi)
+  let mk_exists x phi = Term.Exists (x, phi)
+
+  let mk_forall2 xs phi ranges = Term.Forall2 (xs, ranges, phi)
+  let mk_exists2 xs phi ranges = Term.Exists2 (xs, ranges, phi)
 
 end
 
 module Model = struct
 
-  include Map.Make(Var)
+  open Term
+
+  include Map.Make(Variable)
 
   (* Fix monomorphic type of the map *)
   type nonrec t = Term.t t
 
   let show model =
     bindings model
-    |> List.map (fun (v, i) -> Format.asprintf "%s -> %s" (Var.show v) (Term.show i))
+    |> List.map (fun (v, i) -> Format.asprintf "%s -> %s" (Variable.show v) (Term.show i))
     |> String.concat "\n"
 
   let rec eval model t = match t with
     | Constant (c, sort) -> Constant (c, sort)
-    | Variable (name, sort) -> find (name, sort) model
+    | Variable _ -> find t model
 
     | IntConst i -> IntConst i
 
@@ -518,8 +593,6 @@ module Model = struct
     | Compl s -> failwith "TODO: eval compl"
     | Enumeration (elems, _) -> failwith "TODO"
 
-    | Select (Variable a, i) -> eval model (Array.mk_select (eval model (Variable a)) i)
-
     | Select (ConstArr x, _) -> eval model x
     | Select (Store (a, i, v), j) ->
         let im = eval model i in
@@ -527,6 +600,9 @@ module Model = struct
         if LIA.are_equal_consts i j
         then eval model v
         else eval model (Select (a, j))
+    | Select (arr, i) -> eval model (Array.mk_select (eval model arr) i)
 
     | _ -> failwith ("TODO: eval other: " ^ Term.show t)
 end
+
+include Term
