@@ -102,7 +102,9 @@ let rec translate term = match term with
   | SMT.Store (a, i, x) ->
     Format.asprintf "(store %s %s %s)" (translate a) (translate i) (translate x)
 
-  | SMT.Forall (x, phi) ->
+  (* TODO: instantiation should be done somewhere else *)
+  (* TODO: !!!!!!! *)
+  | SMT.Forall (x :: _, phi) ->
     let x_sort = SMT.Term.get_sort x in
     begin match x_sort with
     | Finite (_, cs) ->
@@ -115,7 +117,7 @@ let rec translate term = match term with
       (translate phi)
     end
 
-  | SMT.Exists (x, phi) ->
+  | SMT.Exists (x :: _, phi) ->
     let x_sort = SMT.Term.get_sort x in
     begin match x_sort with
     | Finite (_, cs) ->

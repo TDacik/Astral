@@ -84,14 +84,14 @@ let rec translate t = match t with
   | SMT.Minus (e1, e2) -> Z3.Arithmetic.mk_sub !context [translate e1; translate e2]
   | SMT.Mult (e1, e2) -> Z3.Arithmetic.mk_mul !context [translate e1; translate e2]
 
-  | SMT.Exists (x, phi) ->
-      let binder_e = translate x in
-      Z3.Quantifier.mk_exists_const !context [binder_e] (translate phi) None [] [] None None
+  | SMT.Exists (xs, phi) ->
+      let binders = List.map translate xs in
+      Z3.Quantifier.mk_exists_const !context binders (translate phi) None [] [] None None
       |> Z3.Quantifier.expr_of_quantifier
 
-  | SMT.Forall (x, phi) ->
-      let binder_e = translate x in
-      Z3.Quantifier.mk_forall_const !context [binder_e] (translate phi) None [] [] None None
+  | SMT.Forall (xs, phi) ->
+      let binders = List.map translate xs in
+      Z3.Quantifier.mk_forall_const !context binders (translate phi) None [] [] None None
       |> Z3.Quantifier.expr_of_quantifier
 
   | SMT.Forall2 _ | SMT.Exists2 _ ->

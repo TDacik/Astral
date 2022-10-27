@@ -29,15 +29,15 @@ module Locations (Set : SET) = struct
     let binder_e = SMT.Variable.mk_fresh "l" sort in
     let expr = expr_constructor binder_e in
     match quantifier with
-    | `Forall -> Quantifier.mk_forall binder_e expr
-    | `Exists -> Quantifier.mk_exists binder_e expr
+    | `Forall -> Quantifier.mk_forall [binder_e] expr
+    | `Exists -> Quantifier.mk_exists [binder_e] expr
 
   let quantify2 sort quantifier expr_constructor =
     let binder_e = SMT.Variable.mk_fresh "L" sort in
     let expr = expr_constructor binder_e in
     match quantifier with
-    | `Forall2 -> Quantifier.mk_forall binder_e expr
-    | `Exists2 -> Quantifier.mk_exists binder_e expr
+    | `Forall2 -> Quantifier.mk_forall [binder_e] expr
+    | `Exists2 -> Quantifier.mk_exists [binder_e] expr
 
   let exists ctx constructor = quantify ctx.locs_sort `Exists constructor
 

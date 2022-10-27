@@ -81,8 +81,8 @@ module Term = struct
     | False
 
     (* First-order quantifiers *)
-    | Exists of term * term
-    | Forall of term * term
+    | Exists of term list * term
+    | Forall of term list * term
 
     (* Bounded Second-order quantifiers *)
     | Exists2 of term list * term list list * term
@@ -340,9 +340,9 @@ module Term = struct
     | Iff (x, y) -> 1 + size x + size y
     | True -> 1
     | False -> 1
-    | Exists (binder, phi) | Forall (binder, phi) -> 1 + size binder + size phi
-    | Exists2 (binders, _, phi) | Forall2 (binders, _, phi) ->
-        1 + (List.length binders) + size phi
+
+    | Exists (binders, phi) | Forall (binders, phi) ->  List.length binders + size phi
+    | Exists2 (binders, _, phi) | Forall2 (binders, _, phi) -> List.length binders + size phi
 
     (* ==== Syntactic manipulation ==== *)
 
@@ -356,8 +356,8 @@ module Term = struct
           else phi
 
       (* Quantifiers *)
-      | Exists (binder, phi) -> substitute ~bounded:(binder :: bounded) phi x term
-      | Forall (binder, phi) -> substitute ~bounded:(binder :: bounded) phi x term
+      | Exists (binders, phi) -> substitute ~bounded:(binders @ bounded) phi x term
+      | Forall (binders, phi) -> substitute ~bounded:(binders @ bounded) phi x term
 
       | Exists2 (binders, _, phi) -> substitute ~bounded:(binders @ bounded) phi x term
       | Forall2 (binders, _, phi) -> substitute ~bounded:(binders @ bounded) phi x term
