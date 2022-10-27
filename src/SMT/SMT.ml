@@ -90,6 +90,12 @@ module Term = struct
 
   type t = term
 
+  type compact =
+    | Nullary
+    | Unary of t
+    | Binary of t * t
+    | Nary of t list
+
   let mk_eq t1 t2 = Equal (t1, t2)
   let mk_distinct ts = Distinct ts
 
@@ -173,6 +179,37 @@ module Term = struct
 
     (* Quantifiers *)
     | Exists _ | Forall _ | Exists2 _ | Forall2 _ -> Bool
+
+  let rec map f term =
+    let map = map f in
+    match term with
+      | Constant _ | Variable _ | IntConst _ | True | False -> f term
+
+      | Plus (x, y) -> f (Plus (map x, map y))
+      | Minus (x, y) -> f (Minus (map x, map y))
+      | Mult (x, y) -> f (Mult (map x, map y))
+
+      | Membership (elem, set) -> f (Membership (map elem, map set))
+      | Subset (set1, set2) -> f (Subset (map set1, map set2))
+      | Disjoint (set1, set2) -> f (Disjoint (map set1, map set2))
+      | Union (sets, sort) -> f (Union (List.map map sets, sort))
+      | Inter (sets, sort) -> f (Inter (List.map map sets, sort))
+      | Diff (set1, set2) -> f (Diff (map set1, map set2))
+      | Compl set -> f (Compl (map set))
+      | Enumeration (enum, sort) -> f (Enumeration (List.map map enum, sort))
+
+      | ConstArr (const) -> f (ConstArr (map const))
+      | Store (a, i, v) -> f (Store (map a, map i, map v))
+      | Select (a, i) -> f (Select (map a, map i))
+
+      | Equal (x, y) -> f (Equal (map x, map y))
+      | Distinct xs -> f (Distinct (List.map map xs))
+      | And xs -> f (And (List.map map xs))
+      | Or xs -> f (Or (List.map map xs))
+      | Not x -> f (Not (map x))
+      | Implies (x, y) -> f (Implies (map x, map y))
+      | Iff (x, y) -> f (Iff (map x, map y))
+
 
   let rec map_vars fn term =
     let map_vars = map_vars fn in
