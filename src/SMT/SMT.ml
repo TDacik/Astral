@@ -85,8 +85,8 @@ module Term = struct
     | Forall of term * term
 
     (* Bounded Second-order quantifiers *)
-    | Exists2 of term * term list * term
-    | Forall2 of term * term list * term
+    | Exists2 of term list * term list list * term
+    | Forall2 of term list * term list list * term
 
   type t = term
 
@@ -304,7 +304,8 @@ module Term = struct
     | True -> 1
     | False -> 1
     | Exists (binder, phi) | Forall (binder, phi) -> 1 + size binder + size phi
-    | Exists2 (binder, _, phi) | Forall2 (binder, _, phi) -> 1 + size binder + size phi
+    | Exists2 (binders, _, phi) | Forall2 (binders, _, phi) ->
+        1 + (List.length binders) + size phi
 
     (* ==== Syntactic manipulation ==== *)
 
@@ -321,8 +322,8 @@ module Term = struct
       | Exists (binder, phi) -> substitute ~bounded:(binder :: bounded) phi x term
       | Forall (binder, phi) -> substitute ~bounded:(binder :: bounded) phi x term
 
-      | Exists2 (binder, _, phi) -> substitute ~bounded:(binder :: bounded) phi x term
-      | Forall2 (binder, _, phi) -> substitute ~bounded:(binder :: bounded) phi x term
+      | Exists2 (binders, _, phi) -> substitute ~bounded:(binders @ bounded) phi x term
+      | Forall2 (binders, _, phi) -> substitute ~bounded:(binders @ bounded) phi x term
 
       | Membership (elem, set) ->
         Membership (substitute ~bounded elem x term, substitute ~bounded set x term)
@@ -558,8 +559,8 @@ module Quantifier = struct
   let mk_forall x phi = Term.Forall (x, phi)
   let mk_exists x phi = Term.Exists (x, phi)
 
-  let mk_forall2 xs phi ranges = Term.Forall2 (xs, ranges, phi)
-  let mk_exists2 xs phi ranges = Term.Exists2 (xs, ranges, phi)
+  let mk_forall2 xs ranges phi = Term.Forall2 (xs, ranges, phi)
+  let mk_exists2 xs ranges phi = Term.Exists2 (xs, ranges, phi)
 
 end
 

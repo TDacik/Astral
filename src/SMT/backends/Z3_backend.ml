@@ -102,7 +102,7 @@ let rec translate t = match t with
 and translate_sort = function
   | SMT.Sort.Bool -> Z3.Boolean.mk_sort !context
   | SMT.Sort.Integer -> Z3.Arithmetic.Integer.mk_sort !context
-  | SMT.Sort.Finite (name, cs) -> Z3.Enumeration.mk_sort_s !context name cs
+  | SMT.Sort.Finite _ -> Z3.Arithmetic.Integer.mk_sort !context
   | SMT.Sort.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
   | SMT.Sort.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
 
