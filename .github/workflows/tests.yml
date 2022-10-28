@@ -22,7 +22,7 @@ jobs:
       - name: Install dependencies
         run: |
           apt update
-          apt install -y python3 libgmp3-dev wget patch unzip bubblewrap
+          apt install -y python3 libgmp3-dev wget patch unzip bubblewrap git
 
       - name: Setup OCaml
         uses: ocaml/setup-ocaml@v2
