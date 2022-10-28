@@ -32,17 +32,15 @@ jobs:
       - name: Install dependencies
         run: opam install . --deps-only
 
-      - name: Install Astral
-        run: |
-          dune build
-          dune install
-
       - name: Add opam binaries to path
         run: |
           echo "/home/opam/.opam/4.12/bin" >> $GITHUB_PATH
           echo $GITHUB_PATH
-          astral --help
-          /home/opam/.opam/4.12/bin/astral --help
+
+      - name: Install Astral
+        run: |
+          dune build
+          dune install
 
       - name: Run tests
         run: python3 scripts/run_tests.py
