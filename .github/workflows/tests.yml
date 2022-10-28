@@ -30,10 +30,12 @@ jobs:
           ocaml-compiler: 4.12
 
       - name: Install dependencies
-        run: opam install .
+        run: opam install . --deps-only
 
-      #- name: Install Astral
-      #  run: opam install .
+      - name: Install Astral
+        run: |
+          dune build
+          dune install
 
       - name: Add opam binaries to path
         run: |
