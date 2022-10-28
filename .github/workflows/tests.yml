@@ -11,9 +11,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    #container:
-    #  image: ubuntu:latest
-    #  options: --user root
+    container:
+      image: ubuntu:latest
+      options: --user root
 
     steps:
       - name: Checkout repository
