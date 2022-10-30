@@ -37,6 +37,9 @@ jobs:
           echo "/home/opam/.opam/4.12/bin" >> $GITHUB_PATH
           echo $GITHUB_PATH
 
+      - name: Test
+        run: opam list
+
       - name: Install Astral
         run: |
           dune build
