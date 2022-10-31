@@ -38,7 +38,11 @@ jobs:
           echo $GITHUB_PATH
 
       - name: Test
-        run: opam list
+        run: |
+          opam list
+          echo $PATH
+          echo $GITHUB_PATH
+          which dune
 
       - name: Install Astral
         run: |
