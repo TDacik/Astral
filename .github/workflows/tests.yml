@@ -37,12 +37,14 @@ jobs:
           echo "/home/opam/.opam/4.12/bin" >> $GITHUB_PATH
           echo $GITHUB_PATH
 
-      - name: Test
-        run: |
-          opam list
-          echo $PATH
-          echo $GITHUB_PATH
-          which dune
+      - name: Test1
+        run: opam list
+        
+      - name: Test2-path
+        run: ls $PATH
+      
+      - name: Test3-path2
+        run: ls $GITHUB_PATH
 
       - name: Install Astral
         run: |
