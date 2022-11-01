@@ -7,7 +7,7 @@
 ; Heap is not empty
 (assert (not emp))
 
-; Heap cannot be split into two non-empty sub-heap
+; Heap cannot be split into two non-empty sub-heaps
 (assert
   (not
     (sep

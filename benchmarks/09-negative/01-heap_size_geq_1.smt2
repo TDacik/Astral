@@ -4,13 +4,11 @@
 (declare-sort Loc 0)
 (declare-heap (Loc Loc))
 
-; Heap cannot be split into two non-empty sub-heap
+; Heap can be split into (at-least) two non-empty sub-heaps
 (assert
-  (not
-    (sep
-      (not sep.emp)
-      (not sep.emp)
-    )
+  (sep
+    (not sep.emp)
+    (not sep.emp)
   )
 )
 
