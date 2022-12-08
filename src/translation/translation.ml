@@ -200,7 +200,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     let axioms = Boolean.mk_and [axioms1; axioms2] in
 
-    (* Classical semantics *)
+    (* Classical semantics for positive formulae *)
     if SSL.is_positive psi1 && SSL.is_positive psi2
        || not @@ Options.strong_separation ()
     then
@@ -238,15 +238,17 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       |> List.map (fun (s1, s2) -> Set.mk_union [s1; s2] context.fp_sort)
     in
 
-    (* Classical semantics *)
-    if SSL.has_unique_footprint psi1 && SSL.has_unique_footprint psi2
-       || not @@ Options.strong_separation ()
-    then
-      let semantics =
-        Boolean.mk_and [semantics1; semantics2; disjoint; domain_def]
-        |> Quantifier.mk_exists2 [fp1; fp2] [footprints1; footprints2]
-      in
+    (* Unique footprints *)
+    if List.length footprints1 == 1 && List.length footprints2 == 1 then
+      let semantics1 = SMT.substitute semantics1 fp1 (List.hd footprints1) in
+      let semantics2 = SMT.substitute semantics2 fp2 (List.hd footprints2) in
+      let disjoint = Set.mk_disjoint (List.hd footprints1) (List.hd footprints2) in
+      let fp_union = Set.mk_union [List.hd footprints1; List.hd footprints2] context.fp_sort in
+      let domain_def = Set.mk_eq domain fp_union in
+      let semantics = Boolean.mk_and [semantics1; semantics2; disjoint; domain_def] in
       (semantics, axioms, footprints)
+
+    (* TODO: non-unique + weak *)
 
     (* Strong-separating semantics *)
     else
