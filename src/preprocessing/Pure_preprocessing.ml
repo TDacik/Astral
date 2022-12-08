@@ -6,6 +6,7 @@ open SSL
 open SMT
 
 let rec purify = function
+  | SSL.Pure t -> t
   | SSL.Eq (Pure x, Pure y) -> Boolean.mk_eq x y
   | SSL.Neq (Pure x, Pure y) -> Boolean.mk_neq x y
   | SSL.And (psi1, psi2) -> Boolean.mk_and [purify psi1; purify psi2]

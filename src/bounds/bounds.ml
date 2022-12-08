@@ -41,7 +41,7 @@ let rec location_bound_atomic = function
   | PointsTo _ -> 1
 
   (* TODO: problem with emp *)
-  | Eq _ | Neq _ | Var _ ->  1
+  | Eq _ | Neq _ | Var _ | Pure _ ->  1
 
 let location_bound phi g stack_bound = match SSL.classify_fragment phi with
   | SymbolicHeap_SAT -> stack_bound

@@ -19,6 +19,7 @@ module type VARIABLE = sig
   val mk_fresh : string -> Sort.t -> t
   (** Create a fresh variable of the given sort. *)
 
+  val show_with_sort : t -> string
 end
 
 module type TERM = sig

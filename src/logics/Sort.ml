@@ -33,12 +33,13 @@ let rec equal sort1 sort2 = match sort1, sort2 with
 let compare s1 s2 = if equal s1 s2 then 0 else Stdlib.compare s1 s2
 
 let rec show = function
-  | Bool -> "bool"
-  | Int -> "int"
+  | Bool -> "Bool"
+  | Int -> "Int"
+  | Loc -> "Loc"
   | Finite (name, _) -> name
-  | Set (elem_sort) -> Format.asprintf "(set %s)" (show elem_sort)
-  | Array (dom, range) -> Format.asprintf "(array %s -> %s)" (show dom) (show range)
-  | Bitvector width -> Format.asprintf "(bitvector %d)" width
+  | Set (elem_sort) -> Format.asprintf "(Set %s)" (show elem_sort)
+  | Array (dom, range) -> Format.asprintf "(Array %s -> %s)" (show dom) (show range)
+  | Bitvector width -> Format.asprintf "(Bitvector %d)" width
 
 module Self = struct
   type nonrec t = t
