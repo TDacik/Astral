@@ -4,7 +4,7 @@
 
 open Datatype_sig
 
-module Printable (M : SHOWABLE) = struct
+module Printable (M : SHOW) = struct
 
   include M
 
@@ -12,7 +12,7 @@ module Printable (M : SHOWABLE) = struct
 
 end
 
-module Collections (M : COMPARABLE) = struct
+module Collections (M : COMPARISON) = struct
 
   type t = M.t [@@ ocaml.warning "-34"]
 

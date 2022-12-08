@@ -4,6 +4,7 @@
 
 open SMT
 
+module Context = Translation_context
 open Context
 
 module List = BatList
@@ -71,7 +72,7 @@ end
 (** List encoding optimized for satisfiability of symbolic heaps *)
 module SymbolicHeaps = struct
 
-  let semantics (ctx : Context.t) fp x y _ =
+  let semantics ctx fp x y _ =
     let cond1 = Boolean.mk_eq x y in
     let cond2 = Boolean.mk_and [
       Boolean.mk_distinct [x; y];

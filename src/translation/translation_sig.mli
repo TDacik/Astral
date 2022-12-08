@@ -4,7 +4,7 @@
 
 module type SET = sig
 
-  include Smt_sig.SET
+  include SMT_sig.SET
 
   val name : string
 
@@ -51,7 +51,7 @@ type local_bound := int * int
 module type LIST_ENCODING = sig
 
   val semantics :
-    Context.t ->
+    Translation_context.t ->
     SMT.Term.t ->
     SMT.Term.t ->
     SMT.Term.t ->
@@ -60,7 +60,7 @@ module type LIST_ENCODING = sig
   (** semantics context x y fp *)
 
   val axioms :
-    Context.t ->
+    Translation_context.t ->
     SMT.Term.t ->
     SMT.Term.t ->
     SMT.Term.t ->

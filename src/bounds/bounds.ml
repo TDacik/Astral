@@ -6,7 +6,7 @@
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
 open SSL
-open Context
+open Translation_context
 
 module Printer = Printer.Make (struct let name = "Bounds" end)
 

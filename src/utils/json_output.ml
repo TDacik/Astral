@@ -2,19 +2,18 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
-open Results
+open Context
 
-let json_repr results =
+let json_repr context =
   `Assoc [
     "Name",                 `String (Options.input_path ());
-    "Formula",              `String (Results.input_string results);
-    "Formula size",         `Int results.size;
-    "# variables",          `Int (List.length @@ SSL.get_vars ~with_nil:false
-                                  results.info.formula);
-    "Status",               `String (Results.status_string results);
-    "Model verified",       `String (Results.model_verified_string results);
-    "Stack bound",          `String (Results.stack_bound_string results);
-    "Heap location bound",  `String (Results.heap_loc_bound_string results);
+    "Formula size",         `Int (Option.get context.size);
+    "# variables",          `Int (List.length context.vars);
+    "Status",               `String (Context.show_status context);
+    "Expected status",      `String (Context.show_expected_status context);
+    "Model verified",       `String "-";
+    "Stack bound",          `String (Context.show_stack_bound context);
+    "Heap location bound",  `Int context.location_bound;
     "Times",                Timer.json_repr ();
   ]
 

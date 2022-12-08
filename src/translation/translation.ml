@@ -2,8 +2,10 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
-open Context
 open StackHeapModel
+
+module Input = Context
+module Context = Translation_context
 
 module Print = Printer.Make(struct let name = "Translation" end)
 
@@ -11,8 +13,9 @@ let mk_nth_succ = ListEncoding.mk_nth_succ
 
 module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND) = struct
 
-  open Encoding
   open SMT
+  open Context
+  open Encoding
 
   (** Initialization of Z3 context and translation context *)
   let init (info : Input.t) =

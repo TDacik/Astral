@@ -5,7 +5,7 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-open Context
+open Translation_context
 
 let debug_dir = "astral_debug"
 

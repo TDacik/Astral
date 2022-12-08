@@ -3,7 +3,7 @@
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
 open SSL
-open Input
+open Context
 
 open Backend_sig
 open Translation_sig
@@ -62,10 +62,10 @@ let debug_info input = match SSL.classify_fragment input.phi with
   | Arbitrary -> Print.debug "Solving as arbitrary formula\n"
 
 let solve ?(verify_model=false) input =
-  let phi, vars = Input.get_raw_input input in
+  let phi, vars = Context.get_raw_input input in
   Debug.formula ~suffix:"original" phi;
   let phi, vars = normalise phi vars in
-  let input = Input.set_normalised phi vars input in
+  let input = Context.set_normalised phi vars input in
 
   Debug.formula phi;
 
@@ -80,7 +80,7 @@ let solve ?(verify_model=false) input =
     | None -> Bounds.location_bound phi g s_max
     | Some x -> x
   in
-  let input = Input.set_bounds s_min s_max h_bound g input in
+  let input = Context.set_bounds s_min s_max h_bound g input in
   (* Create solver module *)
 
   let module Backend = (val Options.backend () : BACKEND) in
@@ -94,13 +94,13 @@ let solve ?(verify_model=false) input =
 
   Timer.add "Solver";
 
-  let res_string = Input.show_status result in
+  let res_string = Context.show_status result in
 
   if not @@ verify_status result then
   begin
     Print.info "Internal error: result %s (expected %s)\n"
-      (Input.show_status result)
-      (Input.show_expected_status result);
+      (Context.show_status result)
+      (Context.show_expected_status result);
     exit 2
   end;
 

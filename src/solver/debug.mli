@@ -6,7 +6,7 @@ val init : unit -> unit
 
 val formula : ?suffix:string -> SSL.t -> unit
 
-val context : Context.t -> unit
+val context : Translation_context.t -> unit
 
 val translated : ?suffix:string -> SMT.Term.t -> unit
 

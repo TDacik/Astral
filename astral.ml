@@ -16,7 +16,7 @@ let run () =
 
   let input_file = Options.input_path () in
   let input = SmtlibParser.parse input_file in
-  let phi, vars = Input.get_raw_input input in
+  let phi, vars = Context.get_raw_input input in
 
   Timer.add "Parsing";
 

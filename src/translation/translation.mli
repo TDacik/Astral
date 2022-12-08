@@ -7,6 +7,6 @@ open Translation_sig
 
 module Make (Encoding : ENCODING) (Solver : BACKEND) : sig
 
-  val solve : Input.t -> Input.t
+  val solve : Context.t -> Context.t
 
 end

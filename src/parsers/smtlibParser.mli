@@ -4,5 +4,5 @@
 
 val get_status : string -> string
 
-val parse : string -> Input.t
+val parse : string -> Context.t
 (** Parse a smtlib file given by path *)

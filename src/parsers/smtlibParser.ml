@@ -184,10 +184,10 @@ let get_status file =
 let parse_option term input = match term.term with
   | App (t1, [t2]) ->
     begin match Format.asprintf "%a" Term.print t1, Format.asprintf "%a" Term.print t2 with
-      | (":status", "sat") -> Input.set_expected_status `Sat input
-      | (":status", "unsat") -> Input.set_expected_status `Unsat input
-      | (":status", "unknown") -> Input.set_expected_status `Unknown input
-      | (":location-bound", n) -> Input.set_expected_loc_bound (int_of_string n) input
+      | (":status", "sat") -> Context.set_expected_status `Sat input
+      | (":status", "unsat") -> Context.set_expected_status `Unsat input
+      | (":status", "unknown") -> Context.set_expected_status `Unknown input
+      | (":location-bound", n) -> Context.set_expected_loc_bound (int_of_string n) input
       | _ -> input
   end
   | _ -> input
@@ -201,8 +201,9 @@ let parse file =
   List.fold_left
     (fun input stmt -> match stmt.descr with
       | Set_info term -> parse_option term input
-      | Antecedent term -> Input.add_assertion (Preprocess.preprocess @@ parse_term term) input
-      | Decls defs -> Input.add_variables (List.map unpack (parse_definitions defs)) input
-      | Get_model -> Input.set_get_model input
+      | Antecedent term -> Context.add_assertion
+        (Pure_preprocessing.preprocess @@ parse_term term) input
+      | Decls defs -> Context.add_variables (List.map unpack (parse_definitions defs)) input
+      | Get_model -> Context.set_get_model input
       | _ -> input
-    ) Input.empty statements
+    ) Context.empty statements
