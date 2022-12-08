@@ -662,12 +662,11 @@ let c2 = LIA.mk_const 2
 let c3 = LIA.mk_const 3
 
 let%test _ = map_vars (fun x sort -> Variable (x, sort)) True === True
-let%test _ = map_vars (fun x sort -> Variable (x, sort))
-              (Variable ("x", Sort.Int)) === (Variable ("x!0", Sort.Int))
+let%test _ = map_vars (fun x sort -> Variable (x ^ x, sort))
+              (Variable ("x", Sort.Int)) === (Variable ("xx", Sort.Int))
 
 let%test "map1" =
   let fn = (fun t -> match t with Forall (_, phi) -> phi | _ -> t) in
-  Printf.printf "Term: %s\n" (show @@ map fn (Quantifier.mk_forall [x] x));
   map fn (Quantifier.mk_forall [x] x) === x
 
 let%test "substite_var" =
