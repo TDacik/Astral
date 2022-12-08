@@ -29,19 +29,20 @@ let procedure_header phi =
   in
   F.asprintf "procedure formula(%s)" signature
 
-let convert_var var = match var with
-  | Variable.Var _ -> Variable.show var
-  | Variable.Nil -> "null"
+let convert_var var =
+  if SSL.Variable.is_nil var then "null"
+  else SSL.Variable.show var
 
-let rec convert = function
+let rec convert phi = match phi with
+  | Var v -> convert_var v
   | And (f1, f2) -> F.asprintf "(%s && %s)" (convert f1) (convert f2)
   | Or (f1, f2) -> F.asprintf "(%s || %s)" (convert f1) (convert f2)
   | Not f ->  F.asprintf "(!%s)\n" (convert f)
   | Star (f1, f2) ->  F.asprintf "(%s &*& %s)" (convert f1) (convert f2)
-  | LS (v1, v2) -> F.asprintf "(lseg (%s, %s))" (convert_var v1) (convert_var v2)
-  | PointsTo (v1, v2) -> F.asprintf "(%s.next |-> %s)" (convert_var v1) (convert_var v2)
-  | Eq (v1, v2) -> F.asprintf "(%s == %s)" (convert_var v1) (convert_var v2)
-  | Neq (v1, v2) -> F.asprintf "(%s != %s)" (convert_var v1) (convert_var v2)
+  | LS (v1, v2) -> F.asprintf "(lseg (%s, %s))" (convert v1) (convert v2)
+  | PointsTo (v1, v2) -> F.asprintf "(%s.next |-> %s)" (convert v1) (convert v2)
+  | Eq (v1, v2) -> F.asprintf "(%s == %s)" (convert v1) (convert v2)
+  | Neq (v1, v2) -> F.asprintf "(%s != %s)" (convert v1) (convert v2)
   | GuardedNeg (f1, f2) ->  failwith "TODO"
   | Septraction (f1, f2) -> failwith "Not supported"
 

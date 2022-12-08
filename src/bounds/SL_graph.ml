@@ -167,8 +167,8 @@ let predict_footprint g x y =
   List.fold_left
     (fun (ptrs, lists) (x', label, y') ->
       match label with
-      | Pointer -> ((SSL.PointsTo (x', y')) :: ptrs, lists)
-      | List -> (ptrs, (SSL.LS (x', y')) :: lists)
+      | Pointer -> ((SSL.PointsTo (Var x', Var y')) :: ptrs, lists)
+      | List -> (ptrs, (SSL.LS (Var x', Var y')) :: lists)
     ) ([], []) path
 
 let disjoint_union g1 g2 =
@@ -182,11 +182,11 @@ let disjoint_union g1 g2 =
     ) g disequalities
 
 let rec compute phi = match phi with
-  | SSL.Eq (x, y) -> G.add_edge_e G.empty (x, Equality, y)
-  | SSL.Neq (x, y) -> G.add_edge_e G.empty (x, Disequality, y)
-  | SSL.PointsTo (x, y) -> G.add_edge_e G.empty (x, Pointer, y)
-  | SSL.LS (x, y) -> G.add_edge_e G.empty (x, List, y)
-  | SSL.Var x -> G.empty
+  | SSL.Var _ | SSL.Pure _ -> G.empty
+  | SSL.Eq (Var x, Var y) -> G.add_edge_e G.empty (x, Equality, y)
+  | SSL.Neq (Var x, Var y) -> G.add_edge_e G.empty (x, Disequality, y)
+  | SSL.PointsTo (Var x, Var y) -> G.add_edge_e G.empty (x, Pointer, y)
+  | SSL.LS (Var x, Var y) -> G.add_edge_e G.empty (x, List, y)
 
   | SSL.Star (psi1, psi2) -> disjoint_union (compute psi1) (compute psi2)
   | SSL.And (psi1, psi2) -> G.union (compute psi1) (compute psi2)

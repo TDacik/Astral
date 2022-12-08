@@ -7,6 +7,8 @@ open Batteries
 
 (* === Base generators === *)
 
+let gen_var var = SSL.Var (var, Sort.Loc)
+
 let gen_eq (x, y) = SSL.Eq (x, y)
 let gen_neq (x, y) = SSL.Neq (x, y)
 let gen_pt (x, y) = SSL.PointsTo (x, y)
@@ -33,10 +35,10 @@ module Make (Params : PARAMS) = struct
 
   let gen_var_name = QCheck.Gen.oneofl variables
 
-  let gen_var = QCheck.Gen.map Variable.mk gen_var_name
+  let gen_var = QCheck.Gen.map gen_var gen_var_name
 
   let gen_var_nil =
-    QCheck.Gen.oneof [QCheck.Gen.map Variable.mk gen_var_name; fun _ -> Variable.Nil]
+    QCheck.Gen.oneof [QCheck.Gen.map Variable.mk gen_var_name; fun _ -> Variable.nil]
 
   let gen_var_pair = QCheck.Gen.pair gen_var gen_var
 

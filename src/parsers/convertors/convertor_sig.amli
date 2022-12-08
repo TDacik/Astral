@@ -1,0 +1,30 @@
+(* Signature of a convertor to other tool format.
+ *
+ * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
+
+module type CONVERSION = sig
+
+  val name : string
+  (** Name of an external tool *)
+
+  val suffix : string
+  (** Suffix used by an external tool, e.g., .smt2 *)
+
+
+  val convert_var : SSL.Variable.t -> string
+
+  val declare_var : SSL.Variable.t -> string
+
+  val node_name : SSL.t -> string
+
+  val convert_assert : string -> string
+
+end
+
+module type CONVERTOR = sig
+
+  let convert : SSL.t ->  string
+
+  let dump : SSL.t -> string -> unit
+
+end

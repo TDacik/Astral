@@ -27,9 +27,10 @@ let header =
 (declare-heap (Loc Loc))
 "
 
-let pretty_var var = match var with
-  | Variable.Var _ -> Variable.show var
-  | Variable.Nil -> "(as sep.nil Loc)"
+let pretty_var var =
+  if SSL.Variable.is_nil var
+  then "(as sep.nil Loc)"
+  else Variable.show var
 
 let translate_vars phi =
   SSL.get_vars phi
@@ -39,19 +40,20 @@ let translate_vars phi =
   |> List.map (F.asprintf "(declare-const %s Loc)")
   |> String.concat "\n"
 
-let pretty_atom phi =
+let rec pretty_atom phi =
   let str, v1, v2 = match phi with
     | LS (v1, v2) -> ("ls", v1, v2)
     | PointsTo (v1, v2) -> ("pto", v1, v2)
     | Eq (v1, v2) -> ("=", v1, v2)
     | Neq (v1, v2) -> ("distinct", v1, v2)
   in
-  let v1, v2 = pretty_var v1, pretty_var v2 in
+  let v1, v2 = pretty v1, pretty v2 in
   Format.asprintf "\n%s(%s %s %s)" (indent ()) str v1 v2
 
-let rec pretty phi =
+and pretty phi =
   if SSL.is_atom phi then () else increase_indent ();
   let res = match phi with
+  | Var v -> pretty_var v
   | And (f1, f2) -> F.asprintf "(and %s %s" (pretty f1) (pretty f2)
   | Or (f1, f2) -> F.asprintf "(or %s %s" (pretty f1) (pretty f2)
   | Not f -> F.asprintf "(not %s" (pretty f)
