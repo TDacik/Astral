@@ -357,7 +357,11 @@ let translate_phi (context : Context.t) locs phi =
   let translate_loc loc = match loc with
     | SMT.IntConst i -> i
     | SMT.BitConst (i, _) -> i
-    | SMT.Constant (c, _) -> int_of_string @@ BatString.chop ~l:1 ~r:1 c
+    | SMT.Constant (c, _) ->
+        begin
+          try int_of_string c
+          with _ -> int_of_string @@ BatString.chop ~l:1 ~r:1 c
+        end
     | other -> failwith ("Cannot translate location " ^ SMT.show_with_sort other)
 
   let translate_stack context model =
