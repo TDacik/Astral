@@ -2,8 +2,6 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-open SSL
-
 module M = Stdlib.Map.Make(String)
 
 let env = ref (M.empty : Sort.t M.t)
@@ -22,7 +20,7 @@ let type_of var =
 let show () =
   let content =
     M.bindings !env
-    |> List.map (fun (var, sort) -> Format.asprintf "%s :%a" var SSL.Sort.pp sort)
+    |> List.map (fun (var, sort) -> Format.asprintf "%s :%a" var Sort.pp sort)
     |> String.concat " "
   in
   "{" ^ content ^ "}"

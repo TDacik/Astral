@@ -30,21 +30,23 @@ let rec parse_app term operands = match term.term with
     | "or" -> SSL.mk_or @@ List.map parse_term operands
     (* binary connectives *)
     | "septraction" ->
-        SSL.Septraction (fst @@ parse_binary_op operands, snd @@ parse_binary_op operands)
+      SSL.Septraction (fst @@ parse_binary_op operands, snd @@ parse_binary_op operands)
     | "wand" ->
-        SSL.mk_wand (fst @@ parse_binary_op operands) (snd @@ parse_binary_op operands)
+      SSL.mk_wand (fst @@ parse_binary_op operands) (snd @@ parse_binary_op operands)
     (* unary connectives *)
     | "not" -> SSL.Not (parse_unary_op operands)
     (* binary atoms *)
     | "=" ->
-        begin
-          try SSL.mk_eq (fst @@ parse_atom operands) (snd @@ parse_atom operands)
-          with _ -> SSL.mk_iff (fst @@ parse_binary_op operands) (snd @@ parse_binary_op operands)
-        end
+      begin
+        try SSL.mk_eq (fst @@ parse_atom operands) (snd @@ parse_atom operands)
+        with _ -> SSL.mk_iff (fst @@ parse_binary_op operands) (snd @@ parse_binary_op operands)
+      end
     | "distinct" ->
-        SSL.Neq (fst @@ parse_atom operands, snd @@ parse_atom operands) (* TODO: n-ary distinct *)
-    | "pto" -> SSL.PointsTo (fst @@ parse_atom operands, snd @@ parse_atom operands)
-    | "ls" -> SSL.LS (fst @@ parse_atom operands, snd @@ parse_atom operands)
+        (* TODO: variadic version *)
+        SSL.mk_distinct [fst @@ parse_atom operands; snd @@ parse_atom operands]
+    | "pto" -> SSL.mk_pto (fst @@ parse_atom operands) (snd @@ parse_atom operands)
+    | "ls" -> SSL.mk_ls (fst @@ parse_atom operands) (snd @@ parse_atom operands)
+    | "dls" -> SSL.mk_dls (fst @@ parse_atom operands) (snd @@ parse_atom operands)
     | other -> raise (ParserError (Format.asprintf "Unknown connective %s" other))
   end
 
@@ -68,7 +70,7 @@ and parse_constant term (id : Dolmen_std.Id.t) =
     | "(_ emp Loc\nLoc)" -> SSL.mk_emp ()  (* TODO: ... *)
     | "true" -> SSL.mk_true ()
     | "false" -> SSL.mk_false ()
-    | other -> SSL.Var (symbol_to_var term id)
+    | other -> symbol_to_var term id
 
 and parse_term term = match term.term with
   | App (t, terms) -> parse_app t terms
@@ -96,26 +98,26 @@ and parse_smt_term t = match t.term with
     | Int -> SMT.LIA.mk_var name
     | Bool -> SMT.Boolean.mk_var name
 
-and symbol_to_var term symbol =
+and symbol_to_var term symbol : SSL.t =
   match Format.asprintf "%a" Dolmen_std.Id.print symbol with
-  | "nil" | "sep.nil" | "(sep.nil)" | "(as sep.nil Loc)" -> SSL.Variable.Nil
+  | "nil" | "sep.nil" | "(sep.nil)" | "(as sep.nil Loc)" -> Var SSL.Variable.nil
   | var ->
       try
         begin match TypeEnv.type_of var with
-          | Loc -> SSL.Variable.mk var
-          | Int -> SSL.Variable.Term (SMT.LIA.mk_var var)
-          | Bool -> SSL.Variable.Term (SMT.Boolean.mk_var var)
+          | Loc -> Var (SSL.Variable.mk var)
+          | Int -> SSL.mk_pure_var var Sort.Int
+          | Bool -> SSL.mk_pure_var var Sort.Bool
         end
-      with _ -> SSL.Variable.Term (parse_smt_term term)
+      with _ -> SSL.mk_pure (parse_smt_term term)
 
 and parse_sort id =
   match Format.asprintf "%a" Dolmen_std.Id.print id with
-  | "Loc" -> SSL.Sort.Loc
-  | "Int" -> SSL.Sort.Int
-  | "Bool" -> SSL.Sort.Bool
+  | "Loc" -> (Sort.Loc)
+  | "Int" -> (Sort.Int)
+  | "Bool" -> (Sort.Bool)
   | other -> failwith ("Unsopported sort" ^ other)
 
-and parse_symbol term = match term.term with
+and parse_symbol term : SSL.t = match term.term with
   (* Convert symbol to variable *)
   | Symbol symbol -> symbol_to_var term symbol
   (* Ignore type *)
@@ -123,7 +125,7 @@ and parse_symbol term = match term.term with
   (* Parse SSL connective *)
   | App (_, [t]) -> parse_symbol t
   (* Parse data constraints *)
-  | App _ -> SSL.Variable.Term (parse_smt_term term)
+  | App _ -> SSL.mk_pure (parse_smt_term term)
 
   | _ -> failwith (Format.asprintf "Not supporter term: %a" Std.Term.print term)
 
@@ -182,13 +184,15 @@ let get_status file =
 let parse_option term input = match term.term with
   | App (t1, [t2]) ->
     begin match Format.asprintf "%a" Term.print t1, Format.asprintf "%a" Term.print t2 with
-      | (":status", "sat") -> Input.set_status `Sat input
-      | (":status", "unsat") -> Input.set_status `Unsat input
-      | (":status", "unknown") -> Input.set_status `Unknown input
+      | (":status", "sat") -> Input.set_expected_status `Sat input
+      | (":status", "unsat") -> Input.set_expected_status `Unsat input
+      | (":status", "unknown") -> Input.set_expected_status `Unknown input
       | (":location-bound", n) -> Input.set_expected_loc_bound (int_of_string n) input
       | _ -> input
   end
   | _ -> input
+
+let unpack (SSL.Var x) = x
 
 (** Parsing *)
 let parse file =
@@ -197,7 +201,8 @@ let parse file =
   List.fold_left
     (fun input stmt -> match stmt.descr with
       | Set_info term -> parse_option term input
-      | Antecedent term -> Input.add_assertion (parse_term term) input
-      | Decls def_group -> Input.add_variables (parse_definitions def_group) input
+      | Antecedent term -> Input.add_assertion (Preprocess.preprocess @@ parse_term term) input
+      | Decls defs -> Input.add_variables (List.map unpack (parse_definitions defs)) input
+      | Get_model -> Input.set_get_model input
       | _ -> input
-    ) Input.default statements
+    ) Input.empty statements
