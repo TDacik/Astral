@@ -23,6 +23,8 @@ let get_width = function Bitvector width -> width
 let rec equal sort1 sort2 = match sort1, sort2 with
   | Bool, Bool -> true
   | Int, Int -> true
+  | Loc, Loc -> true
+  | Finite (name1, _), Finite (name2, _) -> String.equal name1 name2 (* TODO *)
   | Set elem1, Set elem2 -> equal elem1 elem2
   | Array (dom1, range1), Array (dom2, range2) -> equal dom1 dom2 && equal range1 range2
   | Bitvector width1, Bitvector width2 -> Int.equal width1 width2
