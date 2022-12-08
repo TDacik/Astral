@@ -45,6 +45,12 @@ module Term = struct
     | BitShiftLeft of term * term    (* bitvector, integer *)
     | BitShiftRight of term * term   (* bitvector, integer *)
 
+    (* Sequences *)
+    | Sequence of term list * Sort.t  (* Sequence constant *)
+    | SeqIndex of term * term         (* Sequence indexing *)
+    | SeqContains of term * term      (* Membership in sequence *)
+    | SeqReverse of term              (* Reverse of sequence *)
+
     (* Boolean *)
     | Equal of term * term
     | Distinct of term list
@@ -102,6 +108,11 @@ module Term = struct
       | Store (a, i, v) -> f (Store (map a, map i, map v))
       | Select (a, i) -> f (Select (map a, map i))
 
+      | Sequence (seq, sort) -> f (Sequence (List.map map seq, sort))
+      | SeqIndex (seq, index) -> f (SeqIndex (map seq, map index))
+      | SeqContains (elem, seq) -> f (SeqContains (map elem, map seq))
+      | SeqReverse seq -> f (SeqReverse (map seq))
+
       | Equal (x, y) -> f (Equal (map x, map y))
       | Distinct xs -> f (Distinct (List.map map xs))
       | And xs -> f (And (List.map map xs))
@@ -157,6 +168,11 @@ module Term = struct
     | BitCompl bv -> ("bit-complement", Operator ([bv], get_sort bv))
     | BitShiftLeft (bv, rot) -> ("<<", Operator ([bv; rot], get_sort bv))
     | BitShiftRight (bv, rot) -> (">>", Operator ([bv; rot], get_sort bv))
+
+    | Sequence (seq, sort) -> ("seq TODO", Operator ([], sort))
+    | SeqIndex (seq, index) -> ("seq.at", Operator ([seq; index], Sort.get_dom_sort @@ get_sort seq))
+    | SeqContains (elem, seq) -> ("seq.contains", Connective ([elem; seq]))
+    | SeqReverse seq -> ("seq.rev", Operator ([seq], get_sort seq))
 
     | Equal (x, y) -> ("=", Connective [x; y])
     | Distinct xs -> ("distinct", Connective xs)
@@ -537,7 +553,7 @@ module Set = struct
   let mk_var = Variable.mk
   let mk_fresh_var = Variable.mk_fresh
 
-  let get_elem_sort set = Sort.get_elem_sort @@ Term.get_sort set
+  let get_elem_sort set = Sort.get_dom_sort @@ Term.get_sort set
 
   let mk_sort elem_sort = Sort.Set elem_sort
 
@@ -568,6 +584,25 @@ module Set = struct
         not @@ List.exists (fun x -> List.mem x e2) e1
         && not @@ List.exists (fun x -> List.mem x e1) e2
     | _ -> true
+
+end
+
+module Sequence = struct
+
+  include Term
+
+  let mk_var = Variable.mk
+  let mk_fresh_var = Variable.mk_fresh
+
+  let get_elem_sort seq = Sort.get_dom_sort @@ Term.get_sort seq
+
+  let mk_constant consts sort = Sequence (consts, sort)
+
+  let mk_at_index seq index = SeqIndex (seq, index)
+
+  let mk_contains seq index = SeqContains (seq, index)
+
+  let mk_reverse seq = SeqReverse seq
 
 end
 

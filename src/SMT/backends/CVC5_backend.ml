@@ -136,6 +136,18 @@ and translate term =
   | SMT.BitShiftRight (bv, rotate) ->
       Format.asprintf "(bvlshr %s %s)" (translate bv) (translate rotate)
 
+  | SMT.Sequence (seq, sort) ->
+    let empty = Format.asprintf "(as seq.empty (%s))" (translate_sort sort) in
+    List.fold_left
+      (fun acc x -> Format.asprintf "(seq.++ (seq.unit %s) %s)" acc (translate x)) empty seq
+
+  | SMT.SeqIndex (seq, index) ->
+      Format.asprintf "(seq.nth %s %s)" (translate seq) (translate index)
+  | SMT.SeqContains (elem, seq) ->
+      Format.asprintf "(seq.contains (seq.unit %s) %s)" (translate elem) (translate seq)
+  | SMT.SeqReverse seq ->
+      Format.asprintf "(seq.reverse %s)" (translate seq)
+
   (* TODO: instantiation should be done somewhere else *)
   (* TODO: !!!!!!! *)
   | SMT.Forall (xs, phi) ->
@@ -178,7 +190,8 @@ and translate_sort = function
   | SMT.Sort.Bool -> "Bool"
   | SMT.Sort.Int -> "Int"
   | SMT.Sort.Bitvector n -> Format.asprintf "(_ BitVec %d)" n
-  | SMT.Sort.Set (elem_sort) -> "(Set " ^ translate_sort elem_sort ^ ")"
+  | SMT.Sort.Set (dom_sort) -> "(Set " ^ translate_sort dom_sort ^ ")"
+  | SMT.Sort.Sequence (dom_sort) -> "(Sequence " ^ translate_sort dom_sort ^ ")"
   | SMT.Sort.Array (d, r) -> "(Array " ^ (translate_sort d) ^ " " ^ (translate_sort r) ^ ")"
   | SMT.Sort.Finite (name, consts) ->
       (* Datatype with constant constructors only *)

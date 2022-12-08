@@ -99,7 +99,7 @@ let rec translate t = match t with
       Z3.Boolean.mk_eq !context empty intersect
 
   | SMT.Enumeration (sets, sort) ->
-      let empty = Z3.Set.mk_empty !context (translate_sort (SMT.Sort.get_elem_sort sort)) in
+      let empty = Z3.Set.mk_empty !context (translate_sort (SMT.Sort.get_dom_sort sort)) in
       List.fold_left (Z3.Set.mk_set_add !context) empty (List.map translate sets)
 
   | SMT.ConstArr (const, _) ->
