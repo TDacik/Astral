@@ -9,8 +9,6 @@ module Context = Translation_context
 
 module Print = Printer.Make(struct let name = "Translation" end)
 
-let mk_nth_succ = ListEncoding.mk_nth_succ
-
 module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND) = struct
 
   open SMT
