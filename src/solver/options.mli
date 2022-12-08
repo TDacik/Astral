@@ -4,12 +4,15 @@
 
 open Backend_sig
 open Options_sig
+open Translation_sig
 
 val parse : unit -> unit
 
 val input_path : unit -> string
 
 val debug : unit -> bool
+
+val produce_models : unit -> bool
 
 val json_output : unit -> bool
 
@@ -39,6 +42,10 @@ val quickcheck_store : unit -> bool
 val profile : unit -> bool
 
 val backend : unit -> (module BACKEND)
+
+val encoding : unit -> (module BASE_ENCODING)
+
+val quantif_elim : unit -> SMT.Term.t -> SMT.Term.t
 
 val set_backend : string -> unit
 

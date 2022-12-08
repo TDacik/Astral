@@ -16,7 +16,7 @@ let run () =
 
   let input_file = Options.input_path () in
   let input = SmtlibParser.parse input_file in
-  let phi, vars = Input.get_ssl_input input in
+  let phi, vars = Input.get_raw_input input in
 
   Timer.add "Parsing";
 
@@ -39,7 +39,8 @@ let run () =
   let result = Solver.solve input ~verify_model:(Options.verify_model ()) in
 
   if Options.json_output () then
-    Json_output.output result (Options.json_output_file ())
+    ()
+    (* Json_output.output result (Options.json_output_file ()) *)
   else ()
 
 let () =

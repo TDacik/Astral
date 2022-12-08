@@ -8,9 +8,7 @@ val formula : ?suffix:string -> SSL.t -> unit
 
 val context : Context.t -> unit
 
-val qf_phi : Z3.context * Z3.Expr.expr -> unit
-
-val translated : SMT.Term.t -> unit
+val translated : ?suffix:string -> SMT.Term.t -> unit
 
 val model : StackHeapModel.t -> unit
 

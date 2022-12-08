@@ -57,6 +57,11 @@ let compute_sl_graph () = !_compute_sl_graph
 let _sl_comp = ref false
 let sl_comp () = !_sl_comp
 
+(* ==== Output options ==== *)
+
+let _produce_models = ref false
+let produce_models () = !_produce_models
+
 (* ==== Quickcheck ==== *)
 
 let _quickcheck_runs = ref 0
@@ -75,6 +80,7 @@ let profile () = !_profile
 
 let _backend = ref "cvc5"
 let backend () = match !_backend with
+  (*| "bitwuzla" -> (module Bitwuzla_backend : BACKEND)*)
   | "cvc5" -> (module CVC5_backend : BACKEND)
   | "z3" -> (module Z3_backend : BACKEND)
   (*| "parallel" -> (module Parallel : BACKEND)*)
@@ -84,6 +90,20 @@ let set_backend = function
   | "cvc5" -> _backend := "cvc5"
   | "z3" -> _backend := "z3"
   | other -> failwith ("unknown backend `" ^ other ^ "`")
+
+(* ==== Encoding ==== *)
+
+let _encoding = ref "sets"
+let encoding () = match !_encoding with
+  | "sets" -> (module Encodings.Sets : Translation_sig.BASE_ENCODING)
+  | "bitvectors" -> (module Encodings.Bitvectors : Translation_sig.BASE_ENCODING)
+  | other -> failwith ("unknown encoding `" ^ other ^ "`")
+
+let _quantifier_elimination = ref "enum"
+let quantif_elim () = match !_quantifier_elimination with
+  | "none" -> QuantifierElimination.no_elim
+  | "enum" -> QuantifierElimination.enumeration
+  | other -> failwith ("unknown quantifier elimination method `" ^ other ^ "`")
 
 (* ==== Conversions and preprocessing ==== *)
 
@@ -104,10 +124,13 @@ let convertor () = match !_convertor with
 let speclist =
   [
     ("--debug", Arg.Set _debug, "Print debug info");
+    ("--produce-models", Arg.Set _produce_models, "");
     ("--verify-model", Arg.Set _verify_model, "Verify obtained model");
     ("--unsat-core", Arg.Set _unsat_core, "Print unsat core");
     ("--json-output", Arg.Set_string _json_output_file, "Store solver's result as json");
     ("--backend", Arg.Set_string _backend, "Backend SMT solver (default cvc5)");
+    ("--encoding", Arg.Set_string _encoding, "Method of encoding (sets | bitvectors)");
+    ("--quant-elim", Arg.Set_string _quantifier_elimination, "TODO");
     ("--no-list-bounds", Arg.Clear _list_bounds, "Do not use list-length bounds");
     ("--compute-sl-graph", Arg.Clear _compute_sl_graph, "Force location bound");
     ("--loc-bound", Arg.Int set_location_bound, "Force location bound");

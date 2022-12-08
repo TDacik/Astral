@@ -47,16 +47,15 @@ let add_declaration str =
     declarations := !declarations ^ "\n" ^ str;
     defs := str :: !defs
 
-
 (* === Translation === *)
 
-let rec translate term = match term with
-  | SMT.Constant (x, _) -> "|" ^ x ^ "|"
-  | SMT.Variable (_, sort, _) ->
-      let name = SMT.Term.show term in
-      let def = Format.asprintf "(declare-const %s %s)" name (translate_sort sort) in
-      add_declaration def;
-      name
+let rec translate_decl (SMT.Variable (name, sort)) =
+  Format.asprintf "(declare-const %s %s)" name (translate_sort sort)
+
+and translate term =
+  match term with
+  | SMT.Constant (name, _) -> name
+  | SMT.Variable (name, _) -> name
 
   | SMT.True -> "true"
   | SMT.False -> "false"
@@ -75,6 +74,11 @@ let rec translate term = match term with
   | SMT.Not e -> Format.asprintf "(not %s)" (translate e)
   | SMT.Implies (e1, e2) -> Format.asprintf "(=> %s %s)" (translate e1) (translate e2)
   | SMT.Iff (e1, e2) -> Format.asprintf "(= %s %s)" (translate e1) (translate e2)
+
+  | SMT.LesserEq (e1, e2) -> begin match SMT.Term.get_sort e1 with
+    | SMT.Sort.Bitvector _ -> Format.asprintf "(bvule %s %s)" (translate e1) (translate e2)
+    (* TODO: other sorts *)
+  end
 
   | SMT.Membership (e1, e2) ->
     Format.asprintf "(set.member %s %s)" (translate e1) (translate e2)
@@ -97,37 +101,65 @@ let rec translate term = match term with
       (translate_sort sort)
     end
 
-  | SMT.ConstArr const -> failwith "not implemented"
+  | SMT.ConstArr (const, _) -> failwith "not implemented"
   | SMT.Select (a, i) -> Format.asprintf "(select %s %s)" (translate a) (translate i)
   | SMT.Store (a, i, x) ->
     Format.asprintf "(store %s %s %s)" (translate a) (translate i) (translate x)
 
+  (* Bitvectors *)
+  | SMT.BitConst (number, width) ->
+      Format.asprintf "(_ bv%d %d)" number width
+  | SMT.BitCheck (bv, index) ->
+      let width = SMT.Bitvector.get_width bv in
+      Format.asprintf "(distinct (bvand (bvshl (_ bv1 %d) %s) %s) (_ bv0 %d))"
+        width
+        (translate index)
+        (translate bv)
+        width
+
+  (* TODO *)
+  | SMT.BitAnd ([bv1; bv2], sort) ->
+      Format.asprintf "(bvand %s %s)" (translate bv1) (translate bv2)
+
+  | SMT.BitOr (bvs, SMT.Sort.Bitvector n) ->
+      let zeros = Format.asprintf "(_ bv0 %d)" n in
+      List.fold_left (fun acc bv -> Format.asprintf "(bvor %s %s)" acc (translate bv)) zeros bvs
+
+  | SMT.BitXor ([bv1; bv2], sort) ->
+      Format.asprintf "(bvxor %s %s)" (translate bv1) (translate bv2)
+  | SMT.BitImplies (bv1, bv2) ->
+      Format.asprintf "(bvor (bvnot %s) %s)" (translate bv1) (translate bv2)
+  | SMT.BitCompl bv ->
+      Format.asprintf "(bvnot %s)" (translate bv)
+  | SMT.BitShiftLeft (bv, rotate) ->
+      Format.asprintf "(bvshl %s %s)" (translate bv) (translate rotate)
+  | SMT.BitShiftRight (bv, rotate) ->
+      Format.asprintf "(bvlshr %s %s)" (translate bv) (translate rotate)
+
   (* TODO: instantiation should be done somewhere else *)
   (* TODO: !!!!!!! *)
-  | SMT.Forall (x :: _, phi) ->
-    let x_sort = SMT.Term.get_sort x in
+  | SMT.Forall (xs, phi) ->
+    let x_sort = SMT.Term.get_sort (List.hd xs) in
     begin match x_sort with
     | Finite (_, cs) ->
-      let es = List.map (fun c -> SMT.Term.substitute phi x (SMT.Constant (c, x_sort))) cs in
+      let es = List.map (fun c -> SMT.Term.substitute phi (List.hd xs) (SMT.Constant (c, x_sort))) cs in
       Format.asprintf "(and %s)" (translate_expr_list es)
     | _ ->
-      Format.asprintf "(forall ((%s %s)) %s)"
-      (translate x)
-      (translate_sort x_sort)
+      Format.asprintf "(forall (%s) %s)"
+      (List.map translate_binder xs |> String.concat " ")
       (translate phi)
     end
 
-  | SMT.Exists (x :: _, phi) ->
-    let x_sort = SMT.Term.get_sort x in
+  | SMT.Exists (xs, phi) ->
+    let x_sort = SMT.Term.get_sort (List.hd xs) in
     begin match x_sort with
     | Finite (_, cs) ->
-      let es = List.map (fun c -> SMT.Term.substitute phi x (SMT.Constant (c, x_sort))) cs in
+      let es = List.map (fun c -> SMT.Term.substitute phi (List.hd xs) (SMT.Constant (c, x_sort))) cs in
       Format.asprintf "(or %s)" (translate_expr_list es)
     | _ ->
-    Format.asprintf "(exists ((%s %s)) %s)"
-      (translate x)
-      (translate_sort x_sort)
-      (translate phi)
+      Format.asprintf "(exists (%s) %s)"
+        (List.map translate_binder xs |> String.concat " ")
+        (translate phi)
     end
 
   | SMT.IntConst i -> Format.asprintf "%d" i
@@ -139,9 +171,13 @@ let rec translate term = match term with
       failwith "Internal error: second order quantification should be removed before \
                 translating to backend solver"
 
+and translate_binder (Variable (name, sort)) =
+  Format.asprintf "(%s %s)" name (translate_sort sort)
+
 and translate_sort = function
   | SMT.Sort.Bool -> "Bool"
-  | SMT.Sort.Integer -> "Int"
+  | SMT.Sort.Int -> "Int"
+  | SMT.Sort.Bitvector n -> Format.asprintf "(_ BitVec %d)" n
   | SMT.Sort.Set (elem_sort) -> "(Set " ^ translate_sort elem_sort ^ ")"
   | SMT.Sort.Array (d, r) -> "(Array " ^ (translate_sort d) ^ " " ^ (translate_sort r) ^ ")"
   | SMT.Sort.Finite (name, consts) ->
@@ -160,9 +196,11 @@ let simplify phi = phi
 (* === Solver === *)
 
 let solve phi =
+  let vars = SMT.free_vars phi |> List.map translate_decl |> String.concat "\n" in
   let smt_query = Format.asprintf
-  "(set-logic ALL)\n(set-option :produce-models true)\n%s\n(assert %s)\n(check-sat)\n(get-info :reason-unknown)\n(get-model)"
+  "(set-logic ALL)\n(set-option :produce-models true)\n%s\n%s\n(assert %s)\n(check-sat)\n(get-info :reason-unknown)\n(get-model)"
     !declarations
+    vars
     (translate phi)
   in
   let query_filename, query_channel = Filename.open_temp_file "cvc_query" ".smt2" in

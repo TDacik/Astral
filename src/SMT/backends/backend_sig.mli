@@ -43,3 +43,19 @@ module type BACKEND = sig
   val show_model : model -> string
 
 end
+
+module type SMTLIB_BACKEND = sig
+
+  val name : string
+
+end
+
+module type SMTLIB_BACKEND_EXTENDED = sig
+
+  include SMTLIB_BACKEND
+
+  val translate_non_standard : SMT.Term.t -> string
+
+  val translate_sort_non_standard : SMT.Term.t -> string
+
+end

@@ -58,11 +58,12 @@ let formula suffix phi =
 let context context =
   SL_graph.output_file context.sl_graph sl_graph_dot
 
-let qf_phi (context, phi) =
-  debug_out "phi_base.smt2" (Z3.Expr.to_string phi)
-
-let translated phi =
-  debug_out "translated.out" (SMT.Term.show phi)
+let translated suffix phi =
+  let out_file =
+    if suffix = "" then "translated"
+    else "translated_" ^ suffix
+  in
+  debug_out (out_file ^ ".smt2") (SMT.to_bench phi)
 
 let smt_model model = debug_out "smt_model.out" (SMT.Model.show model)
 
@@ -81,8 +82,6 @@ let backend_model str = debug_out "backend_model.smt2" str
 
 (** Decorated functions *)
 let context    = decorate context
-let qf_phi     = decorate qf_phi
-let translated = decorate translated
 let model      = decorate model
 let smt_model  = decorate smt_model
 
@@ -91,4 +90,5 @@ let backend_simplified    = decorate backend_simplified
 let backend_model         = decorate backend_model
 let backend_smt_benchmark = decorate backend_smt_benchmark
 
-let formula ?(suffix="") = decorate (formula suffix)
+let translated ?(suffix="") = decorate (translated suffix)
+let formula ?(suffix="")    = decorate (formula suffix)

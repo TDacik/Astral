@@ -5,22 +5,21 @@
 open Batteries
 
 open SSL
-open Results
 
 type t = {
 
   (* Input *)
-  phi : SSL.formula;
+  phi : SSL.t;
   vars : Variable.t list;
 
   (* Abstractions *)
   sl_graph : SL_graph.t;
 
   stack_bound : int * int;
-  bound : int;
+  location_bound : int;
 
   (* Translation context *)
-  can_scolemise : bool;
+  can_skolemise : bool;
   under_star : bool;
   polarity : bool;
 
@@ -30,7 +29,10 @@ type t = {
 
   heap : SMT.Term.t;
   locs : SMT.Term.t list;
+
   global_footprint : SMT.Term.t;
+
+  mutable footprints : SMT.Term.t list;   (* List of all footprints used during translation *)
 }
 
 let formula_footprint ?(physically=true) context psi =
@@ -50,16 +52,16 @@ let rec powerset = function
 
 let locations_powerset context = powerset context.locs
 
-let init info locs_sort locs fp_sort global_fp heap_sort heap =
+let init (input : Input.t) locs_sort locs fp_sort global_fp heap_sort heap =
 {
-  phi = info.formula;
-  vars = info.variables;
+  phi = input.phi;
+  vars = input.vars;
 
-  sl_graph = info.sl_graph;
-  bound = info.heap_bound;
-  stack_bound = info.stack_bound;
+  sl_graph = input.sl_graph;
+  stack_bound = input.stack_bound;
+  location_bound = input.location_bound;
 
-  can_scolemise = true;
+  can_skolemise = true;
   under_star = false;
   polarity = true;
 
@@ -70,4 +72,5 @@ let init info locs_sort locs fp_sort global_fp heap_sort heap =
   heap = heap;
   locs = locs;
   global_footprint = global_fp;
+  footprints = [global_fp];
 }

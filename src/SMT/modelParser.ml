@@ -18,7 +18,7 @@ open Std.Statement
 let rec parse_sort sort = match sort.term with
   | Builtin b -> begin match b with
     | Bool -> SMT.Sort.Bool
-    | Int -> SMT.Sort.Integer
+    | Int -> SMT.Sort.Int
   end
   | App (t1, [t2]) -> SMT.Sort.Set (parse_sort t2)
   | App (t1, [t2; t3]) -> SMT.Sort.Array (parse_sort t2, parse_sort t3)
@@ -30,6 +30,7 @@ let parse_symbol symbol sort =
   match symbol.ns with
   | Value v -> begin match v with
     | Integer -> SMT.LIA.mk_const @@ int_of_string name
+    | Binary -> SMT.Bitvector.mk_const_of_string name
     | _ -> failwith "Unsoppurted value"
   end
   | Term -> begin match name with
@@ -50,8 +51,7 @@ let rec parse_term term sort = match term.term with
         SMT.Enumeration ([elem], sort)
       | "const" ->
         let const = parse_term t sort in
-        SMT.ConstArr const
-
+        SMT.ConstArr (const, sort) (* TODO: is the sort correct? *)
       end
 
   (* Set insert *)
@@ -59,6 +59,7 @@ let rec parse_term term sort = match term.term with
       let set1 = SMT.Set.get_elems @@ parse_term t1 sort in
       let set2 = SMT.Set.get_elems @@ parse_term t2 sort in
       SMT.Enumeration (set1 @ set2, sort)
+
   (* Array store *)
   | App (_, [t1; t2; t3]) ->
       let arr = parse_term t1 sort in
@@ -78,7 +79,7 @@ let parse_def (def : Std.Statement.def) =
   in
   let sort = parse_sort def.ret_ty in
   let interp = parse_term def.body sort in
-  (SMT.Term.Variable (name, sort, 0), interp)
+  ((name, sort), interp)
 
 let parse_stmt stmt = match stmt.descr with
   | Defs defs -> List.map parse_def defs.contents

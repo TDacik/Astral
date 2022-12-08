@@ -2,7 +2,7 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
-(** Extended information about input *)
+(** Extended information about input
 type info = {
   formula : SSL.formula;
   variables : SSL.Variable.t list;
@@ -55,3 +55,5 @@ let stack_bound_string res =
   Format.asprintf "(%d, %d)" min max
 
 let heap_loc_bound_string res = Format.asprintf "%d" res.info.heap_bound
+
+*)

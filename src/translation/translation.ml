@@ -1,19 +1,13 @@
-(* Translation of SL formulae to SMT
+(* Translation of SSL formulae to SMT.
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
-open Batteries
-
-open Results
 open Context
 open StackHeapModel
 
-type result =
-  | Sat of StackHeapModel.t * Results.t
-  | Unsat of Results.t * SMT.term list
-  | Unknown of Results.t * string
-
 module Print = Printer.Make(struct let name = "Translation" end)
+
+let mk_nth_succ = ListEncoding.mk_nth_succ
 
 module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND) = struct
 
@@ -21,15 +15,16 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   open SMT
 
   (** Initialization of Z3 context and translation context *)
-  let init phi info =
-    let locs_card = info.heap_bound + 1 in (* one for nil *)
-    let locs_sort = Locations.mk_sort "Loc" locs_card in
-    let locs = Locations.enumeration locs_sort in
+  let init (info : Input.t) =
+    let locs_card = info.location_bound + 1 in (* one for nil *)
+    let locs = Locations.mk "Loc" locs_card in
+    let locs_sort = Locations.get_sort locs in
+    let locs_consts = Locations.get_constants locs in
     let fp_sort = Set.mk_sort locs_sort in
-    let global_fp = Set.mk_var "global fp" fp_sort in
+    let global_fp = Set.mk_var "footprint0" fp_sort in
     let heap_sort = Array.mk_sort locs_sort locs_sort in
     let heap = Array.mk_var "heap" heap_sort in
-    Context.init info locs_sort locs fp_sort global_fp heap_sort heap
+    (Context.init info locs_sort locs_consts fp_sort global_fp heap_sort heap, locs)
 
   (* ==== Helper functions for constructing common terms ==== *)
 
@@ -40,12 +35,15 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     Boolean.mk_eq select y
 
   let mk_range context domain range =
-    Locations.forall context
+    Locations.mk_forall context.locs_sort
       (fun l ->
         let in_domain = Set.mk_mem l domain in
         let succ_in_range = Set.mk_mem (mk_heap_succ context l) range in
         Boolean.mk_iff in_domain succ_in_range
       )
+
+  let term_to_expr context (SSL.Var x) = SMT.Variable.mk (SSL.Variable.show x) context.locs_sort
+  let var_to_expr context x = term_to_expr context (SSL.Var x)
 
   let mk_strongly_disjoint context footprint1 footprint2 =
     let range1 = Set.mk_fresh_var "range" context.fp_sort in
@@ -61,7 +59,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let locs2 = Set.mk_union [footprint2; range2] context.fp_sort in
 
     let common_locs = Set.mk_inter [locs1; locs2] context.fp_sort in
-    let variables = Locations.vars_to_exprs context in
+    let variables = List.map (var_to_expr context) context.vars in
     let stack_image = Set.mk_enumeration context.fp_sort variables in
     let strongly_disjoint = Set.mk_subset common_locs stack_image in
 
@@ -70,7 +68,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
   (** Create predicate \forall x \in fp. h1[x] = h2[x] *)
   let heaps_equal_on_footprint context h1 h2 fp =
-    Locations.forall context
+    Locations.mk_forall context.locs_sort
       (fun loc ->
         let in_fp = Set.mk_mem loc fp in
         let h1_select = Array.mk_select h1 loc in
@@ -78,10 +76,6 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         let select_eq = Boolean.mk_eq h1_select h2_select in
         Boolean.mk_implies in_fp select_eq
       )
-
-  let term_to_expr context x = match x with
-    | SSL.Variable.Var _ | SSL.Variable.Nil -> Locations.var_to_expr context x
-    | SSL.Variable.Term t -> t
 
   let formula_footprint context phi =
     Set.mk_var (Context.formula_footprint context phi) context.fp_sort
@@ -94,22 +88,22 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     | SSL.Or (psi1, psi2) -> translate_or context domain psi1 psi2
     | SSL.Star (psi1, psi2) -> translate_star context domain psi1 psi2
     | SSL.Septraction (psi1, psi2) -> translate_septraction context domain phi psi1 psi2
-    | SSL.Eq (var1, var2) -> translate_eq context domain var1 var2
-    | SSL.Neq (var1, var2) -> translate_neq context domain var1 var2
-    | SSL.LS (var1, var2) -> translate_ls context domain var1 var2
+    | SSL.Eq (Var var1, Var var2) -> translate_eq context domain var1 var2
+    | SSL.Neq (Var var1, Var var2) -> translate_neq context domain var1 var2
+    | SSL.LS (Var var1, Var var2) -> translate_ls context domain var1 var2
     | SSL.Not (psi) -> translate_not context domain psi
     | SSL.GuardedNeg (psi1, psi2) -> translate_guarded_neg context domain psi1 psi2
-    | SSL.Var var -> translate_var context domain var
+    | SSL.Pure term -> translate_pure context domain term
 
-  and translate_var context domain var =
-    let semantics = term_to_expr context var in
+  and translate_pure context domain term =
+    let semantics = term in
     let axioms = Boolean.mk_true () in
     let footprints = [Set.mk_empty context.fp_sort] in
     (semantics, axioms, footprints)
 
   and translate_pointsto context domain x y =
-    let x = Locations.var_to_expr context x in
-    let y = Locations.var_to_expr context y in
+    let x = term_to_expr context x in
+    let y = term_to_expr context y in
 
     let domain_def = Set.mk_eq_singleton domain x in
     let pointer = mk_is_heap_succ context x y in
@@ -121,8 +115,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
   and translate_ls context domain x y =
     let local_bound = Bounds.local_bound context x y in
-    let x = Locations.var_to_expr context x in
-    let y = Locations.var_to_expr context y in
+    let x = var_to_expr context x in
+    let y = var_to_expr context y in
 
     let fp = SMT.Set.mk_fresh_var "list_fp" context.fp_sort in
     let semantics = ListEncoding.semantics context domain x y local_bound in
@@ -131,8 +125,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     (semantics, axioms, footprints)
 
   and translate_eq context domain x y =
-    let x = term_to_expr context x in
-    let y = term_to_expr context y in
+    let x = var_to_expr context x in
+    let y = var_to_expr context y in
 
     let domain_def = Set.mk_eq_empty domain in
     let equals = Boolean.mk_eq x y in
@@ -142,8 +136,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     (semantics, axioms, footprints)
 
   and translate_neq context domain x y =
-    let x = term_to_expr context x in
-    let y = term_to_expr context y in
+    let x = var_to_expr context x in
+    let y = var_to_expr context y in
 
     let domain_def = Set.mk_eq_empty domain in
     let distinct = Boolean.mk_distinct [x; y] in
@@ -155,7 +149,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   and translate_not context domain phi =
     let context = {context with
       polarity = not context.polarity;
-      can_scolemise = false
+      can_skolemise = false
     }
     in
 
@@ -163,12 +157,13 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     let semantics = Boolean.mk_not psi in
     let footprints =
-      if not @@ context.under_star
+      if (not @@ context.under_star) || (Locations.name = "bitvectors")
       then
         []
       else
         Context.locations_powerset context
         |> List.map (Set.mk_enumeration context.fp_sort)
+
     in
     (semantics, axioms, footprints)
 
@@ -189,8 +184,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let footprints = footprints1 @ footprints2 in
     (semantics, axioms, footprints)
 
-  (** Translation of separating conjunction using scolemisation. *)
-  and translate_star_scolemised context domain psi1 psi2 =
+  (** Translation of separating conjunction using skolemisation. *)
+  and translate_star_skolemised context domain psi1 psi2 =
     let fp1 = formula_footprint context psi1 in
     let fp2 = formula_footprint context psi2 in
 
@@ -203,7 +198,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let axioms = Boolean.mk_and [axioms1; axioms2] in
 
     (* Classical semantics *)
-    if SSL.has_unique_footprint psi1 && SSL.has_unique_footprint psi2
+    if SSL.is_positive psi1 && SSL.is_positive psi2
        || not @@ Options.strong_separation ()
     then
       (Boolean.mk_and [semantics1; semantics2; disjoint; domain_def], axioms, [])
@@ -217,8 +212,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   (** Translation of separating conjunction using second-order quantifiers. *)
   and translate_star_quantified context domain psi1 psi2 =
     (* Quantifier binders *)
-    let fp1 = SMT.Set.mk_var "FP1" context.fp_sort in
-    let fp2 = SMT.Set.mk_var "FP2" context.fp_sort in
+    let fp1 = SMT.Set.mk_fresh_var "FP1" context.fp_sort in
+    let fp2 = SMT.Set.mk_fresh_var "FP2" context.fp_sort in
 
     let semantics1, axioms1, footprints1 = translate context psi1 fp1 in
     let semantics2, axioms2, footprints2 = translate context psi2 fp2 in
@@ -228,7 +223,6 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       BatList.cartesian_product footprints1 footprints2
       |> List.filter (fun (fp1, fp2) -> SMT.Set.may_disjoint fp1 fp2)
     in
-
 
     (* Semantics *)
     let disjoint = Set.mk_disjoint fp1 fp2 in
@@ -262,51 +256,18 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       let ssl_axioms2 = Quantifier.mk_forall2 [fp2] [footprints2] ssl_axiom in
       let axioms = Boolean.mk_and [axioms1; axioms2; ssl_axioms1; ssl_axioms2] in
       (semantics, axioms, footprints)
-      (*
-      let axioms = Boolean.mk_and [axioms; axiom] in
-      (Boolean.mk_and [phi1; phi2; disjoint; str_disjoint; domain_def], axioms, [])
-      *)
-    (*
-
-
-      let lst =
-        fp_worklist
-        |> List.map (fun (fp1, fp2) ->
-            let phi1 = SMT.Term.substitute phi1 domain fp1 in
-            let phi2 = SMT.Term.substitute phi2 domain fp2 in
-            let disjoint = Set.mk_disjoint fp1 fp2 in
-            let fp_union = Set.mk_union [fp1; fp2] context.fp_sort in
-            let domain_def = Set.mk_eq domain fp_union in
-            if SSL.has_unique_footprint psi1 && SSL.has_unique_footprint psi2 then
-              Boolean.mk_and [phi1; phi2; disjoint; domain_def], Boolean.mk_true ()
-            else
-              let axioms, str_disjoint = mk_strongly_disjoint context fp1 fp2 in
-              Boolean.mk_and [phi1; phi2; disjoint; str_disjoint; domain_def], axioms
-
-          )
-      in
-      let semantics = Boolean.mk_or (List.map fst lst) in
-      let axioms = Boolean.mk_and (List.map snd lst) in
-      let axioms = Boolean.mk_and [axioms1; axioms2; axioms] in
-      let footprints =
-        fp_worklist
-        |> List.map (fun (s1, s2) -> Set.mk_union [s1; s2] context.fp_sort)
-      in
-      (semantics, axioms, footprints)
-    end
-    *)
 
   (** Generic translation of separating conjunction. *)
   and translate_star context domain psi1 psi2 =
-    let context = {context with under_star = not context.can_scolemise} in
-    if context.can_scolemise
-    then translate_star_scolemised context domain psi1 psi2
+    let context = {context with under_star = not context.can_skolemise} in
+    if context.can_skolemise
+    then translate_star_skolemised context domain psi1 psi2
     else translate_star_quantified context domain psi1 psi2
 
   and translate_guarded_neg context domain psi1 psi2 =
     let context' = {context with
       polarity = not context.polarity;
-      can_scolemise = false
+      can_skolemise = false
     }
     in
     let phi1, axioms1, footprints1 = translate context psi1 domain in
@@ -341,7 +302,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     in
 
     (* Positive septraction *)
-    if context.can_scolemise then
+    if context.can_skolemise then
       (semantics, axioms, footprints)
 
     (* Negative septraction *)
@@ -353,7 +314,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     else failwith "Not supported form of septraction/magic wand"
 
-let translate_phi context phi =
+let translate_phi (context : Context.t) locs phi =
   let footprint = formula_footprint context phi in
   let phi, axioms, _ = translate context phi context.global_footprint in
   let nil = SMT.Variable.mk "nil" context.locs_sort in
@@ -362,27 +323,37 @@ let translate_phi context phi =
   let heap_nil = Array.mk_select context.heap nil in
   let heap_intro = Boolean.mk_eq nil heap_nil in
 
-  let location_lemmas = Locations.location_lemmas context in
+  (* Variable constraints *)
+  let var_constraints =
+    List.map (fun v -> Locations.var_axiom locs @@ var_to_expr context v) (SSL.Variable.nil :: context.vars)
+  in
+
+  (* Heap constraints *)
+  let heap_constraints =
+    List.map
+      (fun x ->
+        let hx = mk_heap_succ context x in
+        Locations.var_axiom locs hx
+      ) context.locs
+  in
+
+  let location_lemmas = Locations.location_lemmas locs in
 
   Boolean.mk_and
-              [phi; axioms; heap_intro; nil_not_in_fp; location_lemmas]
+    ([phi; axioms; heap_intro; nil_not_in_fp; location_lemmas] @ heap_constraints @ var_constraints)
 
   (* ==== Translation of SMT model to stack-heap model ==== *)
 
-  let translate_loc loc =
-    try
-      Term.show loc
-      |> String.split_on_char '|'
-      |> (fun xs -> List.nth xs 1)
-      |> int_of_string
-    with _ ->
-      try int_of_string @@ Term.show loc
-      with _ -> failwith ("Cannot convert location " ^ Term.show loc)
-
   let nil_interp context model =
-    let e = SMT.Variable.mk (SSL.Variable.show Nil) context.locs_sort in
+    let e = SMT.Variable.mk (SSL.Variable.show SSL.Variable.nil) context.locs_sort in
     try Backend.eval model e
     with _ -> failwith "No interpretation of nil"
+
+  let translate_loc loc = match loc with
+    | SMT.IntConst i -> i
+    | SMT.BitConst (i, _) -> i
+    | SMT.Constant (c, _) -> int_of_string @@ BatString.chop ~l:1 ~r:1 c
+    | other -> failwith ("Cannot translate location " ^ SMT.show_with_sort other)
 
   let translate_stack context model =
     List.fold_left
@@ -393,13 +364,10 @@ let translate_phi context phi =
           with Not_found -> nil_interp context model
         in
         Stack.add var (translate_loc loc) stack
-      ) Stack.empty context.vars
+      ) Stack.empty (SSL.Variable.nil :: context.vars)
 
   let translate_heap context model heap_term fp =
-    let fp =
-      try SMT.Set.get_elems @@ Backend.eval model fp
-      with Not_found -> failwith (Format.asprintf "Not found %s" (SMT.Term.show fp))
-    in
+    let fp = SMT.Set.get_elems @@ Encoding.Set.rewrite_back @@ Backend.eval model fp in
     List.fold_left
       (fun heap loc ->
         let heap_image = Array.mk_select heap_term loc in
@@ -411,17 +379,16 @@ let translate_phi context phi =
         Heap.add loc_name image_name heap
       ) Heap.empty fp
 
+  (** TODO: translate ALL footprint symbols introduced during translation. *)
   let translate_footprints context model =
-    SSL.fold
-      (fun psi acc ->
-        let id = SSL.subformula_id context.phi psi in
-        let fp_name = Format.asprintf "footprint%d" id in
-        let fp_expr = SMT.Variable.mk fp_name context.fp_sort in
-        let set = SMT.Set.get_elems @@ Backend.eval model fp_expr in
+    List.fold_left
+      (fun acc (psi, fp_expr) ->
+        let set = SMT.Set.get_elems @@ Encoding.Set.rewrite_back @@ Backend.eval model fp_expr in
         let fp = Footprint.of_list @@ List.map translate_loc set in
         SSL.Map.add psi fp acc
-      ) context.phi SSL.Map.empty
+      ) SSL.Map.empty [(context.phi, context.global_footprint)]
 
+  (* TODO: translation of witness heaps *)
   let translate_witness_heaps context model = SSL.Map.empty
   (*
     SSL.fold
@@ -442,51 +409,67 @@ let translate_phi context phi =
   let translate_model context model =
     let s = translate_stack context model in
     let h = translate_heap context model context.heap context.global_footprint in
-    (*let footprints = translate_footprints context model in*)
+    let footprints = translate_footprints context model in
     let heaps = translate_witness_heaps context model in
     StackHeapModel.init ~heaps s h
 
   (* ==== Solver ==== *)
-  let solve phi info =
-    let context = init phi info in
+  let solve input =
+    let context, locs = init input in
     Print.debug "Translating
+     - Location encoding: %s
+     - Set encoding: %s
+     - Backend: %s\n
      - Stack bound: [%d, %d]
      - Location bound:  %d\n"
-      (fst info.stack_bound)
-      (snd info.stack_bound)
-      info.heap_bound
+     Locations.name
+     Encoding.Set.name
+     Backend.name
+     (fst input.stack_bound)
+     (snd input.stack_bound)
+     input.location_bound
      ;
 
-    let phi = translate_phi context phi in
-    let size = SMT.Term.size phi in
+    (* Translation *)
+    let translated1 = translate_phi context locs input.phi in
+    Debug.translated ~suffix:"1" translated1;
+
+    (* Set rewritting *)
+    let translated2 = Encoding.Set.rewrite translated1 in
+    Debug.translated ~suffix:"2" translated2;
+
+    (* Quantifier elimination *)
+    let translated = Options.quantif_elim () translated2 in
+    Debug.translated ~suffix:"3" translated;
+
+
+    let size = SMT.Term.size translated in
+    let input = Input.set_statistics ~size:(Some size) input in
 
     Debug.context context;
-    Debug.translated phi;
 
     Print.debug "Running backend SMT solver\n";
     Timer.add "Astral";
 
     Backend.init ();
 
-    Debug.backend_translated (Backend.show_formula @@ Backend.translate phi);
-    Debug.backend_simplified (Backend.show_formula @@ Backend.simplify @@ Backend.translate phi);
-    Debug.backend_smt_benchmark (Backend.to_smt_benchmark @@ Backend.translate phi);
+    Debug.backend_translated (Backend.show_formula @@ Backend.translate translated);
+    Debug.backend_simplified (Backend.show_formula @@ Backend.simplify @@ Backend.translate translated);
+    Debug.backend_smt_benchmark (Backend.to_smt_benchmark @@ Backend.translate translated);
 
     (* Solve *)
-    match Backend.solve phi with
+    match Backend.solve translated with
     | SMT_Sat model ->
-      (*Debug.smt_model model;*)
-      Debug.backend_model (Backend.show_model model);
-      let sh = translate_model context model in
-      Debug.model sh;
-      let results = Results.create info (Some sh) size `SAT in
-      Sat (StackHeapModel.empty (), results)
+      if input.get_model || Options.produce_models () then
+        let sh = translate_model context model in
+        let _ = Debug.model sh in
+        let _ = Debug.backend_model (Backend.show_model model) in
+        Input.set_result `Sat ~model:(Some sh) input
 
-    | SMT_Unsat core ->
-      let results = Results.create info None size `UNSAT in
-      Unsat (results, core)
+      else Input.set_result `Sat input
 
-    | SMT_Unknown reason ->
-      let results = Results.create info None size `UNKNOWN in
-      Unknown (results, reason)
+    (* TODO: unsat cores *)
+    | SMT_Unsat unsat_core -> Input.set_result `Unsat ~unsat_core:(Some []) input
+
+    | SMT_Unknown reason -> Input.set_result `Unknown ~reason:(Some reason) input
 end

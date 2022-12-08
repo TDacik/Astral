@@ -2,40 +2,47 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
-module type MINIMAL_SET = Set_sig.MINIMAL_SET
+module type SET = sig
 
-module type SET = Set_sig.SET
+  include Smt_sig.SET
+
+  val name : string
+
+  val rewrite : SMT.Term.t -> SMT.Term.t
+
+  val rewrite_back : SMT.Term.t -> SMT.Term.t
+
+end
+
 
 module type LOCATIONS = sig
 
-  (* {3 Functions used to build Astral's context} *)
+  type t
 
-  val mk_sort : string -> int -> SMT.Sort.t
+  val name : string
 
-  val mk_const : SMT.Sort.t -> string -> SMT.Term.t
+  val mk : string -> int -> t
+  (** Create location sort of cardinality n. *)
 
-  val enumeration : SMT.Sort.t -> SMT.Term.t list
+  val get_sort : t -> SMT.Sort.t
 
-  (* {3 functions already using Astral's context} *)
+  val mk_var : string -> SMT.Sort.t -> SMT.Term.t
 
-  val var_to_expr : Context.t -> SSL.Variable.t -> SMT.Term.t
+  val mk_fresh_var : string -> SMT.Sort.t -> SMT.Term.t
 
-  val vars_to_exprs : Context.t -> SMT.Term.t list
+  val get_constants : t -> SMT.Term.t list
 
+  val var_axiom : t -> SMT.Term.t -> SMT.Term.t
 
-  val location_lemmas : Context.t -> SMT.Term.t
+  (* Quantification *)
 
-  val exists : Context.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
-  (** First-order universal quantifier. *)
+  val mk_forall : SMT.Sort.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
 
-  val forall : Context.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
-  (** First-order universal quantifier. *)
+  val mk_exists : SMT.Sort.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
 
-  val exists2 : Context.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
-  (** Second-order existential quantifier. *)
+  (* Additional *)
 
-  val forall2 : Context.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
-  (** Second-order universal quantifier. *)
+  val location_lemmas : t -> SMT.Term.t
 
 end
 
@@ -63,12 +70,18 @@ module type LIST_ENCODING = sig
 
 end
 
-module type ENCODING = sig
-
+(** Base encoding groups together encoding of sets and locations. *)
+module type BASE_ENCODING = sig
   module Set : SET
-
   module Locations : LOCATIONS
+end
 
+(** Predicate encoding groups together encoding of inductive predicates. *)
+module type PREDICATE_ENCODING = sig
   module ListEncoding : LIST_ENCODING
+end
 
+module type ENCODING = sig
+  include BASE_ENCODING
+  module ListEncoding : LIST_ENCODING
 end
