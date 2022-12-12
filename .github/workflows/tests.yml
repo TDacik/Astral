@@ -19,7 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          eval $(opam env)
+          opam init --disable-sandboxing
           opam install . --deps-only
 
       - name: Install Astral
