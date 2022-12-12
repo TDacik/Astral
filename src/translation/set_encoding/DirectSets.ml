@@ -8,4 +8,4 @@ let name = "direct"
 
 let rewrite term = term
 
-let rewrite_back term = term
+let rewrite_back _ model = model

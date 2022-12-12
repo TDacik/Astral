@@ -10,7 +10,7 @@ module type SET = sig
 
   val rewrite : SMT.Term.t -> SMT.Term.t
 
-  val rewrite_back : SMT.Term.t -> SMT.Term.t
+  val rewrite_back : SMT.Term.t -> SMT.Model.t -> SMT.Model.t
 
 end
 
