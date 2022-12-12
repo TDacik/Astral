@@ -27,7 +27,7 @@ jobs:
         run: opam install . --deps-only -y
 
       - name: Install Astral
-        run: opam install .
+        run: opam install . -y
 
       - name: Run tests
         run: python3 scripts/run_tests.py
