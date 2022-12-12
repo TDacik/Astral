@@ -22,14 +22,13 @@ jobs:
 
       - name: Install dependencies
         run: |
-          git config --global --add safe.directory .
-          git ls-files
-          opam install .
+          git config --global --add safe.directory /__w/Astral/Astral
+          opam install . --deps-only
 
-      #- name: Install Astral
-      #  run: |
-      #    dune build
-      #   dune install
+      - name: Install Astral
+        run: |
+          dune build
+          dune install
 
       - name: Run tests
         run: python3 scripts/run_tests.py
