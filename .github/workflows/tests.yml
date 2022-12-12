@@ -22,7 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          cat astral.opam
+          git ls-files
           opam install .
 
       #- name: Install Astral
