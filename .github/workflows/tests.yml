@@ -19,6 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: |
+          cd Astral
           opam init --disable-sandboxing
           opam install . --deps-only
 
