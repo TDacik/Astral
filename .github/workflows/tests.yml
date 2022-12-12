@@ -21,7 +21,9 @@ jobs:
         run: opam init --disable-sandboxing
 
       - name: Install dependencies
-        run: opam install .
+        run: |
+          cat astral.opam
+          opam install .
 
       #- name: Install Astral
       #  run: |
