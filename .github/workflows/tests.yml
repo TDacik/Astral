@@ -17,10 +17,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Opam init
+        run: opam init --disable-sandboxing
+
       - name: Install dependencies
-        run: |
-          opam init --disable-sandboxing
-          opam install . --deps-only
+        run: opam install . --deps-only
 
       - name: Install Astral
         run: |
