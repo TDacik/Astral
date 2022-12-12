@@ -23,7 +23,7 @@ jobs:
       - name: Install dependencies
         run: |
           git config --global --add safe.directory /__w/Astral/Astral
-          opam install . --deps-only
+          opam install . --deps-only -y
 
       - name: Install Astral
         run: |
