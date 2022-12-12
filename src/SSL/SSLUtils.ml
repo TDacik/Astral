@@ -36,6 +36,7 @@ module AST = struct
       | Star (f1, f2) -> "★"
       | Septraction (f1, f2) -> "--(★)"
       | LS (v1, v2) -> Format.asprintf "ls(%a, %a)" SSL.pp v1 SSL.pp v2
+      | DLS (v1, v2) -> Format.asprintf "dls(%a, %a)" SSL.pp v1 SSL.pp v2
       | PointsTo (v1, v2) -> Format.asprintf "%a ↦ %a" SSL.pp v1 SSL.pp v2
       | Eq (v1, v2) -> Format.asprintf "%a = %a" SSL.pp v1 SSL.pp v2
       | Neq (v1, v2) -> Format.asprintf "%a ≠ %a" SSL.pp v1 SSL.pp v2

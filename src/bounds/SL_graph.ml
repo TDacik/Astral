@@ -187,6 +187,7 @@ let rec compute phi = match phi with
   | SSL.Neq (Var x, Var y) -> G.add_edge_e G.empty (x, Disequality, y)
   | SSL.PointsTo (Var x, Var y) -> G.add_edge_e G.empty (x, Pointer, y)
   | SSL.LS (Var x, Var y) -> G.add_edge_e G.empty (x, List, y)
+  | SSL.DLS _ -> G.empty (* TODO *)
 
   | SSL.Star (psi1, psi2) -> disjoint_union (compute psi1) (compute psi2)
   | SSL.And (psi1, psi2) -> G.union (compute psi1) (compute psi2)

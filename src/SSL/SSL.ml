@@ -55,7 +55,7 @@ let equal x y = (Stdlib.compare x y) == 0
 let hash = Hashtbl.hash
 
 let describe_node : t -> t node_info = function
-  | Var x -> (Variable.show x, Var (Variable.show x, Sort.Loc))
+  | Var x -> (Variable.show_with_sort x, Var (Variable.show x, Sort.Loc))
   | Pure t -> ("pure " ^ SMT.show t, Operator ([], (SMT.get_sort t)))
   | Eq (x, y) -> ("=", Operator ([x; y], Sort.Bool))
   | Neq (x, y) -> ("neq", Operator ([x; y], Sort.Bool))

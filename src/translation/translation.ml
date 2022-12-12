@@ -11,21 +11,24 @@ module Print = Printer.Make(struct let name = "Translation" end)
 
 module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND) = struct
 
+  open Encoding
   open SMT
   open Context
-  open Encoding
+
+  module DLListEncoding = DLListEncoding.Make(Encoding.Locations)
 
   (** Initialization of Z3 context and translation context *)
   let init (info : Input.t) =
     let locs_card = info.location_bound + 1 in (* one for nil *)
     let locs = Locations.mk "Loc" locs_card in
     let locs_sort = Locations.get_sort locs in
-    let locs_consts = Locations.get_constants locs in
+    let loc_consts = Locations.get_constants locs in
     let fp_sort = Set.mk_sort locs_sort in
     let global_fp = Set.mk_var "footprint0" fp_sort in
     let heap_sort = Array.mk_sort locs_sort locs_sort in
     let heap = Array.mk_var "heap" heap_sort in
-    (Context.init info locs_sort locs_consts fp_sort global_fp heap_sort heap, locs)
+    let heap_p = Array.mk_var "prev" heap_sort in
+    (Context.init info locs_sort loc_consts global_fp heap heap_p, locs)
 
   (* ==== Helper functions for constructing common terms ==== *)
 
@@ -92,6 +95,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     | SSL.Eq (Var var1, Var var2) -> translate_eq context domain var1 var2
     | SSL.Neq (Var var1, Var var2) -> translate_neq context domain var1 var2
     | SSL.LS (Var var1, Var var2) -> translate_ls context domain var1 var2
+    | SSL.DLS (Var var1, Var var2) -> translate_dls context domain var1 var2
     | SSL.Not (psi) -> translate_not context domain psi
     | SSL.GuardedNeg (psi1, psi2) -> translate_guarded_neg context domain psi1 psi2
     | SSL.Pure term -> translate_pure context domain term
@@ -119,9 +123,20 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let x = var_to_expr context x in
     let y = var_to_expr context y in
 
-    let fp = SMT.Set.mk_fresh_var "list_fp" context.fp_sort in
+    let fp = SMT.Set.mk_fresh_var "ls_fp" context.fp_sort in
     let semantics = ListEncoding.semantics context domain x y local_bound in
     let axioms = ListEncoding.axioms context fp x y local_bound in
+    let footprints = [fp] in
+    (semantics, axioms, footprints)
+
+  and translate_dls context domain x y =
+    let local_bound = Bounds.local_bound context x y in (*TODO*)
+    let x = var_to_expr context x in
+    let y = var_to_expr context y in
+
+    let fp = SMT.Set.mk_fresh_var "dls_fp" context.fp_sort in
+    let semantics = DLListEncoding.semantics context domain x y local_bound in
+    let axioms = DLListEncoding.axioms context fp x y local_bound in
     let footprints = [fp] in
     (semantics, axioms, footprints)
 
@@ -206,6 +221,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     (* Strong-separating semantics *)
     else
+      let _ = Printf.printf "SSL\n" in
       let axiom, str_disjoint = mk_strongly_disjoint context fp1 fp2 in
       let axioms = Boolean.mk_and [axioms; axiom] in
       (Boolean.mk_and [semantics1; semantics2; disjoint; str_disjoint; domain_def], axioms, [])
@@ -247,9 +263,17 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       (semantics, axioms, footprints)
 
     (* TODO: non-unique + weak *)
+    else if not @@ Options.strong_separation () then
+      let semantics =
+        Boolean.mk_and [semantics1; semantics2; disjoint; domain_def]
+        |> Quantifier.mk_exists2 [fp1; fp2] [footprints1; footprints2]
+      in
+      let axioms = Boolean.mk_and [axioms1; axioms2] in
+      (semantics, axioms, footprints)
 
     (* Strong-separating semantics *)
     else
+      let _ = Printf.printf "SSL\n" in
       let ssl_axiom, str_disjoint = mk_strongly_disjoint context fp1 fp2 in
       let semantics =
         Boolean.mk_and [semantics1; semantics2; disjoint; domain_def; str_disjoint]
@@ -308,6 +332,10 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     if context.can_skolemise then
       (semantics, axioms, footprints)
 
+    (* Negative septraction in WSL *)
+    else if SSL.has_unique_shape psi1 && not @@ Options.strong_separation () then
+      (semantics, axioms, footprints)
+
     (* Negative septraction *)
     else if SSL.has_unique_shape psi1 then
       let axiom, strongly_disjoint = mk_strongly_disjoint context fp1 domain in
@@ -358,7 +386,11 @@ let translate_phi (context : Context.t) locs phi =
     | SMT.Constant (c, _) ->
         begin
           try int_of_string c
-          with _ -> int_of_string @@ BatString.chop ~l:1 ~r:1 c
+          with _ ->
+          begin
+            try int_of_string @@ BatString.chop ~l:1 ~r:1 c
+            with _ -> failwith ("Cannot translate location " ^ SMT.show_with_sort loc)
+          end
         end
     | other -> failwith ("Cannot translate location " ^ SMT.show_with_sort other)
 
@@ -374,9 +406,11 @@ let translate_phi (context : Context.t) locs phi =
       ) Stack.empty (SSL.Variable.nil :: context.vars)
 
   let translate_heap context model heap_term fp =
-    let fp = SMT.Set.get_elems @@ Encoding.Set.rewrite_back @@ Backend.eval model fp in
+    Format.printf "FP: %a\n" SMT.pp (Backend.eval model fp);
+    let fp = SMT.Set.get_elems @@ Backend.eval model fp in
     List.fold_left
       (fun heap loc ->
+        Format.printf "Loc: %a\n" SMT.pp loc;
         let heap_image = Array.mk_select heap_term loc in
         let loc_name = translate_loc loc in
         let image_name =
@@ -390,7 +424,7 @@ let translate_phi (context : Context.t) locs phi =
   let translate_footprints context model =
     List.fold_left
       (fun acc (psi, fp_expr) ->
-        let set = SMT.Set.get_elems @@ Encoding.Set.rewrite_back @@ Backend.eval model fp_expr in
+        let set = SMT.Set.get_elems @@ Backend.eval model fp_expr in
         let fp = Footprint.of_list @@ List.map translate_loc set in
         SSL.Map.add psi fp acc
       ) SSL.Map.empty [(context.phi, context.global_footprint)]
@@ -468,9 +502,9 @@ let translate_phi (context : Context.t) locs phi =
     match Backend.solve translated with
     | SMT_Sat model ->
       if input.get_model || Options.produce_models () then
+        let _ = Debug.backend_model (Backend.show_model model) in
         let sh = translate_model context model in
         let _ = Debug.model sh in
-        let _ = Debug.backend_model (Backend.show_model model) in
         Input.set_result `Sat ~model:(Some sh) input
 
       else Input.set_result `Sat input
