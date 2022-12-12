@@ -17,18 +17,17 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Opam init
+      - name: Configure git
+        run: git config --global --add safe.directory /__w/Astral/Astral
+
+      - name: Initialize opam
         run: opam init --disable-sandboxing
 
       - name: Install dependencies
-        run: |
-          git config --global --add safe.directory /__w/Astral/Astral
-          opam install . --deps-only -y
+        run: opam install . --deps-only -y
 
       - name: Install Astral
-        run: |
-          dune build
-          dune install
+        run: opam install .
 
       - name: Run tests
         run: python3 scripts/run_tests.py
