@@ -21,12 +21,12 @@ jobs:
         run: opam init --disable-sandboxing
 
       - name: Install dependencies
-        run: opam install . --deps-only
+        run: opam install .
 
-      - name: Install Astral
-        run: |
-          dune build
-          dune install
+      #- name: Install Astral
+      #  run: |
+      #    dune build
+      #   dune install
 
       - name: Run tests
         run: python3 scripts/run_tests.py
