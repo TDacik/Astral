@@ -19,8 +19,8 @@ jobs:
 
       - name: Install dependencies
         run: |
-          opam init
-          opam install . --deps-only -y
+          opam init --disable-sandboxing
+          opam install . --deps-only
 
       - name: Install Astral
         run: |
