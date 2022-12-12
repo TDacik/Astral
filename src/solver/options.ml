@@ -157,6 +157,15 @@ let json_output () = match !_json_output_file with
   | "" -> false
   | _ -> true
 
+let to_json () =
+  `Assoc [
+    "Separation",             `String !_separation;
+    "SL-comp preprocessing",  `Bool !_sl_comp;
+    "Backend",                `String !_backend;
+    "Encoding",               `String !_encoding;
+    "Quantifier elimination", `String !_quantifier_elimination
+  ]
+
 let exit_usage error =
   Arg.usage speclist usage_msg;
   exit error

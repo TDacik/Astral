@@ -51,4 +51,6 @@ val set_backend : string -> unit
 
 val sl_comp : unit -> bool
 
+val to_json : unit -> Yojson.Basic.t
+
 val exit_usage : int -> unit

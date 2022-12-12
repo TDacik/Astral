@@ -15,6 +15,7 @@ let json_repr context =
     "Stack bound",          `String (Context.show_stack_bound context);
     "Heap location bound",  `Int context.location_bound;
     "Times",                Timer.json_repr ();
+    "Options",              Options.to_json ();
   ]
 
 let output results file =
