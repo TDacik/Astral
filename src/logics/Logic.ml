@@ -40,7 +40,36 @@ module Make (Term : TERM) = struct
   (* ==== Printing ==== *)
 
   (** Default show using s-expressions *)
-  let rec show term = match node_type term with
+  let (++) = (^)
+
+  let mk_indent n = String.init n (fun _ -> ' ')
+
+  let rec pretty_terms_line terms =
+    List.map (pretty 0) terms
+    |> String.concat " "
+
+  and pretty_terms n terms =
+    List.map (pretty n) terms
+    |> String.concat ("\n" ++ mk_indent n)
+
+  and pretty n node = match node_type node with
+  | Var (name, sort) ->
+      mk_indent n ++ name
+  | Operator (terms, sort) ->
+      if size node < 5 then
+        mk_indent n ++ "(" ++ node_name node ++ " " ++ pretty_terms_line terms ++ ")"
+      else
+        mk_indent n ++ "(" ++ node_name node ++ "\n" ++ pretty_terms (n + 2) terms ++ mk_indent n ++ ")\n\n"
+  | Connective terms ->
+      if size node < 6 then
+        mk_indent n ++ "(" ++ node_name node ++ " " ++ pretty_terms_line terms ++ ")"
+      else
+        mk_indent n ++ "(" ++ node_name node ++ "\n" ++ pretty_terms (n + 2) terms ++ mk_indent n ++ ")\n\n"
+  | Quantifier _ -> "TODO"
+
+  let rec show term = pretty 0 term
+
+    (*match node_type term with
     | Var (name, _) -> name
     | Operator (terms, _) | Connective terms ->
       begin match terms with
@@ -52,7 +81,7 @@ module Make (Term : TERM) = struct
     | Quantifier (binders, phi) ->
       let binders = String.concat " " (List.map show_with_sort binders) in
       Format.asprintf "(%s %s. %s)" (node_name term) binders (show phi)
-
+*)
   and show_with_sort term = match node_type term with
     | Quantifier _ -> show term
     | _ -> Format.asprintf "%s : %s" (show term) (Sort.show @@ get_sort term)

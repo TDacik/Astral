@@ -13,6 +13,10 @@ module type VARIABLE = sig
   include Datatype_sig.PRINTABLE with type t := t
   include Datatype_sig.COMPARABLE with type t := t
 
+  val get_name : t -> string
+
+  val get_sort : t -> Sort.t
+
   val mk : string -> Sort.t -> t
   (** Create a variable of the given sort. *)
 
