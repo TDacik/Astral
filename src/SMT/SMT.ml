@@ -151,12 +151,12 @@ module Term = struct
           | [] -> "empty"
           | _ -> "set"
         in
-        (name, Operator (enum, sort))
+        (name, Operator (enum, Sort.Set sort))
 
     | ConstArr (const, sort) ->
         ("lambda x ->", Operator ([const], Sort.Array (get_sort const, sort)))
     | Store (a, i, v) -> ("store", Operator ([a; i; v], get_sort a))
-    | Select (a, i) -> ("store", Operator ([a; i], get_sort a))
+    | Select (a, i) -> ("select", Operator ([a; i], Sort.get_dom_sort @@ get_sort a))
 
     | BitConst (n, width) ->
         (Format.asprintf "(bitvector%d %d)" width n, Operator ([], Sort.Bitvector width))
@@ -208,6 +208,10 @@ module Term = struct
       type t = term
       let describe_node = describe_node
     end)
+
+  let get_sort_in_term var_name term =
+    let vars = free_vars term in
+    get_sort @@ List.find (fun v -> match v with Variable v -> String.equal (VariableBase.get_name v) var_name) vars
 
   let map_vars fn term =
     let fn = (fun t -> match node_type t with Var (name, sort) -> fn name sort | _ -> t) in
@@ -591,6 +595,8 @@ module Sequence = struct
 
   include Term
 
+  let mk_sort domain_sort = Sort.Sequence domain_sort
+
   let mk_var = Variable.mk
   let mk_fresh_var = Variable.mk_fresh
 
@@ -681,7 +687,7 @@ end
 
 include Term
 
-(* ==== Tests ==== *)
+(* ==== Tests ====
 
 let (===) = identity
 let (!===) x y = not @@ identity x y
@@ -732,3 +738,5 @@ let%test "and_cons3" = (Boolean.mk_and [True; False]) === False
 let%test "set_cons1" =
   (Set.mk_union [(Set.mk_enumeration sort [c1; c2]); (Set.mk_singleton c3)] sort)
   === (Set.mk_enumeration sort [c1; c2; c3])
+
+*)

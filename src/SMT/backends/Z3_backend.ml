@@ -30,20 +30,12 @@ let init () =
 (* === Translation === *)
 
 let rec translate t = match t with
-  | SMT.Constant (name, sort) -> Z3.Expr.mk_const_s !context name (translate_sort sort)
+  | SMT.Constant (name, sort) -> find_const name sort
   | SMT.Variable (name, sort) -> Z3.Expr.mk_const_s !context name (translate_sort sort)
 
   | SMT.True -> Z3.Boolean.mk_true !context
   | SMT.False -> Z3.Boolean.mk_false !context
-  | SMT.Equal (t1, t2) ->
-      begin
-        try Z3.Boolean.mk_eq !context (translate t1) (translate t2)
-        with _ ->
-          Format.printf "%s = %s"
-            (SMT.Term.show_with_sort t1)
-            (SMT.Term.show_with_sort t2)
-          ; failwith "FUCK"
-        end
+  | SMT.Equal (t1, t2) -> Z3.Boolean.mk_eq !context (translate t1) (translate t2)
   | SMT.Distinct ts -> Z3.Boolean.mk_distinct !context (List.map translate ts)
   | SMT.And es -> Z3.Boolean.mk_and !context (List.map translate es)
   | SMT.Or es -> Z3.Boolean.mk_or !context (List.map translate es)
@@ -136,6 +128,12 @@ and translate_sort = function
   | SMT.Sort.Finite (name, constants) -> Z3.Enumeration.mk_sort_s !context name constants
   | SMT.Sort.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
   | SMT.Sort.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
+
+(* TODO: Escaping hack *)
+and find_const const sort =
+  let sort = translate_sort sort in
+  let consts = Z3.Enumeration.get_consts sort in
+  List.find (fun c -> String.equal (Z3.Expr.to_string c) ("|" ^ const ^ "|")) consts
 
 (* === Solver === *)
 

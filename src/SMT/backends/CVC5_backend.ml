@@ -226,7 +226,7 @@ let solve phi =
   let pid =
     Unix.create_process
       "cvc5"
-      [| "--produce-models" |]
+      [| "--produce-models"; "--cegqi-full" |]
       input
       output
       Unix.stderr
