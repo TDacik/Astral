@@ -21,6 +21,7 @@ jobs:
         run: | 
           whoami
           env
+          ls /root/.opam
 
       - name: Synchronize opam environment
         run: eval $(opam env)
