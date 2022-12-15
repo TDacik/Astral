@@ -18,7 +18,6 @@ depends: [
   "ocaml"
   "dune"
   "batteries"
-  "z3"
   "dolmen" {= "0.7"}
   "ocamlgraph"
   "qcheck"
