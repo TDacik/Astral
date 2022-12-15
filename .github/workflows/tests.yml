@@ -17,6 +17,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Log
+        run: whoami
+
       - name: Synchronize opam environment
         run: eval $(opam env)
     
