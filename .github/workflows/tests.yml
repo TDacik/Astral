@@ -17,6 +17,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
+      - name: Synchronize opam environment
+        run: eval $(opam env)
+    
       - name: Configure git
         run: git config --global --add safe.directory /__w/Astral/Astral
 
