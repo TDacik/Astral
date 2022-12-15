@@ -18,7 +18,9 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Log
-        run: whoami
+        run: | 
+          whoami
+          env
 
       - name: Synchronize opam environment
         run: eval $(opam env)
