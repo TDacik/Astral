@@ -23,6 +23,7 @@ depends: [
   "qcheck"
   "yojson"
   "ppx_compare"
+  "z3"
 ]
 
 build: [
