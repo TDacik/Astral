@@ -16,24 +16,15 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-
-      - name: Log
-        run: | 
-          whoami
-          env
-          ls /root/.opam
-
-      - name: Synchronize opam environment
-        run: eval $(opam env)
     
       - name: Configure git
         run: git config --global --add safe.directory /__w/Astral/Astral
 
       - name: Install dependencies
-        run: opam install . --deps-only -y
+        run: opam install --deps-only -y .
 
       - name: Install Astral
-        run: opam install . -y
+        run: opam install -y .
 
       - name: Run tests
         run: python3 scripts/run_tests.py
