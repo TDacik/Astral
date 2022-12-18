@@ -137,6 +137,9 @@ val fold : (t -> 'a -> 'a) -> t -> 'a -> 'a
 
 val get_vars : ?with_nil:bool -> t -> Variable.t list
 
+val select_subformulae : (t -> bool) -> t -> t list
+(** Return all subformulae satisfying given predicate. *)
+
 module Var : sig
 
   val is_nil : t -> bool

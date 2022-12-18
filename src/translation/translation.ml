@@ -365,9 +365,17 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     else failwith "Not supported form of septraction/magic wand"
 
-let translate_phi (context : Context.t) locs phi =
-  let footprint = formula_footprint context phi in
-  let phi, axioms, _ = translate context phi context.global_footprint in
+let generate_heap_axioms context heap locs =
+  List.map
+    (fun x ->
+      let hx = Array.mk_select heap x in
+      Locations.var_axiom locs hx
+    ) context.locs
+  |> Boolean.mk_and
+
+let translate_phi (context : Context.t) locs ssl_phi =
+  let footprint = formula_footprint context ssl_phi in
+  let phi, axioms, _ = translate context ssl_phi context.global_footprint in
   let nil = SMT.Variable.mk "nil" context.locs_sort in
   let nil_not_in_fp = Boolean.mk_not (Set.mk_mem nil context.global_footprint) in
 
@@ -377,21 +385,26 @@ let translate_phi (context : Context.t) locs phi =
   (* Variable constraints *)
   let var_constraints =
     List.map (fun v -> Locations.var_axiom locs @@ var_to_expr context v) (SSL.Variable.nil :: context.vars)
+    |> Boolean.mk_and
+  in
+
+  let heaps =
+    SSL.select_subformulae (fun x -> match x with Septraction _ -> true | _ -> false) ssl_phi
+    |> List.map (fun psi -> Format.asprintf "heap%d" (SSL.subformula_id ssl_phi psi))
+    |> List.map (fun name -> Array.mk_var name context.heap_sort)
+    |> List.append [context.heap]
   in
 
   (* Heap constraints *)
   let heap_constraints =
-    List.map
-      (fun x ->
-        let hx = mk_heap_succ context x in
-        Locations.var_axiom locs hx
-      ) context.locs
+    List.map (fun h -> generate_heap_axioms context h locs) heaps
+    |> Boolean.mk_and
   in
 
   let location_lemmas = Locations.location_lemmas locs in
 
   Boolean.mk_and
-    ([phi; axioms; heap_intro; nil_not_in_fp; location_lemmas] @ heap_constraints @ var_constraints)
+    [phi; axioms; heap_intro; nil_not_in_fp; location_lemmas; heap_constraints; var_constraints]
 
   (* ==== Translation of SMT model to stack-heap model ==== *)
 

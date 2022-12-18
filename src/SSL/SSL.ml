@@ -315,6 +315,14 @@ let rec iter_on_subformulas fn phi =
   (* Atomic formulas *)
   | _ -> fn phi
 
+let rec select_subformulae predicate phi =
+  let acc = match node_type phi with
+    | Var _ | Operator _ -> []
+    | Connective psis -> List.concat @@ List.map (select_subformulae predicate) psis
+  in
+  if predicate phi then phi :: acc else acc
+
+
 module Var = struct
   module V = Variable
 
