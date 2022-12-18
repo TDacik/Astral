@@ -101,7 +101,7 @@ let solve ?(verify_model=false) input =
     Print.info "Internal error: result %s (expected %s)\n"
       (Context.show_status result)
       (Context.show_expected_status result);
-    exit 2
+    exit 1
   end;
 
   Printf.printf "%s\n" res_string;

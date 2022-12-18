@@ -39,8 +39,7 @@ let run () =
   let result = Solver.solve input ~verify_model:(Options.verify_model ()) in
 
   if Options.json_output () then
-    ()
-    (* Json_output.output result (Options.json_output_file ()) *)
+    Json_output.output result (Options.json_output_file ())
   else ()
 
 let () =
