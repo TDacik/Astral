@@ -151,7 +151,7 @@ module Term = struct
           | [] -> "empty"
           | _ -> "set"
         in
-        (name, Operator (enum, Sort.Set sort))
+        (name, Operator (enum, sort))
 
     | ConstArr (const, sort) ->
         ("lambda x ->", Operator ([const], Sort.Array (get_sort const, sort)))
@@ -405,6 +405,8 @@ module Boolean = struct
   let mk_false () = False
   let mk_true () = True
 
+  let mk_const const = if const then mk_true () else mk_false ()
+
   let mk_and terms =
     let terms = List.fold_left
       (fun acc t -> match t with
@@ -561,18 +563,30 @@ module Set = struct
 
   let mk_sort elem_sort = Sort.Set elem_sort
 
-  let mk_empty sort = Enumeration ([], sort)
+  let mk_empty sort =
+    assert (Sort.is_set sort);
+    Enumeration ([], sort)
+
   let mk_singleton elem = Enumeration ([elem], Set (get_sort elem))
 
   let mk_mem elem set = Membership (elem, set)
   let mk_subset s1 s2 = Subset (s1, s2)
   let mk_disjoint s1 s2 = Disjoint (s1, s2)
 
-  let mk_union ts sort = construct (fun es sort -> Union (es, sort)) (@) [] ts sort
-  let mk_inter ts sort = Inter (ts, sort)
+  let mk_union ts sort =
+    assert (Sort.is_set sort);
+    construct (fun es sort -> Union (es, sort)) (@) [] ts sort
+
+  let mk_inter ts sort =
+    assert (Sort.is_set sort);
+    Inter (ts, sort)
+
   let mk_diff t1 t2 = Diff (t1, t2)
   let mk_compl t = Compl t
   let mk_enumeration sort elements = Enumeration (elements, sort)
+
+  let mk_add set elem = mk_union [set; mk_singleton elem] (get_sort set)
+
 
   let mk_eq_empty set = Equal (set, Enumeration ([], get_sort set))
   let mk_eq_singleton set x = Equal (set, Enumeration ([x], get_sort set))
