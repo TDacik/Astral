@@ -2,16 +2,13 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
+open Backend_sig
+
 (* === Declarations === *)
 
 type formula = Z3.Expr.expr
 
 type model = Z3.Model.model
-
-type status =
- | SMT_Sat of model
- | SMT_Unsat of SMT.Term.t list
- | SMT_Unknown of string
 
 let name = "Z3"
 
@@ -135,14 +132,45 @@ and find_const const sort =
   let consts = Z3.Enumeration.get_consts sort in
   List.find (fun c -> String.equal (Z3.Expr.to_string c) ("|" ^ const ^ "|")) consts
 
-(* === Solver === *)
+(* ==== Model translation ====
 
-let solve phi =
+let update_model_var z3_model smt_model var =
+  let name = SMT.Variable.get_name var in
+  let interp = Z3.Model.eval model (translate var) false in
+  match SMT.get_sort sort with
+  | SMT.Sort.Bool
+    let value = bool_of_string @@ Z3.Expr.show interp in
+    SMT.Model.add smt.model name (SMT.Boolean.mk_const value)
+
+  | SMT.Sort.Int ->
+    let value = int_of_string @@ Z3.Expr.show interp in
+    SMT.Model.add smt_model name (SMT.Integer.mk_const value)
+
+  | SMT.Sort.Set dom ->
+    let
+
+(** Translate Z3's model. This function assumes that all domains are finite. *)
+let translate_model phi z3_model =
+  let vars = SMT.Term.free_vars phi in
+  List.fold_leflt (update_model z3_model) SMT.Model.empty vars
+*)
+
+let translate_model model =
+  let str = Z3.Model.to_string model in
+  Format.printf "Model: %s\n" str;
+  ModelParser.parse str
+
+(* ==== Solver ==== *)
+
+let solve phi produce_model =
   let phi = translate phi in
   match Z3.Solver.check !solver [phi] with
   | Z3.Solver.SATISFIABLE ->
-      let model = Option.get @@ Z3.Solver.get_model !solver in
-      SMT_Sat model
+      if produce_model then
+        let model = Option.get @@ Z3.Solver.get_model !solver in
+        SMT_Sat (Some (translate_model model, model))
+      else
+        SMT_Sat None
 
   (* TODO: unsat core *)
   | Z3.Solver.UNSATISFIABLE ->

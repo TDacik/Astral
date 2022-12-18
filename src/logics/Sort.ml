@@ -25,6 +25,12 @@ let get_dom_sort = function
 let get_range_sort = function Array (_, range_sort) -> range_sort
 let get_width = function Bitvector width -> width
 
+let is_atomic = function
+  | Bool | Int | Finite _ | Bitvector _ | Loc -> true
+  | Set _ | Sequence _ | Array _ -> false
+
+let is_set = function Set _ -> true | _ -> false
+
 let rec equal sort1 sort2 = match sort1, sort2 with
   | Bool, Bool -> true
   | Int, Int -> true

@@ -6,23 +6,18 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
+open Backend_sig
 open Solver_utils
 
 module Batlist = Batteries.List
 
 (* === Declarations === *)
 
-type formula = string (* in smtlib2 format *)
+type formula = string
 
-type model = SMT.Model.t
-
-type status =
- | SMT_Sat of model
- | SMT_Unsat of SMT.Term.t list
- | SMT_Unknown of string
+type model = string
 
 let name = "cvc5"
-
 
 (* === Initialization === *)
 
@@ -54,8 +49,8 @@ let rec translate_decl (SMT.Variable (name, sort)) =
 
 and translate term =
   match term with
-  | SMT.Constant (name, _) -> name
   | SMT.Variable (name, _) -> name
+  | SMT.Constant (name, _) -> "|" ^ name ^ "|"
 
   | SMT.True -> "true"
   | SMT.False -> "false"
@@ -208,7 +203,7 @@ let simplify phi = phi
 
 (* === Solver === *)
 
-let solve phi =
+let solve phi produce_models =
   let vars = SMT.free_vars phi |> List.map translate_decl |> String.concat "\n" in
   let smt_query = Format.asprintf
   "(set-logic ALL)\n(set-option :produce-models true)\n%s\n%s\n(assert %s)\n(check-sat)\n(get-info :reason-unknown)\n(get-model)"
@@ -226,7 +221,7 @@ let solve phi =
   let pid =
     Unix.create_process
       "cvc5"
-      [| "--produce-models"; "--cegqi-full" |]
+      [| "--produce-models"; "--sygus-inst" |]
       input
       output
       Unix.stderr
@@ -269,21 +264,20 @@ let solve phi =
   in
 
   match status_line with
-  | "sat" -> SMT_Sat (ModelParser.parse model)
+  | "sat" ->
+    if produce_models
+    then SMT_Sat (Some (ModelParser.parse model, model))
+    else SMT_Sat None
   | "unsat" -> SMT_Unsat [] (* TODO: unsat core *)
   | "unknown" -> SMT_Unknown reason_unknown
   | error -> failwith ("[ERROR cvc5] " ^ error)
 
-
-(* === Model manipulation === *)
-
-let eval = SMT.Model.eval
-
-
 (* === Debugging === *)
 
+(** Formula is a smtlib string. *)
 let show_formula phi = phi
 
-let show_model model = SMT.Model.show model
+(** Model is a smtlib string. *)
+let show_model model = model
 
 let to_smt_benchmark _ = "; Not available for cvc5 backend"

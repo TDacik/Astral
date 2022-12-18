@@ -2,6 +2,13 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
+(** Type of backend's result parametrised by its internal representation of formula
+    and models. *)
+type ('term, 'model) status =
+  | SMT_Sat of (SMT.Model.t * 'model) option (* SMT model, backend's internal model *)
+  | SMT_Unsat of (SMT.Term.t * 'term) list   (* Unsat core *)
+  | SMT_Unknown of string                    (* Reason *)
+
 module type BACKEND = sig
 
   type formula
@@ -9,11 +16,6 @@ module type BACKEND = sig
 
   type model
   (** Internal representation of a model. *)
-
-  type status =
-    | SMT_Sat of model              (* Model *)
-    | SMT_Unsat of SMT.Term.t list  (* Unsat core *)
-    | SMT_Unknown of string         (* Reason *)
 
   val name : string
   (** Name of the solver used for logging. *)
@@ -27,12 +29,9 @@ module type BACKEND = sig
   val translate : SMT.Term.t -> formula
   (** Translate formula to solver's internal representation. *)
 
-  val solve : SMT.Term.t -> status
+  val solve : SMT.Term.t -> bool -> (formula, model) status
   (** Translate formula to solver's internal representation and check its
       satisfiability. *)
-
-  val eval : model -> SMT.Term.t -> SMT.Term.t
-  (** Evaluate term in a model. *)
 
   val simplify : formula -> formula
 
