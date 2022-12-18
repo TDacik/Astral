@@ -12,7 +12,7 @@ let rec unfold_ls_n n x y = match n with
   | 0 -> Eq (x, y)
   | n ->
       let l = Var (SSL.Variable.mk_fresh "l") in
-      Star (Neq (x,y), Star (PointsTo (x, l), unfold_ls_n (n-1) l y))
+      Star (Neq (x,y), Star (PointsTo (x, [l]), unfold_ls_n (n-1) l y))
 
 let unfold_ls n x y =
   BatList.range 0 `To n

@@ -167,7 +167,7 @@ let predict_footprint g x y =
   List.fold_left
     (fun (ptrs, lists) (x', label, y') ->
       match label with
-      | Pointer -> ((SSL.PointsTo (Var x', Var y')) :: ptrs, lists)
+      | Pointer -> ((SSL.PointsTo (Var x', [Var y'])) :: ptrs, lists)
       | List -> (ptrs, (SSL.LS (Var x', Var y')) :: lists)
     ) ([], []) path
 
@@ -185,7 +185,8 @@ let rec compute phi = match phi with
   | SSL.Var _ | SSL.Pure _ -> G.empty
   | SSL.Eq (Var x, Var y) -> G.add_edge_e G.empty (x, Equality, y)
   | SSL.Neq (Var x, Var y) -> G.add_edge_e G.empty (x, Disequality, y)
-  | SSL.PointsTo (Var x, Var y) -> G.add_edge_e G.empty (x, Pointer, y)
+  | SSL.PointsTo (Var x, [Var y]) -> G.add_edge_e G.empty (x, Pointer, y)
+  | SSL.PointsTo (Var x, _) -> G.empty (* TODO *)
   | SSL.LS (Var x, Var y) -> G.add_edge_e G.empty (x, List, y)
   | SSL.DLS _ -> G.empty (* TODO *)
 

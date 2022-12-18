@@ -40,11 +40,11 @@ let rec convert phi = match phi with
   | Not f ->  F.asprintf "(!%s)\n" (convert f)
   | Star (f1, f2) ->  F.asprintf "(%s &*& %s)" (convert f1) (convert f2)
   | LS (v1, v2) -> F.asprintf "(lseg (%s, %s))" (convert v1) (convert v2)
-  | PointsTo (v1, v2) -> F.asprintf "(%s.next |-> %s)" (convert v1) (convert v2)
+  | PointsTo (v1, [v2]) -> F.asprintf "(%s.next |-> %s)" (convert v1) (convert v2)
   | Eq (v1, v2) -> F.asprintf "(%s == %s)" (convert v1) (convert v2)
   | Neq (v1, v2) -> F.asprintf "(%s != %s)" (convert v1) (convert v2)
   | GuardedNeg (f1, f2) ->  failwith "TODO"
-  | Septraction (f1, f2) -> failwith "Not supported"
+  | _ -> failwith "Not supported"
 
 let procedure_pre phi = match phi with
   (* Left-hand side of entailment *)

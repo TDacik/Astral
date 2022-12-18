@@ -44,9 +44,9 @@ let rec parse_app term operands = match term.term with
     | "distinct" ->
         (* TODO: variadic version *)
         SSL.mk_distinct [fst @@ parse_atom operands; snd @@ parse_atom operands]
-    | "pto" -> SSL.mk_pto (fst @@ parse_atom operands) (snd @@ parse_atom operands)
+    | "pto" -> parse_pto operands
     | "ls" -> SSL.mk_ls (fst @@ parse_atom operands) (snd @@ parse_atom operands)
-    | "dls" -> SSL.mk_dls (fst @@ parse_atom operands) (snd @@ parse_atom operands)
+    | "dll" | "dls" -> parse_dls operands
     | other -> raise (ParserError (Format.asprintf "Unknown connective %s" other))
   end
 
@@ -58,9 +58,20 @@ and parse_unary_op operands =
   if List.length operands <> 1 then raise (ParserError "Expected one operand")
   else parse_term @@ List.nth operands 0
 
+and parse_dls operands =
+  if List.length operands <> 4 then raise (ParserError "Expected one operand")
+  else match List.map parse_term operands with [x; y; f; l] -> SSL.mk_dls x y f l
+
+and parse_pto [source; targets] =
+  let source_var = parse_term source in
+  match targets.term with
+  | App (_, args) -> SSL.mk_pto_seq source_var (List.map parse_term args)
+  | _ -> SSL.mk_pto source_var (parse_term targets)
+
 and parse_atom operands =
   if List.length operands <> 2 then raise (ParserError "Expected two variables")
   else (parse_symbol @@ List.nth operands 0, parse_symbol @@ List.nth operands 1)
+
 
 and parse_constant term (id : Dolmen_std.Id.t) =
   match Format.asprintf "%a" Dolmen_std.Id.print id with
@@ -75,6 +86,7 @@ and parse_constant term (id : Dolmen_std.Id.t) =
 and parse_term term = match term.term with
   | App (t, terms) -> parse_app t terms
   | Symbol id -> parse_constant term id
+  | Colon (t, _) -> parse_term t
   | _ -> failwith (Format.asprintf "Not supporter term: %a" Std.Term.print term)
 
 and parse_smt_term t = match t.term with
@@ -97,6 +109,7 @@ and parse_smt_term t = match t.term with
     else match TypeEnv.type_of name with
     | Int -> SMT.LIA.mk_var name
     | Bool -> SMT.Boolean.mk_var name
+    | other -> failwith (Sort.show other)
 
 and symbol_to_var term symbol : SSL.t =
   match Format.asprintf "%a" Dolmen_std.Id.print symbol with

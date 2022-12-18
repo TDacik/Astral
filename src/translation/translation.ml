@@ -87,7 +87,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   (* ==== Recursive translation of SL formulae ==== *)
 
   let rec translate context phi domain = match phi with
-    | SSL.PointsTo (var1, var2) -> translate_pointsto context domain var1 var2
+    | SSL.PointsTo (x, [y]) -> translate_pointsto context domain x y
+    | SSL.PointsTo (x, ys) -> translate_dpointsto context domain x ys
     | SSL.And (psi1, psi2) -> translate_and context domain psi1 psi2
     | SSL.Or (psi1, psi2) -> translate_or context domain psi1 psi2
     | SSL.Star (psi1, psi2) -> translate_star context domain psi1 psi2
@@ -95,7 +96,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     | SSL.Eq (Var var1, Var var2) -> translate_eq context domain var1 var2
     | SSL.Neq (Var var1, Var var2) -> translate_neq context domain var1 var2
     | SSL.LS (Var var1, Var var2) -> translate_ls context domain var1 var2
-    | SSL.DLS (Var var1, Var var2) -> translate_dls context domain var1 var2
+    | SSL.DLS (Var x, Var y, Var f, Var l) -> translate_dls context domain x y f l
     | SSL.Not (psi) -> translate_not context domain psi
     | SSL.GuardedNeg (psi1, psi2) -> translate_guarded_neg context domain psi1 psi2
     | SSL.Pure term -> translate_pure context domain term
@@ -118,6 +119,23 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     (semantics, axioms, footprints)
 
+  (* FIXME: this is only first idea assuming implicit order on selectors. *)
+  and translate_dpointsto context domain x [n; p] =
+    let x = term_to_expr context x in
+    let n = term_to_expr context n in
+    let p = term_to_expr context p in
+
+    let domain_def = Set.mk_eq_singleton domain x in
+    let pointer_next = mk_is_heap_succ context x n in
+    let pointer_prev = mk_is_heap_succ {context with heap = context.heap_prev} x p in
+
+    let semantics = Boolean.mk_and [pointer_next; pointer_prev; domain_def] in
+    let axioms = Boolean.mk_true () in
+    let footprints = [Set.mk_singleton x] in
+
+    (semantics, axioms, footprints)
+
+
   and translate_ls context domain x y =
     let local_bound = Bounds.local_bound context x y in
     let x = var_to_expr context x in
@@ -129,14 +147,16 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let footprints = [fp] in
     (semantics, axioms, footprints)
 
-  and translate_dls context domain x y =
-    let local_bound = Bounds.local_bound context x y in (*TODO*)
+  and translate_dls context domain x y f l =
+    let local_bound = (0, context.location_bound - 1) in (*TODO: more precise bounds*)
     let x = var_to_expr context x in
     let y = var_to_expr context y in
+    let f = var_to_expr context f in
+    let l = var_to_expr context l in
 
     let fp = SMT.Set.mk_fresh_var "dls_fp" context.fp_sort in
-    let semantics = DLListEncoding.semantics context domain x y local_bound in
-    let axioms = DLListEncoding.axioms context fp x y local_bound in
+    let semantics = DLListEncoding.semantics context domain fp x y f l local_bound in
+    let axioms = DLListEncoding.axioms context fp x y f l local_bound in
     let footprints = [fp] in
     (semantics, axioms, footprints)
 
@@ -377,7 +397,7 @@ let translate_phi (context : Context.t) locs phi =
 
   let nil_interp context model =
     let e = SMT.Variable.mk (SSL.Variable.show SSL.Variable.nil) context.locs_sort in
-    try Backend.eval model e
+    try Model.eval model e
     with _ -> failwith "No interpretation of nil"
 
   let translate_loc loc = match loc with
@@ -399,32 +419,37 @@ let translate_phi (context : Context.t) locs phi =
       (fun stack var ->
         let var_expr = SMT.Variable.mk (SSL.Variable.show var) context.locs_sort in
         let loc =
-          try Backend.eval model var_expr
+          try Model.eval model var_expr
           with Not_found -> nil_interp context model
         in
         Stack.add var (translate_loc loc) stack
       ) Stack.empty (SSL.Variable.nil :: context.vars)
 
   let translate_heap context model heap_term fp =
-    Format.printf "FP: %a\n" SMT.pp (Backend.eval model fp);
-    let fp = SMT.Set.get_elems @@ Backend.eval model fp in
+    let fp = SMT.Set.get_elems @@ Model.eval model fp in
     List.fold_left
       (fun heap loc ->
-        Format.printf "Loc: %a\n" SMT.pp loc;
-        let heap_image = Array.mk_select heap_term loc in
         let loc_name = translate_loc loc in
+        let heap_image = Array.mk_select heap_term loc in
         let image_name =
-          Backend.eval model heap_image
+          Model.eval model heap_image
           |> translate_loc
         in
-        Heap.add loc_name image_name heap
+        let heap = Heap.add_next loc_name image_name heap in
+        (* TODO: handle prev properly *)
+        let heap_image_prev = Array.mk_select context.heap_prev loc in
+        let image_name_prev =
+          Model.eval model heap_image_prev
+          |> translate_loc
+        in
+        Heap.add_prev loc_name image_name_prev heap
       ) Heap.empty fp
 
   (** TODO: translate ALL footprint symbols introduced during translation. *)
   let translate_footprints context model =
     List.fold_left
       (fun acc (psi, fp_expr) ->
-        let set = SMT.Set.get_elems @@ Backend.eval model fp_expr in
+        let set = SMT.Set.get_elems @@ Model.eval model fp_expr in
         let fp = Footprint.of_list @@ List.map translate_loc set in
         SSL.Map.add psi fp acc
       ) SSL.Map.empty [(context.phi, context.global_footprint)]
@@ -499,15 +524,15 @@ let translate_phi (context : Context.t) locs phi =
     Debug.backend_smt_benchmark (Backend.to_smt_benchmark @@ Backend.translate translated);
 
     (* Solve *)
-    match Backend.solve translated with
-    | SMT_Sat model ->
-      if input.get_model || Options.produce_models () then
-        let _ = Debug.backend_model (Backend.show_model model) in
-        let sh = translate_model context model in
-        let _ = Debug.model sh in
-        Input.set_result `Sat ~model:(Some sh) input
-
-      else Input.set_result `Sat input
+    let produce_models = input.get_model || Options.produce_models () in
+    match Backend.solve translated produce_models with
+    | SMT_Sat None -> Input.set_result `Sat input
+    | SMT_Sat (Some (smt_model, backend_model)) ->
+      let _ = Debug.backend_model (Backend.show_model backend_model) in
+      let _ = Debug.smt_model smt_model in
+      let sh = translate_model context smt_model in
+      let _ = Debug.model sh in
+      Input.set_result `Sat ~model:(Some sh) input
 
     (* TODO: unsat cores *)
     | SMT_Unsat unsat_core -> Input.set_result `Unsat ~unsat_core:(Some []) input

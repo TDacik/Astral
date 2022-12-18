@@ -27,7 +27,7 @@ let rec convert = function
   | GuardedNeg (f1, f2) ->  F.asprintf "(and %s (not %s))\n" (convert f1) (convert f2)
   | Star (f1, f2) ->  F.asprintf "(sl.sepcon %s %s)\n" (convert f1) (convert f2)
   | LS (v1, v2) -> F.asprintf "(sl.list.seg %s %s)\n" (convert v1) (convert v2)
-  | PointsTo (v1, v2) -> F.asprintf "(sl.list.next %s %s)\n" (convert v1) (convert v2)
+  | PointsTo (v1, [v2]) -> F.asprintf "(sl.list.next %s %s)\n" (convert v1) (convert v2)
   | Eq (v1, v2) -> F.asprintf "(sl.list.eq %s %s)\n" (convert v1) (convert v2)
   | Neq (v1, v2) -> F.asprintf "(sl.list.neq %s %s)\n" (convert v1) (convert v2)
 

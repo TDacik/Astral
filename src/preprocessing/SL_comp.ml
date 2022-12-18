@@ -24,4 +24,4 @@ let rec preprocess phi = match phi with
   | GuardedNeg (psi1, psi2) -> GuardedNeg (preprocess psi1, preprocess psi2)
   | Star (psi1, psi2) -> Star (preprocess psi1, preprocess psi2)
   | Septraction (psi1, psi2) -> Septraction (preprocess psi1, preprocess psi2)
-  | Eq _ | Neq _ | LS _ | PointsTo _ -> phi
+  | Eq _ | Neq _ | LS _ | DLS _ | PointsTo _ -> phi

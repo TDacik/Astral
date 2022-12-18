@@ -36,9 +36,9 @@ type t =
   (* Atoms *)
   | Eq of t * t
   | Neq of t * t
-  | PointsTo of t * t
+  | PointsTo of t * t list
   | LS of t * t
-  | DLS of t * t
+  | DLS of t * t * t * t
 
   (* Boolean connectives *)
   | And of t * t
@@ -59,9 +59,9 @@ let describe_node : t -> t node_info = function
   | Pure t -> ("pure " ^ SMT.show t, Operator ([], (SMT.get_sort t)))
   | Eq (x, y) -> ("=", Operator ([x; y], Sort.Bool))
   | Neq (x, y) -> ("neq", Operator ([x; y], Sort.Bool))
-  | PointsTo (x, y) -> ("pto", Operator ([x; y], Sort.Bool))
+  | PointsTo (x, ys) -> ("pto", Operator (x :: ys, Sort.Bool))
   | LS (x, y) -> ("ls", Operator ([x; y], Sort.Bool))
-  | DLS (x, y) -> ("dls", Operator ([x; y], Sort.Bool))
+  | DLS (x, y, f, l) -> ("dls", Operator ([x; y; f; l], Sort.Bool))
   | And (psi1, psi2) -> ("and", Connective [psi1; psi2])
   | Or (psi1, psi2) -> ("or", Connective [psi1; psi2])
   | Not psi -> ("not", Connective [psi])
@@ -263,9 +263,10 @@ let get_vars ?(with_nil=true) phi =
 
 let mk_eq x y = Eq (x, y)
 let mk_neq x y = Neq (x, y)
-let mk_pto x y = PointsTo (x, y)
+let mk_pto x y = PointsTo (x, [y])
+let mk_pto_seq x ys = PointsTo (x, ys)
 let mk_ls x y = LS (x, y)
-let mk_dls x y = DLS (x, y)
+let mk_dls x y f l = DLS (x, y, f, l)
 
 let mk_not phi = Not phi
 

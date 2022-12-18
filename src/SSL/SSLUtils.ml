@@ -26,6 +26,8 @@ module AST = struct
 
   type t = G.t * G.V.t
 
+  let show_seq xs = "<" ^ (List.map SSL.show xs |> String.concat ", ") ^ ">"
+
   let node_name phi psi =
     let label = match psi with
       | Var _ | Pure _ -> SSL.show psi
@@ -36,8 +38,9 @@ module AST = struct
       | Star (f1, f2) -> "★"
       | Septraction (f1, f2) -> "--(★)"
       | LS (v1, v2) -> Format.asprintf "ls(%a, %a)" SSL.pp v1 SSL.pp v2
-      | DLS (v1, v2) -> Format.asprintf "dls(%a, %a)" SSL.pp v1 SSL.pp v2
-      | PointsTo (v1, v2) -> Format.asprintf "%a ↦ %a" SSL.pp v1 SSL.pp v2
+      | DLS (v1, v2, v3, v4) -> Format.asprintf "dls(%a, %a, %a, %a)"
+                                  SSL.pp v1 SSL.pp v2 SSL.pp v3 SSL.pp v4
+      | PointsTo (v1, vs) -> Format.asprintf "%a ↦ %s" SSL.pp v1 (show_seq vs)
       | Eq (v1, v2) -> Format.asprintf "%a = %a" SSL.pp v1 SSL.pp v2
       | Neq (v1, v2) -> Format.asprintf "%a ≠ %a" SSL.pp v1 SSL.pp v2
       (*

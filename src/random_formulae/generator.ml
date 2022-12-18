@@ -11,7 +11,7 @@ let gen_var var = SSL.Var (var, Sort.Loc)
 
 let gen_eq (x, y) = SSL.Eq (x, y)
 let gen_neq (x, y) = SSL.Neq (x, y)
-let gen_pt (x, y) = SSL.PointsTo (x, y)
+let gen_pt (x, y) = SSL.mk_pto x y
 let gen_ls (x, y) = SSL.LS (x, y)
 
 let gen_and f g = SSL.And (f, g)

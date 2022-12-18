@@ -43,7 +43,7 @@ let translate_vars phi =
 let rec pretty_atom phi =
   let str, v1, v2 = match phi with
     | LS (v1, v2) -> ("ls", v1, v2)
-    | PointsTo (v1, v2) -> ("pto", v1, v2)
+    | PointsTo (v1, [v2]) -> ("pto", v1, v2)
     | Eq (v1, v2) -> ("=", v1, v2)
     | Neq (v1, v2) -> ("distinct", v1, v2)
   in

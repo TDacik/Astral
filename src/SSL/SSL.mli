@@ -27,9 +27,9 @@ type t =
   | Pure of SMT.Term.t
   | Eq of t * t
   | Neq of t * t
-  | PointsTo of t * t
+  | PointsTo of t * t list
   | LS of t * t
-  | DLS of t * t
+  | DLS of t * t * t * t
   | And of t * t
   | Or of t * t
   | Not of t
@@ -85,10 +85,14 @@ val mk_neq : t -> t -> t
 val mk_distinct : t list -> t
 
 val mk_pto : t -> t -> t
+(** Create a term representing a pointer with a single target location. *)
+
+val mk_pto_seq : t -> t list -> t
+(** Create a term representing a pointer with a sequence of target locations. *)
 
 val mk_ls : t -> t -> t
 
-val mk_dls : t -> t -> t
+val mk_dls : t -> t -> t -> t -> t
 
 val mk_emp : unit -> t
 

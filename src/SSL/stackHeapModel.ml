@@ -31,6 +31,9 @@ end
 module Stack = struct
   include Map.Make(SSL.Variable)
 
+  (* Fix monomorphic type *)
+  type nonrec t = Location.t t
+
   let find var stack =
     try find var stack
     with Not_found ->
@@ -40,15 +43,33 @@ module Stack = struct
 
 end
 
-module Heap = Map.Make(Location)
+module Heap = struct
+  module M = Map.Make(Location)
+
+  type selector = Location.t M.t
+
+  type t = selector * selector (* Prev and next heap *)
+
+  let empty = (M.empty, M.empty)
+
+  let add_prev x y heap = (M.add x y (fst heap), snd heap)
+  let add_next x y heap = (fst heap, M.add x y (snd heap))
+
+  let iter_prev fn heap = M.iter fn (fst heap)
+  let iter_next fn heap = M.iter fn (snd heap)
+
+  let fold_prev fn heap acc = M.fold fn (fst heap) acc
+  let fold_next fn heap acc = M.fold fn (snd heap) acc
+
+end
 
 type t = {
-  stack : Location.t Stack.t;
-  heap : Location.t Heap.t;
+  stack : Stack.t;
+  heap : Heap.t;
 
   (* Additional certificates *)
   footprints : Footprint.t SSL.Map.t;   (* Mapping of sub-formulae to their footprints *)
-  heaps : Location.t Heap.t SSL.Map.t;  (* Mapping of sub-formulae to their heaps *)
+  heaps : Heap.t SSL.Map.t;             (* Mapping of sub-formulae to their heaps *)
 }
 
 let empty () = {
@@ -98,7 +119,8 @@ let stack_inverse sh loc =
 let fp_to_string fp = String.concat ", " @@ List.map Int.to_string @@ Footprint.elements fp
 
 let heap_to_string heap =
-  Heap.fold (fun k v acc -> Format.asprintf "%s\t%d -> %d\n" acc k v) heap ""
+  (Heap.fold_next (fun k v acc -> Format.asprintf "%s\t%d -> %d\n" acc k v) heap "")
+  ^ (Heap.fold_prev (fun k v acc -> Format.asprintf "%s\t%d -> %d\n" acc k v) heap "")
 
 let to_string sh =
   let str =  "Stack:\n" in
@@ -122,8 +144,10 @@ let to_string sh =
 let print sh =
   Format.printf "Stack:\n";
   Stack.iter (fun k v -> Format.printf "%s -> %d\n" (SSL.Variable.show k) v) sh.stack;
-  Format.printf "Heap:\n";
-  Heap.iter (fun k v -> Format.printf "%d -> %d\n" k v) sh.heap;
+  Format.printf "Heap (next):\n";
+  Heap.iter_next (fun k v -> Format.printf "%d -> %d\n" k v) sh.heap;
+  Format.printf "Heap (prev):\n";
+  Heap.iter_prev (fun k v -> Format.printf "%d -> %d\n" k v) sh.heap;
   Format.printf "Footprints:\n";
   SSL.Map.iter
     (fun psi fp -> Format.printf "%a -> {%s}\n" SSL.pp psi (fp_to_string fp)) sh.footprints
@@ -131,18 +155,21 @@ let print sh =
 (* === Graph representation of (s,h) model === *)
 
 module Vertex = struct
-
   include Int
-
   let hash = Hashtbl.hash
-
   let show loc = Format.asprintf "%d" loc
+end
 
+module EdgeLabel = struct
+  type t = None | Next | Prev [@@deriving compare, equal]
+
+  let default = None
+  let show = function Next -> "next" | Prev -> "prev"
 end
 
 module HeapGraph = struct
 
-  module Graph = Persistent.Digraph.ConcreteBidirectional(Vertex)
+  module Graph = Persistent.Digraph.ConcreteBidirectionalLabeled(Vertex)(EdgeLabel)
   include Graph
 
   module Labels = Map.Make(Vertex)
@@ -182,7 +209,7 @@ module HeapGraph = struct
         [`Label (Format.asprintf "%d : %s" v (String.concat "," (stack_inverse (Option.get !model) v)))]
 
       let get_subgraph _ = None
-      let edge_attributes e = []
+      let edge_attributes e = [`Label (EdgeLabel.show @@ E.label e)]
       let default_edge_attributes _ = []
     end)
 
@@ -191,7 +218,8 @@ end
 let get_heap_graph sh =
   HeapGraph.empty
   |> Stack.fold (fun _ loc g -> HeapGraph.add_vertex g loc) sh.stack
-  |> Heap.fold (fun x y g -> HeapGraph.add_edge g x y) sh.heap
+  |> Heap.fold_next (fun x y g -> HeapGraph.add_edge_e g (x, Next, y)) sh.heap
+  |> Heap.fold_prev (fun x y g -> HeapGraph.add_edge_e g (x, Prev, y)) sh.heap
 
 let get_path sh x y = HeapGraph.get_path (get_heap_graph sh) x y
 
