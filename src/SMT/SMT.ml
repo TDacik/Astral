@@ -573,20 +573,24 @@ module Set = struct
   let mk_subset s1 s2 = Subset (s1, s2)
   let mk_disjoint s1 s2 = Disjoint (s1, s2)
 
-  let mk_union ts sort =
+  let mk_union sets sort =
     assert (Sort.is_set sort);
-    construct (fun es sort -> Union (es, sort)) (@) [] ts sort
+    match sets with
+    | [] -> mk_empty sort
+    | [s] -> s
+    | sets -> construct (fun es sort -> Union (es, sort)) (@) [] ts sort
 
-  let mk_inter ts sort =
+  let mk_inter sets sort =
     assert (Sort.is_set sort);
-    Inter (ts, sort)
+    match sets with
+    | [s] -> s
+    | sets -> Inter (sets, sort)
 
   let mk_diff t1 t2 = Diff (t1, t2)
   let mk_compl t = Compl t
   let mk_enumeration sort elements = Enumeration (elements, sort)
 
   let mk_add set elem = mk_union [set; mk_singleton elem] (get_sort set)
-
 
   let mk_eq_empty set = Equal (set, Enumeration ([], get_sort set))
   let mk_eq_singleton set x = Equal (set, Enumeration ([x], get_sort set))
