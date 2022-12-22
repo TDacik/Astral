@@ -209,7 +209,9 @@ module HeapGraph = struct
         [`Label (Format.asprintf "%d : %s" v (String.concat "," (stack_inverse (Option.get !model) v)))]
 
       let get_subgraph _ = None
-      let edge_attributes e = [`Label (EdgeLabel.show @@ E.label e)]
+      let edge_attributes e = [
+        `Style (match E.label e with Next -> `Solid | Prev -> `Dashed);
+      ]
       let default_edge_attributes _ = []
     end)
 

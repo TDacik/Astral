@@ -67,9 +67,8 @@ module Make (Term : TERM) = struct
         mk_indent n ++ "(" ++ node_name node ++ "\n" ++ pretty_terms (n + 2) terms ++ mk_indent n ++ ")\n\n"
   | Quantifier _ -> "TODO"
 
-  let rec show term = pretty 0 term
-
-    (*match node_type term with
+  let rec show term = (*pretty 0 term*)
+    match node_type term with
     | Var (name, _) -> name
     | Operator (terms, _) | Connective terms ->
       begin match terms with
@@ -81,7 +80,7 @@ module Make (Term : TERM) = struct
     | Quantifier (binders, phi) ->
       let binders = String.concat " " (List.map show_with_sort binders) in
       Format.asprintf "(%s %s. %s)" (node_name term) binders (show phi)
-*)
+
   and show_with_sort term = match node_type term with
     | Quantifier _ -> show term
     | _ -> Format.asprintf "%s : %s" (show term) (Sort.show @@ get_sort term)
