@@ -578,7 +578,7 @@ module Set = struct
     match sets with
     | [] -> mk_empty sort
     | [s] -> s
-    | sets -> construct (fun es sort -> Union (es, sort)) (@) [] ts sort
+    | sets -> construct (fun es sort -> Union (es, sort)) (@) [] sets sort
 
   let mk_inter sets sort =
     assert (Sort.is_set sort);
