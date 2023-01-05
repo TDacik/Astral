@@ -30,6 +30,7 @@ type t =
   | PointsTo of t * t list
   | LS of t * t
   | DLS of t * t * t * t
+  | SkipList of int * t * t
   | And of t * t
   | Or of t * t
   | Not of t
@@ -93,6 +94,8 @@ val mk_pto_seq : t -> t list -> t
 val mk_ls : t -> t -> t
 
 val mk_dls : t -> t -> t -> t -> t
+
+val mk_skl : int -> t -> t -> t
 
 val mk_emp : unit -> t
 

@@ -39,6 +39,7 @@ type t =
   | PointsTo of t * t list
   | LS of t * t
   | DLS of t * t * t * t
+  | SkipList of int * t * t
 
   (* Boolean connectives *)
   | And of t * t
@@ -62,6 +63,7 @@ let describe_node : t -> t node_info = function
   | PointsTo (x, ys) -> ("pto", Operator (x :: ys, Sort.Bool))
   | LS (x, y) -> ("ls", Operator ([x; y], Sort.Bool))
   | DLS (x, y, f, l) -> ("dls", Operator ([x; y; f; l], Sort.Bool))
+  | SkipList (depth, x, y) -> (Format.asprintf "skl%d" depth, Operator ([x; y], Sort.Bool))
   | And (psi1, psi2) -> ("and", Connective [psi1; psi2])
   | Or (psi1, psi2) -> ("or", Connective [psi1; psi2])
   | Not psi -> ("not", Connective [psi])
@@ -137,7 +139,7 @@ let rec normalise phi =
 
 (** What exactly is the chunk size of single variable? *)
 let rec chunk_size = function
-  | Eq _ | Neq _ | PointsTo _ | LS _ | DLS _ | Var _ -> 1
+  | Eq _ | Neq _ | PointsTo _ | LS _ | DLS _ | SkipList _ | Var _ -> 1
   | Star (psi1, psi2) -> chunk_size psi1 + chunk_size psi2
   | Septraction (_, psi2) -> chunk_size psi2
   | And (psi1, psi2) | Or (psi1, psi2) | GuardedNeg (psi1, psi2) ->
@@ -220,7 +222,7 @@ let rec is_atomic phi = match node_type phi with
   | Var _ -> true
   | Operator _ ->
     begin match phi with
-      | LS _ | DLS _ -> false
+      | LS _ | DLS _ | SkipList _ -> false
       | _ -> true
     end
   | Connective terms -> List.for_all is_atomic terms
@@ -240,7 +242,7 @@ let classify_fragment phi =
   else Arbitrary
 
 let rec has_unique_footprint = function
-  | Eq _ | Neq _ | PointsTo _ | LS _ | DLS _ -> true
+  | Eq _ | Neq _ | PointsTo _ | LS _ | DLS _ | SkipList _ -> true
   | And (f1, f2) -> has_unique_footprint f1 || has_unique_footprint f2
   | Or (f1, f2) -> has_unique_footprint f1 && has_unique_footprint f2
   | GuardedNeg (f1, f2) -> has_unique_footprint f1
@@ -267,6 +269,7 @@ let mk_pto x y = PointsTo (x, [y])
 let mk_pto_seq x ys = PointsTo (x, ys)
 let mk_ls x y = LS (x, y)
 let mk_dls x y f l = DLS (x, y, f, l)
+let mk_skl depth x y = SkipList (depth, x, y)
 
 let mk_not phi = Not phi
 

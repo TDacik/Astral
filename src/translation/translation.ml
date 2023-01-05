@@ -97,6 +97,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     | SSL.Neq (Var var1, Var var2) -> translate_neq context domain var1 var2
     | SSL.LS (Var var1, Var var2) -> translate_ls context domain var1 var2
     | SSL.DLS (Var x, Var y, Var f, Var l) -> translate_dls context domain x y f l
+    | SSL.SkipList (2, Var x, Var y) -> translate_skl context domain x y
     | SSL.Not (psi) -> translate_not context domain psi
     | SSL.GuardedNeg (psi1, psi2) -> translate_guarded_neg context domain psi1 psi2
     | SSL.Pure term -> translate_pure context domain term
@@ -158,6 +159,18 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let semantics = DLListEncoding.semantics context domain fp x y f l local_bound in
     let axioms = DLListEncoding.axioms context fp x y f l local_bound in
     let footprints = [fp] in
+    (semantics, axioms, footprints)
+
+  and translate_skl context domain x y =
+    let local_bound = (0, context.location_bound - 1) in (*TODO: more precise bounds*)
+    let x = var_to_expr context x in
+    let y = var_to_expr context y in
+
+    let fp1 = SMT.Set.mk_fresh_var "skl_fp1" context.fp_sort in
+    let fp2 = SMT.Set.mk_fresh_var "skl_fp2" context.fp_sort in
+    let semantics = SkipListEncoding.semantics context domain fp1 fp2 x y local_bound in
+    let axioms = SkipListEncoding.axioms context fp1 fp2 x y local_bound in
+    let footprints = [fp1] in
     (semantics, axioms, footprints)
 
   and translate_eq context domain x y =

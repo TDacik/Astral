@@ -47,6 +47,9 @@ let rec parse_app term operands = match term.term with
     | "pto" -> parse_pto operands
     | "ls" -> SSL.mk_ls (fst @@ parse_atom operands) (snd @@ parse_atom operands)
     | "dll" | "dls" -> parse_dls operands
+    (* TODO: fix *)
+    | "skl1" -> SSL.mk_ls (fst @@ parse_atom operands) (snd @@ parse_atom operands)
+    | "skl2" -> SSL.mk_skl 2 (fst @@ parse_atom operands) (snd @@ parse_atom operands)
     | other -> raise (ParserError (Format.asprintf "Unknown connective %s" other))
   end
 
