@@ -254,7 +254,6 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     (* Strong-separating semantics *)
     else
-      let _ = Printf.printf "SSL\n" in
       let axiom, str_disjoint = mk_strongly_disjoint context fp1 fp2 in
       let axioms = Boolean.mk_and [axioms; axiom] in
       (Boolean.mk_and [semantics1; semantics2; disjoint; str_disjoint; domain_def], axioms, [])
@@ -295,8 +294,10 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       let semantics = Boolean.mk_and [semantics1; semantics2; disjoint; domain_def] in
       (semantics, axioms, footprints)
 
-    (* TODO: non-unique + weak *)
-    else if not @@ Options.strong_separation () then
+    (* Not unique footprint, but positive (eg., entailment with disjunctions) *)
+    else if SSL.is_positive psi1 && SSL.is_positive psi2
+            || not @@ Options.strong_separation ()
+    then
       let semantics =
         Boolean.mk_and [semantics1; semantics2; disjoint; domain_def]
         |> Quantifier.mk_exists2 [fp1; fp2] [footprints1; footprints2]
@@ -306,7 +307,6 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     (* Strong-separating semantics *)
     else
-      let _ = Printf.printf "SSL\n" in
       let ssl_axiom, str_disjoint = mk_strongly_disjoint context fp1 fp2 in
       let semantics =
         Boolean.mk_and [semantics1; semantics2; disjoint; domain_def; str_disjoint]
