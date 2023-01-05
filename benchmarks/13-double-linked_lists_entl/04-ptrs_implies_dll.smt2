@@ -1,5 +1,5 @@
 (set-info :source Astral)
-(set-info :status unsat)
+(set-info :status sat)
 
 (declare-const x Loc)
 (declare-const y Loc)
