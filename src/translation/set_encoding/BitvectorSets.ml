@@ -134,7 +134,7 @@ let rec rewrite t =
     ) t
 
 (** Rewritting of models. *)
-let rewrite_back phi_orig model =
+let rewrite_back phi_orig (model : SMT.Model.t) =
   let rewrite_term = Term.map
     (fun t -> match t with
       | BitConst (n, width) ->
@@ -144,10 +144,11 @@ let rewrite_back phi_orig model =
       | other -> other
     )
   in
-  SMT.Model.map
-    (fun (var, term) ->
-      let name = SMT.Variable.get_name var in
-      match SMT.get_sort_in_term name phi_orig with
-      | Set _ -> rewrite_term term
-      | _ -> term
-    ) model
+  SMT.Model.fold
+    (fun (name, sort) term acc ->
+      let term' = match SMT.get_sort_in_term name phi_orig with
+        | Set _ -> rewrite_term term
+        | _ -> term
+      in
+      SMT.Model.add (name, sort) term' acc
+    ) model SMT.Model.empty
