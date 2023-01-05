@@ -4,20 +4,20 @@
 (declare-sort Loc 0)
 (declare-heap (Loc Loc))
 
-; Heap can be split into (at lest) three non-empty sub-heaps
+; Heap can be split into two non-empty sub-heaps
+;   => its size at least 2
 (assert
   (sep
-    (not sep.emp)
     (not sep.emp)
     (not sep.emp)
   )
 )
 
-; Heap cannot be split into four non-empty sub-heaps
+; Heap cannot be split into three non-empty sub-heaps
+;   => its size at most 2
 (assert
   (not
     (sep
-      (not sep.emp)
       (not sep.emp)
       (not sep.emp)
       (not sep.emp)
