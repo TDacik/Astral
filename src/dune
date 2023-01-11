@@ -2,9 +2,9 @@
   (name astral_lib)
   (inline_tests)
   (libraries
-    base
+    ;base
     z3
-    bitwuzla
+    ;bitwuzla
     dolmen
     batteries
     ocamlgraph
