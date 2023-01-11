@@ -1,5 +1,7 @@
 (* Signature for solver's backend
  *
+ * TODO: add solver object that can be used for setting command-line options etc.
+ *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
 (** Type of backend's result parametrised by its internal representation of formula
@@ -29,9 +31,13 @@ module type BACKEND = sig
   val translate : SMT.Term.t -> formula
   (** Translate formula to solver's internal representation. *)
 
-  val solve : SMT.Term.t -> bool -> (formula, model) status
+  val solve : SMT.Term.t -> bool -> string list -> (formula, model) status
   (** Translate formula to solver's internal representation and check its
-      satisfiability. *)
+      satisfiability.
+
+      TODO: producing models can be included in options?
+
+      *)
 
   val simplify : formula -> formula
 

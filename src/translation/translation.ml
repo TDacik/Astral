@@ -551,7 +551,8 @@ let translate_phi (context : Context.t) locs ssl_phi =
 
     (* Solve *)
     let produce_models = input.get_model || Options.produce_models () in
-    match Backend.solve translated produce_models with
+    let user_options = Options.backend_options () in
+    match Backend.solve translated produce_models user_options with
     | SMT_Sat None -> Input.set_result `Sat input
     | SMT_Sat (Some (smt_model, backend_model)) ->
       let _ = Debug.backend_model (Backend.show_model backend_model) in

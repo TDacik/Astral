@@ -1,5 +1,7 @@
 (* Z3 adapter for Astral
  *
+ * TODO: pass user defined options
+ *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
 open Backend_sig
@@ -162,11 +164,11 @@ let translate_model model =
 
 (* ==== Solver ==== *)
 
-let solve phi produce_model =
+let solve phi produce_models options =
   let phi = translate phi in
   match Z3.Solver.check !solver [phi] with
   | Z3.Solver.SATISFIABLE ->
-      if produce_model then
+      if produce_models then
         let model = Option.get @@ Z3.Solver.get_model !solver in
         SMT_Sat (Some (translate_model model, model))
       else

@@ -196,7 +196,11 @@ let simplify phi = phi
 
 (* === Solver === *)
 
-let solve phi produce_models =
+let cvc5_options user_options = match user_options with
+  | [] -> [| "--produce-models"; "--sygus-inst" |]
+  | options -> Array.of_list options
+
+let solve phi produce_models options =
   let vars = SMT.free_vars phi |> List.map translate_decl |> String.concat "\n" in
   let smt_query = Format.asprintf
   "(set-logic ALL)\n(set-option :produce-models true)\n%s\n%s\n(assert %s)\n(check-sat)\n(get-info :reason-unknown)\n(get-model)"
@@ -211,10 +215,11 @@ let solve phi produce_models =
 
   let input = Unix.descr_of_in_channel @@ open_in query_filename in
   let output = Unix.descr_of_out_channel answer_channel in
+  let options = cvc5_options options in
   let pid =
     Unix.create_process
       "cvc5"
-      [| "--produce-models"; "--cegqi-full" |]
+      options
       input
       output
       Unix.stderr

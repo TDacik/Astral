@@ -79,6 +79,8 @@ let profile () = !_profile
 (* ==== SMT Backend ==== *)
 
 let _backend = ref "cvc5"
+let _backend_options = ref ""
+
 let backend () = match !_backend with
   (*| "bitwuzla" -> (module Bitwuzla_backend : BACKEND)*)
   | "cvc5" -> (module CVC5_backend : BACKEND)
@@ -90,6 +92,10 @@ let set_backend = function
   | "cvc5" -> _backend := "cvc5"
   | "z3" -> _backend := "z3"
   | other -> failwith ("unknown backend `" ^ other ^ "`")
+
+let backend_options () = match !_backend_options with
+  | "" -> []
+  | options -> BatString.split_on_char ' ' options
 
 (* ==== Encoding ==== *)
 
@@ -129,6 +135,8 @@ let speclist =
     ("--unsat-core", Arg.Set _unsat_core, "Print unsat core");
     ("--json-output", Arg.Set_string _json_output_file, "Store solver's result as json");
     ("--backend", Arg.Set_string _backend, "Backend SMT solver (default cvc5)");
+    ("--backend-options",
+      Arg.Set_string _backend_options, "Pass options to backend SMT solver");
     ("--encoding", Arg.Set_string _encoding, "Method of encoding (sets | bitvectors)");
     ("--quant-elim", Arg.Set_string _quantifier_elimination, "TODO");
     ("--no-list-bounds", Arg.Clear _list_bounds, "Do not use list-length bounds");
