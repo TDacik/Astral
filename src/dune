@@ -12,6 +12,7 @@
     yojson
     ppx_deriving
     ppx_compare
+    ppx_inline_test
     ;domainslib
   )
 
