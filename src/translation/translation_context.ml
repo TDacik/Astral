@@ -23,10 +23,9 @@ type t = {
   polarity : bool;
 
   (* Translation sorts *)
-  locs_sort : SMT.Sort.t;
-  fp_sort : SMT.Sort.t;
-  heap_sort : SMT.Sort.t;
-  path_sort : SMT.Sort.t;
+  locs_sort : Sort.t;
+  fp_sort : Sort.t;
+  heap_sort : Sort.t;
 
   (* Translation terms *)
   heap : SMT.Term.t;
@@ -76,7 +75,6 @@ let init (context : Context.t) locs_sort locs global_fp heap heap_prev =
   locs_sort = locs_sort;
   fp_sort = SMT.Set.mk_sort locs_sort;
   heap_sort = SMT.Array.mk_sort locs_sort locs_sort;
-  path_sort = SMT.Sequence.mk_sort locs_sort;
 
   heap = heap;
   heap_prev = heap_prev;

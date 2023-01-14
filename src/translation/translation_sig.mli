@@ -2,15 +2,17 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
-module type SET = sig
+module type SET_ENCODING = sig
 
   include SMT_sig.SET
+  (** Syntactic functions over set terms. *)
 
   val name : string
+  (** Name of the set encoding. *)
 
   val rewrite : SMT.Term.t -> SMT.Term.t
 
-  val rewrite_back : SMT.Term.t -> SMT.Model.t -> SMT.Model.t
+  val rewrite_back : SMT.Term.t -> SMT.Model.model -> SMT.Model.model
 
 end
 
@@ -24,11 +26,11 @@ module type LOCATIONS = sig
   val mk : string -> int -> t
   (** Create location sort of cardinality n. *)
 
-  val get_sort : t -> SMT.Sort.t
+  val get_sort : t -> Sort.t
 
-  val mk_var : string -> SMT.Sort.t -> SMT.Term.t
+  val mk_var : string -> Sort.t -> SMT.Term.t
 
-  val mk_fresh_var : string -> SMT.Sort.t -> SMT.Term.t
+  val mk_fresh_var : string -> Sort.t -> SMT.Term.t
 
   val get_constants : t -> SMT.Term.t list
 
@@ -36,9 +38,9 @@ module type LOCATIONS = sig
 
   (* Quantification *)
 
-  val mk_forall : SMT.Sort.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
+  val mk_forall : Sort.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
 
-  val mk_exists : SMT.Sort.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
+  val mk_exists : Sort.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
 
   (* Additional *)
 
@@ -72,7 +74,7 @@ end
 
 (** Base encoding groups together encoding of sets and locations. *)
 module type BASE_ENCODING = sig
-  module Set : SET
+  module Set : SET_ENCODING
   module Locations : LOCATIONS
 end
 

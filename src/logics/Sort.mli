@@ -1,3 +1,5 @@
+open Datatype_sig
+
 type t =
   | Bool
   | Int
@@ -8,8 +10,8 @@ type t =
   | Bitvector of int
   | Loc
 
-include Datatype_sig.PRINTABLE with type t := t
-include Datatype_sig.COMPARABLE with type t := t
+include PRINTABLE with type t := t
+include COMPARABLE with type t := t
 
 val get_dom_sort : t -> t
 (** Get domain sort of either set, sequence or array sort. *)

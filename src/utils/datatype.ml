@@ -12,6 +12,14 @@ module Printable (M : SHOW) = struct
 
 end
 
+module Comparable (M : COMPARISON) = struct
+
+  include M
+
+  let equal lhs rhs = compare lhs rhs == 0
+
+end
+
 module Collections (M : COMPARISON) = struct
 
   type t = M.t [@@ ocaml.warning "-34"]

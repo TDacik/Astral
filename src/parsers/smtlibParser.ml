@@ -98,19 +98,19 @@ and parse_smt_term t = match t.term with
       let ty = parse_smt_term y in
       begin match fn.term with
         | Symbol id -> begin match Format.asprintf "%a" Dolmen_std.Id.print id with
-          | "+" -> SMT.LIA.mk_plus tx ty
-          | "-" -> SMT.LIA.mk_minus tx ty
-          | "*" -> SMT.LIA.mk_mult tx ty
-          | s -> failwith ("[LIA parser] Unknown symbol " ^ s)
+          | "+" -> SMT.Arithmetic.mk_plus tx ty
+          | "-" -> SMT.Arithmetic.mk_minus tx ty
+          | "*" -> SMT.Arithmetic.mk_mult tx ty
+          | s -> failwith ("[Arithmetic parser] Unknown symbol " ^ s)
         end
       end
   | Symbol id ->
     let name = Format.asprintf "%a" Dolmen_std.Id.print id in
     let re = Str.regexp "[0-9]+" in
     if Str.string_match re name 0
-    then SMT.LIA.mk_const (int_of_string name)
+    then SMT.Arithmetic.mk_const (int_of_string name)
     else match TypeEnv.type_of name with
-    | Int -> SMT.LIA.mk_var name
+    | Int -> SMT.Arithmetic.mk_var name
     | Bool -> SMT.Boolean.mk_var name
     | other -> failwith (Sort.show other)
 

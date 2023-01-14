@@ -1,6 +1,7 @@
 (data_only_dirs
   benchmarks
   scripts
+  tests
 )
 
 (env

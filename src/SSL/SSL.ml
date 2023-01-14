@@ -52,12 +52,11 @@ type t =
   | Septraction of t * t
 
 let compare = Stdlib.compare
-let equal x y = (Stdlib.compare x y) == 0
 let hash = Hashtbl.hash
 
 let describe_node : t -> t node_info = function
   | Var x -> (Variable.show_with_sort x, Var (Variable.show x, Sort.Loc))
-  | Pure t -> ("pure " ^ SMT.show t, Operator ([], (SMT.get_sort t)))
+  | Pure t -> ("pure " ^ SMT.Term.show t, Operator ([], (SMT.Term.get_sort t)))
   | Eq (x, y) -> ("=", Operator ([x; y], Sort.Bool))
   | Neq (x, y) -> ("neq", Operator ([x; y], Sort.Bool))
   | PointsTo (x, ys) -> ("pto", Operator (x :: ys, Sort.Bool))
@@ -88,6 +87,7 @@ module Self2 = struct
 end
 
 include Datatype.Printable(Self2)
+include Datatype.Comparable(Self2)
 include Datatype.Collections(Self2)
 
 let is_var = function

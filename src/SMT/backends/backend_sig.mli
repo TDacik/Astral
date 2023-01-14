@@ -7,9 +7,9 @@
 (** Type of backend's result parametrised by its internal representation of formula
     and models. *)
 type ('term, 'model) status =
-  | SMT_Sat of (SMT.Model.t * 'model) option (* SMT model, backend's internal model *)
-  | SMT_Unsat of (SMT.Term.t * 'term) list   (* Unsat core *)
-  | SMT_Unknown of string                    (* Reason *)
+  | SMT_Sat of (SMT.Model.model * 'model) option (* SMT model, backend's internal model *)
+  | SMT_Unsat of (SMT.Term.t * 'term) list       (* Unsat core *)
+  | SMT_Unknown of string                        (* Reason *)
 
 module type BACKEND = sig
 

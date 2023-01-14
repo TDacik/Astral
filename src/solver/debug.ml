@@ -63,7 +63,7 @@ let translated suffix phi =
     if suffix = "" then "translated"
     else "translated_" ^ suffix
   in
-  debug_out (out_file ^ ".smt2") (SMT.to_bench phi)
+  debug_out (out_file ^ ".smt2") (SMT.to_smtlib_bench phi)
 
 let smt_model model = debug_out "smt_model.out" (SMT.Model.show model)
 

@@ -8,7 +8,7 @@ include Bitvector
 
 let name = "bitvectors"
 
-type t = SMT.Sort.t * int
+type t = Sort.t * int
 (* Sort augmented with bound constraint *)
 
 (** Compute minimal width of sort for n locations. *)

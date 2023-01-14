@@ -151,4 +151,4 @@ end
 
 val mk_pure : SMT.Term.t -> t
 
-val mk_pure_var : string -> SMT.Sort.t -> t
+val mk_pure_var : string -> Sort.t -> t

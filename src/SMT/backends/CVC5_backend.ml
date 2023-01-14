@@ -64,7 +64,7 @@ and translate term =
   | SMT.Iff (e1, e2) -> Format.asprintf "(= %s %s)" (translate e1) (translate e2)
 
   | SMT.LesserEq (e1, e2) -> begin match SMT.Term.get_sort e1 with
-    | SMT.Sort.Bitvector _ -> Format.asprintf "(bvule %s %s)" (translate e1) (translate e2)
+    | Sort.Bitvector _ -> Format.asprintf "(bvule %s %s)" (translate e1) (translate e2)
     (* TODO: other sorts *)
   end
 
@@ -109,7 +109,7 @@ and translate term =
   | SMT.BitAnd ([bv1; bv2], sort) ->
       Format.asprintf "(bvand %s %s)" (translate bv1) (translate bv2)
 
-  | SMT.BitOr (bvs, SMT.Sort.Bitvector n) ->
+  | SMT.BitOr (bvs, Sort.Bitvector n) ->
       let zeros = Format.asprintf "(_ bv0 %d)" n in
       List.fold_left (fun acc bv -> Format.asprintf "(bvor %s %s)" acc (translate bv)) zeros bvs
 
@@ -175,13 +175,13 @@ and translate_binder (Variable (name, sort)) =
   Format.asprintf "(%s %s)" name (translate_sort sort)
 
 and translate_sort = function
-  | SMT.Sort.Bool -> "Bool"
-  | SMT.Sort.Int -> "Int"
-  | SMT.Sort.Bitvector n -> Format.asprintf "(_ BitVec %d)" n
-  | SMT.Sort.Set (dom_sort) -> "(Set " ^ translate_sort dom_sort ^ ")"
-  | SMT.Sort.Sequence (dom_sort) -> "(Sequence " ^ translate_sort dom_sort ^ ")"
-  | SMT.Sort.Array (d, r) -> "(Array " ^ (translate_sort d) ^ " " ^ (translate_sort r) ^ ")"
-  | SMT.Sort.Finite (name, consts) ->
+  | Sort.Bool -> "Bool"
+  | Sort.Int -> "Int"
+  | Sort.Bitvector n -> Format.asprintf "(_ BitVec %d)" n
+  | Sort.Set (dom_sort) -> "(Set " ^ translate_sort dom_sort ^ ")"
+  | Sort.Sequence (dom_sort) -> "(Sequence " ^ translate_sort dom_sort ^ ")"
+  | Sort.Array (d, r) -> "(Array " ^ (translate_sort d) ^ " " ^ (translate_sort r) ^ ")"
+  | Sort.Finite (name, consts) ->
       (* Datatype with constant constructors only *)
       let constructors = String.concat " " @@ List.map (fun c -> "(|" ^ c ^ "|)") consts in
       let decl = "(declare-datatypes ((Loc 0)) ((" ^ constructors ^ ")))" in

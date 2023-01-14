@@ -12,7 +12,7 @@ val translated : ?suffix:string -> SMT.Term.t -> unit
 
 val model : StackHeapModel.t -> unit
 
-val smt_model : SMT.Model.t -> unit
+val smt_model : SMT.Model.model -> unit
 
 val backend_translated : string -> unit
 

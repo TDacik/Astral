@@ -8,6 +8,24 @@ module Make (Term : TERM) = struct
 
   let node_type term = snd @@ Term.describe_node term
 
+  (* TODO: avoid frequent string comparison *)
+  let rec compare term1 term2 = match node_type term1, node_type term2 with
+    | Var (name1, sort1), Var (name2, sort2) ->
+        let cmp = String.compare name1 name2 in
+        if cmp != 0 then cmp
+        else Sort.compare sort1 sort2
+    | Operator (subterms1, _), Connective subterms2 ->
+        let name1 = node_name term1 in
+        let name2 = node_name term2 in
+        let cmp = String.compare name1 name2 in
+        if cmp != 0 then cmp
+        else List.compare compare subterms1 subterms2
+    | Quantifier (binders1, body1), Quantifier (binders2, body2) ->
+        let cmp = List.compare compare binders1 binders2 in
+        if cmp != 0 then cmp
+        else compare body1 body2
+    | _ -> Stdlib.compare term1 term2
+
   let get_sort t = match node_type t with
     | Var (_, sort) -> sort
     | Operator (_, sort) -> sort
@@ -85,11 +103,15 @@ module Make (Term : TERM) = struct
     | Quantifier _ -> show term
     | _ -> Format.asprintf "%s : %s" (show term) (Sort.show @@ get_sort term)
 
+  let to_smtlib_bench term = failwith "Not implemented"
+
   module Self = struct
     type t = Term.t
     let show = show
+    let compare = compare
   end
 
   include Datatype.Printable(Self)
+  include Datatype.Comparable(Self)
 
 end

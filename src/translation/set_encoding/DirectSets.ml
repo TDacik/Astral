@@ -4,6 +4,9 @@
 
 include SMT.Set
 
+type t = SMT.Term.t
+(** TODO: why this is not included in `SMT.Set` *)
+
 let name = "direct"
 
 let rewrite term = term

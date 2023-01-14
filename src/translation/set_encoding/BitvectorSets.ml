@@ -134,7 +134,7 @@ let rec rewrite t =
     ) t
 
 (** Rewritting of models. *)
-let rewrite_back phi_orig (model : SMT.Model.t) =
+let rewrite_back phi_orig (model : SMT.Model.model) =
   let rewrite_term = Term.map
     (fun t -> match t with
       | BitConst (n, width) ->

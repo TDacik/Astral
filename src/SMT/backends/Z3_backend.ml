@@ -43,7 +43,7 @@ let rec translate t = match t with
   | SMT.Iff (e1, e2) -> Z3.Boolean.mk_iff !context (translate e1) (translate e2)
 
   | SMT.LesserEq (e1, e2) -> begin match SMT.Term.get_sort e1 with
-    | SMT.Sort.Bitvector _ -> Z3.BitVector.mk_ule !context (translate e1) (translate e2)
+    | Sort.Bitvector _ -> Z3.BitVector.mk_ule !context (translate e1) (translate e2)
     (* TODO: other sorts *)
   end
   | SMT.Membership (x, s) -> Z3.Set.mk_membership !context (translate x) (translate s)
@@ -66,11 +66,11 @@ let rec translate t = match t with
       let zero = Z3.BitVector.mk_numeral !context "0" width in
       Z3.Boolean.mk_distinct !context [app; zero]
 
-  | SMT.BitAnd (bvs, SMT.Sort.Bitvector n) ->
+  | SMT.BitAnd (bvs, Sort.Bitvector n) ->
       let ones = Z3.BitVector.mk_repeat !context n (Z3.BitVector.mk_numeral !context "1" 1) in
       List.fold_left (fun acc bv -> Z3.BitVector.mk_and !context acc (translate bv)) ones bvs
 
-  | SMT.BitOr (bvs, SMT.Sort.Bitvector n) ->
+  | SMT.BitOr (bvs, Sort.Bitvector n) ->
       let zeros = Z3.BitVector.mk_numeral !context "0" n in
       List.fold_left (fun acc bv -> Z3.BitVector.mk_or !context acc (translate bv)) zeros bvs
 
@@ -90,7 +90,7 @@ let rec translate t = match t with
       Z3.Boolean.mk_eq !context empty intersect
 
   | SMT.Enumeration (sets, sort) ->
-      let empty = Z3.Set.mk_empty !context (translate_sort (SMT.Sort.get_dom_sort sort)) in
+      let empty = Z3.Set.mk_empty !context (translate_sort (Sort.get_dom_sort sort)) in
       List.fold_left (Z3.Set.mk_set_add !context) empty (List.map translate sets)
 
   | SMT.ConstArr (const, _) ->
@@ -121,12 +121,12 @@ let rec translate t = match t with
 
 
 and translate_sort = function
-  | SMT.Sort.Bool -> Z3.Boolean.mk_sort !context
-  | SMT.Sort.Int -> Z3.Arithmetic.Integer.mk_sort !context
-  | SMT.Sort.Bitvector n -> Z3.BitVector.mk_sort !context n
-  | SMT.Sort.Finite (name, constants) -> Z3.Enumeration.mk_sort_s !context name constants
-  | SMT.Sort.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
-  | SMT.Sort.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
+  | Sort.Bool -> Z3.Boolean.mk_sort !context
+  | Sort.Int -> Z3.Arithmetic.Integer.mk_sort !context
+  | Sort.Bitvector n -> Z3.BitVector.mk_sort !context n
+  | Sort.Finite (name, constants) -> Z3.Enumeration.mk_sort_s !context name constants
+  | Sort.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
+  | Sort.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
 
 (* TODO: Escaping hack *)
 and find_const const sort =
@@ -247,22 +247,22 @@ let eval model term =
   let sort = SMT.Term.get_sort term in
   let value = Option.get @@ Z3.Model.eval model (translate term) false in
   match sort with
-  | SMT.Sort.Finite _ -> SMT.Enumeration.mk_const sort (Z3.Expr.to_string value)
-  | SMT.Sort.Int ->
+  | Sort.Finite _ -> SMT.Enumeration.mk_const sort (Z3.Expr.to_string value)
+  | Sort.Int ->
       let n = int_of_string @@ Z3.Expr.to_string value in
-      SMT.LIA.mk_const n
+      SMT.Arithmetic.mk_const n
   (* NOTE: At this point, bitvector should never represent a set. *)
-  | SMT.Sort.Bitvector n ->
+  | Sort.Bitvector n ->
     Printf.printf "translating bitvector %s...\n" (SMT.Term.show term);
     let bitstring = Z3.Expr.to_string value in
     SMT.Bitvector.mk_const_of_string bitstring
   (* In the model, set can be represented as a bitvector or as a set. *)
-  | SMT.Sort.Set elem_sort ->
+  | Sort.Set elem_sort ->
     (* TODO *)
     Printf.printf "translating set %s ...\n" (SMT.Term.show term);
     begin match elem_sort with
-      | SMT.Sort.Finite (_, constants) -> SMT.Set.mk_enumeration sort []
-      | SMT.Sort.Bitvector n ->
+      | Sort.Finite (_, constants) -> SMT.Set.mk_enumeration sort []
+      | Sort.Bitvector n ->
         let value = Option.get @@ Z3.Model.eval model (translate @@ aux term) false in
         let bits = Z3.Expr.to_string value in
         let set = BitvectorSets.inverse_translation bits n in

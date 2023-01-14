@@ -4,76 +4,73 @@
 
 open Logic_sig
 
-module Sort = Sort
 module VariableBase = Variable.Make( )
 
 module Term = struct
 
-  type term =
+  type t =
     | Constant of String.t * Sort.t
     | Variable of VariableBase.t
 
-    (* LIA *)
-    | IntConst of int
-    | Plus of term * term
-    | Minus of term * term
-    | Mult of term * term
-
-    (* Sets *)
-    | Membership of term * term
-    | Subset of term * term
-    | Disjoint of term * term
-    | Union of term list * Sort.t
-    | Inter of term list * Sort.t
-    | Diff of term * term
-    | Compl of term
-    | Enumeration of term list * Sort.t
-
-    (* Arrays *)
-    | ConstArr of term * Sort.t   (* \lambda x : sort. term *)
-    | Select of term * term
-    | Store of term * term * term
-
-    (* Bitvectors *)
-    | BitConst of Bitvector.t
-    | BitCheck of term * term
-    | BitAnd of term list * Sort.t
-    | BitOr of term list * Sort.t
-    | BitXor of term list * Sort.t
-    | BitImplies of term * term
-    | BitCompl of term
-    | BitShiftLeft of term * term    (* bitvector, integer *)
-    | BitShiftRight of term * term   (* bitvector, integer *)
-
-    (* Sequences *)
-    | Sequence of term list * Sort.t  (* Sequence constant *)
-    | SeqIndex of term * term         (* Sequence indexing *)
-    | SeqContains of term * term      (* Membership in sequence *)
-    | SeqReverse of term              (* Reverse of sequence *)
-
-    (* Boolean *)
-    | Equal of term * term
-    | Distinct of term list
-    | And of term list
-    | Or of term list
-    | Not of term
-    | Implies of term * term
-    | Iff of term * term
-
-    (* Polymorphic omparison *)
-    | LesserEq of term * term
-
+    (* Propositional logic *)
+    | And of t list
+    | Or of t list
+    | Not of t
+    | Implies of t * t
+    | Iff of t * t
     | True
     | False
 
+    (* Polymorphic operators *)
+    | Equal of t * t
+    | Distinct of t list
+    | LesserEq of t * t
+
     (* First-order quantifiers *)
-    | Exists of term list * term
-    | Forall of term list * term
+    | Exists of t list * t
+    | Forall of t list * t
 
-    (* Bounded second-order quantifiers *)
-    | Exists2 of term list * term list list * term
-    | Forall2 of term list * term list list * term
+    (* Second-order quantifiers *)
+    | Exists2 of t list * t list list * t
+    | Forall2 of t list * t list list * t
 
+    (* Integer arithmetic *)
+    | IntConst of int
+    | Plus of t * t
+    | Minus of t * t
+    | Mult of t * t
+
+    (* Bitvectors *)
+    | BitConst of Bitvector.t
+    | BitCheck of t * t
+    | BitAnd of t list * Sort.t
+    | BitOr of t list * Sort.t
+    | BitXor of t list * Sort.t
+    | BitImplies of t * t
+    | BitCompl of t
+    | BitShiftLeft of t * t    (* bitvector, integer *)
+    | BitShiftRight of t * t   (* bitvector, integer *)
+
+    (* Arrays *)
+    | ConstArr of t * Sort.t   (* \lambda x : sort. t *)
+    | Select of t * t
+    | Store of t * t * t
+
+    (* Sets *)
+    | Membership of t * t
+    | Subset of t * t
+    | Disjoint of t * t
+    | Union of t list * Sort.t
+    | Inter of t list * Sort.t
+    | Diff of t * t
+    | Compl of t
+    | Enumeration of t list * Sort.t
+
+    (* Sequences *)
+    | Sequence of t list * Sort.t  (* Sequence constant *)
+    | SeqIndex of t * t            (* Sequence indexing *)
+    | SeqContains of t * t         (* Membership in sequence *)
+    | SeqReverse of t              (* Reverse of sequence *)
     [@@deriving map, fold]
 
   (* TODO: could this be derived? *)
@@ -127,8 +124,6 @@ module Term = struct
       | Exists (xs, phi) -> f (Exists (xs, map phi))
       | Forall2 (xs, ranges, phi) -> f (Forall2 (xs, ranges, map phi))
       | Exists2 (xs, ranges, phi) -> f (Exists2 (xs, ranges, map phi))
-
-  let fold fn acc term = fold_term fn acc term
 
   let rec describe_node = function
     | Constant (c, sort) -> (c, Operator ([], sort))
@@ -201,11 +196,9 @@ module Term = struct
     | Connective _ -> Sort.Bool
     | Quantifier _ -> Sort.Bool
 
-  type t = term
-
   include Logic.Make
     (struct
-      type t = term
+      type nonrec t = t
       let describe_node = describe_node
     end)
 
@@ -217,35 +210,8 @@ module Term = struct
     let fn = (fun t -> match node_type t with Var (name, sort) -> fn name sort | _ -> t) in
     map fn term
 
-  (* TODO:
-      - sorts
-      - sorting of operands (especially for enums)
-   *)
-  let rec identity t1 t2 = match describe_node t1, describe_node t2 with
-    | (_, Var (n1, s1)), (_, Var (n2, s2)) -> VariableBase.equal (n1, s1) (n2, s2)
-    | (name1, Operator (terms1, _)), (name2, Operator (terms2, _))
-    | (name1, Connective terms1), (name2, Connective terms2) ->
-        begin
-          try String.equal name1 name2
-              && List.for_all2 identity terms1 terms2
-          with Invalid_argument _ -> false
-        end
-    | (name1, Quantifier (xs1, phi1)), (name2, Quantifier (xs2, phi2)) ->
-        begin
-          try String.equal name1 name2
-              && List.for_all2 identity xs1 xs2
-              && identity phi1 phi2
-          with Invalid_argument _ -> false
-        end
-    | _ -> false
-
-  (** Equality on terms is defined using their identity *)
-  let equal = identity
-
-  let compare t1 t2 = if equal t1 t2 then 0 else Stdlib.compare t1 t2
-
   let mk_eq t1 t2 =
-    if identity t1 t2 then True
+    if equal t1 t2 then True
     else Equal (t1, t2)
 
   let mk_neq t1 t2 = Distinct [t1; t2]
@@ -254,7 +220,7 @@ module Term = struct
 
   let compare_str t1 t2 = String.compare (show t1) (show t2)
 
-  let to_bench term =
+  let to_smtlib_bench term =
     (free_vars term
      |> List.map (fun v -> Format.asprintf "(declare-fun %s (%s))" (show v) (Sort.show @@ get_sort v))
      |> String.concat "\n"
@@ -376,6 +342,8 @@ module Term = struct
           substitute ~bounded v x term
         )
 
+  let substitute phi x term = substitute phi x term
+
   module Self = struct
     type nonrec t = t
     let compare = compare
@@ -401,6 +369,7 @@ module Boolean = struct
   include Term
 
   let mk_var name = Variable.mk name Sort.Bool
+  let mk_fresh_var name = Variable.mk_fresh name Sort.Bool
 
   let mk_false () = False
   let mk_true () = True
@@ -420,7 +389,7 @@ module Boolean = struct
       | terms -> And terms
 
   let mk_or terms =
-    let terms = List.filter (fun t -> not @@ identity t False) terms in
+    let terms = List.filter (fun t -> not @@ equal t False) terms in
     match terms with
     | [] -> False
     | [t] -> t
@@ -455,11 +424,12 @@ module Enumeration = struct
 
 end
 
-module LIA = struct
+module Arithmetic = struct
 
   include Term
 
   let mk_var name = Variable.mk name Sort.Int
+  let mk_fresh_var name = Variable.mk_fresh name Sort.Int
 
   let mk_sort = Sort.Int
 
@@ -491,6 +461,7 @@ module Array = struct
 
   let mk_const t range_sort = ConstArr (t, range_sort)
   let mk_select arr x = Select (arr, x)
+  let mk_store arr index x = Store (arr, index, x)
 
 end
 
@@ -665,7 +636,7 @@ module Model = struct
   include Map.Make(Variable)
 
   (* Fix monomorphic type of the map *)
-  type nonrec t = Term.t t
+  type model = Term.t t
 
   let show model =
     bindings model
@@ -695,66 +666,20 @@ module Model = struct
     | Select (Store (a, i, v), j) ->
         let im = eval model i in
         let jm = eval model j in
-        if LIA.are_equal_consts i j
+        if Arithmetic.are_equal_consts i j
         then eval model v
         else eval model (Select (a, j))
     | Select (arr, i) -> eval model (Array.mk_select (eval model arr) i)
 
     | _ -> failwith ("TODO: eval other: " ^ Term.show t)
+
+  module Self = struct
+    type t = model
+    let show = show
+  end
+
+  include Datatype.Printable(Self)
+
 end
 
 include Term
-
-(* ==== Tests ====
-
-let (===) = identity
-let (!===) x y = not @@ identity x y
-
-let sort = Sort.Int
-
-let x = LIA.mk_var "x"
-let y = LIA.mk_var "y"
-let z = LIA.mk_var "z"
-
-let c1 = LIA.mk_const 1
-let c2 = LIA.mk_const 2
-let c3 = LIA.mk_const 3
-
-let%test _ = map_vars (fun x sort -> Variable (x, sort)) True === True
-let%test _ = map_vars (fun x sort -> Variable (x ^ x, sort))
-              (Variable ("x", Sort.Int)) === (Variable ("xx", Sort.Int))
-
-let%test "map1" =
-  let fn = (fun t -> match t with Forall (_, phi) -> phi | _ -> t) in
-  map fn (Quantifier.mk_forall [x] x) === x
-
-let%test "substite_var" =
-  substitute (LIA.mk_var "x") (LIA.mk_var "x") (LIA.mk_var "y") === (LIA.mk_var "y")
-
-let%test "substitute_bounded" =
-  substitute
-    (Quantifier.mk_forall [(LIA.mk_var "x")] (LIA.mk_var "x"))
-    (LIA.mk_var "x")
-    (LIA.mk_var "y")
-  === (Quantifier.mk_forall [(LIA.mk_var "x")] (LIA.mk_var "x"))
-
-let%test "substitute_free" =
-  substitute
-    (Quantifier.mk_forall [(LIA.mk_var "x")] (LIA.mk_var "y"))
-    (LIA.mk_var "y")
-    (LIA.mk_var "z")
-  === (Quantifier.mk_forall [(LIA.mk_var "x")] (LIA.mk_var "z"))
-
-let%test "size_var" = size (LIA.mk_var "x") == 1
-let%test "size_term" = size (LIA.mk_plus (LIA.mk_const 3) (LIA.mk_const 2)) == 3
-let%test "size_quantifier" = size (Quantifier.mk_forall [x; y] (LIA.mk_lesser_eq x y)) == 5
-
-let%test "and_cons1" = (Boolean.mk_and []) === True
-let%test "and_cons2" = (Boolean.mk_and [True; True]) === True
-let%test "and_cons3" = (Boolean.mk_and [True; False]) === False
-
-let%test "set_cons1" =
-  (Set.mk_union [(Set.mk_enumeration sort [c1; c2]); (Set.mk_singleton c3)] sort)
-  === (Set.mk_enumeration sort [c1; c2; c3])
-
-*)

@@ -1,3 +1,9 @@
+(* Logic signatures
+ *
+ * Author: Tomas Dacik (idacik@fit.vut.cz), 2022 *)
+
+open Datatype_sig
+
 type 'term node_type =
   | Var of string * Sort.t
   | Operator of 'term list * Sort.t
@@ -10,8 +16,8 @@ module type VARIABLE = sig
 
   type t = string * Sort.t
 
-  include Datatype_sig.PRINTABLE with type t := t
-  include Datatype_sig.COMPARABLE with type t := t
+  include PRINTABLE with type t := t
+  include COMPARABLE with type t := t
 
   val get_name : t -> string
 
@@ -26,24 +32,30 @@ module type VARIABLE = sig
   val show_with_sort : t -> string
 end
 
+
+(** Input signature of the [Logic.Make] functor. The signature defines a type [t] which
+    corresponds to AST of formulae and a function [describe_node] that describes particular
+    nodes of AST and is used to derive generic functions over formulae. *)
 module type TERM = sig
 
   type t
   (** Type representing AST of formula. *)
 
   val describe_node : t -> t node_info
-  (** Description of individual nodes in AST. *)
+  (** Description of single node. *)
 
 end
 
+
+(** Output signature of the [Logic.Make] functor. *)
 module type LOGIC = sig
 
-  type t
+  include TERM
+  include PRINTABLE with type t := t
+  include COMPARABLE with type t := t
 
   type node_type := t node_type
-  (** Node type fixed to types given by AST. *)
-
-  include Datatype_sig.PRINTABLE with type t := t
+  (** Generic node type fixed to type given by AST. *)
 
   val node_name : t -> string
   (** Name of a node. *)
@@ -53,16 +65,17 @@ module type LOGIC = sig
 
   val get_sort : t -> Sort.t
 
-
   val free_vars : t -> t list
 
   val is_constant : t -> bool
 
   val size : t -> int
-  (* Number of nodes in the AST. *)
+  (** The size of a term is the number of nodes in its AST. *)
 
-  val show : t -> string
+  (** Special printing functions *)
 
   val show_with_sort : t -> string
+
+  val to_smtlib_bench : t -> string
 
 end
