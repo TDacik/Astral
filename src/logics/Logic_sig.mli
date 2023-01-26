@@ -54,6 +54,8 @@ module type LOGIC = sig
   include PRINTABLE with type t := t
   include COMPARABLE with type t := t
 
+  module Collections : COLLECTIONS with type t := t
+
   type node_type := t node_type
   (** Generic node type fixed to type given by AST. *)
 
@@ -67,7 +69,12 @@ module type LOGIC = sig
 
   val free_vars : t -> t list
 
+  val get_all_sorts : t -> Sort.t list
+  (** Return all sorts used in term. *)
+
   val is_constant : t -> bool
+
+  val is_quantifier_free : t -> bool
 
   val size : t -> int
   (** The size of a term is the number of nodes in its AST. *)

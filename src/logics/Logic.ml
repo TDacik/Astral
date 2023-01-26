@@ -47,6 +47,11 @@ module Make (Term : TERM) = struct
 
   let free_vars term = List.sort_uniq compare (free_vars term)
 
+  let get_all_sorts term =
+    free_vars term
+    |> List.map get_sort
+    |> List.sort_uniq Sort.compare
+
   let rec size term = match node_type term with
     | Var _ -> 1
     | Operator (terms, _) | Connective terms ->
@@ -54,6 +59,12 @@ module Make (Term : TERM) = struct
     | Quantifier (binders, phi) ->
         List.length binders + size phi
 
+  (* ==== Properties ==== *)
+
+  let rec is_quantifier_free term = match node_type term with
+    | Var _ -> true
+    | Operator (terms, _) | Connective terms -> List.for_all is_quantifier_free terms
+    | Quantifier _ -> false
 
   (* ==== Printing ==== *)
 
@@ -113,5 +124,7 @@ module Make (Term : TERM) = struct
 
   include Datatype.Printable(Self)
   include Datatype.Comparable(Self)
+
+  module Collections = Datatype.Collections(Self)
 
 end
