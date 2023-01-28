@@ -16,7 +16,7 @@ val smt_model : SMT.Model.model -> unit
 
 val backend_translated : string -> unit
 
-val backend_smt_benchmark : string -> unit
+val backend_input : string -> unit
 
 val backend_simplified : string -> unit
 

@@ -5,6 +5,7 @@
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
 open Backend_sig
+open Translation_context
 
 (* === Declarations === *)
 
@@ -13,6 +14,11 @@ type formula = Z3.Expr.expr
 type model = Z3.Model.model
 
 let name = "Z3"
+
+let supports_smtlib_options = true
+let supports_get_info = true
+let supports_sets = true
+let supports_quantifiers = true
 
 (* === Initialization === *)
 
@@ -119,7 +125,6 @@ let rec translate t = match t with
 
   | other -> failwith (Format.asprintf "Z3 wrapper error at: %s" (SMT.Term.show other))
 
-
 and translate_sort = function
   | Sort.Bool -> Z3.Boolean.mk_sort !context
   | Sort.Int -> Z3.Arithmetic.Integer.mk_sort !context
@@ -128,49 +133,82 @@ and translate_sort = function
   | Sort.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
   | Sort.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
 
-(* TODO: Escaping hack *)
 and find_const const sort =
   let sort = translate_sort sort in
   let consts = Z3.Enumeration.get_consts sort in
   List.find (fun c -> String.equal (Z3.Expr.to_string c) ("|" ^ const ^ "|")) consts
 
-(* ==== Model translation ====
+(* ==== Model translation ==== *)
 
-let update_model_var z3_model smt_model var =
-  let name = SMT.Variable.get_name var in
-  let interp = Z3.Model.eval model (translate var) false in
-  match SMT.get_sort sort with
-  | SMT.Sort.Bool
-    let value = bool_of_string @@ Z3.Expr.show interp in
-    SMT.Model.add smt.model name (SMT.Boolean.mk_const value)
+let get_universe sort n = match sort with
+  | Sort.Finite _ -> SMT.Enumeration.get_constants sort
+  | Sort.Bitvector width ->
+    BatList.range 0 `To (n - 1)
+    |> List.map (fun i -> SMT.Bitvector.mk_const i width)
 
-  | SMT.Sort.Int ->
-    let value = int_of_string @@ Z3.Expr.show interp in
-    SMT.Model.add smt_model name (SMT.Integer.mk_const value)
+let translate_model_var astral_context z3_model var =
+  let interp = Option.get @@ Z3.Model.eval z3_model (translate var) false in
+  match SMT.Term.get_sort var with
+  | Sort.Bool ->
+    if Z3.Boolean.is_true interp then SMT.Boolean.mk_true ()
+    else if Z3.Boolean.is_false interp then SMT.Boolean.mk_false ()
+    else failwith "Unknownt value"
 
-  | SMT.Sort.Set dom ->
-    let
+  | Sort.Int ->
+    SMT.Arithmetic.mk_const @@ int_of_string @@ Z3.Expr.to_string interp
 
-(** Translate Z3's model. This function assumes that all domains are finite. *)
-let translate_model phi z3_model =
+  | Sort.Bitvector _ ->
+    SMT.Bitvector.mk_const_of_string @@ Z3.Expr.to_string interp
+
+  | Sort.Finite _ ->
+    SMT.Enumeration.mk_const (SMT.Term.get_sort var) (Z3.Expr.to_string interp)
+
+  | Sort.Set dom ->
+    let consts = get_universe dom astral_context.location_bound in
+    List.filter
+      (fun c ->
+        let z3_query = Z3.Set.mk_membership !context (translate c) (translate var) in
+        let res = Option.get @@ Z3.Model.eval z3_model z3_query false in
+        Z3.Boolean.is_true res
+      ) consts
+    |> SMT.Set.mk_enumeration (SMT.Term.get_sort var)
+
+  | Sort.Array (dom, range) ->
+    let consts = get_universe dom astral_context.location_bound in
+    let bindings =
+      List.fold_left
+        (fun acc c ->
+          let z3_query = Z3.Z3Array.mk_select !context (translate var) (translate c) in
+          let image = Option.get @@ Z3.Model.eval z3_model z3_query false in
+          let image = match dom with
+            | Sort.Bitvector _ -> SMT.Bitvector.mk_const_of_string @@ Z3.Expr.to_string image
+            | Sort.Finite _ -> SMT.Enumeration.mk_const range (Z3.Expr.to_string image)
+          in
+          (c, image) :: acc
+        ) [] consts
+    in
+    SMT.Array.mk_const  (snd @@ List.hd bindings) dom
+    |> List.fold_right (fun (x, hx) acc -> SMT.Array.mk_store acc x hx) bindings
+
+(** Translate Z3's model. This function assumes that all sorts are finite. *)
+let translate_model context phi z3_model =
   let vars = SMT.Term.free_vars phi in
-  List.fold_leflt (update_model z3_model) SMT.Model.empty vars
-*)
-
-let translate_model model =
-  let str = Z3.Model.to_string model in
-  Format.printf "Model: %s\n" str;
-  ModelParser.parse str
+  List.fold_left
+    (fun acc var ->
+      let term = translate_model_var context z3_model var in
+      let var = SMT.Variable.of_term var in
+      SMT.Model.add var term acc
+    ) SMT.Model.empty vars
 
 (* ==== Solver ==== *)
 
-let solve phi produce_models options =
-  let phi = translate phi in
+let solve context phi_orig produce_models options =
+  let phi = translate phi_orig in
   match Z3.Solver.check !solver [phi] with
   | Z3.Solver.SATISFIABLE ->
       if produce_models then
         let model = Option.get @@ Z3.Solver.get_model !solver in
-        SMT_Sat (Some (translate_model model, model))
+        SMT_Sat (Some (translate_model context phi_orig model, model))
       else
         SMT_Sat None
 
@@ -185,102 +223,14 @@ let solve phi produce_models options =
 
 let simplify phi = Z3.Expr.simplify phi None
 
-(* === Model manipulation === *)
-(*
-let rec inverse_translate_set_array model expr elem_sort =
-  (* We assume that the element sort is always finite enumeration. *)
-  let elems =
-    SMT.Enumeration.get_constants elem_sort
-    |> List.map translate
-  in
-  List.fold_left
-  (fun acc elem ->
-    match Z3.Model.eval model (Z3.Set.mk_membership !context elem expr) false with
-    | Some res ->
-        if Z3.Boolean.is_true res then elem :: acc
-        else acc
-    | None -> failwith "Internal error"
-  ) [] elems
-  |> List.map (inverse_translate model elem_sort)
-  |> SMT.Set.mk_enumeration elem_sort
-*)
-(** Translation of Z3's term representation to SMT.
-
-    @param model   Z3 model
-    @param expr    Z3 expression to be translated
-    @param sort    SMT sort of the expression
-
-and inverse_translate model sort expr = match sort with
-  | SMT.Sort.Finite _ -> SMT.Enumeration.mk_const sort (Z3.Expr.to_string expr)
-
-  (* SMT sets can be represented either by arrays over datatypes or bitvectors. *)
-  | SMT.Sort.Set elem_sort ->
-    begin match elem_sort with
-      | SMT.Sort.Finite _ ->
-          let _ = Printf.printf "Translating set as set\n" in
-          SMT.Set.mk_enumeration elem_sort []
-      | SMT.Sort.Bitvector n ->
-          let _ = Printf.printf "Translating set as bitvector\n" in
-          let expr' = translate (SMT.Variable.mk (Z3.Expr.to_string) (translate elem_sort)) in
-
-          SMT.Set.mk_enumeration elem_sort []
-    end
-
-    (*
-  | SMT.Sort.Bitvector n ->
-    let name = Z3.Expr.to_string expr in
-    let orig_name = SMT.Term.show orig in
-    if not @@ String.contains orig_name 'f'
-    then
-      let _ = Printf.printf "NAME: %s" name in
-      SMT.Enumeration.mk_const sort "0"
-    else
-      let bits = String.sub name 2 (String.length name - 2) in
-      Printf.printf "SET %s --> %s: %s\n" orig_name name bits;
-      SMT.Set.mk_enumeration sort []
-  *)
-*)
-
-let aux = function SMT.Variable (name, Set sort) -> SMT.Variable (name, sort)
-
-let eval model term =
-  let sort = SMT.Term.get_sort term in
-  let value = Option.get @@ Z3.Model.eval model (translate term) false in
-  match sort with
-  | Sort.Finite _ -> SMT.Enumeration.mk_const sort (Z3.Expr.to_string value)
-  | Sort.Int ->
-      let n = int_of_string @@ Z3.Expr.to_string value in
-      SMT.Arithmetic.mk_const n
-  (* NOTE: At this point, bitvector should never represent a set. *)
-  | Sort.Bitvector n ->
-    Printf.printf "translating bitvector %s...\n" (SMT.Term.show term);
-    let bitstring = Z3.Expr.to_string value in
-    SMT.Bitvector.mk_const_of_string bitstring
-  (* In the model, set can be represented as a bitvector or as a set. *)
-  | Sort.Set elem_sort ->
-    (* TODO *)
-    Printf.printf "translating set %s ...\n" (SMT.Term.show term);
-    begin match elem_sort with
-      | Sort.Finite (_, constants) -> SMT.Set.mk_enumeration sort []
-      | Sort.Bitvector n ->
-        let value = Option.get @@ Z3.Model.eval model (translate @@ aux term) false in
-        let bits = Z3.Expr.to_string value in
-        let set = BitvectorSets.inverse_translation bits n in
-        Printf.printf "BV %s ~> %s ~> %s ~> %s\n" (SMT.show term) name bits (SMT.show set);
-        set
-    end
-  | _ -> failwith (
-    Format.asprintf "Cannot evaluate SMT expression %s"
-      (SMT.show_with_sort term)
-  )
-
 (* === Debugging === *)
 
 let show_formula phi = Z3.Expr.to_string phi
 
 let show_model model = Z3.Model.to_string model
 
-let to_smt_benchmark phi =
+(* TODO: models and options *)
+let to_smtlib phi _ _ =
   Z3.SMT.benchmark_to_smtstring
     !context
     "Input for solver"
@@ -288,4 +238,4 @@ let to_smt_benchmark phi =
     "unknown"
     ""
     []
-    phi
+    (translate phi)

@@ -105,25 +105,11 @@ let solve ?(verify_model=false) input =
   end;
 
   Printf.printf "%s\n" res_string;
-  result
-  (* TODO
-  match result with
-  | Translation.Sat (sh, results) ->
-      (*TODO: Debug.model sh;*)
-      Print.info "sat\n";
-      (* Model verification *)
-      if verify_model then
-        let verdict = verify_model_fn sh phi in
-        Results.set_verdict results verdict
-      else results
-  | Translation.Unsat (results, unsat_core) ->
-      Print.info "unsat\n";
-      if Options.unsat_core () then begin
-        Printf.printf "Unsat core:\n";
-        List.iter (fun a -> Format.printf " - %s\n" (SMT.Term.show a)) unsat_core
-      end;
-      results
-  | Translation.Unknown (results, reason) ->
-      Printf.printf "unknown: %s\n" reason; results
 
- *)
+  if Options.produce_models () then
+    match Option.get result.status with
+    | `Sat -> Format.printf "%s\n" (StackHeapModel.to_smtlib @@ Option.get result.model)
+    | _ -> ()
+  else ();
+
+  result

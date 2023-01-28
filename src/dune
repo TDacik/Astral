@@ -2,9 +2,7 @@
   (name astral_lib)
   (inline_tests)
   (libraries
-    ;base
     z3
-    ;bitwuzla
     dolmen
     batteries
     ocamlgraph
@@ -13,7 +11,6 @@
     ppx_deriving
     ppx_compare
     ppx_inline_test
-    ;domainslib
   )
 
   (preprocess

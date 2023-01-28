@@ -82,7 +82,8 @@ let _backend = ref "cvc5"
 let _backend_options = ref ""
 
 let backend () = match !_backend with
-  (*| "bitwuzla" -> (module Bitwuzla_backend : BACKEND)*)
+  | "bitwuzla" -> (module Bitwuzla_backend : BACKEND)
+  | "boolector" -> (module Boolector_backend : BACKEND)
   | "cvc5" -> (module CVC5_backend : BACKEND)
   | "z3" -> (module Z3_backend : BACKEND)
   (*| "parallel" -> (module Parallel : BACKEND)*)
@@ -91,6 +92,7 @@ let backend () = match !_backend with
 let set_backend = function
   | "cvc5" -> _backend := "cvc5"
   | "z3" -> _backend := "z3"
+  | "boolector" -> _backend := "boolector"
   | other -> failwith ("unknown backend `" ^ other ^ "`")
 
 let backend_options () = match !_backend_options with
@@ -178,4 +180,19 @@ let exit_usage error =
   Arg.usage speclist usage_msg;
   exit error
 
-let parse () = Arg.parse speclist input_fn usage_msg
+(** Check whether selected backend is compatible with other options. *)
+let check_backend () =
+  let module Backend = (val backend () : BACKEND) in
+
+  if not @@ Backend.is_available ()
+  then failwith "Selected backend solver is not installed";
+
+  if not Backend.supports_sets && !_encoding = "sets"
+  then failwith "Selected backend solver does not support set encoding";
+
+  if not Backend.supports_quantifiers && !_quantifier_elimination = "none"
+  then failwith "Selected backend solver does not support quantifiers"
+
+let parse () =
+  Arg.parse speclist input_fn usage_msg;
+  check_backend ()

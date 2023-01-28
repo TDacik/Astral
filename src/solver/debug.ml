@@ -75,7 +75,7 @@ let model sh =
 (* === Backend's data === *)
 
 let backend_translated str = debug_out "backend_translated.smt2" str
-let backend_smt_benchmark str = debug_out "solver_input.smt2" str
+let backend_input str = debug_out "solver_input.smt2" str
 let backend_simplified str = debug_out "backend_simplified.smt2" str
 let backend_model str = debug_out "backend_model.smt2" str
 
@@ -85,10 +85,10 @@ let context    = decorate context
 let model      = decorate model
 let smt_model  = decorate smt_model
 
-let backend_translated    = decorate backend_translated
-let backend_simplified    = decorate backend_simplified
-let backend_model         = decorate backend_model
-let backend_smt_benchmark = decorate backend_smt_benchmark
+let backend_translated = decorate backend_translated
+let backend_simplified = decorate backend_simplified
+let backend_model      = decorate backend_model
+let backend_input      = decorate backend_input
 
 let translated ?(suffix="") = decorate (translated suffix)
 let formula ?(suffix="")    = decorate (formula suffix)
