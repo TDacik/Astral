@@ -1,0 +1,7 @@
+(executables
+  (names SMT topped_set)
+  (libraries
+    astral_lib
+    alcotest
+  )
+)
