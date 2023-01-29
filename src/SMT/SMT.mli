@@ -34,8 +34,8 @@ type t =
   | Forall of t list * t
 
   (* Second-order quantifiers *)
-  | Exists2 of t list * t list list * t
-  | Forall2 of t list * t list list * t
+  | Exists2 of t list * t list list option * t
+  | Forall2 of t list * t list list option * t
 
   (* Integer arithmetic *)
   | IntConst of int
@@ -105,6 +105,8 @@ include SMT_TERM with type t := t
 
 module Variable : sig
 
+  val of_term : t -> VariableBase.t
+
   val mk : string -> Sort.t -> t
   (* Create variable of given sort. *)
 
@@ -141,8 +143,8 @@ module Quantifier : sig
   val mk_forall : t list -> t -> t
   val mk_exists : t list -> t -> t
 
-  val mk_forall2 : t list -> t list list -> t -> t
-  val mk_exists2 : t list -> t list list -> t -> t
+  val mk_forall2 : t list -> ?ranges: t list list option -> t -> t
+  val mk_exists2 : t list -> ?ranges: t list list option -> t -> t
 
 end
 
@@ -225,6 +227,11 @@ module Bitvector : sig
   val mk_lesser_eq : t -> t -> t
 
   val get_width : t -> int
+
+  (** Printing *)
+
+  val to_bit_string : t -> string
+
 end
 
 module Array : sig
@@ -291,5 +298,7 @@ module Model : sig
 
   val eval : model -> Term.t -> Term.t
   (** Evaluation of term in model. *)
+
+  val show_with_sorts : model -> string
 
 end

@@ -31,8 +31,8 @@ module Term = struct
     | Forall of t list * t
 
     (* Second-order quantifiers *)
-    | Exists2 of t list * t list list * t
-    | Forall2 of t list * t list list * t
+    | Exists2 of t list * t list list option * t
+    | Forall2 of t list * t list list option * t
 
     (* Integer arithmetic *)
     | IntConst of int
@@ -222,7 +222,7 @@ module Term = struct
 
   let to_smtlib_bench term =
     (free_vars term
-     |> List.map (fun v -> Format.asprintf "(declare-fun %s (%s))" (show v) (Sort.show @@ get_sort v))
+     |> List.map (fun v -> Format.asprintf "(declare-fun %s %s)" (show v) (Sort.show @@ get_sort v))
      |> String.concat "\n"
     )
     ^ "\n\n" ^
@@ -358,6 +358,8 @@ module Variable = struct
 
   include Term
   include VariableBase
+
+  let of_term = function Variable (name, sort) -> (name, sort)
 
   let mk name sort = let name, sort = mk name sort in Variable (name, sort)
   let mk_fresh name sort = let name, sort = mk_fresh name sort in Variable (name, sort)
@@ -509,6 +511,8 @@ module Bitvector = struct
 
   let mk_lesser_eq bv1 bv2 = LesserEq (bv1, bv2)
 
+  let to_bit_string (BitConst bv) = Bitvector.to_string bv
+
 end
 
 (** Utility for smart constructors *)
@@ -607,21 +611,25 @@ module Quantifier = struct
   let mk_exists x phi = Term.Exists (x, phi)
 
   (** Preprocessing of quantifier binders. *)
-  let process_quantifier xs ranges phi =
-    List.fold_left2
-      (fun (xs, ranges, phi) x range -> match range with
-        (*| [] -> (xs, ranges, phi)
-        | [r] -> (xs, ranges, Term.substitute phi x r)*)
-        | _ -> (x :: xs, range :: ranges, phi)
-      ) ([], [], phi) xs ranges
+  let process_quantifier xs ranges phi = match ranges with
+    | None -> (xs, None, phi)
+    | Some ranges ->
+      let xs,  ranges, phi = List.fold_left2
+        (fun (xs, ranges, phi) x range -> match range with
+          | [] -> (xs, ranges, phi)
+          | [r] -> (xs, ranges, Term.substitute phi x r)
+          | _ -> (x :: xs, range :: ranges, phi)
+        ) ([], [], phi) xs ranges
+      in
+      (xs, Some ranges, phi)
 
-  let mk_forall2 xs ranges phi =
+  let mk_forall2 xs ?(ranges=None) phi =
     let xs, ranges, phi = process_quantifier xs ranges phi in
     match xs with
     | [] -> phi
     | _ -> Term.Forall2 (xs, ranges, phi)
 
-  let mk_exists2 xs ranges phi =
+  let mk_exists2 xs ?(ranges=None) phi =
     let xs, ranges, phi = process_quantifier xs ranges phi in
     match xs with
     | [] -> phi
@@ -641,6 +649,12 @@ module Model = struct
   let show model =
     bindings model
     |> List.map (fun (v, i) -> Format.asprintf "%s -> %s" (Variable.show v) (Term.show i))
+    |> String.concat "\n"
+
+  let show_with_sorts model =
+    bindings model
+    |> List.map
+        (fun (v, i) -> Format.asprintf "%s -> %s" (Variable.show_with_sort v) (Term.show i))
     |> String.concat "\n"
 
   let rec eval model t = match t with
