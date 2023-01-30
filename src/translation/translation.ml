@@ -602,7 +602,7 @@ let translate_phi (context : Context.t) locs ssl_phi =
     Debug.translated ~suffix:"2" translated2;
 
     (* Quantifier elimination *)
-    let translated = Options.quantif_elim () translated2 in
+    let translated = Options.quantif_elim () context translated2 in
     Debug.translated ~suffix:"3" translated;
 
 

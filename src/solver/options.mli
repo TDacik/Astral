@@ -47,7 +47,7 @@ val backend_options : unit -> string list
 
 val encoding : unit -> (module BASE_ENCODING)
 
-val quantif_elim : unit -> SMT.Term.t -> SMT.Term.t
+val quantif_elim : unit -> (Translation_context.t -> SMT.Term.t -> SMT.Term.t)
 
 val set_backend : string -> unit
 
