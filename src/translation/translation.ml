@@ -283,9 +283,12 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let semantics2, axioms2, footprints2 = translate context psi2 fp2 in
 
     (* Create lists of possible footprints. *)
-    let fp_worklist =
-      Option.get @@ Footprints.cartesian_product footprints1 footprints2
-      |> List.filter (fun (fp1, fp2) -> SMT.Set.may_disjoint fp1 fp2)
+    let footprints = Footprints.apply_binop
+      (fun x y ->
+        if SMT.Set.may_disjoint fp1 fp2
+        then Some (SMT.Set.mk_union [fp1; fp2] context.fp_sort)
+        else None
+      ) footprints1 footprints2
     in
 
     (* Semantics *)
@@ -294,15 +297,18 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let domain_def = Set.mk_eq domain fp_union in
 
     let axioms = Boolean.mk_and [axioms1; axioms2] in
-    let footprints =
-      fp_worklist
-      |> List.map (fun (s1, s2) -> Set.mk_union [s1; s2] context.fp_sort)
-      |> Footprints.of_list
+
+    let ranges =
+      try Some [Footprints.elements footprints1; Footprints.elements footprints2]
+      with Topped_set.TopError -> None
     in
-    let ranges = Some [Footprints.elements footprints1; Footprints.elements footprints2] in
 
     (* Unique footprints *)
-    if Footprints.cardinal footprints1 == 1 && Footprints.cardinal footprints2 == 1 then
+    if SSL.has_unique_footprint psi1 && SSL.has_unique_footprint psi2 then begin
+      assert (Footprints.cardinal footprints1 == 1);
+      assert (Footprints.cardinal footprints2 == 1);
+
+
       let fp_term1 = Footprints.choose footprints1 in
       let fp_term2 = Footprints.choose footprints2 in
       let semantics1 = SMT.substitute semantics1 fp1 fp_term1 in
@@ -312,6 +318,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       let domain_def = Set.mk_eq domain fp_union in
       let semantics = Boolean.mk_and [semantics1; semantics2; disjoint; domain_def] in
       (semantics, axioms, footprints)
+    end
 
     (* Not unique footprint, but positive (eg., entailment with disjunctions) *)
     else if SSL.is_positive psi1 && SSL.is_positive psi2
@@ -425,11 +432,13 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let semantics1 = SMT.substitute semantics1 fp1 fp_term1 in
     let disjoint = Set.mk_disjoint fp_term1 domain in
     let domain_def = Set.mk_eq fp2 (Set.mk_union [fp_term1; domain] context.fp_sort) in
-    let eq_fp = heaps_equal_on_footprint context context.heap h1 domain in
+    let eq_fp = heaps_equal_on_footprint context context.heap h1 (Set.mk_diff domain fp_term1) in
     let semantics = Boolean.mk_and [semantics2; disjoint] in
     let axioms = Boolean.mk_and [axioms1; axioms2; semantics1; eq_fp; domain_def] in
 
-    let footprints = Footprints.apply_binop Set.mk_diff footprints2 footprints1 in
+    let footprints =
+      Footprints.apply_binop (fun x y -> Some (Set.mk_diff x y)) footprints2 footprints1
+    in
     (semantics, axioms, footprints)
 
 let generate_heap_axioms context heap locs =
@@ -488,7 +497,7 @@ let translate_phi (context : Context.t) locs ssl_phi =
           try int_of_string c
           with _ ->
           begin
-            try int_of_string @@ BatString.chop ~l:1 ~r:1 c
+            try int_of_string @@ BatString.chop ~l:4 ~r:0 c
             with _ -> failwith ("Cannot translate location " ^ SMT.show_with_sort loc)
           end
         end
