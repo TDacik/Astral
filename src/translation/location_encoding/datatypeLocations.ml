@@ -11,12 +11,12 @@ type t = Sort.t
 let name = "datatypes"
 
 let mk str n =
-  let names = List.map (fun x -> Format.asprintf "%d" x) (BatList.range 1 `To n) in
+  let names = List.map (fun x -> Format.asprintf "loc_%d" x) (BatList.range 1 `To n) in
   Enumeration.mk_sort str names
 
 let get_sort sort = sort
 
-let var_axiom _ var = Boolean.mk_true ()
+let var_axiom _ _ = Boolean.mk_true ()
 
 let quantify sort quantifier expr_constructor =
   let binder_e = Variable.mk_fresh "l" sort in
