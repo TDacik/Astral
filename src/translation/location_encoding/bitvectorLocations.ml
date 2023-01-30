@@ -21,6 +21,9 @@ let compute_width n =
   in
   if res == 0 then 1 else res
 
+let%test _ = compute_width 1 = 1
+let%test _ = compute_width 5 = 3
+
 let mk str n =
   (* TODO: make the width lesser? *)
   (Bitvector.mk_sort n, n)
