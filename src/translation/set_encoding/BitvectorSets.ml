@@ -5,6 +5,7 @@
 module BV = Bitvector
 
 open SMT
+open BatOption.Infix
 
 include Term
 
@@ -115,6 +116,7 @@ let inverse_translation (bitstring : String.t) n =
     The function rewrites all set expressions to corresponding bitvector expressions and also
     need to correctly update all sorts. *)
 let rec rewrite t =
+  let process_ranges = fun ranges -> Some (List.map (List.map rewrite) ranges) in
   Term.map
     (fun t -> match t with
       | Membership (x, set) -> mk_mem (rewrite x) (rewrite set)
@@ -127,9 +129,9 @@ let rec rewrite t =
       | Enumeration (elems, Set sort) -> mk_enumeration sort (List.map rewrite elems)
       | Variable (name, Set sort) -> Variable (name, sort)
       | Exists2 (binders, ranges, phi) ->
-          Exists2 (List.map rewrite binders, List.map (List.map rewrite) ranges, phi)
+        Exists2 (List.map rewrite binders, ranges >>= process_ranges, phi)
       | Forall2 (binders, ranges, phi) ->
-          Forall2 (List.map rewrite binders, List.map (List.map rewrite) ranges, phi)
+        Forall2 (List.map rewrite binders, ranges >>= process_ranges, phi)
       | other -> other
     ) t
 
@@ -146,9 +148,9 @@ let rewrite_back phi_orig (model : SMT.Model.model) =
   in
   SMT.Model.fold
     (fun (name, sort) term acc ->
-      let term' = match SMT.get_sort_in_term name phi_orig with
-        | Set _ -> rewrite_term term
-        | _ -> term
+      let sort', term' = match SMT.get_sort_in_term name phi_orig with
+        | Set _ -> (Sort.Set sort, rewrite_term term)
+        | _ -> (sort, term)
       in
-      SMT.Model.add (name, sort) term' acc
+      SMT.Model.add (name, sort') term' acc
     ) model SMT.Model.empty
