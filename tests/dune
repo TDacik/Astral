@@ -1,5 +1,9 @@
 (executables
-  (names SMT topped_set)
+  (names
+    SMT
+    topped_set
+    preprocessors
+  )
   (libraries
     astral_lib
     alcotest

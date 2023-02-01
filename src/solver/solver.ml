@@ -67,7 +67,7 @@ let solve ?(verify_model=false) input =
   let phi, vars = normalise phi vars in
   let input = Context.set_normalised phi vars input in
 
-  Debug.formula phi;
+  Debug.formula ~suffix:"_before_simp" phi;
 
   (* Bound computation *)
   let g =
@@ -75,6 +75,11 @@ let solve ?(verify_model=false) input =
     then SL_graph.compute phi (*|> MustAllocations.refine_graph phi*)
     else SL_graph.empty
   in
+
+  (** Simplification *)
+  let phi = Simplifier.preprocess @@ EqualityRewritter.preprocess g phi in
+  Debug.formula phi;
+
   let s_min, s_max = Bounds.stack_bound g phi vars in
   let h_bound = match Options.location_bound () with
     | None -> Bounds.location_bound phi g s_max
