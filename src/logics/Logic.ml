@@ -14,7 +14,10 @@ module Make (Term : TERM) = struct
         let cmp = String.compare name1 name2 in
         if cmp != 0 then cmp
         else Sort.compare sort1 sort2
-    | Operator (subterms1, _), Connective subterms2 ->
+    | Operator (subterms1, _), Connective subterms2
+    | Connective subterms1, Operator (subterms2, _)
+    | Operator (subterms1, _), Operator (subterms2, _)
+    | Connective subterms1, Connective subterms2 ->
         let name1 = node_name term1 in
         let name2 = node_name term2 in
         let cmp = String.compare name1 name2 in
