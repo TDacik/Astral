@@ -26,10 +26,19 @@ module AST = struct
 
   type t = G.t * G.V.t
 
-  let show_seq xs = "<" ^ (List.map SSL.show xs |> String.concat ", ") ^ ">"
+  let show_seq = function
+    | [x] -> SSL.show x
+    | xs -> "<" ^ (List.map SSL.show xs |> String.concat ", ") ^ ">"
+
+  let is_syntactic_sugar phi = is_true phi || is_false phi || is_emp phi
 
   let node_name phi psi =
-    let label = match psi with
+    let label =
+      (* Syntactic sugar *)
+      if is_true psi then "true"
+      else if is_false psi then "false"
+      else if is_emp psi then "emp"
+      else match psi with
       | Var _ | Pure _ -> SSL.show psi
       | And (f1, f2) -> "∧"
       | Or (f1, f2) -> "∨"
@@ -43,11 +52,6 @@ module AST = struct
       | PointsTo (v1, vs) -> Format.asprintf "%a ↦ %s" SSL.pp v1 (show_seq vs)
       | Eq (v1, v2) -> Format.asprintf "%a = %a" SSL.pp v1 SSL.pp v2
       | Neq (v1, v2) -> Format.asprintf "%a ≠ %a" SSL.pp v1 SSL.pp v2
-      (*
-      | True -> "true"
-      | False -> "false"
-      | Emp -> "emp"
-      | Wand (f1, f2) -> "--*"*)
     in
     Format.asprintf "\"%d: %s\"" (SSL.subformula_id phi psi) label
 
@@ -65,7 +69,10 @@ module AST = struct
     let tree = G.add_edge_e tree (v, `Right, rhs_root) in
     (tree, v)
 
-  let rec create phi psi = match SSL.node_type psi with
+  let rec create phi psi =
+    if is_syntactic_sugar psi then
+      make_leaf (node_name phi psi)
+    else match SSL.node_type psi with
     | Operator _ ->
         make_leaf (node_name phi psi)
     | Connective [psi'] ->
