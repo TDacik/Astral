@@ -284,7 +284,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     (* Create lists of possible footprints. *)
     let footprints = Footprints.apply_binop
-      (fun x y ->
+      (fun fp1 fp2 ->
         if SMT.Set.may_disjoint fp1 fp2
         then Some (SMT.Set.mk_union [fp1; fp2] context.fp_sort)
         else None
@@ -307,7 +307,6 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     if SSL.has_unique_footprint psi1 && SSL.has_unique_footprint psi2 then begin
       assert (Footprints.cardinal footprints1 == 1);
       assert (Footprints.cardinal footprints2 == 1);
-
 
       let fp_term1 = Footprints.choose footprints1 in
       let fp_term2 = Footprints.choose footprints2 in
@@ -375,10 +374,11 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     if context.can_skolemise
     then translate_septraction_skolemised context domain h1 phi psi1 psi2
-    else
-      if SSL.has_unique_shape psi1
+    else raise UnsupportedFragment
+    (*  if SSL.has_unique_shape psi1
       then translate_septraction_quantified context domain h1 phi psi1 psi2
       else raise UnsupportedFragment
+    *)
 
   (** Translation of septraction using Skolemization *)
   and translate_septraction_skolemised context domain h1 phi psi1 psi2 =
@@ -416,7 +416,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     else raise UnsupportedFragment
 
-  (** Translation of septraction without using Skolemization *)
+  (** Translation of septraction without using Skolemization
   and translate_septraction_quantified context domain h1 phi psi1 psi2 =
     let fp1 = formula_footprint context psi1 in
     let fp2 = formula_footprint context psi2 in
@@ -433,13 +433,14 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let disjoint = Set.mk_disjoint fp_term1 domain in
     let domain_def = Set.mk_eq fp2 (Set.mk_union [fp_term1; domain] context.fp_sort) in
     let eq_fp = heaps_equal_on_footprint context context.heap h1 (Set.mk_diff domain fp_term1) in
-    let semantics = Boolean.mk_and [semantics2; disjoint] in
-    let axioms = Boolean.mk_and [axioms1; axioms2; semantics1; eq_fp; domain_def] in
+    let semantics = Boolean.mk_and [semantics2; disjoint; eq_fp; domain_def] in
+    let axioms = Boolean.mk_and [axioms1; axioms2; semantics1] in
 
     let footprints =
       Footprints.apply_binop (fun x y -> Some (Set.mk_diff x y)) footprints2 footprints1
     in
     (semantics, axioms, footprints)
+  *)
 
 let generate_heap_axioms context heap locs =
   List.map
