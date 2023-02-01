@@ -242,13 +242,12 @@ let classify_fragment phi =
   else Arbitrary
 
 let rec has_unique_footprint = function
-  | Eq _ | Neq _ | PointsTo _ | LS _ | DLS _ | SkipList _ -> true
+  | Eq _ | Neq _ | Pure _ | PointsTo _ | LS _ | DLS _ | SkipList _ -> true
   | And (f1, f2) -> has_unique_footprint f1 || has_unique_footprint f2
-  | Or (f1, f2) -> has_unique_footprint f1 && has_unique_footprint f2
   | GuardedNeg (f1, f2) -> has_unique_footprint f1
   | Star (f1, f2) -> has_unique_footprint f1 && has_unique_footprint f2
   | Septraction (f1, f2) -> has_unique_footprint f1 && has_unique_footprint f2
-  | Not f -> false
+  | Or _ | Not _ -> false
 
 (** TODO: rename *)
 let get_vars ?(with_nil=true) phi =
