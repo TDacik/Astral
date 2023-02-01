@@ -29,35 +29,35 @@ let mk_singleton elem =
 
 (** Create representation of set enumeration using bitwise disjunction of bit-vectors
     representing singleton sets. *)
-let mk_enumeration sort elems = BitOr (List.map mk_singleton elems, sort)
+let mk_enumeration sort elems = Bitvector.mk_or (List.map mk_singleton elems) sort
 
 (** Membership of `elem` in `set` is represented by extracting bit at position `elem`
     and testing it for being 1. *)
-let mk_mem elem set = BitCheck (set, elem)
+let mk_mem elem set = Bitvector.mk_bit_check set elem
 
 let mk_subset set1 set2 =
   let n = Bitvector.get_width set1 in
-  let bv_impl = BitImplies (set1, set2) in
+  let bv_impl = Bitvector.mk_implies set1 set2 in
   mk_eq bv_impl (Bitvector.mk_full_ones n)
 
 let mk_disjoint set1 set2 =
   let n = Bitvector.get_width set1 in
-  let bv_and = BitAnd ([set1; set2], Sort.Bitvector n) in
+  let bv_and = Bitvector.mk_and [set1; set2] (Sort.Bitvector n) in
   mk_eq bv_and (Bitvector.mk_zero n)
 
-let mk_union sets sort = BitOr (sets, sort)
-let mk_inter sets sort = BitAnd (sets, sort)
+let mk_union sets sort = Bitvector.mk_or sets sort
+let mk_inter sets sort = Bitvector.mk_and sets sort
 let mk_diff set1 set2 =
   let n = Bitvector.get_width set1 in
-  BitAnd ([set1; BitCompl set2], Sort.Bitvector n)
+  Bitvector.mk_and [set1; Bitvector.mk_compl set2] (Sort.Bitvector n)
 
-let mk_compl set = BitCompl set
+let mk_compl set = Bitvector.mk_compl set
 
 let mk_eq_empty set =
   try Equal (set, mk_empty (get_sort set))
   with _ -> failwith (Term.show set ^ " : " ^ (Sort.show @@ get_sort set) ^ " x " ^ Sort.show @@ get_elem_sort set)
 
-let mk_eq_singleton set x = Equal (set, mk_singleton x)
+let mk_eq_singleton set x = Bitvector.mk_eq set (mk_singleton x)
 
 let get_elems set = failwith "TODO: get_elems"
 

@@ -154,7 +154,7 @@ module Term = struct
     | Select (a, i) -> ("select", Operator ([a; i], Sort.get_dom_sort @@ get_sort a))
 
     | BitConst (n, width) ->
-        (Format.asprintf "(bitvector%d %d)" width n, Operator ([], Sort.Bitvector width))
+        (Format.asprintf "bitvector%d %d" width n, Operator ([], Sort.Bitvector width))
     | BitCheck (bv, index) -> ("bit-check", Operator ([bv; index], get_sort bv))
     | BitAnd (bvs, sort) -> ("bit-and", Operator (bvs, sort))
     | BitOr (bvs, sort) -> ("bit-or", Operator (bvs, sort))
@@ -485,12 +485,14 @@ module Bitvector = struct
   let mk_const n width = BitConst (Bitvector.of_int n width)
   let mk_const_of_string str = BitConst (Bitvector.of_string str)
 
-  let mk_index bv i = BitCheck (bv, i)
-
   let mk_zero width = BitConst (Bitvector.zero width)
   let mk_one width = BitConst (Bitvector.one width)
   let mk_full_zeros width = BitConst (Bitvector.full_zeros width)
   let mk_full_ones width = BitConst (Bitvector.full_ones width)
+
+  let mk_bit_check bv index = match bv, index with
+    | BitConst bv, IntConst index -> if Bitvector.nth bv index then True else False
+    | _ -> BitCheck (bv, index)
 
   let mk_and bvs (Sort.Bitvector n) = match bvs with
     | [] -> mk_full_ones n
@@ -567,8 +569,8 @@ module Set = struct
 
   let mk_add set elem = mk_union [set; mk_singleton elem] (get_sort set)
 
-  let mk_eq_empty set = Equal (set, Enumeration ([], get_sort set))
-  let mk_eq_singleton set x = Equal (set, Enumeration ([x], get_sort set))
+  let mk_eq_empty set = Term.mk_eq set (mk_empty @@ get_sort set)
+  let mk_eq_singleton set x = Term.mk_eq set (mk_singleton x)
 
   (* Accessors *)
   let get_elems = function

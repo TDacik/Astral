@@ -2,6 +2,8 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
+exception OutOfBounds
+
 (** Internally, a bitvector is represented as an integer which it represents together with
     a integer width that is used to represent padding zeros. *)
 type t = Int.t * Int.t
@@ -37,6 +39,18 @@ let%test _ = full_zeros 4 = (0, 4)
 
 let%test _ = full_ones 1 = (1, 1)
 let%test _ = full_ones 4 = (15, 4)
+
+(* ==== Operations over bitvectors ==== *)
+
+let nth (bv, width) index =
+  if index >= width then raise OutOfBounds
+  else Int.logand 1 @@ Int.shift_right bv index = 1
+
+let%test _ = nth (0, 1) 0 = false
+let%test _ = nth (1, 1) 0 = true
+
+let%test _ = nth (2, 2) 0 = false
+let%test _ = nth (2, 2) 1 = true
 
 (* ==== Conversion from SMT string representation ==== *)
 

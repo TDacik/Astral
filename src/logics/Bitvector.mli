@@ -24,6 +24,10 @@ val full_zeros : width -> t
 
 val full_ones : width -> t
 
+(** {2} Operations *)
+
+val nth : t -> int -> bool
+
 (** {2} Conversions *)
 
 val to_int : t -> int

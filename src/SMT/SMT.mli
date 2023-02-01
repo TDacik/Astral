@@ -212,6 +212,7 @@ module Bitvector : sig
   val mk_full_ones: int -> t
   (* Create bitvector of 1s of given width. *)
 
+  val mk_bit_check : t -> t -> t
 
   val mk_and : t list -> Sort.t -> t
   val mk_or : t list -> Sort.t -> t
