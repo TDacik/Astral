@@ -260,10 +260,45 @@ let get_vars ?(with_nil=true) phi =
   then vars
   else BatList.remove vars Variable.nil
 
+(** TODO: should this also handle free variables in pure terms? *)
+let rec map_vars fn phi =
+  let map_vars = map_vars fn in
+  match phi with
+  | Var x -> fn x
+  | Pure t -> Pure t
+  | Eq (x, y) -> Eq (map_vars x, map_vars y)
+  | Neq (x, y) -> Neq (map_vars x, map_vars y)
+  | PointsTo (x, ys) -> PointsTo (map_vars x, List.map map_vars ys)
+  | LS (x, y) -> LS (map_vars x, map_vars y)
+  | DLS (x, y, f, l) -> DLS (map_vars x, map_vars y, map_vars f, map_vars l)
+  | SkipList (depth, x, y) -> SkipList (depth, map_vars x, map_vars y)
+  | And (psi1, psi2) -> And (map_vars psi1, map_vars psi2)
+  | Or (psi1, psi2) -> Or (map_vars psi1, map_vars psi2)
+  | Not psi -> Not (map_vars psi)
+  | GuardedNeg (psi1, psi2) -> GuardedNeg (map_vars psi1, map_vars psi2)
+  | Exists (xs, psi) -> Exists (xs, map_vars psi)
+  | Forall (xs, psi) -> Forall (xs, map_vars psi)
+  | Star (psi1, psi2) -> Star (map_vars psi1, map_vars psi2)
+  | Septraction (psi1, psi2) -> Septraction (map_vars psi1, map_vars psi2)
+
+(* ==== Basic constructors ==== *)
+
+let mk_emp () = Eq (Var Variable.nil, Var Variable.nil)
+let mk_not_emp () = Not (Eq (Var Variable.nil, Var Variable.nil))
+let mk_false () = GuardedNeg (mk_emp (), mk_emp ())
+let mk_true () = Not (mk_false ())
+
+(* ==== Checkers ==== *)
+
+let is_false phi = equal phi (mk_false ())
+let is_true phi = equal phi (mk_true ())
+let is_emp phi = equal phi (mk_emp ())
+
 (* ==== Constructors ==== *)
 
 let mk_eq x y = Eq (x, y)
 let mk_neq x y = Neq (x, y)
+
 let mk_pto x y = PointsTo (x, [y])
 let mk_pto_seq x ys = PointsTo (x, ys)
 let mk_ls x y = LS (x, y)
@@ -289,13 +324,19 @@ let mk_and operands = match operands with
   | [] -> mk_true ()
   | fst :: tail -> List.fold_left (fun phi op -> And (phi, op)) fst tail
 
+let mk_bin_and phi1 phi2 = mk_and [phi1; phi2]
+
 let mk_or operands = match operands with
   | [] -> mk_false ()
   | fst :: tail -> List.fold_left (fun phi op -> Or (phi, op)) fst tail
 
+let mk_bin_or phi1 phi2 = mk_or [phi1; phi2]
+
 let mk_star operands = match operands with
   | [] -> mk_emp ()
   | fst :: tail -> List.fold_left (fun phi op -> Star (phi, op)) fst tail
+
+let mk_bin_star phi1 phi2 = mk_star [phi1; phi2]
 
 let mk_septraction lhs rhs = Septraction (lhs, rhs)
 
@@ -349,3 +390,20 @@ end
 
 let mk_pure term = Pure term
 let mk_pure_var name sort = Pure (SMT.Variable.mk name sort)
+
+module Infix = struct
+
+  let (==)  = mk_eq
+  let (!=)  = mk_neq
+  let (|->) = mk_pto
+  let (~>)  = mk_ls
+
+  let (=>)  = mk_implies
+  let (<=>) = mk_iff
+  let (&!)  = mk_gneg
+  let (&&)  = mk_bin_and
+  let (||)  = mk_bin_or
+
+  let ( * ) = mk_bin_star
+
+end

@@ -121,6 +121,14 @@ val mk_septraction : t -> t -> t
 
 val mk_wand : t -> t -> t
 
+(* {2 Predicates} *)
+
+val is_true : t -> bool
+
+val is_false : t -> bool
+
+val is_emp : t -> bool
+
 (* {2 Fragments} *)
 
 val is_symbolic_heap : t -> bool
@@ -140,6 +148,9 @@ val fold : (t -> 'a -> 'a) -> t -> 'a -> 'a
 
 val get_vars : ?with_nil:bool -> t -> Variable.t list
 
+val map_vars : (Variable.t -> t) -> t -> t
+(** Apply function to all free variables in formula. *)
+
 val select_subformulae : (t -> bool) -> t -> t list
 (** Return all subformulae satisfying given predicate. *)
 
@@ -152,3 +163,37 @@ end
 val mk_pure : SMT.Term.t -> t
 
 val mk_pure_var : string -> Sort.t -> t
+
+module Infix : sig
+
+  val (==) : t -> t -> t
+  (** Infix equality *)
+
+  val (!=) : t -> t -> t
+  (** Infix disequality *)
+
+  val (|->) : t -> t -> t
+  (** Infix pointer *)
+
+  val (~>) : t -> t -> t
+  (** Infix singly-linked list *)
+
+  val (=>) : t -> t -> t
+  (** Infix implication *)
+
+  val (<=>) : t -> t -> t
+  (** Infix iff *)
+
+  val (&!) : t -> t -> t
+  (** Infix guarded negation *)
+
+  val (&&) : t -> t -> t
+  (** Infix conjucntion *)
+
+  val (||) : t -> t -> t
+  (** Infix disjunction *)
+
+  val ( * ) : t -> t -> t
+  (** Infix separating conjunction *)
+
+end
