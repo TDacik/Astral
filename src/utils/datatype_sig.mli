@@ -18,6 +18,9 @@ module type PRINTABLE = sig
   val pp : Format.formatter -> t -> unit
   (** Output to formatter *)
 
+  val dump : string -> t -> unit
+  (** Dump to file given by filename *)
+
 end
 
 module type COMPARISON = sig
