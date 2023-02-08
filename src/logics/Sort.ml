@@ -7,6 +7,8 @@ type t =
   | Array of t * t
   | Bitvector of int
   | Loc (* Uninterpreted sort used for separation logic *)
+  | Tupple of t list
+  | Sum of t list
 
 (* Functional constructors *)
 let mk_bool = Bool
@@ -27,7 +29,7 @@ let get_width = function Bitvector width -> width
 
 let is_atomic = function
   | Bool | Int | Finite _ | Bitvector _ | Loc -> true
-  | Set _ | Sequence _ | Array _ -> false
+  | Set _ | Sequence _ | Array _ | Tupple _ | Sum _ -> false
 
 let is_set = function Set _ -> true | _ -> false
 
@@ -40,6 +42,7 @@ let rec equal sort1 sort2 = match sort1, sort2 with
   | Sequence dom1, Sequence dom2 -> equal dom1 dom2
   | Array (dom1, range1), Array (dom2, range2) -> equal dom1 dom2 && equal range1 range2
   | Bitvector width1, Bitvector width2 -> Int.equal width1 width2
+  | Tupple t1, Tupple t2 -> List.for_all2 equal t1 t2
   | _ -> false
 
 let compare s1 s2 = if equal s1 s2 then 0 else Stdlib.compare s1 s2
@@ -53,6 +56,8 @@ let rec show = function
   | Sequence (elem_sort) -> Format.asprintf "(Seq %s)" (show elem_sort)
   | Array (dom, range) -> Format.asprintf "(Array %s -> %s)" (show dom) (show range)
   | Bitvector width -> Format.asprintf "(Bitvector %d)" width
+  | Tupple sorts -> "(" ^ (String.concat ", " @@ List.map show sorts) ^ ")"
+  | Sum sorts -> "(" ^ (String.concat " | " @@ List.map show sorts) ^ ")"
 
 module Self = struct
   type nonrec t = t

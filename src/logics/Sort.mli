@@ -9,9 +9,15 @@ type t =
   | Array of t * t
   | Bitvector of int
   | Loc
+  | Tupple of t list
+  | Sum of t list
 
 include PRINTABLE with type t := t
 include COMPARABLE with type t := t
+
+(** {2 Constructors of non-atomic sorts *)
+
+val mk_array : t -> t -> t
 
 val get_dom_sort : t -> t
 (** Get domain sort of either set, sequence or array sort. *)
