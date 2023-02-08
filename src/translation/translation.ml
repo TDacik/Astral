@@ -50,8 +50,11 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         Boolean.mk_iff in_domain succ_in_range
       )
 
-  let term_to_expr context (SSL.Var x) = SMT.Variable.mk (SSL.Variable.show x) context.locs_sort
-  let var_to_expr context x = term_to_expr context (SSL.Var x)
+  let term_to_expr context = function
+    | SSL.Var (name, Sort.Loc) -> SMT.Variable.mk name context.locs_sort
+    | SSL.Pure phi -> phi
+
+  let var_to_expr context var = term_to_expr context (SSL.Var var)
 
   let mk_strongly_disjoint context footprint1 footprint2 =
     let range1 = Set.mk_fresh_var "range" context.fp_sort in
@@ -97,14 +100,17 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     | SSL.Or (psi1, psi2) -> translate_or context domain psi1 psi2
     | SSL.Star (psi1, psi2) -> translate_star context domain psi1 psi2
     | SSL.Septraction (psi1, psi2) -> translate_septraction context domain phi psi1 psi2
-    | SSL.Eq (Var var1, Var var2) -> translate_eq context domain var1 var2
-    | SSL.Neq (Var var1, Var var2) -> translate_neq context domain var1 var2
-    | SSL.LS (Var var1, Var var2) -> translate_ls context domain var1 var2
-    | SSL.DLS (Var x, Var y, Var f, Var l) -> translate_dls context domain x y f l
-    | SSL.SkipList (2, Var x, Var y) -> translate_skl context domain x y
+    | SSL.Eq xs -> translate_eq context domain xs
+    | SSL.Distinct xs -> translate_distinct context domain xs
+    | SSL.LS (x, y) -> translate_ls context domain x y
+    | SSL.DLS (x, y, f, l) -> translate_dls context domain x y f l
+    | SSL.SkipList (2, x, y) -> translate_skl context domain x y
     | SSL.Not (psi) -> translate_not context domain psi
     | SSL.GuardedNeg (psi1, psi2) -> translate_guarded_neg context domain psi1 psi2
     | SSL.Pure term -> translate_pure context domain term
+    | SSL.Exists ([x], psi) -> translate_exists context domain x psi
+    | SSL.Exists (x :: xs, psi) -> translate_exists context domain x (SSL.Exists (xs, psi))
+    | _ -> failwith (Format.asprintf "%s" (SSL.show_with_sort phi))
 
   and translate_pure context domain term =
     let semantics = term in
@@ -148,7 +154,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     (semantics, axioms, footprints)
 
 
-  and translate_ls context domain x y =
+  and translate_ls context domain (Var x) (Var y) =
     let local_bound = Bounds.local_bound context x y in
     let x = var_to_expr context x in
     let y = var_to_expr context y in
@@ -159,7 +165,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let footprints = Footprints.singleton fp in
     (semantics, axioms, footprints)
 
-  and translate_dls context domain x y f l =
+  and translate_dls context domain (Var x) (Var y) (Var f) (Var l) =
     let local_bound = (0, context.location_bound - 1) in (*TODO: more precise bounds*)
     let x = var_to_expr context x in
     let y = var_to_expr context y in
@@ -172,7 +178,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let footprints = Footprints.singleton fp in
     (semantics, axioms, footprints)
 
-  and translate_skl context domain x y =
+  and translate_skl context domain (Var x) (Var y) =
     let local_bound = (0, context.location_bound - 1) in (*TODO: more precise bounds*)
     let x = var_to_expr context x in
     let y = var_to_expr context y in
@@ -184,12 +190,11 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let footprints = Footprints.singleton fp1 in
     (semantics, axioms, footprints)
 
-  and translate_eq context domain x y =
-    let x = var_to_expr context x in
-    let y = var_to_expr context y in
+  and translate_eq context domain xs =
+    let xs = List.map (term_to_expr context) xs in
 
     let domain_def = Set.mk_eq_empty domain in
-    let equals = Boolean.mk_eq x y in
+    let equals = Boolean.mk_eq_list xs in
     let semantics = Boolean.mk_and [equals; domain_def] in
     let axioms = Boolean.mk_true () in
 
@@ -198,12 +203,11 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     (semantics, axioms, footprints)
 
-  and translate_neq context domain x y =
-    let x = var_to_expr context x in
-    let y = var_to_expr context y in
+  and translate_distinct context domain xs =
+    let xs = List.map (term_to_expr context) xs in
 
     let domain_def = Set.mk_eq_empty domain in
-    let distinct = Boolean.mk_distinct [x; y] in
+    let distinct = Boolean.mk_distinct_list xs in
     let semantics = Boolean.mk_and [distinct; domain_def] in
     let axioms = Boolean.mk_true () in
 
@@ -442,6 +446,25 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     (semantics, axioms, footprints)
   *)
 
+  and translate_exists context domain x psi =
+    let x = term_to_expr context x in
+    let semantics, axioms, footprints = translate context psi domain in
+
+    let semantics =
+      context.locs
+      |> List.map (SMT.substitute semantics x)
+      |> Boolean.mk_or
+    in
+
+    let axioms =
+      context.locs
+      |> List.map (SMT.substitute axioms x)
+      |> Boolean.mk_and
+    in
+
+    let footprints = Footprints.top in
+    (semantics, axioms, footprints)
+
 let generate_heap_axioms context heap locs =
   List.map
     (fun x ->
@@ -461,7 +484,10 @@ let translate_phi (context : Context.t) locs ssl_phi =
 
   (* Variable constraints *)
   let var_constraints =
-    List.map (fun v -> Locations.var_axiom locs @@ var_to_expr context v) (SSL.Variable.nil :: context.vars)
+    List.map
+      (fun v ->
+        Locations.var_axiom locs @@ var_to_expr context v
+      ) (SSL.Variable.nil :: context.vars)
     |> Boolean.mk_and
   in
 
@@ -612,9 +638,6 @@ let translate_phi (context : Context.t) locs ssl_phi =
 
     Debug.context context;
 
-    Print.debug "Running backend SMT solver\n";
-    Timer.add "Astral";
-
     let produce_models = input.get_model || Options.produce_models () in
     let user_options = Options.backend_options () in
 
@@ -623,6 +646,9 @@ let translate_phi (context : Context.t) locs ssl_phi =
     Debug.backend_translated (Backend.show_formula backend_translated);
     Debug.backend_simplified (Backend.show_formula @@ Backend.simplify backend_translated);
     Debug.backend_input (Backend.to_smtlib translated produce_models user_options);
+
+    Print.debug "Running backend SMT solver\n";
+    Timer.add "Translation";
 
     (* Solve *)
     match Backend.solve context translated produce_models user_options with
