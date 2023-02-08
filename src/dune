@@ -1,6 +1,8 @@
 (library
   (name astral_lib)
+
   (inline_tests)
+
   (libraries
     z3
     dolmen
@@ -29,7 +31,6 @@
     backend_sig
     translation_sig
     printer_sig
-    options_sig
   )
 )
 

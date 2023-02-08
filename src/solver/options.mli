@@ -3,10 +3,10 @@
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
 open Backend_sig
-open Options_sig
 open Translation_sig
 
-val parse : unit -> unit
+val parse : unit -> string
+(** Parse command-line options and return path to the input file. *)
 
 val input_path : unit -> string
 
@@ -31,9 +31,6 @@ val location_bound : unit -> int option
 val compute_sl_graph : unit -> bool
 
 val ignore_unused_vars : unit -> bool
-
-val convertor : unit -> ((module CONVERTOR) * string) option
-(** Return convertor module and output path. *)
 
 val quickcheck_runs : unit -> int
 
