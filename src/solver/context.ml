@@ -11,6 +11,9 @@ type t = {
   phi : SSL.t;                     (* SSL formula after preprocessing *)
   vars : SSL.Variable.t list;      (* Variables after preprocessing *)
 
+  (* Underlying separation logic *)
+  heap_type : Sort.t;
+
   (* Metadata *)
   sl_graph : SL_graph.t;
   stack_bound : int * int;
@@ -43,6 +46,9 @@ let empty = {
   phi = SSL.mk_true ();
   vars = [];
 
+  (* Default heap type *)
+  heap_type = Sort.mk_array Sort.Loc Sort.Loc;
+
   sl_graph = SL_graph.empty;
   stack_bound = (0, 0);
   location_bound = 0;
@@ -72,25 +78,39 @@ let get_input context = (context.phi, context.vars)
 (** Set normalised formula and variables *)
 let set_normalised phi vars t = {t with phi = phi; vars = vars}
 
+let set_heap_type t heap_type = {t with heap_type = heap_type}
+
 let set_bounds s_min s_max loc sl_graph t =
   {t with sl_graph = sl_graph;
           stack_bound = (s_min, s_max);
           location_bound = loc
   }
 
+(** Transform satisfiability to validity of entailment *)
+let sat_to_entl context = match context.phi with
+  | SSL.GuardedNeg _ -> context
+  | _ ->
+    let status' = match context.expected_status with
+      | `Sat -> `Unsat
+      | `Unsat -> `Sat
+      | `Unknown -> ` Unknown
+    in
+    {context with expected_status = status'; phi = SSL.mk_gneg context.phi (SSL.mk_false ())}
+
 (* TODO: is the size field necessary *)
 let set_statistics ?(size=None) context = {context with size = size}
 
 let set_result status ?(model=None) ?(unsat_core=None) ?(reason=None) context =
-  {context with status = Some status;
-              model = model;
-              unsat_core = unsat_core;
-              reason_unknown = reason;
+  {context with
+    status = Some status;
+    model = model;
+    unsat_core = unsat_core;
+    reason_unknown = reason;
   }
 
-let add_assertion psi t = {t with phi_orig = psi :: t.phi_orig;}
+let add_assertion psi t = {t with phi_orig = psi :: t.phi_orig}
 
-let add_variables xs t = {t with vars_orig = xs @ t.vars_orig}
+let add_variables vars t = {t with vars_orig = vars @ t.vars_orig}
 
 let set_expected_status status t = {t with expected_status = status}
 

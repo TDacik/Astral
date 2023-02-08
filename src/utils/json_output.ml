@@ -8,6 +8,7 @@ let json_repr context =
   `Assoc [
     "Name",                 `String (Options.input_path ());
     "Formula size",         `Int (Option.get context.size);
+    "Heap type",            `String (Sort.show context.heap_type);
     "# variables",          `Int (List.length context.vars);
     "Status",               `String (Context.show_status context);
     "Expected status",      `String (Context.show_expected_status context);
