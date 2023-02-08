@@ -16,9 +16,6 @@
 
 open Graph
 
-module Map = BatMap
-module List = BatList
-
 module Location = Int
 
 module Footprint = struct
@@ -26,6 +23,14 @@ module Footprint = struct
   let show fp =
     let names = fold (fun x acc -> Format.asprintf "%d" x :: acc) fp [] in
     "{" ^ String.concat ", " names ^ "}"
+end
+
+module LocationTuple = struct
+  type t = Location.t list
+  let compare = List.compare Location.compare
+  let show = function
+    | [next] -> string_of_int next
+    | locs -> "<" ^ (String.concat ", " @@ List.map string_of_int locs) ^ ">"
 end
 
 module Stack = struct
@@ -41,25 +46,37 @@ module Stack = struct
         "Internal error: Stack image of variable %a is undefined" SSL.Variable.pp var
       )
 
+  let show stack =
+    bindings stack
+    |> List.map (fun (s, sx) -> Format.asprintf "%s -> %d" (SSL.Variable.show s) sx)
+    |> String.concat "\n"
+
+  let to_smtlib stack =
+    bindings stack
+    |> List.map (fun (x, sx) -> Format.asprintf "(define-const %s Loc %d)"
+        (SSL.Variable.show x) sx)
+    |> String.concat "\n"
+
 end
 
 module Heap = struct
-  module M = Map.Make(Location)
+  include Map.Make(Location)
 
-  type selector = Location.t M.t
+  (* Fix monomorphic type *)
+  type nonrec t = LocationTuple.t t
 
-  type t = selector * selector (* Prev and next heap *)
+  let add_next x y heap = add x [y] heap
 
-  let empty = (M.empty, M.empty)
+  let show heap =
+    bindings heap
+    |> List.map (fun (loc, vals) -> Format.asprintf "%d -> %s" loc (LocationTuple.show vals))
+    |> String.concat "\n"
 
-  let add_prev x y heap = (M.add x y (fst heap), snd heap)
-  let add_next x y heap = (fst heap, M.add x y (snd heap))
-
-  let iter_prev fn heap = M.iter fn (fst heap)
-  let iter_next fn heap = M.iter fn (snd heap)
-
-  let fold_prev fn heap acc = M.fold fn (fst heap) acc
-  let fold_next fn heap acc = M.fold fn (snd heap) acc
+  let to_smtlib heap =
+    bindings heap
+    |> List.map (fun (loc, vals) ->
+        Format.asprintf "(define-const h(%d) Loc %s)" loc (LocationTuple.show vals))
+    |> String.concat "\n"
 
 end
 
@@ -118,10 +135,6 @@ let stack_inverse sh loc =
 
 let fp_to_string fp = String.concat ", " @@ List.map Int.to_string @@ Footprint.elements fp
 
-let heap_to_string heap =
-  (Heap.fold_next (fun k v acc -> Format.asprintf "%s\t%d -> %d\n" acc k v) heap "")
-  ^ (Heap.fold_prev (fun k v acc -> Format.asprintf "%s\t%d -> %d\n" acc k v) heap "")
-
 let to_string sh =
   let str =  "Stack:\n" in
   let str = Stack.fold
@@ -130,7 +143,7 @@ let to_string sh =
     str
   in
   let str = str ^ "\nHeap:\n" in
-  let str =  str ^ heap_to_string sh.heap in
+  let str =  str ^ Heap.show sh.heap in
   let str = str ^ "\nFootprints:\n" in
   SSL.Map.fold
     (fun psi fp acc ->
@@ -138,19 +151,22 @@ let to_string sh =
     ) sh.footprints str
   |> SSL.Map.fold
     (fun psi heap acc ->
-      Format.asprintf "%s\nWitness heap of %a:\n%s" acc SSL.pp psi (heap_to_string heap)
+      Format.asprintf "%s\nWitness heap of %a:\n%s" acc SSL.pp psi (Heap.show heap)
     ) sh.heaps
 
 let print sh =
   Format.printf "Stack:\n";
   Stack.iter (fun k v -> Format.printf "%s -> %d\n" (SSL.Variable.show k) v) sh.stack;
   Format.printf "Heap (next):\n";
-  Heap.iter_next (fun k v -> Format.printf "%d -> %d\n" k v) sh.heap;
-  Format.printf "Heap (prev):\n";
-  Heap.iter_prev (fun k v -> Format.printf "%d -> %d\n" k v) sh.heap;
+  Heap.iter (fun k vals -> Format.printf "%d -> %s\n" k (LocationTuple.show vals)) sh.heap;
   Format.printf "Footprints:\n";
   SSL.Map.iter
     (fun psi fp -> Format.printf "%a -> {%s}\n" SSL.pp psi (fp_to_string fp)) sh.footprints
+
+let to_smtlib sh =
+  Format.asprintf "(declare-sort Loc 0)\n%s\n%s"
+    (Stack.to_smtlib sh.stack)
+    (Heap.to_smtlib sh.heap)
 
 (* === Graph representation of (s,h) model === *)
 
@@ -217,11 +233,16 @@ module HeapGraph = struct
 
 end
 
+let update x vals g = match vals with
+  | [next] -> HeapGraph.add_edge_e g (x, Next, next)
+  | [next; prev] ->
+      let g = HeapGraph.add_edge_e g (x, Prev, prev) in
+      HeapGraph.add_edge_e g (x, Next, next)
+
 let get_heap_graph sh =
   HeapGraph.empty
   |> Stack.fold (fun _ loc g -> HeapGraph.add_vertex g loc) sh.stack
-  |> Heap.fold_next (fun x y g -> HeapGraph.add_edge_e g (x, Next, y)) sh.heap
-  |> Heap.fold_prev (fun x y g -> HeapGraph.add_edge_e g (x, Prev, y)) sh.heap
+  |> Heap.fold update sh.heap
 
 let get_path sh x y = HeapGraph.get_path (get_heap_graph sh) x y
 
