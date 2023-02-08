@@ -22,6 +22,4 @@
   )
 )
 
-(assert (not r))
-
 (check-sat)
