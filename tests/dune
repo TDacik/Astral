@@ -6,6 +6,7 @@
     list_utils_tests
     simplification_tests
     preprocessing_tests
+    predicate_unfolding_tests
   )
 
   (libraries
