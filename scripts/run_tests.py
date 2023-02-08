@@ -19,7 +19,7 @@ def print_bench_name(root, dirs):
 
 class Runner:
     def __init__(
-        self, backend="z3", encoding="sets", qf_elimination="enum", timeout=10
+        self, backend="z3", encoding="bitvectors", qf_elimination="none", timeout=10
     ):
         self.backend = backend
         self.encoding = encoding
@@ -43,20 +43,17 @@ class Runner:
             exit(1)
 
     def run(self, path, name):
+        # fmt: off
         command = [
             astral_bin,
-            "--backend",
-            self.backend,
-            "--encoding",
-            self.encoding,
-            "--quant-elim",
-            self.qf_elimination,
-            "--separation",
-            "weak",
-            "--json-output",
-            "/tmp/astral/" + name + ".json",
+            "--backend", self.backend,
+            "--encoding", self.encoding,
+            "--quant-elim", self.qf_elimination,
+            "--separation", "weak",
+            "--json-output", "/tmp/astral/" + name + ".json",
             os.path.join(path, name),
         ]
+        # fmt: on
         try:
             process = run(command, timeout=self.timeout, stdout=PIPE, stderr=PIPE)
             stdout = process.stdout.decode().strip()
