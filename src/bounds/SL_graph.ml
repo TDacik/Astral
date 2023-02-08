@@ -171,6 +171,17 @@ let predict_footprint g x y =
       | List -> (ptrs, (SSL.LS (Var x', Var y')) :: lists)
     ) ([], []) path
 
+(* TODO: diagonal product? *)
+let all_equal xs =
+  BatList.cartesian_product xs xs
+  |> List.filter_map (function (SSL.Var x, SSL.Var y) -> Some (x, Equality, y) | _ -> None)
+  |> List.fold_left G.add_edge_e G.empty
+
+let all_distinct xs =
+  List_utils.diagonal_product xs
+  |> List.filter_map (function (SSL.Var x, SSL.Var y) -> Some (x, Disequality, y) | _ -> None)
+  |> List.fold_left G.add_edge_e G.empty
+
 let disjoint_union g1 g2 =
   let alloc1 = must_alloc g1 in
   let alloc2 = must_alloc g2 in
@@ -183,11 +194,11 @@ let disjoint_union g1 g2 =
 
 let rec compute phi = match phi with
   | SSL.Var _ | SSL.Pure _ -> G.empty
-  | SSL.Eq (Var x, Var y) -> G.add_edge_e G.empty (x, Equality, y)
-  | SSL.Neq (Var x, Var y) -> G.add_edge_e G.empty (x, Disequality, y)
-  | SSL.PointsTo (Var x, [Var y]) -> G.add_edge_e G.empty (x, Pointer, y)
-  | SSL.PointsTo (Var x, _) -> G.empty (* TODO *)
-  | SSL.LS (Var x, Var y) -> G.add_edge_e G.empty (x, List, y)
+  | SSL.Eq xs -> all_equal xs
+  | SSL.Distinct xs -> all_distinct xs
+  | SSL.PointsTo (SSL.Var x, [SSL.Var y]) -> G.add_edge_e G.empty (x, Pointer, y)
+  | SSL.PointsTo (SSL.Var x, _) -> G.empty (* TODO *)
+  | SSL.LS (SSL.Var x, SSL.Var y) -> G.add_edge_e G.empty (x, List, y)
   | SSL.DLS _ -> G.empty (* TODO *)
   | SSL.SkipList _ -> G.empty (* TODO *)
 
@@ -198,7 +209,6 @@ let rec compute phi = match phi with
 
   | SSL.Septraction _ -> G.empty
   | SSL.Not _ -> G.empty
-
-let compute phi = compute phi
+  | SSL.Exists _ | SSL.Forall _ -> G.empty (* TODO *)
 
 include G
