@@ -1,25 +1,30 @@
+# Runner of regression tests
+#
+# Author: Tomas Dacik (idacik@fit.vut.cz), 2022
+
 import os
+import shutil
+
 from subprocess import run, PIPE, TimeoutExpired
 
-class colors:
-    red = "\033[91m"
-    green = "\033[92m"
-    white = "\033[m"
+from utils import *
+from property_checker import check
 
-def print_ok(text):
-    print(f"{colors.green}{text}{colors.white}")
+astral_bin = "astral"
 
-def print_err(text):
-    print(f"{colors.red}{text}{colors.white}")
 
 def print_bench_name(root, dirs):
     print(os.path.basename(root))
 
-astral_bin = "astral"
 
 class Runner:
-    def __init__(self, backend="z3", timeout=10):
+    def __init__(
+        self, backend="z3", encoding="sets", qf_elimination="enum", timeout=10
+    ):
         self.backend = backend
+        self.encoding = encoding
+        self.qf_elimination = qf_elimination
+
         self.timeout = timeout
 
         self.correct = 0
@@ -38,7 +43,20 @@ class Runner:
             exit(1)
 
     def run(self, path, name):
-        command = [astral_bin, "--backend", self.backend, os.path.join(path,name)]
+        command = [
+            astral_bin,
+            "--backend",
+            self.backend,
+            "--encoding",
+            self.encoding,
+            "--quant-elim",
+            self.qf_elimination,
+            "--separation",
+            "weak",
+            "--json-output",
+            "/tmp/astral/" + name + ".json",
+            os.path.join(path, name),
+        ]
         try:
             process = run(command, timeout=self.timeout, stdout=PIPE, stderr=PIPE)
             stdout = process.stdout.decode().strip()
@@ -48,8 +66,13 @@ class Runner:
                 print_ok(f"[OK] {name}: {stdout}")
                 self.correct += 1
 
+                # Check additional properties
+                check(os.path.join(path, name), "/tmp/astral/" + name + ".json")
+
             elif process.returncode == 2:
                 print_err(f"[INCORRECT]: {name}: {stdout}")
+                print(stdout)
+                print(stderr)
                 self.incorrect += 1
 
             else:
@@ -57,23 +80,39 @@ class Runner:
                 self.errors += 1
 
         except TimeoutExpired as to:
-            print_err(f"[TO]: {name}")
-            self.timeouts +=1
+            print_unknown(f"[TO]: {name}")
+            self.timeouts += 1
+
+    def print_result(self):
+        if runner.incorrect > 0:
+            print_err(" - incorrect: ", runner.incorrect)
+        if runner.errors > 0:
+            print_err(" - errors: ", runner.incorrect)
+        if runner.timeouts > 0:
+            print_err(" - timeouts: ", runner.timeouts)
+
+    def clean(self):
+        shutil.rmtree("/tmp/astral", ignore_errors=True)
+
+    def init(self):
+        self.clean()
+        os.mkdir("/tmp/astral")
+
+    def run_one(self):
+        self.init()
+        for root, dirs, files in sorted(os.walk("benchmarks/")):
+            if os.path.basename(root) in ["astral_debug"]:
+                # Ignore debug directories
+                continue
+
+            print_bench_name(root, dirs)
+            for f in sorted(files):
+                if f.endswith(".smt2"):
+                    self.run(root, f)
+        self.clean()
 
 
 if __name__ == "__main__":
     runner = Runner()
     runner.smoke_test()
-
-    for root, dirs, files in sorted(os.walk("benchmarks/")):
-        # Ignore debug directories
-        if os.path.basename(root) == "astral_debug":
-            continue
-
-        print_bench_name(root, dirs)
-        for f in sorted(files):
-            if f.endswith(".smt2"):
-                runner.run(root, f)
-
-    if runner.incorrect > 0 or runner.errors > 0 or runner.timeouts > 0:
-        exit(1)
+    runner.run_one()
