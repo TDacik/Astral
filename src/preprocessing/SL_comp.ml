@@ -11,7 +11,7 @@
 open SSL
 
 let is_pure phi = match phi with
-  | Eq _ | Neq _ -> true
+  | Eq _ | Distinct _ -> true
   | _ -> false
 
 let rec preprocess phi = match phi with
@@ -24,4 +24,4 @@ let rec preprocess phi = match phi with
   | GuardedNeg (psi1, psi2) -> GuardedNeg (preprocess psi1, preprocess psi2)
   | Star (psi1, psi2) -> Star (preprocess psi1, preprocess psi2)
   | Septraction (psi1, psi2) -> Septraction (preprocess psi1, preprocess psi2)
-  | Eq _ | Neq _ | LS _ | PointsTo _ -> phi
+  | Eq _ | Distinct _ | LS _ | PointsTo _ -> phi

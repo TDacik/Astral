@@ -90,7 +90,8 @@ val mk_nil : unit -> t
 val mk_var : string -> t
 (** Create SSL term consisting of a location variable with given name. *)
 
-val mk_var_sort : string -> Sort.t -> t
+val mk_fresh_var : string -> t
+(** Create SSL term consisting of a fresh location variable with given name. *)
 
 val mk_eq : t -> t -> t
 (** Create equality of two terms *)

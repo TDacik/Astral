@@ -124,7 +124,7 @@ let is_emp phi = equal phi (mk_emp ())
 
 let mk_nil () = Var Variable.nil
 let mk_var name = Var (Variable.mk name)
-let mk_var_sort name sort = Var (Variable.mk_sort name sort)
+let mk_fresh_var name = Var (Variable.mk_fresh name)
 
 let mk_eq x y = Eq [x; y]
 let mk_eq_list xs = Eq xs

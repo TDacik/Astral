@@ -130,7 +130,11 @@ and parse_binder type_env binder = match binder.term with
     let name = parse_var_name var in
     let sort = parse_sort sort in
     let type_env' = TypeEnv.declare type_env name sort in
-    (type_env', SSL.mk_var_sort name sort)
+    let var = match sort with
+      | Loc -> SSL.mk_var name
+      | smt_sort -> SSL.mk_pure @@ SMT.Variable.mk name smt_sort
+    in
+    (type_env', var)
 
 and parse_binders type_env binders =
   List.fold_left
