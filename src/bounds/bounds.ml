@@ -15,7 +15,7 @@ let partition_equality g x y =
   else SSL.Variable.equal x y
 
 let rec struct_stack_bound phi = match phi with
-  | Eq _ | Neq _ | PointsTo _ | LS _ -> Variable.Set.of_list (get_vars phi)
+  | Eq _ | Distinct _ | PointsTo _ | LS _ -> Variable.Set.of_list (get_vars phi)
   | Not psi -> struct_stack_bound psi
   | And (psi1, psi2) -> Variable.Set.inter  (struct_stack_bound psi1) (struct_stack_bound psi2)
   | GuardedNeg (psi1, _) -> struct_stack_bound psi1
@@ -41,21 +41,25 @@ let rec location_bound_atomic = function
   | PointsTo _ -> 1
 
   (* TODO: problem with emp *)
-  | Eq _ | Neq _ | Var _ | Pure _ ->  1
+  | Eq _ | Distinct _ | Var _ | Pure _ ->  1
 
-let location_bound phi g stack_bound = match SSL.classify_fragment phi with
-  | SymbolicHeap_SAT -> stack_bound
-  | SymbolicHeap_ENTL -> stack_bound + 1
-  | Atomic -> location_bound_atomic phi
-  | Positive ->
-      let max = 2 * stack_bound in
-      let n = SL_graph.nb_must_pointers g in
-      if not @@ List.mem Variable.nil (SSL.get_vars phi)
-      then max - n
-      else max - n (* - 1 nil cannot have a successor *)
-  (* TODO : tighter bounds for negative formulas *)
-  | Arbitrary ->
-      2 * stack_bound + chunk_size phi
+let location_bound phi g stack_bound =
+  let is_qf, fragment = SSL.classify_fragment phi in
+  if not @@ is_qf then match fragment with
+    | SymbolicHeap_ENTL -> stack_bound + 1
+  else match fragment with
+    | SymbolicHeap_SAT -> stack_bound
+    | SymbolicHeap_ENTL -> stack_bound + 1
+    | Atomic -> location_bound_atomic phi
+    | Positive ->
+        let max = 2 * stack_bound in
+        let n = SL_graph.nb_must_pointers g in
+        if not @@ List.mem Variable.nil (SSL.get_vars phi)
+        then max - n
+        else max - n (* - 1 nil cannot have a successor *)
+    (* TODO : tighter bounds for negative formulas *)
+    | Arbitrary ->
+        2 * stack_bound + chunk_size phi
 
 (* Given length abstraction, location bound and two variables x and y, compute bound on
    length of list between x y *)
