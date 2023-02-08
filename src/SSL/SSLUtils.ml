@@ -50,8 +50,17 @@ module AST = struct
       | DLS (v1, v2, v3, v4) -> Format.asprintf "dls(%a, %a, %a, %a)"
                                   SSL.pp v1 SSL.pp v2 SSL.pp v3 SSL.pp v4
       | PointsTo (v1, vs) -> Format.asprintf "%a ↦ %s" SSL.pp v1 (show_seq vs)
-      | Eq (v1, v2) -> Format.asprintf "%a = %a" SSL.pp v1 SSL.pp v2
-      | Neq (v1, v2) -> Format.asprintf "%a ≠ %a" SSL.pp v1 SSL.pp v2
+
+      | Eq [x; y] -> Format.asprintf "%a = %a" SSL.pp x SSL.pp y
+      | Eq xs -> Format.asprintf "equals(%s)" (String.concat ", " @@ List.map SSL.show xs)
+
+      | Distinct [x; y] -> Format.asprintf "%a ≠ %a" SSL.pp x SSL.pp y
+      | Distinct xs ->
+          Format.asprintf "distinct(%s)" (String.concat ", " @@ List.map SSL.show xs)
+
+      | Exists (xs, _) -> Format.asprintf "∃ %s" (String.concat ", " @@ List.map SSL.show xs)
+      | Forall (xs, _) -> Format.asprintf "∀ %s" (String.concat ", " @@ List.map SSL.show xs)
+
     in
     Format.asprintf "\"%d: %s\"" (SSL.subformula_id phi psi) label
 
@@ -73,15 +82,17 @@ module AST = struct
     if is_syntactic_sugar psi then
       make_leaf (node_name phi psi)
     else match SSL.node_type psi with
+    | Var _ -> make_leaf @@ SSL.show psi
     | Operator _ ->
         make_leaf (node_name phi psi)
-    | Connective [psi'] ->
+    | Connective [psi'] | Quantifier (_, psi') ->
         let tree' = create phi psi' in
         make_unary_node tree' (node_name phi psi)
     | Connective [psi1; psi2] ->
         let lhs = create phi psi1 in
         let rhs = create phi psi2 in
         make_binary_node lhs rhs (node_name phi psi)
+
 end
 
 let id = ref (-1)

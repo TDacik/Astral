@@ -10,6 +10,8 @@ module Variable : sig
 
   val mk : string -> t
 
+  val mk_sort : string -> Sort.t -> t
+
   val mk_fresh : string -> t
 
   val nil : t
@@ -25,8 +27,8 @@ end
 type t =
   | Var of Variable.t
   | Pure of SMT.Term.t
-  | Eq of t * t
-  | Neq of t * t
+  | Eq of t list
+  | Distinct of t list
   | PointsTo of t * t list
   | LS of t * t
   | DLS of t * t * t * t
@@ -35,6 +37,8 @@ type t =
   | Or of t * t
   | Not of t
   | GuardedNeg of t * t
+  | Exists of t list * t
+  | Forall of t list * t
   | Star of t * t
   | Septraction of t * t
 
@@ -68,6 +72,8 @@ val is_symbolic_heap_entl : t -> bool
 
 val is_positive : t -> bool
 
+val is_quantifier_free : t -> bool
+
 type fragment =
   | SymbolicHeap_SAT
   | SymbolicHeap_ENTL
@@ -75,15 +81,26 @@ type fragment =
   | Positive
   | Arbitrary
 
-val classify_fragment : t -> fragment
+val classify_fragment : t -> bool * fragment
 
 val normalise : t -> t
 
+val mk_nil : unit -> t
+
+val mk_var : string -> t
+(** Create SSL term consisting of a location variable with given name. *)
+
+val mk_var_sort : string -> Sort.t -> t
+
 val mk_eq : t -> t -> t
+(** Create equality of two terms *)
 
-val mk_neq : t -> t -> t
+val mk_eq_list : t list -> t
+(** Create equality of list of terms. *)
 
-val mk_distinct : t list -> t
+val mk_distinct : t -> t -> t
+
+val mk_distinct_list : t list -> t
 
 val mk_pto : t -> t -> t
 (** Create a term representing a pointer with a single target location. *)
@@ -113,13 +130,17 @@ val mk_or : t list -> t
 
 val mk_implies : t -> t -> t
 
-val mk_iff : t -> t -> t
+val mk_iff : t list -> t
 
 val mk_gneg : t -> t -> t
 
 val mk_septraction : t -> t -> t
 
 val mk_wand : t -> t -> t
+
+val mk_exists : t list -> t -> t
+
+val mk_forall : t list -> t -> t
 
 (* {2 Predicates} *)
 

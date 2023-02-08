@@ -11,6 +11,8 @@ module Variable = struct
 
   let is_nil var = equal var nil
 
+  let mk_sort name sort = mk name sort
+
   let mk name = mk name Sort.Loc
 
   let mk_fresh name = mk_fresh name Sort.Loc
@@ -34,8 +36,8 @@ type t =
   | Pure of SMT.Term.t    (* Pure boolean term which does not contain location variables *)
 
   (* Atoms *)
-  | Eq of t * t
-  | Neq of t * t
+  | Eq of t list
+  | Distinct of t list
   | PointsTo of t * t list
   | LS of t * t
   | DLS of t * t * t * t
@@ -47,6 +49,10 @@ type t =
   | Not of t
   | GuardedNeg of t * t
 
+  (* Quantifiers *)
+  | Exists of t list * t
+  | Forall of t list * t
+
   (* Spatial connectives *)
   | Star of t * t
   | Septraction of t * t
@@ -55,10 +61,10 @@ let compare = Stdlib.compare
 let hash = Hashtbl.hash
 
 let describe_node : t -> t node_info = function
-  | Var x -> (Variable.show_with_sort x, Var (Variable.show x, Sort.Loc))
+  | Var (name, Sort.Loc) -> (name, Var (name, Sort.Loc))
   | Pure t -> ("pure " ^ SMT.Term.show t, Operator ([], (SMT.Term.get_sort t)))
-  | Eq (x, y) -> ("=", Operator ([x; y], Sort.Bool))
-  | Neq (x, y) -> ("neq", Operator ([x; y], Sort.Bool))
+  | Eq xs -> ("=", Operator (xs, Sort.Bool))
+  | Distinct xs -> ("distinct", Operator (xs, Sort.Bool))
   | PointsTo (x, ys) -> ("pto", Operator (x :: ys, Sort.Bool))
   | LS (x, y) -> ("ls", Operator ([x; y], Sort.Bool))
   | DLS (x, y, f, l) -> ("dls", Operator ([x; y; f; l], Sort.Bool))
@@ -67,10 +73,12 @@ let describe_node : t -> t node_info = function
   | Or (psi1, psi2) -> ("or", Connective [psi1; psi2])
   | Not psi -> ("not", Connective [psi])
   | GuardedNeg (psi1, psi2) -> ("gneg", Connective [psi1; psi2])
+  | Exists (xs, psi) -> ("exists", Quantifier (xs, psi))
+  | Forall (xs, psi) -> ("forall", Quantifier (xs, psi))
   | Star (psi1, psi2) -> ("star", Connective [psi1; psi2])
   | Septraction (psi1, psi2) -> ("septraction", Connective [psi1; psi2])
 
-(* First, build implementation of logical functions (including show). *)
+(** First, build implementation of logical functions (including show). *)
 
 module Self = struct
   type nonrec t = t
@@ -79,7 +87,8 @@ end
 
 include Logic.Make(Self)
 
-(* Second, build implementation of common operations. *)
+(** Second, build implementation of common operations. *)
+
 module Self2 = struct
   include Self
   let show = show
@@ -98,12 +107,87 @@ let is_atom phi = match node_type phi with
   | Operator _ -> true
   | _ -> false
 
+(* ==== Basic constructors ==== *)
+
+let mk_emp () = Eq [Var Variable.nil; Var Variable.nil]
+let mk_not_emp () = Not (mk_emp ())
+let mk_false () = GuardedNeg (mk_emp (), mk_emp ())
+let mk_true () = Not (mk_false ())
+
+(* ==== Checkers ==== *)
+
+let is_false phi = equal phi (mk_false ())
+let is_true phi = equal phi (mk_true ())
+let is_emp phi = equal phi (mk_emp ())
+
+(* ==== Constructors ==== *)
+
+let mk_nil () = Var Variable.nil
+let mk_var name = Var (Variable.mk name)
+let mk_var_sort name sort = Var (Variable.mk_sort name sort)
+
+let mk_eq x y = Eq [x; y]
+let mk_eq_list xs = Eq xs
+
+let mk_distinct x y = Distinct [x; y]
+let mk_distinct_list xs = Distinct xs
+
+let mk_pto x y = PointsTo (x, [y])
+let mk_pto_seq x ys = PointsTo (x, ys)
+let mk_ls x y = LS (x, y)
+let mk_dls x y f l = DLS (x, y, f, l)
+let mk_skl depth x y = SkipList (depth, x, y)
+
+let mk_not phi = Not phi
+
+let mk_implies lhs rhs = Or (Not lhs, rhs)
+let mk_gneg lhs rhs = GuardedNeg (lhs, rhs)
+
+let mk_and operands = match operands with
+  | [] -> mk_true ()
+  | fst :: tail -> List.fold_left (fun phi op -> And (phi, op)) fst tail
+
+let mk_iff operands = match operands with
+  | [] -> mk_true ()
+  | [psi] -> psi
+  | [psi1; psi2] -> mk_and [mk_implies psi1 psi2; mk_implies psi2 psi1]
+  | _ -> failwith "TODO"
+
+let mk_bin_iff psi1 psi2 = mk_iff [psi1; psi2]
+
+let mk_bin_and phi1 phi2 = mk_and [phi1; phi2]
+
+let mk_or operands = match operands with
+  | [] -> mk_false ()
+  | fst :: tail -> List.fold_left (fun phi op -> Or (phi, op)) fst tail
+
+let mk_bin_or phi1 phi2 = mk_or [phi1; phi2]
+
+let mk_star operands = match operands with
+  | [] -> mk_emp ()
+  | fst :: tail -> List.fold_left (fun phi op -> Star (phi, op)) fst tail
+
+let mk_bin_star phi1 phi2 = mk_star [phi1; phi2]
+
+let mk_septraction lhs rhs = Septraction (lhs, rhs)
+
+let mk_wand lhs rhs = Not (Septraction (lhs, Not rhs))
+
+let mk_exists xs phi = match xs with
+  | [] -> phi
+  | xs -> Exists (xs, phi)
+let mk_forall xs phi = match xs with
+  | [] -> phi
+  | xs -> Forall (xs, phi)
+
 let rec is_pure phi = match node_type phi with
-  | Var _ -> false
+  | Var (_, _) -> false
   | Operator ([], _) -> true
   | Operator (terms, _) | Connective terms -> List.for_all is_pure terms
+  | Quantifier (_, psi) -> is_pure psi
 
-(** Transform suitable negations to guarded form *)
+(** Transform suitable negations to guarded form
+ *  TODO: quantifiers, move to preprocessing *)
 let rec _normalise = function
   | And (f1, f2) -> begin match f1, f2 with
     | Not g1, Not g2 -> Not (Or (_normalise g1, _normalise g2))
@@ -138,8 +222,9 @@ let rec normalise phi =
   else normalise phi'
 
 (** What exactly is the chunk size of single variable? *)
+(** TODO: quantifiers *)
 let rec chunk_size = function
-  | Eq _ | Neq _ | PointsTo _ | LS _ | DLS _ | SkipList _ | Var _ -> 1
+  | Eq _ | Distinct _ | PointsTo _ | LS _ | DLS _ | SkipList _ | Var _ -> 1
   | Star (psi1, psi2) -> chunk_size psi1 + chunk_size psi2
   | Septraction (_, psi2) -> chunk_size psi2
   | And (psi1, psi2) | Or (psi1, psi2) | GuardedNeg (psi1, psi2) ->
@@ -147,6 +232,7 @@ let rec chunk_size = function
   | Not psi -> chunk_size psi
 
 (** Fold using preorder traversal of AST *)
+(** TODO: quantifiers *)
 let rec fold (fn : t -> 'a -> 'a) phi (acc : 'a) = match node_type phi with
   | Var _ -> fn phi acc
   | Operator (terms, _) | Connective terms ->
@@ -155,6 +241,7 @@ let rec fold (fn : t -> 'a -> 'a) phi (acc : 'a) = match node_type phi with
 exception NotSubformula
 
 (* TODO: more effectively *)
+(** TODO: quantifiers *)
 let subformula_id ?(physically=true) phi psi =
   let rec subformula_id phi psi id =
     let eq = if physically then (==) else (=) in
@@ -162,15 +249,18 @@ let subformula_id ?(physically=true) phi psi =
     else match node_type phi with
     | Var _ | Operator _ -> (None, id)
     | Connective [t1] -> subformula_id t1 psi (id+1)
-    | Connective [t1; t2] -> match subformula_id t1 psi (id+1) with
+    | Connective [t1; t2] -> begin match subformula_id t1 psi (id+1) with
       | (None, id) -> subformula_id t2 psi (id+1)
       | res -> res
+    end
+    | Quantifier (_, psi') -> subformula_id psi' psi (id+1)
   in
   match subformula_id phi psi 0 with
   | (None, _) -> raise NotSubformula
   | (Some id, _) -> id
 
 (** Find subformula with given ID. *)
+(** TODO: quantifiers *)
 let rec find_by_id phi psi id =
   let phi_id = subformula_id phi psi in
   if Int.equal phi_id id then psi
@@ -192,6 +282,11 @@ let rec is_negation_free phi = match node_type phi with
       | GuardedNeg _ | Not _ -> false
       | _ -> List.for_all is_negation_free terms
     end
+  | Quantifier _ ->
+     begin match phi with
+      | Exists (_, phi) -> is_negation_free phi
+      | Forall _ -> false
+     end
 
 let rec is_symbolic_heap phi = match node_type phi with
   | Var _ | Operator _ -> true
@@ -212,9 +307,14 @@ let rec is_positive phi = match node_type phi with
         | Not _ -> false
         | _ -> List.for_all is_positive terms
       end
+  | Quantifier _ ->
+     begin match phi with
+      | Exists (_, phi) -> is_positive phi
+      | Forall _ -> false
+     end
 
 let rec has_unique_shape phi = match phi with
-  | Eq _ | Neq _ | PointsTo _ -> true
+  | Eq _ | Distinct _ | PointsTo _ -> true
   | And (psi1, psi2) | Star (psi1, psi2) -> has_unique_shape psi1 && has_unique_shape psi2
   | _ -> false
 
@@ -226,6 +326,12 @@ let rec is_atomic phi = match node_type phi with
       | _ -> true
     end
   | Connective terms -> List.for_all is_atomic terms
+  | Quantifier _ -> false
+
+let rec is_quantifier_free phi = match node_type phi with
+  | Var _ | Operator _ -> true
+  | Connective terms -> List.for_all is_quantifier_free terms
+  | Quantifier _ -> false
 
 type fragment =
   | SymbolicHeap_SAT
@@ -235,19 +341,23 @@ type fragment =
   | Arbitrary
 
 let classify_fragment phi =
-  if is_symbolic_heap phi then SymbolicHeap_SAT
-  else if is_symbolic_heap_entl phi then SymbolicHeap_ENTL
-  else if is_atomic phi then Atomic
-  else if is_positive phi then Positive
-  else Arbitrary
+  let is_qf = is_quantifier_free phi in
+  let fragment =
+    if is_symbolic_heap phi then SymbolicHeap_SAT
+    else if is_symbolic_heap_entl phi then SymbolicHeap_ENTL
+    else if is_atomic phi then Atomic
+    else if is_positive phi then Positive
+    else Arbitrary
+  in
+  (is_qf, fragment)
 
 let rec has_unique_footprint = function
-  | Eq _ | Neq _ | Pure _ | PointsTo _ | LS _ | DLS _ | SkipList _ -> true
+  | Eq _ | Distinct _ | Pure _ | PointsTo _ | LS _ | DLS _ | SkipList _ -> true
   | And (f1, f2) -> has_unique_footprint f1 || has_unique_footprint f2
   | GuardedNeg (f1, f2) -> has_unique_footprint f1
   | Star (f1, f2) -> has_unique_footprint f1 && has_unique_footprint f2
   | Septraction (f1, f2) -> has_unique_footprint f1 && has_unique_footprint f2
-  | Or _ | Not _ -> false
+  | Or _ | Not _ | Forall _ | Exists _ -> false
 
 (** TODO: rename *)
 let get_vars ?(with_nil=true) phi =
@@ -266,8 +376,8 @@ let rec map_vars fn phi =
   match phi with
   | Var x -> fn x
   | Pure t -> Pure t
-  | Eq (x, y) -> Eq (map_vars x, map_vars y)
-  | Neq (x, y) -> Neq (map_vars x, map_vars y)
+  | Eq xs -> Eq (List.map map_vars xs)
+  | Distinct xs -> Distinct (List.map map_vars xs)
   | PointsTo (x, ys) -> PointsTo (map_vars x, List.map map_vars ys)
   | LS (x, y) -> LS (map_vars x, map_vars y)
   | DLS (x, y, f, l) -> DLS (map_vars x, map_vars y, map_vars f, map_vars l)
@@ -281,66 +391,7 @@ let rec map_vars fn phi =
   | Star (psi1, psi2) -> Star (map_vars psi1, map_vars psi2)
   | Septraction (psi1, psi2) -> Septraction (map_vars psi1, map_vars psi2)
 
-(* ==== Basic constructors ==== *)
 
-let mk_emp () = Eq (Var Variable.nil, Var Variable.nil)
-let mk_not_emp () = Not (Eq (Var Variable.nil, Var Variable.nil))
-let mk_false () = GuardedNeg (mk_emp (), mk_emp ())
-let mk_true () = Not (mk_false ())
-
-(* ==== Checkers ==== *)
-
-let is_false phi = equal phi (mk_false ())
-let is_true phi = equal phi (mk_true ())
-let is_emp phi = equal phi (mk_emp ())
-
-(* ==== Constructors ==== *)
-
-let mk_eq x y = Eq (x, y)
-let mk_neq x y = Neq (x, y)
-
-let mk_pto x y = PointsTo (x, [y])
-let mk_pto_seq x ys = PointsTo (x, ys)
-let mk_ls x y = LS (x, y)
-let mk_dls x y f l = DLS (x, y, f, l)
-let mk_skl depth x y = SkipList (depth, x, y)
-
-let mk_not phi = Not phi
-
-let mk_implies lhs rhs = Or (Not lhs, rhs)
-let mk_iff lhs rhs = And (mk_implies lhs rhs, mk_implies rhs lhs)
-let mk_gneg lhs rhs = GuardedNeg (lhs, rhs)
-let mk_emp () = Eq (Var Variable.nil, Var Variable.nil)
-let mk_not_emp () = Not (Eq (Var Variable.nil, Var Variable.nil))
-let mk_false () = GuardedNeg (mk_emp (), mk_emp ())
-let mk_true () = Not (mk_false ())
-
-let mk_distinct operands = match operands with
-  | [] -> mk_true ()
-  | [x; y] -> mk_neq x y
-  | fst :: tail -> failwith "not implemented"
-
-let mk_and operands = match operands with
-  | [] -> mk_true ()
-  | fst :: tail -> List.fold_left (fun phi op -> And (phi, op)) fst tail
-
-let mk_bin_and phi1 phi2 = mk_and [phi1; phi2]
-
-let mk_or operands = match operands with
-  | [] -> mk_false ()
-  | fst :: tail -> List.fold_left (fun phi op -> Or (phi, op)) fst tail
-
-let mk_bin_or phi1 phi2 = mk_or [phi1; phi2]
-
-let mk_star operands = match operands with
-  | [] -> mk_emp ()
-  | fst :: tail -> List.fold_left (fun phi op -> Star (phi, op)) fst tail
-
-let mk_bin_star phi1 phi2 = mk_star [phi1; phi2]
-
-let mk_septraction lhs rhs = Septraction (lhs, rhs)
-
-let mk_wand lhs rhs = Not (Septraction (lhs, Not rhs))
 
 let fold_on_vars fn acc phi =
   let vars = get_vars phi in
@@ -355,13 +406,14 @@ let rec iter_on_subformulas fn phi =
   | GuardedNeg (f1, f2) -> iter f1; iter f2; fn phi
   | Star (f1, f2) -> iter f1; iter f2; fn phi
   | Septraction (f1, f2) -> iter f1; iter f2; fn phi
-  (* Atomic formulas *)
-  | _ -> fn phi
+  | Forall (_, psi) | Exists (_, psi) -> fn phi; iter psi
+  | atom -> fn atom
 
 let rec select_subformulae predicate phi =
   let acc = match node_type phi with
     | Var _ | Operator _ -> []
     | Connective psis -> List.concat @@ List.map (select_subformulae predicate) psis
+    | Quantifier (_, psi) -> select_subformulae predicate psi
   in
   if predicate phi then phi :: acc else acc
 
@@ -394,12 +446,12 @@ let mk_pure_var name sort = Pure (SMT.Variable.mk name sort)
 module Infix = struct
 
   let (==)  = mk_eq
-  let (!=)  = mk_neq
+  let (!=)  = mk_distinct
   let (|->) = mk_pto
   let (~>)  = mk_ls
 
   let (=>)  = mk_implies
-  let (<=>) = mk_iff
+  let (<=>) = mk_bin_iff
   let (&!)  = mk_gneg
   let (&&)  = mk_bin_and
   let (||)  = mk_bin_or
