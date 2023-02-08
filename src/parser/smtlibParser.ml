@@ -97,7 +97,7 @@ let lift_quadop_to_list fn operator = function
 
 let rec parse_assertion context type_env phi =
   let phi = parse_term type_env phi in
-  let phi = Normalization.apply phi in
+  let phi = Normalisation.apply phi in
   Context.add_assertion phi context
 
 and parse_term type_env term = match term.term with
