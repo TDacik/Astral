@@ -7,7 +7,7 @@ open Translation_sig
 module Make(Locations : LOCATIONS) = struct
 
   let reach_back ctx dom y x =
-    let cond = Boolean.mk_and [Set.mk_mem x dom; Boolean.mk_neq x y] in
+    let cond = Boolean.mk_and [Set.mk_mem x dom; Boolean.mk_distinct x y] in
     let next = mk_succ ctx x in
     let prev_next = Array.mk_select ctx.heap_prev next in
     Boolean.mk_implies cond (Boolean.mk_eq x prev_next)
@@ -28,8 +28,8 @@ module Make(Locations : LOCATIONS) = struct
     let first_fp = Boolean.mk_not (Set.mk_mem f dom) in
     let last_fp = Boolean.mk_not (Set.mk_mem l dom) in
     Boolean.mk_and [
-      Boolean.mk_neq x l;
-      Boolean.mk_neq y f;
+      Boolean.mk_distinct x l;
+      Boolean.mk_distinct y f;
       reach_next;
       reach_prev;
       domain_def;
@@ -53,7 +53,7 @@ module Make(Locations : LOCATIONS) = struct
         Set.mk_eq_empty fp;
       ];
       Boolean.mk_and [
-        Boolean.mk_or [Boolean.mk_neq x l; Boolean.mk_neq y f];
+        Boolean.mk_or [Boolean.mk_distinct x l; Boolean.mk_distinct y f];
         path ctx pi x y bound;
         Set.mk_eq fp (Set.mk_add pi y);
       ]

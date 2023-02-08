@@ -21,7 +21,7 @@ module SymbolicHeaps = struct
   let semantics ctx fp x y _ =
     let cond1 = Boolean.mk_eq x y in
     let cond2 = Boolean.mk_and [
-      Boolean.mk_distinct [x; y];
+      Boolean.mk_distinct x y;
       Boolean.mk_eq (mk_succ ctx x) y;
     ]
     in

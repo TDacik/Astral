@@ -13,9 +13,11 @@ module type SMT_TERM = sig
 
   val mk_eq : t -> t -> t
 
-  val mk_neq : t -> t -> t
+  val mk_eq_list : t list -> t
 
-  val mk_distinct : t list -> t
+  val mk_distinct : t -> t -> t
+
+  val mk_distinct_list : t list -> t
 
   (* TODO: the following functions can be probably moved to LOGIC *)
 

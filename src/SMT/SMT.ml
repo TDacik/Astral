@@ -22,7 +22,7 @@ module Term = struct
     | False
 
     (* Polymorphic operators *)
-    | Equal of t * t
+    | Equal of t list
     | Distinct of t list
     | LesserEq of t * t
 
@@ -110,7 +110,7 @@ module Term = struct
       | SeqContains (elem, seq) -> f (SeqContains (map elem, map seq))
       | SeqReverse seq -> f (SeqReverse (map seq))
 
-      | Equal (x, y) -> f (Equal (map x, map y))
+      | Equal xs -> f (Equal (List.map map xs))
       | Distinct xs -> f (Distinct (List.map map xs))
       | And xs -> f (And (List.map map xs))
       | Or xs -> f (Or (List.map map xs))
@@ -169,7 +169,7 @@ module Term = struct
     | SeqContains (elem, seq) -> ("seq.contains", Connective ([elem; seq]))
     | SeqReverse seq -> ("seq.rev", Operator ([seq], get_sort seq))
 
-    | Equal (x, y) -> ("=", Connective [x; y])
+    | Equal xs -> ("=", Connective xs)
     | Distinct xs -> ("distinct", Connective xs)
     | And xs -> ("and", Connective xs)
     | Or xs -> ("or", Connective xs)
@@ -210,13 +210,17 @@ module Term = struct
     let fn = (fun t -> match node_type t with Var (name, sort) -> fn name sort | _ -> t) in
     map fn term
 
-  let mk_eq t1 t2 =
-    if equal t1 t2 then True
-    else Equal (t1, t2)
+  (* TODO: more simplification *)
+  let mk_eq_list ts =
+    if List_utils.all_equal equal ts then True
+    else Equal ts
 
-  let mk_neq t1 t2 = Distinct [t1; t2]
+  let mk_eq t1 t2 = mk_eq_list [t1; t2]
 
-  let mk_distinct ts = Distinct ts
+  (* TODO: more simplification *)
+  let mk_distinct_list ts = Distinct ts
+
+  let mk_distinct t1 t2 = mk_distinct_list [t1; t2]
 
   let compare_str t1 t2 = String.compare (show t1) (show t2)
 
@@ -304,8 +308,8 @@ module Term = struct
         BitShiftRight (substitute ~bounded bv x term, substitute ~bounded rot x term)
 
       (* Boolean *)
-      | Equal (t1, t2) ->
-        Equal (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+      | Equal terms ->
+        Equal (List.map (fun t -> substitute ~bounded t x term) terms)
       | Distinct terms ->
         Distinct (List.map (fun t -> substitute ~bounded t x term) terms)
       | And terms ->

@@ -53,9 +53,7 @@ let mk_diff set1 set2 =
 
 let mk_compl set = Bitvector.mk_compl set
 
-let mk_eq_empty set =
-  try Equal (set, mk_empty (get_sort set))
-  with _ -> failwith (Term.show set ^ " : " ^ (Sort.show @@ get_sort set) ^ " x " ^ Sort.show @@ get_elem_sort set)
+let mk_eq_empty set = Bitvector.mk_eq set (mk_empty (get_sort set))
 
 let mk_eq_singleton set x = Bitvector.mk_eq set (mk_singleton x)
 

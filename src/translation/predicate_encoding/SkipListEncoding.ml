@@ -14,7 +14,7 @@ let semantics_non_empty ctx dom fp1 fp2 x y bound =
   let domain_def = Set.mk_eq dom fp1 in
   let path_inclusion = Set.mk_subset fp2 fp2 in
   Boolean.mk_and [
-    Boolean.mk_neq x y;
+    Boolean.mk_distinct x y;
     reach1;
     reach2;
     domain_def;

@@ -25,7 +25,7 @@ type t =
   | False
 
   (* Polymorphic operators *)
-  | Equal of t * t
+  | Equal of t list
   | Distinct of t list
   | LesserEq of t * t
 

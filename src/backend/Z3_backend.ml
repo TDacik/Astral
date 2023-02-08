@@ -40,7 +40,10 @@ let rec translate t = match t with
 
   | SMT.True -> Z3.Boolean.mk_true !context
   | SMT.False -> Z3.Boolean.mk_false !context
-  | SMT.Equal (t1, t2) -> Z3.Boolean.mk_eq !context (translate t1) (translate t2)
+  | SMT.Equal [] -> Z3.Boolean.mk_true !context
+  | SMT.Equal (x :: y :: rest) ->
+      let step = Z3.Boolean.mk_eq !context (translate x) (translate y) in
+      Z3.Boolean.mk_and !context [step; translate @@ SMT.mk_eq_list rest]
   | SMT.Distinct ts -> Z3.Boolean.mk_distinct !context (List.map translate ts)
   | SMT.And es -> Z3.Boolean.mk_and !context (List.map translate es)
   | SMT.Or es -> Z3.Boolean.mk_or !context (List.map translate es)
@@ -136,7 +139,7 @@ and translate_sort = function
 and find_const const sort =
   let sort = translate_sort sort in
   let consts = Z3.Enumeration.get_consts sort in
-  List.find (fun c -> String.equal (Z3.Expr.to_string c) ("|" ^ const ^ "|")) consts
+  List.find (fun c -> String.equal (Z3.Expr.to_string c) const) consts
 
 (* ==== Model translation ==== *)
 

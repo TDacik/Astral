@@ -19,7 +19,7 @@ and translate_std translate translate_sort term = match term with
   | SMT.Constant (name, _) -> name
   | SMT.True -> "true"
   | SMT.False -> "false"
-  | SMT.Equal (t1, t2) -> Format.asprintf "(= %s %s)" (translate t1) (translate t2)
+  | SMT.Equal ts -> Format.asprintf "(= %s)" (translate_expr_list translate ts)
   | SMT.Distinct ts -> Format.asprintf "(distinct %s)" (translate_expr_list translate ts)
 
   | SMT.And ts -> Format.asprintf "(and %s)" (translate_expr_list translate ts)
