@@ -1,7 +1,3 @@
-open Alcotest
-
-open Astral_lib
-
 (** Auxiliary functions *)
 
 let (==) set1 set2 =

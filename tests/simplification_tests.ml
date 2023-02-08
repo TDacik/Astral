@@ -2,9 +2,6 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-open Alcotest
-open Astral_lib
-
 open SSL.Infix
 
 let x = SSL.mk_var "x"

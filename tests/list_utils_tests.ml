@@ -2,11 +2,6 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-open Alcotest
-open Astral_lib
-
-(** Tests *)
-
 let all_equal1 () = assert (List_utils.all_equal (=) [])
 let all_equal2 () = assert (List_utils.all_equal (=) [1])
 let all_equal3 () = assert (List_utils.all_equal (=) [1; 1; 1])
