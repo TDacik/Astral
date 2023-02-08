@@ -9,8 +9,8 @@ open Batteries
 
 let gen_var var = SSL.Var (var, Sort.Loc)
 
-let gen_eq (x, y) = SSL.Eq (x, y)
-let gen_neq (x, y) = SSL.Neq (x, y)
+let gen_eq (x, y) = SSL.Eq [x; y]
+let gen_neq (x, y) = SSL.Distinct [x; y]
 let gen_pt (x, y) = SSL.mk_pto x y
 let gen_ls (x, y) = SSL.LS (x, y)
 
@@ -94,10 +94,10 @@ module Make (Params : PARAMS) = struct
     if store then begin
       let path = Format.asprintf "%s%d.smt2" prefix (next ()) in
       let phi =
-        if Params.unfold then Predicate_unfolding.unfold phi 3 (* TODO: bound *)
-        else phi
+        (*if Params.unfold then Predicate_unfolding.unfold phi 3 (* TODO: bound *)
+        else*) phi
       in
-      Smtlib_convertor.dump path phi "unknown"
+      SSL.dump path phi
     end;
     res
 
