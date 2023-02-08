@@ -3,6 +3,8 @@
     SMT
     topped_set
     preprocessors
+    list_utils
+    simplification
   )
   (libraries
     astral_lib

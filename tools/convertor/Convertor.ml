@@ -39,12 +39,12 @@ let () =
   let input = {input with phi = SSL.normalise input.phi} in
   let input =
     if not @@ Convertor.precise_semantics
-    then {input with phi = PreciseToImprecise.preprocess input.phi}
+    then {input with phi = PreciseToImprecise.apply input.phi}
     else input
   in
   let input =
     if not @@ Convertor.supports_variadic_operators
-    then {input with phi = RemoveVariadic.preprocess input.phi}
+    then {input with phi = RemoveVariadic.apply input.phi}
     else input
   in
   match !output_path with

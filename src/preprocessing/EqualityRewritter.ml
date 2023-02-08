@@ -1,12 +1,12 @@
-(* Preprocessing that removes unecessary variables
+(* Preprocessing that removes unecessary variables originating from equalities.
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
 (** Computation of connected components for equalities. *)
-
 module Components = Graph.Components.Undirected(SL_graph)
 
-(** Get representant of equivalence classes as the first node in SCC. *)
+(** Get representant of equivalence classes as the first node in SCC. If SCC contains nil,
+    then return nil instead. *)
 let get_representant components x =
   try
     let c = List.find (fun c -> BatList.mem_cmp SSL.Variable.compare x c) components in
@@ -16,7 +16,7 @@ let get_representant components x =
 
   with Not_found -> x
 
-let preprocess sl_graph phi =
+let apply sl_graph phi =
   let g = SL_graph.projection_eq sl_graph in
   let components = Components.components_list g in
   let rewrite_var = (fun var -> SSL.Var (get_representant components var)) in

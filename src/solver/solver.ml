@@ -50,11 +50,11 @@ let normalise phi vars =
   let vars = normalise_vars phi vars in
   (phi, vars)
 
-let select_predicate_encoding input = match SSL.classify_fragment input.phi with
+let select_predicate_encoding input = match snd @@ SSL.classify_fragment input.phi with
   | SymbolicHeap_SAT -> (module ListEncoding.SymbolicHeaps : LIST_ENCODING)
   | _ -> (module ListEncoding.Classic : LIST_ENCODING)
 
-let debug_info input = match SSL.classify_fragment input.phi with
+let debug_info input = match snd @@ SSL.classify_fragment input.phi with
   | SymbolicHeap_SAT -> Print.debug "Solving as satisfiability in SH-fragment\n"
   | SymbolicHeap_ENTL -> Print.debug "Solving as entailment in SH-fragment\n"
   | Atomic -> Print.debug "Solving as atomic formula\n"
@@ -64,6 +64,7 @@ let debug_info input = match SSL.classify_fragment input.phi with
 let solve ?(verify_model=false) input =
   let phi, vars = Context.get_raw_input input in
   Debug.formula ~suffix:"original" phi;
+  let phi = PurePreprocessing.apply phi in
   let phi, vars = normalise phi vars in
   let input = Context.set_normalised phi vars input in
 
@@ -77,7 +78,7 @@ let solve ?(verify_model=false) input =
   in
 
   (** Simplification *)
-  let phi = Simplifier.preprocess @@ EqualityRewritter.preprocess g phi in
+  let phi = Simplifier.simplify @@ EqualityRewritter.apply g phi in
   Debug.formula phi;
 
   let s_min, s_max = Bounds.stack_bound g phi vars in
