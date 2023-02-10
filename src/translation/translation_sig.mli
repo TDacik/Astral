@@ -2,40 +2,49 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
-module type MINIMAL_SET = Set_sig.MINIMAL_SET
+module type SET_ENCODING = sig
 
-module type SET = Set_sig.SET
+  include SMT_sig.SET
+  (** Syntactic functions over set terms. *)
+
+  val name : string
+  (** Name of the set encoding. *)
+
+  val rewrite : SMT.Term.t -> SMT.Term.t
+
+  val rewrite_back : SMT.Term.t -> SMT.Model.model -> SMT.Model.model
+
+end
+
 
 module type LOCATIONS = sig
 
-  (* {3 Functions used to build Astral's context} *)
+  type t
 
-  val mk_sort : string -> int -> SMT.sort
+  val name : string
 
-  val mk_const : SMT.sort -> string -> SMT.term
+  val mk : string -> int -> t
+  (** Create location sort of cardinality n. *)
 
-  val enumeration : SMT.sort -> SMT.term list
+  val get_sort : t -> Sort.t
 
-  (* {3 functions already using Astral's context} *)
+  val mk_var : string -> Sort.t -> SMT.Term.t
 
-  val var_to_expr : Context.t -> SSL.Variable.t -> SMT.term
+  val mk_fresh_var : string -> Sort.t -> SMT.Term.t
 
-  val vars_to_exprs : Context.t -> SMT.term list
+  val get_constants : t -> SMT.Term.t list
 
+  val var_axiom : t -> SMT.Term.t -> SMT.Term.t
 
-  val location_lemmas : Context.t -> SMT.term
+  (* Quantification *)
 
-  val exists : Context.t -> (SMT.term -> SMT.term) -> SMT.term
-  (** First-order universal quantifier. *)
+  val mk_forall : Sort.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
 
-  val forall : Context.t -> (SMT.term -> SMT.term) -> SMT.term
-  (** First-order universal quantifier. *)
+  val mk_exists : Sort.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
 
-  val exists2 : Context.t -> (SMT.term -> SMT.term) -> SMT.term
-  (** Second-order existential quantifier. *)
+  (* Additional *)
 
-  val forall2 : Context.t -> (SMT.term -> SMT.term) -> SMT.term
-  (** Second-order universal quantifier. *)
+  val location_lemmas : t -> SMT.Term.t
 
 end
 
@@ -44,31 +53,37 @@ type local_bound := int * int
 module type LIST_ENCODING = sig
 
   val semantics :
-    Context.t ->
-    SMT.term ->
-    SMT.term ->
-    SMT.term ->
+    Translation_context.t ->
+    SMT.Term.t ->
+    SMT.Term.t ->
+    SMT.Term.t ->
     local_bound ->
-    SMT.term
+    SMT.Term.t
   (** semantics context x y fp *)
 
   val axioms :
-    Context.t ->
-    SMT.term ->
-    SMT.term ->
-    SMT.term ->
+    Translation_context.t ->
+    SMT.Term.t ->
+    SMT.Term.t ->
+    SMT.Term.t ->
     local_bound ->
-    SMT.term
+    SMT.Term.t
   (** axioms context x y fp *)
 
 end
 
-module type ENCODING = sig
-
-  module Set : SET
-
+(** Base encoding groups together encoding of sets and locations. *)
+module type BASE_ENCODING = sig
+  module Set : SET_ENCODING
   module Locations : LOCATIONS
+end
 
+(** Predicate encoding groups together encoding of inductive predicates. *)
+module type PREDICATE_ENCODING = sig
   module ListEncoding : LIST_ENCODING
+end
 
+module type ENCODING = sig
+  include BASE_ENCODING
+  module ListEncoding : LIST_ENCODING
 end

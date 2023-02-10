@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
 
     container:
-      image: ocaml/opam:ubuntu-20.04-ocaml-4.12
+      image: ubuntu:latest
       options: --user root
 
     steps:
@@ -21,12 +21,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          apt update
-          apt install -y python3 libgmp3-dev
+          sudo apt update
+          sudo apt install -y python3 libgmp3-dev
 
       - name: Setup OCaml
-        uses: ocaml/setup-ocaml@v1
-        
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: 4.12
+
       - name: Install dependencies
         run: opam install . --deps-only
 
@@ -34,7 +36,7 @@ jobs:
         run: opam install .
 
       - name: Add opam binaries to path
-        run: | 
+        run: |
           echo "/home/opam/.opam/4.12/bin" >> $GITHUB_PATH
           echo $GITHUB_PATH
           astral --help

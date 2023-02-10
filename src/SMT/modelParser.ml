@@ -17,19 +17,20 @@ open Std.Statement
 
 let rec parse_sort sort = match sort.term with
   | Builtin b -> begin match b with
-    | Bool -> SMT.Bool
-    | Int -> SMT.Integer
+    | Bool -> Sort.Bool
+    | Int -> Sort.Int
   end
-  | App (t1, [t2]) -> SMT.Set (parse_sort t2)
-  | App (t1, [t2; t3]) -> SMT.Array (parse_sort t2, parse_sort t3)
-  | Symbol id -> SMT.Finite (Format.asprintf "%a" Std.Term.print sort, [])
+  | App (t1, [t2]) -> Sort.Set (parse_sort t2)
+  | App (t1, [t2; t3]) -> Sort.Array (parse_sort t2, parse_sort t3)
+  | Symbol id -> Sort.Finite (Format.asprintf "%a" Std.Term.print sort, [])
   | _ -> failwith (Format.asprintf "%a" Std.Term.print sort)
 
 let parse_symbol symbol sort =
   let name = Format.asprintf "%a" Dolmen_std.Id.print symbol in
   match symbol.ns with
   | Value v -> begin match v with
-    | Integer -> SMT.LIA.mk_const @@ int_of_string name
+    | Integer -> SMT.Arithmetic.mk_const @@ int_of_string name
+    | Binary -> SMT.Bitvector.mk_const_of_string name
     | _ -> failwith "Unsoppurted value"
   end
   | Term -> begin match name with
@@ -47,24 +48,24 @@ let rec parse_term term sort = match term.term with
       begin match Format.asprintf "%a" Dolmen_std.Term.print fn with
       | "set.singleton" ->
         let elem = parse_term t sort in
-        SMT.Enumeration ([elem], sort)
+        SMT.Set.mk_singleton elem
       | "const" ->
         let const = parse_term t sort in
-        SMT.ConstArr const
-
+        SMT.Array.mk_const const sort (* TODO: is the sort correct? *)
       end
 
   (* Set insert *)
   | App (_, [t1; t2]) ->
       let set1 = SMT.Set.get_elems @@ parse_term t1 sort in
       let set2 = SMT.Set.get_elems @@ parse_term t2 sort in
-      SMT.Enumeration (set1 @ set2, sort)
+      SMT.Set.mk_enumeration sort (set1 @ set2)
+
   (* Array store *)
   | App (_, [t1; t2; t3]) ->
       let arr = parse_term t1 sort in
       let i = parse_term t2 sort in
       let v = parse_term t3 sort in
-      SMT.Store (arr, i, v)
+      SMT.Array.mk_store arr i v
 
   | _ -> SMT.Boolean.mk_var "TODO"
 

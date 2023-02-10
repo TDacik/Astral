@@ -1,6 +1,6 @@
-(* Model checking for positive fragment of SSL
+(* Model validation for positive formulae.
  *
- * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
+ * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021
 
 open SSL
 
@@ -90,3 +90,5 @@ let rec check_sat sh phi =
 let check sh phi =
   let fp = compute_footprint sh phi in
   check_sat sh phi && Footprint.equal fp (SH.get_footprint sh phi)
+
+*)

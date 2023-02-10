@@ -22,10 +22,11 @@ module SL_edge = struct
     | _ -> failwith "length undefined"
 
   let show = function
-    | Pointer     -> "->"
-    | List        -> "~>"
+    | No          -> "X" (* TODO *)
+    | Pointer     -> "→"
+    | List        -> "⇝"
     | Equality    -> "="
-    | Disequality -> "!="
+    | Disequality -> "≠"
 
   module Self = struct
     type nonrec t = t
@@ -73,11 +74,16 @@ module G = struct
       let edge_attributes e = [
         `Label (SL_edge.show @@ E.label e);
         `Arrowhead (match E.label e with | Pointer | List -> `Normal | _ -> `None);
-        `Style (match E.label e with | Pointer | List -> `Solid | _ -> `Dashed)
+        `Style (match E.label e with | Pointer | List -> `Solid | _ -> `Dashed);
+
       ]
       let default_edge_attributes _ = []
     end)
 
+  let output_file g path =
+    let channel = open_out path in
+    output_graph channel g;
+    close_out channel
 end
 
 let projection g labels =
@@ -87,16 +93,20 @@ let projection g labels =
       else g
     ) g G.empty
 
-let projection_eq g = projection g [Equality]
+let projection_eq g =
+  let proj = projection g [Equality] in
+  let proj_mirror = G.mirror proj in
+  G.union proj proj_mirror
+  |> G.transitive_closure ~reflexive:true
+
 let projection_neq g = projection g [Disequality]
 let projection_pointer g = projection g [Pointer]
 let projection_ls g = projection g [List]
 let spatial_projection g = projection g [Pointer; List]
 
-(* TODO: transitivity *)
 let must_eq g x y =
   let g = projection_eq g in
-  G.mem_edge g x y || G.mem_edge g y x
+  G.mem_edge g x y
 
 let must_neq g x y =
   let g = projection_neq g in
@@ -124,11 +134,19 @@ let nb_allocated g =
   List.length alloc
 
 let must_path g x y max =
-  let g = projection_pointer g in
+  let g_ptr = projection_pointer g in
   try
-    let _, weight = G.shortest_path g x y in
-    weight
-  with _ -> max
+    let edges, weight = G.shortest_path g_ptr x y in
+    let _, min =
+      List.fold_left
+        (fun (continue, n) e ->
+          if must_neq g (G.E.src e) (G.E.dst e) && must_neq g (G.E.src e) y && continue then
+            (true, n+1)
+          else (false, n)
+        ) (true, 0) edges
+    in
+    (min, weight)
+  with _ -> (0, max)
 
 (* Precondition : g is already a pointer projection *)
 let nb_must_preds_v g x =
@@ -149,29 +167,48 @@ let predict_footprint g x y =
   List.fold_left
     (fun (ptrs, lists) (x', label, y') ->
       match label with
-      | Pointer -> ((SSL.PointsTo (x', y')) :: ptrs, lists)
-      | List -> (ptrs, (SSL.LS (x', y')) :: lists)
+      | Pointer -> ((SSL.PointsTo (Var x', [Var y'])) :: ptrs, lists)
+      | List -> (ptrs, (SSL.LS (Var x', Var y')) :: lists)
     ) ([], []) path
 
-let rec compute phi = match phi with
-  | SSL.Eq (x, y) -> G.add_edge_e G.empty (x, Equality, y)
-  | SSL.Neq (x, y) -> G.add_edge_e G.empty (x, Disequality, y)
-  | SSL.PointsTo (x, y) -> G.add_edge_e G.empty (x, Pointer, y)
-  | SSL.LS (x, y) -> G.add_edge_e G.empty (x, List, y)
+(* TODO: diagonal product? *)
+let all_equal xs =
+  BatList.cartesian_product xs xs
+  |> List.filter_map (function (SSL.Var x, SSL.Var y) -> Some (x, Equality, y) | _ -> None)
+  |> List.fold_left G.add_edge_e G.empty
 
-  | SSL.Star (psi1, psi2) -> G.union (compute psi1) (compute psi2)
+let all_distinct xs =
+  List_utils.diagonal_product xs
+  |> List.filter_map (function (SSL.Var x, SSL.Var y) -> Some (x, Disequality, y) | _ -> None)
+  |> List.fold_left G.add_edge_e G.empty
+
+let disjoint_union g1 g2 =
+  let alloc1 = must_alloc g1 in
+  let alloc2 = must_alloc g2 in
+  let g = G.union g1 g2 in
+  let disequalities = BatList.cartesian_product alloc1 alloc2 in
+  List.fold_left
+    (fun g (x, y) ->
+      G.add_edge_e g (x, Disequality, y)
+    ) g disequalities
+
+let rec compute phi = match phi with
+  | SSL.Var _ | SSL.Pure _ -> G.empty
+  | SSL.Eq xs -> all_equal xs
+  | SSL.Distinct xs -> all_distinct xs
+  | SSL.PointsTo (SSL.Var x, [SSL.Var y]) -> G.add_edge_e G.empty (x, Pointer, y)
+  | SSL.PointsTo (SSL.Var x, _) -> G.empty (* TODO *)
+  | SSL.LS (SSL.Var x, SSL.Var y) -> G.add_edge_e G.empty (x, List, y)
+  | SSL.DLS _ -> G.empty (* TODO *)
+  | SSL.SkipList _ -> G.empty (* TODO *)
+
+  | SSL.Star (psi1, psi2) -> disjoint_union (compute psi1) (compute psi2)
   | SSL.And (psi1, psi2) -> G.union (compute psi1) (compute psi2)
   | SSL.Or (psi1, psi2) -> G.intersect (compute psi1) (compute psi2)
   | SSL.GuardedNeg (psi1, psi2) -> compute psi1
 
   | SSL.Septraction _ -> G.empty
   | SSL.Not _ -> G.empty
-
-let compute phi = compute phi
-
-let output_file g path =
-  let channel = open_out path in
-  G.output_graph channel g;
-  close_out channel
+  | SSL.Exists _ | SSL.Forall _ -> G.empty (* TODO *)
 
 include G

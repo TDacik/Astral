@@ -5,7 +5,7 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-open Context
+open Translation_context
 
 let debug_dir = "astral_debug"
 
@@ -58,35 +58,37 @@ let formula suffix phi =
 let context context =
   SL_graph.output_file context.sl_graph sl_graph_dot
 
-let qf_phi (context, phi) =
-  debug_out "phi_base.smt2" (Z3.Expr.to_string phi)
+let translated suffix phi =
+  let out_file =
+    if suffix = "" then "translated"
+    else "translated_" ^ suffix
+  in
+  debug_out (out_file ^ ".smt2") (SMT.to_smtlib_bench phi)
 
-let translated str = debug_out "translated.smt" str
+let smt_model model = debug_out "smt_model.out" (SMT.Model.show model)
 
 let model sh =
   debug_out "sh.out" (StackHeapModel.to_string sh);
   StackHeapModel.output_graph path_model_dot sh
 
-let smt_model model =
-  debug_out "smt_model.out" (SMT.Model.show model)
-
 
 (* === Backend's data === *)
 
 let backend_translated str = debug_out "backend_translated.smt2" str
+let backend_input str = debug_out "solver_input.smt2" str
 let backend_simplified str = debug_out "backend_simplified.smt2" str
 let backend_model str = debug_out "backend_model.smt2" str
 
 
 (** Decorated functions *)
 let context    = decorate context
-let qf_phi     = decorate qf_phi
-let translated = decorate translated
 let model      = decorate model
 let smt_model  = decorate smt_model
 
 let backend_translated = decorate backend_translated
 let backend_simplified = decorate backend_simplified
-let backend_model = decorate backend_model
+let backend_model      = decorate backend_model
+let backend_input      = decorate backend_input
 
-let formula ?(suffix="") = decorate (formula suffix)
+let translated ?(suffix="") = decorate (translated suffix)
+let formula ?(suffix="")    = decorate (formula suffix)

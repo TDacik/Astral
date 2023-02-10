@@ -1,0 +1,10 @@
+(executable
+  (name convertor)
+  (libraries astral_lib convertor_lib)
+  (flags -open Astral_lib -open Convertor_lib)
+)
+
+(install
+  (section bin)
+  (files (convertor.exe as astral-convertor))
+)

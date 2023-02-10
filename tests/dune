@@ -1,0 +1,24 @@
+(executables
+  (names
+    SMT_tests
+    SSL_tests
+    topped_set_tests
+    list_utils_tests
+    simplification_tests
+    preprocessing_tests
+    predicate_unfolding_tests
+  )
+
+  (libraries
+    astral_lib
+    alcotest
+  )
+
+  (flags :standard -open Alcotest -open Astral_lib)
+
+)
+
+(rule
+  (alias runtest)
+  (action (run ./run.sh))
+)
