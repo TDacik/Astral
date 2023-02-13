@@ -8,8 +8,21 @@
 build:
 	./make.sh
 
+
+install-astral:
+	dune install astral
+
+install-tools:
+	dune install astral-convertor
+	dune install astral-generator
+
+install-binding:
+	echo "TODO"
+
 install:
-	dune install
+	install-astral
+	install-tools
+	install-binding
 
 clean:
 	dune clean
