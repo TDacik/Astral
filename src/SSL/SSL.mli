@@ -39,13 +39,11 @@ type t =
   | GuardedNeg of t * t
   | Exists of t list * t
   | Forall of t list * t
-  | Star of t * t
+  | Star of t list
   | Septraction of t * t
 
 val hash : t -> int
 
-include PRINTABLE with type t := t
-include COMPARABLE with type t := t
 include COLLECTIONS with type t := t
 
 include LOGIC with type t := t
@@ -61,6 +59,8 @@ val find_by_id : t -> int -> t
 (** {2 Fragments} *)
 
 val is_pure : t -> bool
+
+val is_pure_smt : t -> bool
 
 val is_atom : t -> bool
 
@@ -81,7 +81,7 @@ type fragment =
   | Positive
   | Arbitrary
 
-val classify_fragment : t -> bool * fragment
+val classify_fragment : t -> fragment
 
 val normalise : t -> t
 
@@ -151,6 +151,14 @@ val is_false : t -> bool
 
 val is_emp : t -> bool
 
+val is_implies : t -> bool
+
+val is_iff : t -> bool
+
+val get_implies_operands : t -> t * t
+
+val get_iff_operands : t -> t * t
+
 (* {2 Fragments} *)
 
 val is_symbolic_heap : t -> bool
@@ -176,6 +184,8 @@ val map_vars : (Variable.t -> t) -> t -> t
 val select_subformulae : (t -> bool) -> t -> t list
 (** Return all subformulae satisfying given predicate. *)
 
+val substitute_pure : t -> SMT.t -> SMT.t -> t
+
 module Var : sig
 
   val is_nil : t -> bool
@@ -197,7 +207,7 @@ module Infix : sig
   val (|->) : t -> t -> t
   (** Infix pointer *)
 
-  val (~>) : t -> t -> t
+  val (|~>) : t -> t -> t
   (** Infix singly-linked list *)
 
   val (=>) : t -> t -> t
