@@ -6,12 +6,26 @@ exception VariableRedefined of string
 
 exception VariableNotDeclared of string
 
-type t
+module M := Stdlib.Map.Make(String)
+
+type t = {
+  sorts : Sort.Set.t;   (* Uninterpreted sorts *)
+  vars : Sort.t M.t;    (* Declared variables *)
+
+  loc_sort : Sort.t;    (* Sort representing locations *)
+  heap_sort : Sort.t;   (* Declared sort of the heap *)
+}
 
 val empty : t
 
-val declare : t -> string -> Sort.t -> t
+val declare_var : string -> Sort.t -> t -> t
 
-val type_of : t -> string -> Sort.t
+val declare_sort : Sort.t -> t -> t
+
+val declare_loc_sort : Sort.t -> t -> t
+
+val declare_heap_sort : Sort.t -> t -> t
+
+val type_of_var : string -> t -> Sort.t
 
 val show : t -> string

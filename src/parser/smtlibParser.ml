@@ -12,6 +12,7 @@ module Parser = Make
   (Std.Statement)
 
 module TypeEnv = TypeEnvironment
+open TypeEnv
 
 module Id = Std.Id
 module Term = Std.Term
@@ -22,28 +23,27 @@ module Print = Printer.Make (struct let name = "parser" end)
 open Term
 open Statement
 
+open Context
+
 exception ParserError of string
 
 let parse_symbol id = Format.asprintf "%a" Id.print id
 
-let parse_sort sort = match sort.term with
+let parse_sort_aux type_env id = match parse_symbol id with
+  | "Int" -> Sort.Int
+  | "Bool" -> Sort.Bool
+  | name ->
+    if String.equal name (Sort.show type_env.loc_sort)
+    then Sort.Loc
+    else Sort.mk_uninterpreted name
+
+let parse_sort type_env sort = match sort.term with
   | Binder (Arrow, [], sort) ->
     begin match sort.term with
       | Builtin Ttype -> raise Exit (* Sort of all sorts *)
-      | Symbol id ->
-        begin match parse_symbol id with
-          | "Loc" -> Sort.Loc
-          | "Int" -> Sort.Int
-          | "Bool" -> Sort.Bool
-        end
+      | Symbol id -> parse_sort_aux type_env id
     end
-  | Symbol id ->
-    begin match parse_symbol id with
-      | "Loc" -> Sort.Loc
-      | "Int" -> Sort.Int
-      | "Bool" -> Sort.Bool
-    end
-
+  | Symbol id -> parse_sort_aux type_env id
 
 let parse_option context opt = match opt.term with
   | App (t1, [t2]) ->
@@ -61,13 +61,16 @@ let parse_declaration context type_env = function
   | Abstract decl ->
     try
       let name = parse_symbol decl.id in
-      let sort = parse_sort decl.ty in
-      let type_env' = TypeEnv.declare type_env name sort in
+      let sort = parse_sort type_env decl.ty in
+      let type_env' = TypeEnv.declare_var name sort type_env in
       let context' = Context.add_variables [name, sort] context in
       (context', type_env')
 
-    (* TODO: Sort declaration *)
-    with Exit -> context, type_env
+    (* Sort declaration *)
+    with Exit ->
+      let sort_name = parse_symbol decl.id in
+      let type_env' = TypeEnv.declare_sort (Sort.mk_uninterpreted sort_name) type_env in
+      (context, type_env')
 
 let parse_declarations context type_env decls =
   (* TODO: parsing of user-defined inductive predicates *)
@@ -120,7 +123,7 @@ and parse_constant type_env id = match parse_symbol id with
   | numeral when Str.string_match (Str.regexp "[0-9]+") numeral 0 ->
       SSL.mk_pure @@ SMT.Arithmetic.mk_const (int_of_string numeral)
   | var ->
-      let sort = TypeEnv.type_of type_env var in
+      let sort = TypeEnv.type_of_var var type_env in
       match sort with
       | Loc -> SSL.mk_var var
       | smt_sort -> SSL.mk_pure @@ SMT.Variable.mk var smt_sort
@@ -128,8 +131,8 @@ and parse_constant type_env id = match parse_symbol id with
 and parse_binder type_env binder = match binder.term with
   | Colon (var, sort) ->
     let name = parse_var_name var in
-    let sort = parse_sort sort in
-    let type_env' = TypeEnv.declare type_env name sort in
+    let sort = parse_sort type_env sort in
+    let type_env' = TypeEnv.declare_var name sort type_env in
     let var = match sort with
       | Loc -> SSL.mk_var name
       | smt_sort -> SSL.mk_pure @@ SMT.Variable.mk name smt_sort
@@ -211,7 +214,7 @@ let parse_statements content =
   in
   List.rev @@ unpack fn []
 
-let parse context content =
+let parse context type_env content =
   let statements = parse_statements content in
   let context, type_env = List.fold_left
     (fun (context, type_env) stmt -> match stmt.descr with
@@ -220,10 +223,10 @@ let parse context content =
       | Antecedent phi -> parse_assertion context type_env phi, type_env
       | Get_model -> Context.set_get_model context, type_env
       | _ -> context, type_env
-    ) (context, TypeEnv.empty) statements
+    ) (context, type_env) statements
   in
   {context with phi = SSL.mk_and context.phi_orig}
 
-let parse context content =
-  try parse context content
+let parse context ?(type_env=TypeEnv.empty) content =
+  try parse context type_env content
   with ParserError msg -> failwith msg
