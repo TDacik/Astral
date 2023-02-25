@@ -7,6 +7,7 @@ open Astral_lib
 let run () =
   let input_file = Options.parse () in
   let input = Parser.parse_file input_file in
+  Printexc.record_backtrace (Options.debug ());
   Timer.add "Parsing";
 
   Debug.init ();
@@ -19,7 +20,6 @@ let run () =
 
 let () =
   Timer.add "Start";
-  Printexc.record_backtrace (Options.debug ());
   run ();
   Timer.finish ();
   Timer.report ()
