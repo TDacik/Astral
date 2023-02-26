@@ -62,7 +62,7 @@ type t =
   (* Sets *)
   | Membership of t * t
   | Subset of t * t
-  | Disjoint of t * t
+  | Disjoint of t list
   | Union of t list * Sort.t
   | Inter of t list * Sort.t
   | Diff of t * t
@@ -279,6 +279,7 @@ module Set : sig
   val mk_mem : t -> t -> t
   val mk_subset : t -> t -> t
   val mk_disjoint : t -> t -> t
+  val mk_disjoint_list : t list -> t
   val mk_eq_empty : t -> t
   val mk_eq_singleton : t -> t -> t
 

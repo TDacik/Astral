@@ -59,7 +59,7 @@ module Term = struct
     (* Sets *)
     | Membership of t * t
     | Subset of t * t
-    | Disjoint of t * t
+    | Disjoint of t list
     | Union of t list * Sort.t
     | Inter of t list * Sort.t
     | Diff of t * t
@@ -85,7 +85,7 @@ module Term = struct
 
       | Membership (elem, set) -> f (Membership (map elem, map set))
       | Subset (set1, set2) -> f (Subset (map set1, map set2))
-      | Disjoint (set1, set2) -> f (Disjoint (map set1, map set2))
+      | Disjoint sets -> f (Disjoint (List.map map sets))
       | Union (sets, sort) -> f (Union (List.map map sets, sort))
       | Inter (sets, sort) -> f (Inter (List.map map sets, sort))
       | Diff (set1, set2) -> f (Diff (map set1, map set2))
@@ -136,7 +136,7 @@ module Term = struct
 
     | Membership (elem, set) -> ("member", Connective [elem; set])
     | Subset (set1, set2) -> ("subset", Connective [set1; set2])
-    | Disjoint (set1, set2) -> ("disjoint", Connective [set1; set2])
+    | Disjoint sets -> ("disjoint", Connective sets)
     | Union (sets, sort) -> ("union", Operator (sets, sort))
     | Inter (sets, sort) -> ("inter", Operator (sets, sort))
     | Diff (set1, set2) -> ("minus", Operator ([set1; set2], get_sort set1))
@@ -276,8 +276,8 @@ module Term = struct
         Membership (substitute ~bounded elem x term, substitute ~bounded set x term)
       | Subset (set1, set2) ->
         Subset (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
-      | Disjoint (set1, set2) ->
-        Disjoint (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
+      | Disjoint sets ->
+        Disjoint (List.map (fun s -> substitute ~bounded s x term) sets)
       | Union (sets, sort) ->
         Union (List.map (fun t -> substitute ~bounded t x term) sets, sort)
       | Inter (sets, sort) ->
@@ -552,7 +552,12 @@ module Set = struct
 
   let mk_mem elem set = Membership (elem, set)
   let mk_subset s1 s2 = Subset (s1, s2)
-  let mk_disjoint s1 s2 = Disjoint (s1, s2)
+
+  let mk_disjoint_list = function
+    | [] | [_] -> Boolean.mk_true ()
+    | sets -> Disjoint sets
+
+  let mk_disjoint s1 s2 = mk_disjoint_list [s1; s2]
 
   let mk_union sets sort =
     assert (Sort.is_set sort);
@@ -675,7 +680,7 @@ module Model = struct
     (* Sets *)
     | Membership (x, set) -> failwith "TODO: eval set mem"
     | Subset (s1, s2) -> failwith "TODO: eval set subset"
-    | Disjoint (s1, s2) -> failwith "TODO: eval disj"
+    | Disjoint sets -> failwith "TODO: eval disj"
     | Union (sets, _) -> failwith "TODO: eval union"
     | Inter (sets, _) -> failwith "TODO: eval inter"
     | Diff (s1, s2) -> failwith "TODO: eval diff"
