@@ -38,12 +38,12 @@ module Convertor = struct
     | SSL.Or (f1, f2) -> F.asprintf "(or %s %s)\n" (convert f1) (convert f2)
     | SSL.Not f ->  F.asprintf "(not %s)\n" (convert f)
     | SSL.GuardedNeg (f1, f2) ->  F.asprintf "(and %s (not %s))\n" (convert f1) (convert f2)
-    | SSL.Star (f1, f2) ->  F.asprintf "(sl.sepcon %s %s)\n" (convert f1) (convert f2)
+    | SSL.Star [f1; f2] ->  F.asprintf "(sl.sepcon %s %s)\n" (convert f1) (convert f2)
     | SSL.LS (v1, v2) -> F.asprintf "(sl.list.seg %s %s)\n" (convert v1) (convert v2)
     | SSL.PointsTo (v1, [v2]) -> F.asprintf "(sl.list.next %s %s)\n" (convert v1) (convert v2)
     | SSL.Eq [v1; v2] -> F.asprintf "(sl.list.eq %s %s)\n" (convert v1) (convert v2)
     | SSL.Distinct [v1; v2] -> F.asprintf "(sl.list.neq %s %s)\n" (convert v1) (convert v2)
-    | SSL.Septraction _ | SSL.Forall _ | SSL.Exists _ -> raise NotSupported
+    | other -> raise @@ NotSupported (SSL.node_name other)
 
   let convert_assert phi = F.asprintf "(assert %s)" (convert phi)
 

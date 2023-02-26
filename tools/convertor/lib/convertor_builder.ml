@@ -36,8 +36,9 @@ module Make (Convertor : CONVERTOR_BASE) = struct
       Convertor.command
 
   let dump file input =
+    let converted = convert input in
     let channel = open_out_gen [Open_creat; Open_wronly] 0o666 (file ^ Convertor.suffix) in
-    Printf.fprintf channel "%s" (convert input);
+    Printf.fprintf channel "%s" converted;
     close_out channel
 
 end

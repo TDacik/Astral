@@ -49,13 +49,13 @@ predicate lseg(x: Node, y: Node) {\
     | SSL.And (f1, f2) -> F.asprintf "(%s && %s)" (convert f1) (convert f2)
     | SSL.Or (f1, f2) -> F.asprintf "(%s || %s)" (convert f1) (convert f2)
     | SSL.Not f ->  F.asprintf "(!%s)\n" (convert f)
-    | SSL.Star (f1, f2) ->  F.asprintf "(%s &*& %s)" (convert f1) (convert f2)
+    | SSL.Star [f1; f2] ->  F.asprintf "(%s &*& %s)" (convert f1) (convert f2)
     | SSL.LS (v1, v2) -> F.asprintf "(lseg (%s, %s))" (convert v1) (convert v2)
     | SSL.PointsTo (v1, [v2]) -> F.asprintf "(%s.next |-> %s)" (convert v1) (convert v2)
     | SSL.Eq [v1; v2] -> F.asprintf "(%s == %s)" (convert v1) (convert v2)
     | SSL.Distinct [v1; v2] -> F.asprintf "(%s != %s)" (convert v1) (convert v2)
     | SSL.GuardedNeg (f1, f2) -> F.asprintf "(%s && (!%s))" (convert f1) (convert f2)
-    | _ -> raise NotSupported
+    | other -> raise @@ NotSupported (SSL.node_name other)
 
   let convert_assert phi = "TODO"
 

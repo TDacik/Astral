@@ -52,11 +52,17 @@ pred dll(hd,p,tl,n) := hd->dll_node{n,p} & hd=tl
     else if SSL.is_false phi then "false"
     else match phi with
     | SSL.Var v -> convert_var v
-    | SSL.And (f1, f2) -> F.asprintf "(%s & %s)" (convert f1) (convert f2)
+    | SSL.And (f1, f2) ->
+      (* Songbird strictly requires SH to be written as spatial & pure, not vice versa *)
+      let spatial, other =
+        if not @@ SSL.is_pure f1 then (f1, f2)
+        else (f2, f1)
+      in
+      F.asprintf "(%s & %s)" (convert spatial) (convert other)
     | SSL.Or (f1, f2) -> F.asprintf "(%s \\/ %s)" (convert f1) (convert f2)
     | SSL.Not f ->  F.asprintf "(!%s)" (convert f)
     | SSL.GuardedNeg (f1, f2) ->  F.asprintf "(%s & (!%s))" (convert f1) (convert f2)
-    | SSL.Star (f1, f2) ->  F.asprintf "(%s * %s)" (convert f1) (convert f2)
+    | SSL.Star [f1; f2] -> F.asprintf "(%s * %s)" (convert f1) (convert f2)
     | SSL.LS (v1, v2) -> F.asprintf "(ls(%s, %s))" (convert v1) (convert v2)
     (* Different order of parameters! : *)
     | SSL.DLS (x, y, f, l) ->
@@ -68,7 +74,7 @@ pred dll(hd,p,tl,n) := hd->dll_node{n,p} & hd=tl
     | SSL.Distinct [v1; v2] -> F.asprintf "(%s != %s)" (convert v1) (convert v2)
     | SSL.Exists ([x], psi) -> F.asprintf "(exists %s. %s)" (convert x) (convert psi)
     | SSL.Forall ([x], psi) -> F.asprintf "(forall %s. %s)" (convert x) (convert psi)
-    | _ -> raise NotSupported
+    | other -> raise @@ NotSupported (SSL.node_name other)
 
   let convert_assert = function
     | SSL.GuardedNeg (lhs, rhs) -> F.asprintf "checkentail %s |- %s;" (convert lhs) (convert rhs)
