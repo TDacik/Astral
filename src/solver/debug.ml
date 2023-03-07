@@ -68,7 +68,7 @@ let translated suffix phi =
 let smt_model model = debug_out "smt_model.out" (SMT.Model.show model)
 
 let model sh =
-  debug_out "sh.out" (StackHeapModel.to_string sh);
+  debug_out "sh.out" (StackHeapModel.show sh);
   StackHeapModel.output_graph path_model_dot sh
 
 

@@ -28,6 +28,8 @@ end
 module LocationTuple = struct
   type t = Location.t list
   let compare = List.compare Location.compare
+  let equal t1 t2 = if compare t1 t2 = 0 then true else false
+  let map = List.map
   let show = function
     | [next] -> string_of_int next
     | locs -> "<" ^ (String.concat ", " @@ List.map string_of_int locs) ^ ">"
@@ -109,6 +111,8 @@ let get_stack sh = sh.stack
 
 let get_heap sh = sh.heap
 
+let get_domain sh = Footprint.of_list @@ List.map fst @@ Heap.bindings sh.heap
+
 let get_footprint sh psi =
   try SSL.Map.find psi sh.footprints
   with Not_found ->
@@ -135,7 +139,7 @@ let stack_inverse sh loc =
 
 let fp_to_string fp = String.concat ", " @@ List.map Int.to_string @@ Footprint.elements fp
 
-let to_string sh =
+let show sh =
   let str =  "Stack:\n" in
   let str = Stack.fold
     (fun k v acc -> Format.asprintf "%s\t%s -> %d\n" acc (SSL.Variable.show k) v)
@@ -243,6 +247,8 @@ let get_heap_graph sh =
   HeapGraph.empty
   |> Stack.fold (fun _ loc g -> HeapGraph.add_vertex g loc) sh.stack
   |> Heap.fold update sh.heap
+
+let has_path sh x y = HeapGraph.has_path (get_heap_graph sh) x y
 
 let get_path sh x y = HeapGraph.get_path (get_heap_graph sh) x y
 
