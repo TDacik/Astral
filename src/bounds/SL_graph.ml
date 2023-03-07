@@ -182,15 +182,18 @@ let all_distinct xs =
   |> List.filter_map (function (SSL.Var x, SSL.Var y) -> Some (x, Disequality, y) | _ -> None)
   |> List.fold_left G.add_edge_e G.empty
 
-let disjoint_union g1 g2 =
-  let alloc1 = must_alloc g1 in
-  let alloc2 = must_alloc g2 in
-  let g = G.union g1 g2 in
-  let disequalities = BatList.cartesian_product alloc1 alloc2 in
+let disjoint_union graphs =
   List.fold_left
-    (fun g (x, y) ->
-      G.add_edge_e g (x, Disequality, y)
-    ) g disequalities
+    (fun acc g ->
+      let must_allocs1 = must_alloc g in
+      let must_allocs2 = must_alloc acc in
+      let disequalities = BatList.cartesian_product must_allocs1 must_allocs2 in
+      let union = G.union acc g in
+      List.fold_left
+        (fun g (x, y) ->
+        G.add_edge_e g (x, Disequality, y)
+      ) union disequalities
+    ) G.empty graphs
 
 let rec compute phi = match phi with
   | SSL.Var _ | SSL.Pure _ -> G.empty
@@ -202,7 +205,7 @@ let rec compute phi = match phi with
   | SSL.DLS _ -> G.empty (* TODO *)
   | SSL.SkipList _ -> G.empty (* TODO *)
 
-  | SSL.Star (psi1, psi2) -> disjoint_union (compute psi1) (compute psi2)
+  | SSL.Star psis -> disjoint_union (List.map compute psis)
   | SSL.And (psi1, psi2) -> G.union (compute psi1) (compute psi2)
   | SSL.Or (psi1, psi2) -> G.intersect (compute psi1) (compute psi2)
   | SSL.GuardedNeg (psi1, psi2) -> compute psi1

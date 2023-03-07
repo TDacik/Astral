@@ -10,7 +10,7 @@ let rec unfold_ls_n x y n = match n with
   | 1 -> SSL.mk_star [SSL.mk_distinct x y; SSL.mk_pto x y]
   | n ->
       let l = SSL.mk_fresh_var "l" in
-      Star (SSL.mk_distinct x y, Star (PointsTo (x, [l]), unfold_ls_n l y (n-1)))
+      SSL.mk_star [SSL.mk_distinct x y; SSL.mk_pto x l; unfold_ls_n l y (n-1)]
 
 (** Create disjunction of all unfolding up to length n *)
 let unfold_ls x y n =
@@ -24,7 +24,7 @@ let rec unfold phi n = match phi with
   | Or (f1, f2) -> Or (unfold f1 n, unfold f2 n)
   | Not f -> Not (unfold f n)
   | GuardedNeg (f1, f2) -> GuardedNeg (unfold f1 n, unfold f2 n)
-  | Star (f1, f2) -> Star (unfold f1 n, unfold f2 n)
+  | Star fs -> Star (List.map (fun f -> unfold f n) fs)
   | Septraction (f1, f2) -> Septraction (unfold f1 n, unfold f2 n)
   | LS (x, y) -> unfold_ls x y n
   | atom -> atom

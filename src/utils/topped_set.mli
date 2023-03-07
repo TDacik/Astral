@@ -1,7 +1,7 @@
 
-exception TopError
-
 module Lift (Set : Set.S) : sig
+
+  exception TopError
 
   type t
 
@@ -37,7 +37,11 @@ module Lift (Set : Set.S) : sig
 
   val diff : t -> t -> t
 
-  val apply_binop : (Set.elt -> Set.elt -> Set.elt option) -> t -> t -> t
+  val map : (Set.elt -> Set.elt) -> t -> t
+
+  val apply_partial_binop : (Set.elt -> Set.elt -> Set.elt option) -> t -> t -> t
+
+  val apply_partial_variadic_op : (Set.elt list -> Set.elt option) -> t list -> t
 
   val cartesian_product : t -> t -> (Set.elt * Set.elt) list option
 
