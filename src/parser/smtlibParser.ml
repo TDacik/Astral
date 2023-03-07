@@ -27,7 +27,11 @@ open Context
 
 exception ParserError of string
 
-let parse_symbol id = Format.asprintf "%a" Id.print id
+(* TODO: avoid hack for 'emp' *)
+let parse_symbol id =
+  let sub_terms = Id.split id in
+  if List.mem "emp" sub_terms then "emp"
+  else Format.asprintf "%a" Id.print id
 
 let parse_sort_aux type_env id = match parse_symbol id with
   | "Int" -> Sort.Int
@@ -100,6 +104,7 @@ let lift_quadop_to_list fn operator = function
 
 let rec parse_assertion context type_env phi =
   let phi = parse_term type_env phi in
+  Debug.formula ~suffix:"0-original" phi;
   let phi = Normalisation.apply phi in
   Context.add_assertion phi context
 
