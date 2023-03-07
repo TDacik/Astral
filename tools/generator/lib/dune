@@ -1,5 +1,5 @@
 (library
-  (name generator_lib)
+  (name astral_generator)
   (libraries astral_lib)
   (flags -open Astral_lib)
 )

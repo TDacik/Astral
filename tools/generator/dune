@@ -1,7 +1,7 @@
 (executable
   (name generator)
-  (libraries astral_lib generator_lib)
-  (flags -open Astral_lib -open Generator_lib)
+  (libraries astral_lib astral_generator)
+  (flags -open Astral_lib -open Astral_generator)
 )
 
 (install
