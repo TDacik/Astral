@@ -86,7 +86,7 @@ module Make (Backend : SMTLIB_BACKEND) = struct
     let query_name = Backend.name ^ "_query" in
     let answer_name = Backend.name ^ "_answer" in
     let query_filename, query_channel = Filename.open_temp_file query_name ".smt2" in
-    let answer_filename, answer_channel = Filename.open_temp_file answer_name ".txt" in
+    let answer_filename, answer_channel = Filename.open_temp_file answer_name ".smt2" in
     Printf.fprintf query_channel "%s" smt_query;
     close_out query_channel;
 
@@ -113,6 +113,7 @@ module Make (Backend : SMTLIB_BACKEND) = struct
 
     (* Wait for the result *)
     let _ = Unix.wait () in
+    Unix.close input;
     close_out answer_channel;
 
     (* Read answer *)
