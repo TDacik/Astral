@@ -155,7 +155,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
 
   and translate_ls context domain (Var x) (Var y) =
-    let local_bound = Bounds.local_bound context x y in
+    let local_bound = Bounds.list_bound context x y in
     let x = var_to_expr context x in
     let y = var_to_expr context y in
 
