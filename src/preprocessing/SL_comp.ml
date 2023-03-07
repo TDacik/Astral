@@ -10,18 +10,14 @@
 
 open SSL
 
-let is_pure phi = match phi with
-  | Eq _ | Distinct _ -> true
-  | _ -> false
-
 let rec preprocess phi = match phi with
   | And (psi1, psi2) ->
-    if is_pure psi1 then Star (preprocess psi1, preprocess psi2)
-    else if is_pure psi2 then Star (preprocess psi1, preprocess psi2)
+    if SSL.is_pure psi1 then SSL.mk_star [preprocess psi1; preprocess psi2]
+    else if SSL.is_pure psi2 then SSL.mk_star [preprocess psi1; preprocess psi2]
     else And (preprocess psi1, preprocess psi2)
   | Or (psi1, psi2) -> Or (preprocess psi1, preprocess psi2)
   | Not psi -> Not (preprocess psi)
   | GuardedNeg (psi1, psi2) -> GuardedNeg (preprocess psi1, preprocess psi2)
-  | Star (psi1, psi2) -> Star (preprocess psi1, preprocess psi2)
+  | Star psis -> Star (List.map preprocess psis)
   | Septraction (psi1, psi2) -> Septraction (preprocess psi1, preprocess psi2)
-  | Eq _ | Distinct _ | LS _ | PointsTo _ -> phi
+  | Eq _ | Distinct _ | LS _ | PointsTo _ | Var _ | Pure _ -> phi
