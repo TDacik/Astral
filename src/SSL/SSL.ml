@@ -241,6 +241,32 @@ let rec substitute_pure phi x term = match phi with
   (* Delegate to SMT substitution *)
   | Pure pure -> Pure (SMT.substitute pure x term)
 
+let rec substitute ?(bounded=[]) phi v term = match phi with
+  | Var _ ->
+    if equal v phi && not @@ List.mem v bounded
+    then term
+    else phi
+  | Pure pure -> Pure pure
+  | Eq xs -> Eq (List.map (fun x -> substitute ~bounded x v term) xs)
+  | Distinct xs -> Eq (List.map (fun x -> substitute ~bounded x v term) xs)
+  | PointsTo (x, ys) ->
+      PointsTo (substitute ~bounded x v term, List.map (fun y -> substitute ~bounded y v term) ys)
+  | LS (x, y) -> LS (substitute ~bounded x v term, substitute y v term)
+  | DLS (x, y, f, l) ->
+      DLS (substitute ~bounded x v term, substitute ~bounded y v term,
+           substitute ~bounded f v term, substitute ~bounded l v term)
+  | And (psi1, psi2) -> And (substitute ~bounded psi1 v term, substitute ~bounded psi2 v term)
+  | Or (psi1, psi2) -> Or (substitute ~bounded psi1 v term, substitute ~bounded psi2 v term)
+  | Not psi -> Not (substitute ~bounded psi v term)
+  | GuardedNeg (psi1, psi2) ->
+      GuardedNeg (substitute ~bounded psi1 v term, substitute ~bounded psi2 v term)
+  | Exists (xs, psi) -> Exists (xs, substitute ~bounded:(bounded @ xs) psi v term)
+  | Forall (xs, psi) -> Forall (xs, substitute ~bounded:(bounded @ xs) psi v term)
+  | Star psis -> Star (List.map (fun psi -> substitute ~bounded psi v term) psis)
+  | Septraction (psi1, psi2) ->
+      Septraction (substitute ~bounded psi1 v term, substitute ~bounded psi2 v term)
+
+let substitute phi v term = substitute ~bounded:[] phi v term
 
 (** Transform suitable negations to guarded form
  *  TODO: quantifiers, move to preprocessing *)

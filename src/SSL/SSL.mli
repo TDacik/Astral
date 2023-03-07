@@ -70,6 +70,8 @@ val is_symbolic_heap : t -> bool
 
 val is_symbolic_heap_entl : t -> bool
 
+val is_negation_free : t -> bool
+
 val is_positive : t -> bool
 
 val is_quantifier_free : t -> bool
@@ -185,6 +187,8 @@ val select_subformulae : (t -> bool) -> t -> t list
 (** Return all subformulae satisfying given predicate. *)
 
 val substitute_pure : t -> SMT.t -> SMT.t -> t
+
+val substitute : t -> t -> t -> t
 
 module Var : sig
 
