@@ -124,24 +124,20 @@ module Make (Backend : SMTLIB_BACKEND) = struct
       else "Not available"
     in
 
-    (* TODO: this probably only works for cvc5 *)
+    (* TODO: try whether this also works for other backends than cvc5 *)
     let model =
-        In_channel.input_all channel
-        |> String.split_on_char '\n'
-        |> BatList.drop 2
-        |> List.rev
-        |> BatList.drop 1
-        |> List.rev
-        |> String.concat "\n"
-      in
-      match status_line with
-        | "sat" ->
-          if produce_models
-          then SMT_Sat (Some (ModelParser.parse model, model))
-          else SMT_Sat None
-        | "unsat" -> SMT_Unsat [] (* TODO: unsat core *)
-        | "unknown" -> SMT_Unknown reason_unknown
-        | error -> failwith ("[ERROR " ^ Backend.name ^ "] " ^ error)
+      In_channel.input_all channel
+      |> BatString.chop ~l:1 ~r:2 (* remove parentheses + newline at the end *)
+    in
+    close_in channel;
+    match status_line with
+      | "sat" ->
+        if produce_models
+        then SMT_Sat (Some (ModelParser.parse model, model))
+        else SMT_Sat None
+      | "unsat" -> SMT_Unsat [] (* TODO: unsat core *)
+      | "unknown" -> SMT_Unknown reason_unknown
+      | error -> failwith ("[ERROR " ^ Backend.name ^ "] " ^ error)
 
 
   (* === Model manipulation === *)
