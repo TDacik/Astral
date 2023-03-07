@@ -411,9 +411,7 @@ let rec has_unique_footprint = function
   | GuardedNeg (f1, f2) -> has_unique_footprint f1
   | Star psis -> List.for_all has_unique_footprint psis
   | Septraction (f1, f2) -> has_unique_footprint f1 && has_unique_footprint f2
-  (* TODO: validate *)
-  | Exists (_, psi) -> has_unique_footprint psi
-  | Or _ | Not _ | Forall _ -> false
+  | Or _ | Not _ | Exists _ | Forall _ -> false
 
 (** TODO: rename *)
 let get_vars ?(with_nil=true) phi =
