@@ -13,6 +13,23 @@ module Classic = struct
 
   let axioms ctx fp x y bound = path ctx fp x y bound
 
+  let footprints _ fp _ _ _ = fp
+
+end
+
+(** List encoding that does not need axioms *)
+module Functional = struct
+
+  let semantics ctx fp x y bound =
+    let reach = reach ctx x y bound in
+    let path_term = path_term ctx x y bound in
+    let path = Set.mk_eq fp path_term in
+    Boolean.mk_and [reach; path]
+
+  let axioms _ _ _ _ _ = Boolean.mk_true ()
+
+  let footprints ctx _ x y bound = path_term ctx x y bound
+
 end
 
 (** List encoding optimized for satisfiability of symbolic heaps *)
@@ -30,5 +47,7 @@ module SymbolicHeaps = struct
     Boolean.mk_or [case1; case2]
 
   let axioms _ _ _ _ _ = Boolean.mk_true ()
+
+  let footprints _ fp _ _ _ = fp
 
 end

@@ -66,3 +66,19 @@ let path ctx fp x y (min, max) =
     let empty = Set.mk_eq_empty fp in
     let no_path_empty = Boolean.mk_and [no_path; empty] in
     Boolean.mk_or [paths; no_path_empty]
+
+(** Functional version *)
+
+let all_reachable_n_term ctx x y n =
+  if n = 0 then Set.mk_empty ctx.fp_sort
+  else
+    BatList.range 0 `To (n - 1)
+    |> List.map (mk_nth_succ ctx x)
+    |> Set.mk_enumeration ctx.fp_sort
+
+let rec path_term ctx x y (min, max) =
+  if min > max then (all_reachable_n_term ctx x y min)
+  else Boolean.mk_ite
+    (reach_n ctx x y min)
+    (all_reachable_n_term ctx x y min)
+    (path_term ctx x y (min + 1, max))

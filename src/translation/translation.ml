@@ -162,8 +162,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let fp = SMT.Set.mk_fresh_var "ls_fp" context.fp_sort in
     let semantics = ListEncoding.semantics context domain x y local_bound in
     let axioms = ListEncoding.axioms context fp x y local_bound in
-    let footprints = Footprints.singleton fp in
-    (semantics, axioms, footprints)
+    let footprint = ListEncoding.footprints context fp x y local_bound in
+    (semantics, axioms, Footprints.singleton footprint)
 
   and translate_dls context domain (Var x) (Var y) (Var f) (Var l) =
     let local_bound = (0, context.location_bound - 1) in (*TODO: more precise bounds*)
