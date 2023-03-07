@@ -12,6 +12,8 @@ val input_path : unit -> string
 
 val debug : unit -> bool
 
+val dry_run : unit -> bool
+
 val produce_models : unit -> bool
 
 val json_output : unit -> bool
@@ -32,17 +34,19 @@ val compute_sl_graph : unit -> bool
 
 val ignore_unused_vars : unit -> bool
 
-val quickcheck_runs : unit -> int
-
-val quickcheck_store : unit -> bool
-
 val profile : unit -> bool
+
+val broom_preprocessing : unit -> bool
+
+val sl_quantifiers : unit -> bool
 
 val backend : unit -> (module BACKEND)
 
 val backend_options : unit -> string list
 
 val encoding : unit -> (module BASE_ENCODING)
+
+val list_encoding : unit -> (module LIST_ENCODING)
 
 val quantif_elim : unit -> (Translation_context.t -> SMT.Term.t -> SMT.Term.t)
 

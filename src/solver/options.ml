@@ -64,23 +64,22 @@ let sl_comp () = !_sl_comp
 let _produce_models = ref false
 let produce_models () = !_produce_models
 
-(* ==== Quickcheck ==== *)
-
-let _quickcheck_runs = ref 0
-let set_quickcheck_runs x = _quickcheck_runs := x
-let quickcheck_runs () = !_quickcheck_runs
-
-let _quickcheck_store = ref false
-let quickcheck_store () = !_quickcheck_store
-
 (* ==== Profiling ==== *)
 
 let _profile = ref false
 let profile () = !_profile
 
+(* ==== Preprocessing ==== *)
+
+let _broom_preprocessing = ref false
+let broom_preprocessing () = !_broom_preprocessing
+
+let _sl_quant = ref false
+let sl_quantifiers () = !_sl_quant
+
 (* ==== SMT Backend ==== *)
 
-let _backend = ref "cvc5"
+let _backend = ref "z3"
 let _backend_options = ref ""
 
 let backend () = match !_backend with
@@ -124,7 +123,6 @@ let quantif_elim () = match !_quantifier_elimination with
 
 let speclist =
   [
-    ("--debug", Arg.Set _debug, "Print debug info");
     ("--produce-models", Arg.Set _produce_models, "");
     ("--verify-model", Arg.Set _verify_model, "Verify obtained model");
     ("--unsat-core", Arg.Set _unsat_core, "Print unsat core");
@@ -132,8 +130,6 @@ let speclist =
     ("--backend", Arg.Set_string _backend, "Backend SMT solver (default cvc5)");
     ("--backend-options",
       Arg.Set_string _backend_options, "Pass options to backend SMT solver");
-    ("--encoding", Arg.Set_string _encoding, "Method of encoding (sets | bitvectors)");
-    ("--quant-elim", Arg.Set_string _quantifier_elimination, "TODO");
     ("--no-list-bounds", Arg.Clear _list_bounds, "Do not use list-length bounds");
     ("--compute-sl-graph", Arg.Clear _compute_sl_graph, "Force location bound");
     ("--loc-bound", Arg.Int set_location_bound, "Force location bound");
@@ -155,6 +151,10 @@ let speclist =
     ("--debug", Arg.Set _debug, "Print debug info");
     ("--dry-run", Arg.Set _dry_run, "Only translate formula and return unknown");
     ("--profile", Arg.Set _profile, "Print profiling information");
+
+
+    (* Hidden *)
+    ("--broom", Arg.Set _broom_preprocessing, "");
 
     (* Do not show '-help' *)
     ("-help", Arg.Unit ignore, "");
