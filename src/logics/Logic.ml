@@ -50,6 +50,16 @@ module Make (Term : TERM) = struct
 
   let free_vars term = List.sort_uniq compare (free_vars term)
 
+  let rec get_vars term = match node_type term with
+    | Var _ -> [term]
+    | Operator (terms, _) | Connective terms -> List.concat @@ List.map free_vars terms
+    | Quantifier (_, phi) -> get_vars phi
+
+  let get_operands phi = match node_type phi with
+    | Var _ -> []
+    | Operator (terms, _) | Connective terms -> terms
+    | Quantifier (_, term) -> [term]
+
   let get_all_sorts term =
     free_vars term
     |> List.map get_sort
@@ -97,7 +107,7 @@ module Make (Term : TERM) = struct
         mk_indent n ++ "(" ++ node_name node ++ " " ++ pretty_terms_line terms ++ ")"
       else
         mk_indent n ++ "(" ++ node_name node ++ "\n" ++ pretty_terms (n + 2) terms ++ mk_indent n ++ ")\n\n"
-  | Quantifier _ -> "TODO"
+  | Quantifier _ -> "TODO: quantifier"
 
   let rec show term = (*pretty 0 term*)
     match node_type term with

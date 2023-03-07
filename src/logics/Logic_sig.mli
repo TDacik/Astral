@@ -69,6 +69,8 @@ module type LOGIC = sig
 
   val free_vars : t -> t list
 
+  val get_operands : t -> t list
+
   val get_all_sorts : t -> Sort.t list
   (** Return all sorts used in term. *)
 

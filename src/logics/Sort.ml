@@ -84,7 +84,7 @@ let rec show = function
   | Bitvector width -> Format.asprintf "(Bitvector %d)" width
   | Tupple sorts -> "(" ^ (String.concat ", " @@ List.map show sorts) ^ ")"
   | Sum sorts -> "(" ^ (String.concat " | " @@ List.map show sorts) ^ ")"
-  | Uninterpreted name -> name
+  | Uninterpreted name -> "(Uninterpreted " ^ name ^ ")"
 
 module Self = struct
   type nonrec t = t
