@@ -58,25 +58,63 @@ let test_dls2 () =
 
 (** Guarded negations *)
 
-let test1 () =
+let gneg_test1 () =
   let phi = SSL.mk_true () &! (x |-> y) in
   let phi' = SSL.mk_not (x |-> y) in
   assert (simplify phi === phi')
 
-let test2 () =
+let gneg_test2 () =
   let phi = SSL.mk_false () &! (x |-> y) in
   let phi' = SSL.mk_false () in
   assert (simplify phi === phi')
 
-let test3 () =
+let gneg_test3 () =
   let phi = (x |-> y) &! SSL.mk_true () in
   let phi' = SSL.mk_false () in
   assert (simplify phi === phi')
 
-let test4 () =
+let gneg_test4 () =
   let phi = (x |-> y) &! SSL.mk_false () in
   let phi' = x |-> y in
   assert (simplify phi === phi')
+
+
+(** Stars *)
+
+let star_fold_test1 () =
+  let phi = (x |-> y) * (y |-> x) in
+  assert (simplify phi === phi)
+
+let star_fold_test2 () =
+  let psi1 = (x |-> y) * (y |-> x) in
+  let psi2 = (f |-> l) * (l |-> f) in
+  let phi = psi1 * psi2 in
+  let phi' = SSL.mk_star [x |-> y; y |-> x; f |-> l ; l |-> f] in
+  assert (simplify phi === phi')
+
+let star_fold_test3 () =
+  let psi1 = x |-> y in
+  let psi2 = y |-> x in
+  let psi3 = f |-> l in
+  let psi4 = l |-> f in
+  let phi = (psi1 * (psi2 * psi3)) &! psi4 in
+  let phi' = (SSL.mk_star [psi1; psi2; psi3]) &! psi4 in
+  assert (simplify phi === phi')
+
+let star_pure_duplicates_test1 () =
+  let phi = (x |-> y) * (x == y) in
+  assert (simplify phi === phi)
+
+let star_pure_duplicates_test2 () =
+  let phi = (x == y) * (x == y) in
+  let phi' = (x == y) in
+  assert (simplify phi === phi')
+
+let star_simplify_test1 () =
+  let psi = SSL.mk_not @@ SSL.mk_emp () in
+  let phi = SSL.mk_star [psi; psi] in
+  Printf.printf "%s ~> %s\n" (SSL.show phi) (SSL.show @@ simplify phi);
+  assert (simplify phi === phi)
 
 let () =
   run "Simplification" [
@@ -92,9 +130,17 @@ let () =
       test_case "dls(x,y,f,l) * y = f ~> emp" `Quick test_dls2;
     ];
     "Guarded negation", [
-      test_case "Test" `Quick test1;
-      test_case "Test" `Quick test2;
-      test_case "Test" `Quick test3;
-      test_case "Test" `Quick test4;
+      test_case "Test" `Quick gneg_test1;
+      test_case "Test" `Quick gneg_test2;
+      test_case "Test" `Quick gneg_test3;
+      test_case "Test" `Quick gneg_test4;
+    ];
+    "Stars", [
+      test_case "Test" `Quick star_fold_test1;
+      test_case "Test" `Quick star_fold_test2;
+      test_case "Test" `Quick star_fold_test3;
+      test_case "Test" `Quick star_pure_duplicates_test1;
+      test_case "Test" `Quick star_pure_duplicates_test2;
+      test_case "Test" `Quick star_simplify_test1;
     ];
   ]
