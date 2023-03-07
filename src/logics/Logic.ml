@@ -22,7 +22,7 @@ module Make (Term : TERM) = struct
         let name2 = node_name term2 in
         let cmp = String.compare name1 name2 in
         if cmp != 0 then cmp
-        else List.compare compare (List.sort compare subterms1) (List.sort compare subterms2)
+        else List.compare compare subterms1 subterms2
     | Quantifier (binders1, body1), Quantifier (binders2, body2) ->
         let cmp = List.compare compare binders1 binders2 in
         if cmp != 0 then cmp
