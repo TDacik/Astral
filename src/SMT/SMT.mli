@@ -21,6 +21,7 @@ type t =
   | Not of t
   | Implies of t * t
   | Iff of t * t
+  | IfThenElse of t * t * t
   | True
   | False
 
@@ -133,6 +134,7 @@ module Boolean : sig
   val mk_not : t -> t
   val mk_implies : t -> t -> t
   val mk_iff : t -> t -> t
+  val mk_ite : t -> t -> t -> t
 
 end
 

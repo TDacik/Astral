@@ -27,6 +27,8 @@ and translate_std translate translate_sort term = match term with
   | SMT.Not t -> Format.asprintf "(not %s)" (translate t)
   | SMT.Implies (t1, t2) -> Format.asprintf "(=> %s %s)" (translate t1) (translate t2)
   | SMT.Iff (t1, t2) -> Format.asprintf "(= %s %s)" (translate t1) (translate t2)
+  | SMT.IfThenElse (c, x, y) ->
+      Format.asprintf "(ite %s %s %s)" (translate c) (translate x) (translate y)
 
   | SMT.LesserEq (t1, t2) -> begin match SMT.Term.get_sort t1 with
     | Sort.Bitvector _ -> Format.asprintf "(bvule %s %s)" (translate t1) (translate t2)

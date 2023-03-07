@@ -18,6 +18,7 @@ module Term = struct
     | Not of t
     | Implies of t * t
     | Iff of t * t
+    | IfThenElse of t * t * t
     | True
     | False
 
@@ -117,6 +118,7 @@ module Term = struct
       | Not x -> f (Not (map x))
       | Implies (x, y) -> f (Implies (map x, map y))
       | Iff (x, y) -> f (Iff (map x, map y))
+      | IfThenElse (c, x, y) -> f (IfThenElse (map c, map x, map y))
 
       | LesserEq (x, y) -> f (LesserEq (map x, map y))
 
@@ -176,6 +178,7 @@ module Term = struct
     | Not x -> ("not", Connective [x])
     | Implies (x, y) -> ("=>", Connective [x; y])
     | Iff (x, y) -> ("<=>", Connective [x; y])
+    | IfThenElse (c, x, y) -> ("ite", Operator ([c; x; y], get_sort x))
     | True -> ("true", Connective [])
     | False -> ("false", Connective [])
 
@@ -322,6 +325,13 @@ module Term = struct
         Implies (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
       | Iff (t1, t2) ->
         Iff (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+      | IfThenElse (c, t1, t2) ->
+        IfThenElse (
+          substitute ~bounded c x term,
+          substitute ~bounded t1 x term,
+          substitute ~bounded t2 x term
+        )
+
       | True -> True
       | False -> False
 
@@ -408,6 +418,11 @@ module Boolean = struct
 
   let mk_implies t1 t2 = Implies (t1, t2)
   let mk_iff t1 t2 = Iff (t1, t2)
+
+  let mk_ite c x y = match c with
+    | True -> c
+    | False -> y
+    | term -> IfThenElse (term, x, y)
 
 end
 

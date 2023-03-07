@@ -50,6 +50,8 @@ let rec translate t = match t with
   | SMT.Not e -> Z3.Boolean.mk_not !context (translate e)
   | SMT.Implies (e1, e2) -> Z3.Boolean.mk_implies !context (translate e1) (translate e2)
   | SMT.Iff (e1, e2) -> Z3.Boolean.mk_iff !context (translate e1) (translate e2)
+  | SMT.IfThenElse (c, x, y) ->
+      Z3.Boolean.mk_ite !context (translate c) (translate x) (translate y)
 
   | SMT.LesserEq (e1, e2) -> begin match SMT.Term.get_sort e1 with
     | Sort.Bitvector _ -> Z3.BitVector.mk_ule !context (translate e1) (translate e2)
