@@ -87,6 +87,7 @@ end
 
 include Logic.Make(Self)
 
+
 (** Second, build implementation of common operations. *)
 
 module Self2 = struct
@@ -98,6 +99,50 @@ end
 include Datatype.Printable(Self2)
 include Datatype.Comparable(Self2)
 include Datatype.Collections(Self2)
+
+(** More precise version of equality intended for unit tests *)
+(*  TODO: could perhaps use alpha-equivalence *)
+let rec (===) lhs rhs =
+  let rec fold = function
+    | [] -> []
+    | psis ->
+      let stars, others = List.partition (function Star _ -> true | _ -> false) psis in
+      let stars_operands = List.concat @@ List.map (function Star psis -> psis) stars in
+      fold stars_operands @ others
+  in
+  match lhs, rhs with
+  | Var v1, Var v2 -> Variable.equal v1 v2
+  | Pure t1, Pure t2 -> SMT.Term.equal t1 t2
+  | Eq xs1, Eq xs2 | Distinct xs1, Distinct xs2 ->
+    (* Recursively uses weaker equality, but for variables this is fine *)
+    Set.equal (Set.of_list xs1) (Set.of_list xs2)
+  | PointsTo (x1, ys1), PointsTo (x2, ys2) ->
+    x1 === x2 && List.equal (===) ys1 ys2
+  | LS (x1, y1), LS (x2, y2) ->
+    x1 === x2 && y1 === y2
+  | NLS (x1, y1, z1), NLS (x2, y2, z2) ->
+    x1 === x2 && y1 === y2 && z1 === z2
+  | DLS (x1, y1, f1, l1), DLS (x2, y2, f2, l2) ->
+    x1 === x2 && y1 === y2 && f1 === f2 && l1 === l2
+  | And (lhs1, rhs1), And (lhs2, rhs2)
+  | Or (lhs1, rhs1), Or (lhs2, rhs2) ->
+    (lhs1 === lhs2 && rhs1 === rhs2) || (lhs1 === rhs2 && rhs1 === lhs2)
+  | Not psi1, Not psi2 ->
+    psi1 === psi2
+  | Septraction (lhs1, rhs1), Septraction (lhs2, rhs2)
+  | GuardedNeg (lhs1, rhs1), GuardedNeg (lhs2, rhs2) ->
+    (lhs1 === lhs2 && rhs1 === rhs2)
+  | Exists (xs1, psi1), Exists (xs2, psi2)
+  | Forall (xs1, psi1), Forall (xs2, psi2) ->
+    (* Recursively uses weaker equality, but for variables this is fine *)
+    Set.equal (Set.of_list xs1) (Set.of_list xs2)
+    && psi1 === psi2
+  | Star psis1, Star psis2 ->
+    let psis1 = List.sort compare (fold psis1) in
+    let psis2 = List.sort compare (fold psis2) in
+    List.equal (===) psis1 psis2
+  | _, _ -> false
+
 
 let is_var = function
   | Var _ -> true

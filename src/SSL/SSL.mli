@@ -42,11 +42,15 @@ type t =
   | Star of t list
   | Septraction of t * t
 
-val hash : t -> int
+include LOGIC with type t := t
 
 include COLLECTIONS with type t := t
 
-include LOGIC with type t := t
+val hash : t -> int
+
+val (===) : t -> t -> bool
+(** More precise implementation of equality that takes into account reordering of sub-formulae.
+    The function is intended for unit tests. *)
 
 val chunk_size : t -> int
 
