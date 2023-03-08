@@ -2,13 +2,12 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
+open SSL
 open SSL.Infix
 
 let x = SSL.mk_var "x"
 let y = SSL.mk_var "y"
 let z = SSL.mk_var "z"
-
-let (===) = SSL.equal
 
 (** Precise -> imprecise *)
 

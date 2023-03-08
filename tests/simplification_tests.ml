@@ -2,6 +2,7 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
+open SSL
 open SSL.Infix
 
 let x = SSL.mk_var "x"
@@ -10,13 +11,12 @@ let f = SSL.mk_var "f"
 let l = SSL.mk_var "l"
 let z = SSL.mk_var "z"
 
-let (===) = SSL.equal
+
+(** Equality rewritting *)
 
 let simplify phi =
   let sl_graph = SL_graph.compute phi in
   Simplifier.simplify @@ EqualityRewritter.apply sl_graph phi
-
-(** Equality rewritting *)
 
 let test1 () =
   let phi = (x |-> y) * (x == y) in
@@ -37,26 +37,36 @@ let test4 () =
   let phi = (x |-> y) * (y |-> z) in
   assert (simplify phi === phi)
 
-
 (** Inductive predicates *)
+
+let simplify phi =
+  let sl_graph = SL_graph.compute phi in
+  Simplifier.simplify @@ EqualityRewritter.apply sl_graph phi
 
 let test_ls () =
   let phi = (SSL.mk_ls x y) * (x == y) in
   let phi' = SSL.mk_emp () in
-  assert (simplify phi = phi')
+  assert (simplify phi === phi')
 
 let test_dls1 () =
   let phi = (SSL.mk_dls x y f l) * (x == l) in
-  let phi' = SSL.mk_emp () in
-  assert (simplify phi = phi')
+  let phi' = y == f in
+  assert (simplify phi === phi')
 
 let test_dls2 () =
   let phi = (SSL.mk_dls x y f l) * (y == f) in
+  let phi' = x == l in
+  assert (simplify phi === phi')
+
+let test_dls3 () =
+  let phi = (SSL.mk_dls x y f l) * (x == l) * (y == f) in
   let phi' = SSL.mk_emp () in
-  assert (simplify phi = phi')
+  assert (simplify phi === phi')
 
 
 (** Guarded negations *)
+
+let simplify = Simplifier.simplify
 
 let gneg_test1 () =
   let phi = SSL.mk_true () &! (x |-> y) in
@@ -81,6 +91,8 @@ let gneg_test4 () =
 
 (** Stars *)
 
+let simplify = Simplifier.simplify
+
 let star_fold_test1 () =
   let phi = (x |-> y) * (y |-> x) in
   assert (simplify phi === phi)
@@ -102,7 +114,7 @@ let star_fold_test3 () =
   assert (simplify phi === phi')
 
 let star_pure_duplicates_test1 () =
-  let phi = (x |-> y) * (x == y) in
+  let phi = (f |-> z) * (x == y) in
   assert (simplify phi === phi)
 
 let star_pure_duplicates_test2 () =
@@ -125,9 +137,10 @@ let () =
       test_case "Test" `Quick test4;
     ];
     "Inductive predicate", [
-      test_case "ls(x,y) * x = y ~> emp"      `Quick test_ls;
-      test_case "dls(x,y,f,l) * x = l ~> emp" `Quick test_dls1;
-      test_case "dls(x,y,f,l) * y = f ~> emp" `Quick test_dls2;
+      test_case "ls(x,y) * x = y ~> emp"              `Quick test_ls;
+      test_case "dls(x,y,f,l) * x = l ~> y = f"       `Quick test_dls1;
+      test_case "dls(x,y,f,l) * y = f ~> x = l"       `Quick test_dls2;
+      test_case "dls(x,y,f,l) * x = l * y = f ~> emp" `Quick test_dls3;
     ];
     "Guarded negation", [
       test_case "Test" `Quick gneg_test1;

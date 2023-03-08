@@ -2,13 +2,12 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
+open SSL
 open SSL.Infix
 
 let x = SSL.mk_var "x"
 let y = SSL.mk_var "y"
 let z = SSL.mk_var "z"
-
-let (===) = SSL.equal
 
 let apply phi =
   let g = SL_graph.compute phi in
@@ -21,7 +20,7 @@ let test1 () =
   assert (apply phi === phi)
 
 let test2 () =
-  let phi = SSL.mk_iff [SSL.mk_true (); x |-> y] in
+  let phi = SSL.mk_iff [SSL.mk_pure @@ SMT.Boolean.mk_true (); x |-> y] in
   let phi' = x |-> y in
   assert (apply phi === phi')
 

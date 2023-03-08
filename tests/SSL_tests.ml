@@ -77,14 +77,34 @@ let subformula_id_test2 () =
 
 (** Fragment classification *)
 
+let is_symbolic_heap_test1 () =
+  let phi = x |-> y in
+  assert (SSL.is_symbolic_heap phi)
+
+let is_symbolic_heap_test2 () =
+  let phi = (x |-> y) * (y |~> x) in
+  assert (SSL.is_symbolic_heap phi)
+
+let is_symbolic_heap_test3 () =
+  let phi = SSL.mk_true () in
+  assert (not @@ SSL.is_symbolic_heap phi)
+
+let is_symbolic_heap_test4 () =
+  let phi = x |-> y && x == y in
+  assert (not @@ SSL.is_symbolic_heap phi)
+
+let is_symbolic_heap_test5 () =
+  let phi = SSL.mk_exists [x; y] (x |-> y) in
+  assert (SSL.is_symbolic_heap phi)
+
 let is_symbolic_heap_entl_test1 () =
-  assert (SSL.is_symbolic_heap @@ SSL.mk_false ())
+  assert (SSL.is_symbolic_heap_entl @@ SSL.mk_false ())
 
 let is_symbolic_heap_entl_test2 () =
   let lhs = x |-> y in
   let rhs = SSL.mk_exists [x; y] lhs in
   let phi = SSL.mk_gneg lhs rhs in
-  assert (SSL.is_symbolic_heap phi)
+  assert (SSL.is_symbolic_heap_entl phi)
 
 let () =
   run "SSL" [
@@ -117,6 +137,13 @@ let () =
       test_case "Test"  `Quick subformula_id_test2;
     ];
     "is_symbolic_heap", [
+      test_case "Test"  `Quick is_symbolic_heap_test1;
+      test_case "Test"  `Quick is_symbolic_heap_test2;
+      test_case "Test"  `Quick is_symbolic_heap_test3;
+      test_case "Test"  `Quick is_symbolic_heap_test4;
+      test_case "Test"  `Quick is_symbolic_heap_test5;
+    ];
+    "is_symbolic_heap_entl", [
       test_case "Test"  `Quick is_symbolic_heap_entl_test1;
       test_case "Test"  `Quick is_symbolic_heap_entl_test2;
     ];
