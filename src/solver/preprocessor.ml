@@ -13,15 +13,20 @@ let normalise_vars phi vars =
     else vars
   else vars
 
+let rewrite_semantics phi = match Options.semantics () with
+  | `NotSpecified -> phi
+  | `Precise ->
+    let phi = PreciseToImprecise.to_precise phi in
+    let _ = Debug.formula ~suffix:"1.0-to_precise" phi in
+     phi
+  | `Imprecise ->
+    let phi = PreciseToImprecise.to_imprecise phi in
+    let _ = Debug.formula ~suffix:"1.0-to_imprecise" phi in
+    phi
+
 let normalise phi vars =
   let phi = SSL.normalise phi in
-  let phi =
-   if Options.sl_comp () then
-     let phi = SL_comp.preprocess phi in
-     let _ = Debug.formula ~suffix:"sl_comp_pre" phi in
-     phi
-   else phi
-  in
+  let phi = rewrite_semantics phi in
   let vars = normalise_vars phi vars in
   (phi, vars)
 
@@ -69,3 +74,8 @@ let preprocess context =
   Debug.formula phi;
 
   Context.set_preprocessed phi vars context, g
+
+let preprocess context =
+  if Options.preprocessing ()
+  then preprocess context
+  else context, SL_graph.empty

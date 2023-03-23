@@ -28,6 +28,8 @@ val strong_separation : unit -> bool
 
 val list_bounds : unit -> bool
 
+val preprocessing : unit -> bool
+
 val location_bound : unit -> int option
 
 val compute_sl_graph : unit -> bool
@@ -52,7 +54,7 @@ val quantif_elim : unit -> (Translation_context.t -> SMT.Term.t -> SMT.Term.t)
 
 val set_backend : string -> unit
 
-val sl_comp : unit -> bool
+val semantics : unit -> [`NotSpecified | `Precise | `Imprecise]
 
 val to_json : unit -> Yojson.Basic.t
 

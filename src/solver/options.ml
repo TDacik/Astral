@@ -56,8 +56,12 @@ let list_bounds () = !_list_bounds
 let _compute_sl_graph = ref true
 let compute_sl_graph () = !_compute_sl_graph
 
-let _sl_comp = ref false
-let sl_comp () = !_sl_comp
+let _semantics = ref ""
+let semantics () = match !_semantics with
+  | "" -> `NotSpecified
+  | "precise" -> `Precise
+  | "imprecise" -> `Imprecise
+  | other -> failwith ("Unknown semanics '" ^ other ^ "'")
 
 (* ==== Output options ==== *)
 
@@ -70,6 +74,9 @@ let _profile = ref false
 let profile () = !_profile
 
 (* ==== Preprocessing ==== *)
+
+let _preprocessing = ref true
+let preprocessing () = !_preprocessing
 
 let _broom_preprocessing = ref false
 let broom_preprocessing () = !_broom_preprocessing
@@ -130,13 +137,16 @@ let speclist =
     ("--backend", Arg.Set_string _backend, "Backend SMT solver (default cvc5)");
     ("--backend-options",
       Arg.Set_string _backend_options, "Pass options to backend SMT solver");
-    ("--no-list-bounds", Arg.Clear _list_bounds, "Do not use list-length bounds");
     ("--compute-sl-graph", Arg.Clear _compute_sl_graph, "Force location bound");
     ("--loc-bound", Arg.Int set_location_bound, "Force location bound");
     ("--separation", Arg.Set_string _separation, "Separation (weak | strong");
     ("--ignore-unused-vars", Arg.Set _ignore_unused_vars, "Ignore variables that do not occur
       in the input formula");
-    ("--sl-comp", Arg.Set _sl_comp, "Preprocessing for SL-comp");
+    ("--semantics", Arg.Set_string _semantics, "Semantics of pure terms (precise | imprecise)");
+
+    (* Optimalisations *)
+    ("--no-preprocessing", Arg.Clear _preprocessing, "Do not use preprocessing");
+    ("--no-list-bounds", Arg.Clear _list_bounds, "Do not use list-length bounds");
 
     (* Encoding *)
     ("--encoding", Arg.Set_string _encoding, "Method of encoding (sets | bitvectors)");
@@ -170,11 +180,11 @@ let json_output () = match !_json_output_file with
 
 let to_json () =
   `Assoc [
-    "Separation",             `String !_separation;
-    "SL-comp preprocessing",  `Bool !_sl_comp;
-    "Backend",                `String !_backend;
-    "Encoding",               `String !_encoding;
-    "Quantifier elimination", `String !_quantifier_elimination
+    "Separation",              `String !_separation;
+    "Semantics of pure atoms", `String !_semantics;
+    "Backend",                 `String !_backend;
+    "Encoding",                `String !_encoding;
+    "Quantifier elimination",  `String !_quantifier_elimination
   ]
 
 let exit_usage error =

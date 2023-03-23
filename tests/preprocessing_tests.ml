@@ -11,22 +11,33 @@ let z = SSL.mk_var "z"
 
 (** Precise -> imprecise *)
 
-let apply = PreciseToImprecise.apply
+let to_imprecise = PreciseToImprecise.to_imprecise
 
-let prec_imprecise_test1 () =
+let to_imprecise_test1 () =
   let phi = x == y in
   let phi' = (x == y) && (SSL.mk_emp ()) in
-  assert (apply phi === phi')
+  Printf.printf "%s -> %s\n" (SSL.show phi) (SSL.show @@ to_imprecise phi);
+  assert (to_imprecise phi === phi')
 
-let prec_imprecise_test2 () =
+let to_imprecise_test2 () =
   let phi = (x == y) * (x |-> z) in
   let phi' = (x == y) && (x |-> z) in
-  assert (apply phi === phi')
+  assert (to_imprecise phi === phi')
 
-let prec_imprecise_test3 () =
+let to_imprecise_test3 () =
   let phi = SSL.mk_star [x |-> y; y |-> x; x == y; y == z] in
   let phi' = ((x == y) && (y == z)) && ((x |-> y) * (y |-> x)) in
-  assert (apply phi === phi')
+  assert (to_imprecise phi === phi')
+
+(** Imprecise -> precise *)
+
+let to_precise = PreciseToImprecise.to_precise
+
+let to_precise_test1 () =
+  let phi = x == y in
+  let phi' = (x == y) * (SSL.mk_true ()) in
+  Printf.printf "%s -> %s\n" (SSL.show phi) (SSL.show @@ to_precise phi);
+  assert (to_precise phi === phi')
 
 (** Removing of variadic operators *)
 
@@ -75,10 +86,13 @@ let pure_test2 () =
 
 let () =
   run "Preprocessors" [
-    "PreciseToImprecise", [
-      test_case "Test" `Quick prec_imprecise_test1;
-      test_case "Test" `Quick prec_imprecise_test2;
-      test_case "Test" `Quick prec_imprecise_test3;
+    "Precise -> Imprecise", [
+      test_case "Test" `Quick to_imprecise_test1;
+      test_case "Test" `Quick to_imprecise_test2;
+      test_case "Test" `Quick to_imprecise_test3;
+    ];
+    "Imprecise -> Precise", [
+      test_case "Test" `Quick to_precise_test1;
     ];
     "Removing of variadic operators", [
       test_case "Test" `Quick remove_variadic_eq_test1;

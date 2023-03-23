@@ -20,6 +20,7 @@ let input_name path =
 
 let convertor = ref ""
 let get_convertor () = match !convertor with
+  | "cvc5" -> (module CVC5Convertor : CONVERTOR)
   | "grass" -> (module GrasshopperConvertor : CONVERTOR)
   | "sloth" -> (module SlothConvertor : CONVERTOR)
   | "songbird" | "sls" -> (module SongbirdConvertor : CONVERTOR)
@@ -63,7 +64,7 @@ let () =
   in
   let input =
     if not @@ Convertor.precise_semantics
-    then {input with phi = PreciseToImprecise.apply input.phi}
+    then {input with phi = PreciseToImprecise.to_imprecise input.phi}
     else input
   in
   match !output_path with
