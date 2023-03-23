@@ -69,7 +69,8 @@ and translate_std translate translate_sort term = match term with
     Format.asprintf "(bvlshr %s %s)" (translate bv) (translate rotate)
 
   (* TODO: instantiation should be done somewhere else *)
-  | SMT.Forall (x :: _, phi) ->
+  | SMT.Forall ([], phi) -> translate phi
+  | SMT.Forall (x :: xs, phi) ->
     let x_sort = SMT.Term.get_sort x in
     begin match x_sort with
     | Finite (_, cs) ->
@@ -79,10 +80,11 @@ and translate_std translate translate_sort term = match term with
       Format.asprintf "(forall ((%s %s)) %s)"
         (translate x)
         (translate_sort x_sort)
-        (translate phi)
+        (translate (SMT.Forall (xs, phi)))
     end
 
-  | SMT.Exists (x :: _, phi) ->
+  | SMT.Exists ([], phi) -> translate phi
+  | SMT.Exists (x :: xs, phi) ->
     let x_sort = SMT.Term.get_sort x in
     begin match x_sort with
     | Finite (_, cs) ->
@@ -92,7 +94,7 @@ and translate_std translate translate_sort term = match term with
       Format.asprintf "(exists ((%s %s)) %s)"
         (translate x)
         (translate_sort x_sort)
-        (translate phi)
+        (translate (SMT.Exists (xs, phi)))
     end
 
   | SMT.IntConst i -> Format.asprintf "%d" i
