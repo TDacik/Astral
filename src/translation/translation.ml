@@ -18,6 +18,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   open Context
 
   module DLListEncoding = DLListEncoding.Make(Encoding.Locations)
+  module NestedListEncoding = NestedListEncoding.Make(Encoding.Locations)
 
   module Footprints = Topped_set.Lift(SMT.Term.Collections.Set)
 
@@ -104,6 +105,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     | SSL.Distinct xs -> translate_distinct context domain xs
     | SSL.LS (x, y) -> translate_ls context domain x y
     | SSL.DLS (x, y, f, l) -> translate_dls context domain x y f l
+    | SSL.NLS (x, y, z) -> translate_nls context domain x y z
     | SSL.SkipList (2, x, y) -> translate_skl context domain x y
     | SSL.Not (psi) -> translate_not context domain psi
     | SSL.GuardedNeg (psi1, psi2) -> translate_guarded_neg context domain psi1 psi2
@@ -175,6 +177,18 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let fp = SMT.Set.mk_fresh_var "dls_fp" context.fp_sort in
     let semantics = DLListEncoding.semantics context domain fp x y f l local_bound in
     let axioms = DLListEncoding.axioms context fp x y f l local_bound in
+    let footprints = Footprints.singleton fp in
+    (semantics, axioms, footprints)
+
+  and translate_nls context domain (Var x) (Var y) (Var z) =
+    let local_bound = (0, context.location_bound - 1) in (*TODO: more precise bounds*)
+    let x = var_to_expr context x in
+    let y = var_to_expr context y in
+    let z = var_to_expr context z in
+
+    let fp = SMT.Set.mk_fresh_var "nls_fp" context.fp_sort in
+    let semantics = NestedListEncoding.semantics context domain fp x y z local_bound in
+    let axioms = NestedListEncoding.axioms context fp x y z local_bound in
     let footprints = Footprints.singleton fp in
     (semantics, axioms, footprints)
 

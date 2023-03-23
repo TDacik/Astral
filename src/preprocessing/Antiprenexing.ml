@@ -22,7 +22,7 @@ let rec push_star_aux xs psis = match xs with
 
 and apply phi = match phi with
   | SSL.Var _ | SSL.Pure _ | SSL.Eq _ | SSL.Distinct _ -> phi
-  | SSL.PointsTo _ | SSL.LS _ | SSL.DLS _ -> phi
+  | SSL.PointsTo _ | SSL.LS _ | SSL.DLS _ | SSL.NLS _ -> phi
 
   (* Forall over conjunction *)
   | SSL.Forall (xs, And (psi1, psi2)) ->

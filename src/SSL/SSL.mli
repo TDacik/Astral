@@ -32,6 +32,7 @@ type t =
   | PointsTo of t * t list
   | LS of t * t
   | DLS of t * t * t * t
+  | NLS of t * t * t
   | SkipList of int * t * t
   | And of t * t
   | Or of t * t
@@ -53,6 +54,24 @@ val (===) : t -> t -> bool
     The function is intended for unit tests. *)
 
 val chunk_size : t -> int
+
+(** {2 Views on SSL formulae} *)
+
+type quantifier_view = [`Forall | `Exists] * Variable.t list * t
+
+val as_quantifier : t -> quantifier_view
+
+type query =
+  | QF_SymbolicHeap_SAT of t
+  | QF_SymbolicHeap_ENTL of t * t
+  | QF_Arbitrary_SAT of t
+  | QF_Arbitrary_ENTL of t * t
+  | SymbolicHeap_SAT of quantifier_view
+  | SymbolicHeap_ENTL of quantifier_view * quantifier_view
+  | Arbitrary_SAT of quantifier_view
+  | Arbitrary_ENTL of quantifier_view * quantifier_view
+
+val as_query : t -> query
 
 (** {2 Subformulae ID} *)
 
@@ -119,6 +138,8 @@ val mk_ls : t -> t -> t
 
 val mk_dls : t -> t -> t -> t -> t
 
+val mk_nls : t -> t -> t -> t
+
 val mk_skl : int -> t -> t -> t
 
 val mk_emp : unit -> t
@@ -183,6 +204,8 @@ val iter_on_subformulas : (t -> unit) -> t -> unit
 val fold : (t -> 'a -> 'a) -> t -> 'a -> 'a
 
 val get_vars : ?with_nil:bool -> t -> Variable.t list
+
+val map : (t -> t) -> t -> t
 
 val map_vars : (Variable.t -> t) -> t -> t
 (** Apply function to all free variables in formula. *)

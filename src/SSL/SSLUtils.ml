@@ -48,6 +48,7 @@ module AST = struct
       | LS (v1, v2) -> Format.asprintf "ls(%a, %a)" pp v1 pp v2
       | DLS (v1, v2, v3, v4) -> Format.asprintf "dls(%a, %a, %a, %a)"
                                   pp v1 pp v2 pp v3 pp v4
+      | NLS (x, y, z) -> Format.asprintf "nls(%a, %a, %a)" pp x pp y pp z
       | PointsTo (v1, vs) -> Format.asprintf "%a ↦ %s" pp v1 (show_seq vs)
 
       | Eq [x; y] -> Format.asprintf "%a = %a" pp x pp y

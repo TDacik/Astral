@@ -10,6 +10,7 @@ type t =
   | PointsTo of t * t list
   | LS of t * t
   | DLS of t * t * t * t
+  | NLS of t * t * t
   | SkipList of int * t * t
 
   (* Boolean connectives *)

@@ -91,16 +91,20 @@ let raise_incorrect_arity name n =
   raise @@ ParserError msg
 
 let lift_unop_to_list fn operator = function
-    | [x1] -> fn x1
-    | _ -> raise_incorrect_arity operator 2
+  | [x1] -> fn x1
+  | _ -> raise_incorrect_arity operator 1
 
 let lift_binop_to_list fn operator = function
-    | [x1; x2] -> fn x1 x2
-    | _ -> raise_incorrect_arity operator 2
+  | [x1; x2] -> fn x1 x2
+  | _ -> raise_incorrect_arity operator 2
+
+let lift_ternop_to_list fn operator = function
+  | [x1; x2; x3] -> fn x1 x2 x3
+  | _ -> raise_incorrect_arity operator 3
 
 let lift_quadop_to_list fn operator = function
-    | [x1; x2; x3; x4] -> fn x1 x2 x3 x4
-    | _ -> raise_incorrect_arity operator 4
+  | [x1; x2; x3; x4] -> fn x1 x2 x3 x4
+  | _ -> raise_incorrect_arity operator 4
 
 let rec parse_assertion context type_env phi =
   let phi = parse_term type_env phi in
@@ -191,6 +195,9 @@ and parse_application type_env app operands = match app.term with
         | "ls" -> (lift_binop_to_list SSL.mk_ls "ls") operands
         | "septraction" -> (lift_binop_to_list SSL.mk_septraction "septraction") operands
         | "wand" -> (lift_binop_to_list SSL.mk_wand "wand") operands
+
+        (* Ternary operators *)
+        | "nls" | "nll" -> (lift_ternop_to_list SSL.mk_nls "nls") operands
 
         (* Arithmetic *)
         | "+" ->

@@ -41,6 +41,7 @@ type t =
   | PointsTo of t * t list
   | LS of t * t
   | DLS of t * t * t * t
+  | NLS of t * t * t
   | SkipList of int * t * t
 
   (* Boolean connectives *)
@@ -68,6 +69,7 @@ let describe_node : t -> t node_info = function
   | PointsTo (x, ys) -> ("pto", Operator (x :: ys, Sort.Bool))
   | LS (x, y) -> ("ls", Operator ([x; y], Sort.Bool))
   | DLS (x, y, f, l) -> ("dls", Operator ([x; y; f; l], Sort.Bool))
+  | NLS (x, y, z) -> ("nls", Operator ([x; y; z], Sort.Bool))
   | SkipList (depth, x, y) -> (Format.asprintf "skl%d" depth, Operator ([x; y], Sort.Bool))
   | And (psi1, psi2) -> ("and", Connective [psi1; psi2])
   | Or (psi1, psi2) -> ("or", Connective [psi1; psi2])
@@ -207,6 +209,7 @@ let mk_pto x y = PointsTo (x, [y])
 let mk_pto_seq x ys = PointsTo (x, ys)
 let mk_ls x y = LS (x, y)
 let mk_dls x y f l = DLS (x, y, f, l)
+let mk_nls x y z = NLS (x, y, z)
 let mk_skl depth x y = SkipList (depth, x, y)
 
 let mk_implies lhs rhs = Or (Not lhs, rhs)
@@ -252,7 +255,7 @@ let mk_forall xs phi = match xs with
 
 let rec is_pure phi = match phi with
   | Var _ | Distinct _ | Pure _ -> true
-  | PointsTo _ | LS _ | DLS _ | SkipList _ | Star _ | Septraction _ | Not _ -> false
+  | PointsTo _ | LS _ | DLS _ | NLS _ | SkipList _ | Star _ | Septraction _ | Not _ -> false
   | _ ->
     begin match node_type phi with
     | Operator (terms, _) | Connective terms -> List.for_all is_pure terms
@@ -272,6 +275,7 @@ let rec substitute_pure phi x term = match phi with
   | PointsTo (x, ys) -> PointsTo (x, ys)
   | LS (x, y) -> LS (x, y)
   | DLS (x, y, f, l) -> DLS (x, y, f, l)
+  | NLS (x, y, z) -> NLS (x, y, z)
   | SkipList (depth, x, y) -> SkipList (depth, x, y)
   | And (psi1, psi2) -> And (substitute_pure psi1 x term, substitute_pure psi2 x term)
   | Or (psi1, psi2) -> Or (substitute_pure psi1 x term, substitute_pure psi2 x term)
@@ -476,6 +480,37 @@ let classify_fragment phi =
   else if is_positive phi then Positive
   else Arbitrary
 
+(** {2 Views on SSL formulae} *)
+
+type quantifier_view = [`Forall | `Exists] * Variable.t list * t
+
+let as_quantifier = function
+  | Forall (xs, phi) -> `Forall, List.map (fun (Var x) -> x) xs, phi
+  | Exists (xs, phi) -> `Exists, List.map (fun (Var x) -> x) xs, phi
+
+type query =
+  | QF_SymbolicHeap_SAT of t
+  | QF_SymbolicHeap_ENTL of t * t
+  | QF_Arbitrary_SAT of t
+  | QF_Arbitrary_ENTL of t * t
+  | SymbolicHeap_SAT of quantifier_view
+  | SymbolicHeap_ENTL of quantifier_view * quantifier_view
+  | Arbitrary_SAT of quantifier_view
+  | Arbitrary_ENTL of quantifier_view * quantifier_view
+
+let as_query phi =
+  if is_quantifier_free phi then begin
+    if is_symbolic_heap phi then QF_SymbolicHeap_SAT phi
+    else if is_symbolic_heap_entl phi then match phi with
+      | GuardedNeg (lhs, rhs) -> QF_SymbolicHeap_ENTL (lhs, rhs)
+    else match phi with
+      | GuardedNeg (lhs, rhs) -> QF_Arbitrary_ENTL (lhs, rhs)
+      | _ -> QF_Arbitrary_SAT phi
+  end
+  (* Quantified *)
+  else failwith "TODO"
+
+
 let rec has_unique_footprint = function
   | Eq _ | Distinct _ | Pure _ | PointsTo _ | LS _ | DLS _ | SkipList _ -> true
   | And (f1, f2) -> has_unique_footprint f1 || has_unique_footprint f2
@@ -495,27 +530,20 @@ let get_vars ?(with_nil=true) phi =
   then vars
   else BatList.remove vars Variable.nil
 
-(** TODO: should this also handle free variables in pure terms? *)
-let rec map_vars fn phi =
-  let map_vars = map_vars fn in
-  match phi with
-  | Var x -> fn x
-  | Pure t -> Pure t
-  | Eq xs -> Eq (List.map map_vars xs)
-  | Distinct xs -> Distinct (List.map map_vars xs)
-  | PointsTo (x, ys) -> PointsTo (map_vars x, List.map map_vars ys)
-  | LS (x, y) -> LS (map_vars x, map_vars y)
-  | DLS (x, y, f, l) -> DLS (map_vars x, map_vars y, map_vars f, map_vars l)
-  | SkipList (depth, x, y) -> SkipList (depth, map_vars x, map_vars y)
-  | And (psi1, psi2) -> And (map_vars psi1, map_vars psi2)
-  | Or (psi1, psi2) -> Or (map_vars psi1, map_vars psi2)
-  | Not psi -> Not (map_vars psi)
-  | GuardedNeg (psi1, psi2) -> GuardedNeg (map_vars psi1, map_vars psi2)
-  | Exists (xs, psi) -> Exists (xs, map_vars psi)
-  | Forall (xs, psi) -> Forall (xs, map_vars psi)
-  | Star psis -> Star (List.map map_vars psis)
-  | Septraction (psi1, psi2) -> Septraction (map_vars psi1, map_vars psi2)
+let rec map fn phi =
+  let map = map fn in
+  match  phi with
+  | Var _ | Pure _ | Eq _ | Distinct _ | PointsTo _ | LS _ | DLS _ | NLS _ -> fn phi
+  | And (psi1, psi2) -> fn @@ And (map psi1, map psi2)
+  | Or (psi1, psi2) -> fn @@ Or (map psi1, map psi2)
+  | Not psi -> fn @@ Not (map psi)
+  | GuardedNeg (psi1, psi2) -> fn @@ GuardedNeg (map psi1, map psi2)
+  | Exists (xs, psi) -> fn @@ Exists (xs, map psi)
+  | Forall (xs, psi) -> fn @@ Forall (xs, map psi)
+  | Star psis -> fn @@ Star (List.map map psis)
+  | Septraction (psi1, psi2) -> fn @@ Septraction (map psi1, map psi2)
 
+let map_vars fn phi = map (function Var x -> fn x | psi -> psi) phi
 
 
 let fold_on_vars fn acc phi =

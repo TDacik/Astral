@@ -19,6 +19,7 @@ type t =
   | PointsTo of t * t list
   | LS of t * t
   | DLS of t * t * t * t
+  | NLS of t * t * t
   | SkipList of int * t * t
 
   (* Boolean connectives *)
@@ -64,6 +65,7 @@ let rec of_ssl phi = match phi with
   | SSL.PointsTo (x, ys) -> PointsTo (of_ssl x, List.map of_ssl ys)
   | SSL.LS (x, y) -> LS (of_ssl x, of_ssl y)
   | SSL.DLS (x, y, f, l) -> DLS (of_ssl x, of_ssl y, of_ssl f, of_ssl l)
+  | SSL.NLS (x, y, z) -> NLS (of_ssl x, of_ssl y, of_ssl z)
   | SSL.SkipList (depth, x, y) -> SkipList (depth, of_ssl x, of_ssl y)
   | SSL.Or (psi1, psi2) -> Or (of_ssl psi1, of_ssl psi2)
   | SSL.Not psi -> Not (of_ssl psi)
@@ -81,6 +83,7 @@ and to_ssl = function
   | PointsTo (x, ys) -> SSL.PointsTo (to_ssl x, List.map to_ssl ys)
   | LS (x, y) -> SSL.LS (to_ssl x, to_ssl y)
   | DLS (x, y, f, l) -> SSL.DLS (to_ssl x, to_ssl y, to_ssl f, to_ssl l)
+  | NLS (x, y, z) -> SSL.NLS (to_ssl x, to_ssl y, to_ssl z)
   | SkipList (depth, x, y) -> SSL.SkipList (depth, to_ssl x, to_ssl y)
   | And (psi1, psi2) -> SSL.And (to_ssl psi1, to_ssl psi2)
   | Or (psi1, psi2) -> SSL.Or (to_ssl psi1, to_ssl psi2)

@@ -203,6 +203,7 @@ let rec compute phi = match phi with
   | SSL.PointsTo (SSL.Var x, _) -> G.empty (* TODO *)
   | SSL.LS (SSL.Var x, SSL.Var y) -> G.add_edge_e G.empty (x, List, y)
   | SSL.DLS _ -> G.empty (* TODO *)
+  | SSL.NLS _ -> G.empty (* TODO *)
   | SSL.SkipList _ -> G.empty (* TODO *)
 
   | SSL.Star psis -> disjoint_union (List.map compute psis)
