@@ -111,25 +111,15 @@ let rec sort_quantifiers = function
   | SSL.Forall (xs, psi) -> SSL.mk_forall (sort_vars xs) (sort_quantifiers psi)
   | SSL.Exists (xs, psi) -> SSL.mk_exists (sort_vars xs) (sort_quantifiers psi)
 
-let rec unfold_quantifiers = function
-  | SSL.Var v -> SSL.Var v
-  | SSL.Pure term -> SSL.mk_pure term
-  | SSL.Eq xs -> SSL.mk_eq_list xs
-  | SSL.Distinct xs -> SSL.mk_distinct_list xs
-  | SSL.PointsTo (x, ys) -> SSL.mk_pto_seq x ys
-  | SSL.LS (x, y) -> SSL.mk_ls x y
-  | SSL.And (psi1, psi2) -> SSL.mk_and [unfold_quantifiers psi1; unfold_quantifiers psi2]
-  | SSL.Or (psi1, psi2) -> SSL.mk_or [unfold_quantifiers psi1; unfold_quantifiers psi2]
-  | SSL.Not psi -> SSL.mk_not (unfold_quantifiers psi)
-  | SSL.GuardedNeg (psi1, psi2) ->
-      SSL.mk_gneg (unfold_quantifiers psi1) (unfold_quantifiers psi2)
-  | SSL.Star psis -> SSL.mk_star (List.map unfold_quantifiers psis)
-  | SSL.Septraction (psi1, psi2) ->
-      SSL.mk_septraction (unfold_quantifiers psi1) (unfold_quantifiers psi2)
-  | SSL.Forall (x :: xs, psi) ->
-      unfold_bool `Forall x (SSL.mk_forall xs (unfold_quantifiers psi))
-  | SSL.Exists (x :: xs, psi) ->
-      unfold_bool `Exists x (SSL.mk_exists xs (unfold_quantifiers psi))
+let rec unfold_quantifiers phi =
+  SSL.map
+    (fun phi -> match phi with
+      | SSL.Forall (x :: xs, psi) ->
+        unfold_bool `Forall x (SSL.mk_forall xs (unfold_quantifiers psi))
+      | SSL.Exists (x :: xs, psi) ->
+        unfold_bool `Exists x (SSL.mk_exists xs (unfold_quantifiers psi))
+      | phi -> phi
+    ) phi
 
 let apply_aux sl_graph phi =
   replace_iffs phi
@@ -142,12 +132,11 @@ let rec apply_until_fixpoint sl_graph phi =
   if SSL.equal phi phi' then phi'
   else apply_until_fixpoint sl_graph phi'
 
+(* TODO: some invariants *)
 let apply sl_graph = function
-  | SSL.GuardedNeg (lhs, rhs) -> begin
-      assert (SSL.is_negation_free lhs);
-      assert (SSL.is_negation_free rhs);
-      let lhs = apply_until_fixpoint sl_graph lhs in
-      let rhs = apply_until_fixpoint sl_graph rhs in
-      SSL.mk_gneg lhs rhs
-    end
-  | _ -> failwith "Broom preprocessor expects entailment"
+  | SSL.GuardedNeg (lhs, rhs) ->
+    let lhs = apply_until_fixpoint sl_graph lhs in
+    let rhs = apply_until_fixpoint sl_graph rhs in
+    SSL.mk_gneg lhs rhs
+  | phi ->
+    apply_until_fixpoint sl_graph phi
