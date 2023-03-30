@@ -43,13 +43,17 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let select = mk_heap_succ context x in
     Boolean.mk_eq select y
 
-  let mk_range context domain range =
-    Locations.mk_forall context.locs_sort
-      (fun l ->
-        let in_domain = Set.mk_mem l domain in
-        let succ_in_range = Set.mk_mem (mk_heap_succ context l) range in
-        Boolean.mk_iff in_domain succ_in_range
-      )
+  let mk_image context domain =
+    let location_term l =
+      Boolean.mk_ite
+        (Set.mk_mem l domain)
+        (Set.mk_singleton @@ mk_heap_succ context l)
+        (Set.mk_empty context.fp_sort)
+    in
+    let terms = List.map location_term context.locs in
+    Set.mk_union terms context.fp_sort
+
+  let mk_locs context domain = Set.mk_union [mk_image context domain; domain] context.fp_sort
 
   let term_to_expr context t = match t with
     | SSL.Var x -> SMT.Variable.mk (SSL.Variable.show x) context.locs_sort
@@ -57,26 +61,16 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
   let var_to_expr context x = term_to_expr context (SSL.Var x)
 
-  let mk_strongly_disjoint context footprint1 footprint2 =
-    let range1 = Set.mk_fresh_var "range" context.fp_sort in
-    let range2 = Set.mk_fresh_var "range" context.fp_sort in
-
-    let ls1 = Set.mk_fresh_var "locs" context.fp_sort in
-    let ls2 = Set.mk_fresh_var "locs" context.fp_sort in
-
-    let is_range1 = mk_range context footprint1 range1 in
-    let is_range2 = mk_range context footprint2 range2 in
-
-    let locs1 = Set.mk_union [footprint1; range1] context.fp_sort in
-    let locs2 = Set.mk_union [footprint2; range2] context.fp_sort in
-
-    let common_locs = Set.mk_inter [locs1; locs2] context.fp_sort in
+  let mk_strongly_disjoint context domains =
+    let locs = List.map (mk_locs context) domains in
+    let worklist =
+      List_utils.diagonal_product locs
+      |> List.map (fun (locs1, locs2) -> Set.mk_inter [locs1; locs2] context.fp_sort)
+    in
+    let common_locs = Set.mk_union worklist context.fp_sort in
     let variables = List.map (var_to_expr context) context.vars in
     let stack_image = Set.mk_enumeration context.fp_sort variables in
-    let strongly_disjoint = Set.mk_subset common_locs stack_image in
-
-    let axioms = Boolean.mk_and [is_range1; is_range2] in
-    (axioms, strongly_disjoint)
+    Set.mk_subset common_locs stack_image
 
   (** Create predicate \forall x \in fp. h1[x] = h2[x] *)
   let heaps_equal_on_footprint context h1 h2 fp =
@@ -277,20 +271,12 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     (* If star can be scolemised, footprints will never be used above it. *)
     let footprints = Footprints.top in
 
-    (* Classical semantics for positive formulae *)
-    if List.for_all SSL.is_positive psis || not @@ Options.strong_separation () then
-      (Boolean.mk_and (semantics @ [disjoint; domain_def]), axioms, footprints)
-
-    else failwith "case 1"
-    (* Strong-separating semantics
-    else
-      let axiom, str_disjoint = mk_strongly_disjoint context fp1 fp2 in
-      let axioms = Boolean.mk_and [axioms; axiom] in
-      let semantics =
-        Boolean.mk_and [semantics1; semantics2; disjoint; str_disjoint; domain_def]
-      in
-      (semantics, axioms, footprints)
-    *)
+    let str_disjoint =
+      if List.for_all SSL.is_positive psis || not @@ Options.strong_separation ()
+      then Boolean.mk_true ()
+      else mk_strongly_disjoint context fps
+    in
+    (Boolean.mk_and (semantics @ [disjoint; domain_def; str_disjoint]), axioms, footprints)
 
   (** Translation of separating conjunction using second-order quantifiers. *)
   and translate_star_quantified context domain psis =
@@ -313,16 +299,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       ) footprints
     in
 
-    (* Semantics
-    *)
     let axioms = Boolean.mk_and axioms in
-
-    (* TODO: SSL
-    let ranges =
-      try Some [Footprints.elements footprints1; Footprints.elements footprints2]
-      with Topped_set.TopError -> None
-    in
-    *)
 
     (* Unique footprints *)
     if List.for_all SSL.has_unique_footprint psis then begin
@@ -335,8 +312,13 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       let semantics = Boolean.mk_and (disjoint :: domain_def :: semantics) in
       (semantics, axioms, fp_worklist)
     end
-    (* Not unique footprints, but positive *)
-    else if List.for_all SSL.is_positive psis || not @@ Options.strong_separation () then
+    (* Not unique footprints --> quantifiers *)
+    else
+      let str_disjoint =
+        if List.for_all SSL.is_positive psis || not @@ Options.strong_separation ()
+        then Boolean.mk_true ()
+        else mk_strongly_disjoint context fps
+      in
       let disjoint = Set.mk_disjoint_list fps in
       let fp_union = Set.mk_union fps context.fp_sort in
       let domain_def = Set.mk_eq domain fp_union in
@@ -345,29 +327,11 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         with Footprints.TopError -> None
       in
       let semantics =
-        Boolean.mk_and (disjoint :: domain_def :: semantics)
+        Boolean.mk_and (disjoint :: domain_def :: str_disjoint :: semantics)
         |> Quantifier.mk_exists2 fps ~ranges
       in
       let footprints = List.fold_left Footprints.union Footprints.empty footprints in
       (semantics, axioms, footprints)
-    else failwith "TODO"
-
-    (* Strong-separating semantics
-    else
-      let ssl_axiom, str_disjoint = mk_strongly_disjoint context fp1 fp2 in
-      let semantics =
-        Boolean.mk_and [semantics1; semantics2; disjoint; domain_def; str_disjoint]
-        |> Quantifier.mk_exists2 [fp1; fp2] ~ranges
-      in
-      let ssl_axioms1 =
-        Quantifier.mk_forall2 [fp1] ~ranges:(Some [Footprints.elements footprints1]) ssl_axiom
-      in
-      let ssl_axioms2 =
-        Quantifier.mk_forall2 [fp2] ~ranges:(Some [Footprints.elements footprints2]) ssl_axiom
-      in
-      let axioms = Boolean.mk_and [axioms1; axioms2; ssl_axioms1; ssl_axioms2] in
-      (semantics, axioms, footprints)
-    *)
 
   (** Generic translation of separating conjunction. *)
   and translate_star context domain psis =
@@ -426,7 +390,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     if context.can_skolemise then
       (semantics, axioms, footprints)
 
-    (* TODO: Negative septraction in WSL *)
+    (* TODO: Negative septraction in WSL
     else if SSL.has_unique_shape psi1 && not @@ Options.strong_separation () then
       (semantics, axioms, footprints)
 
@@ -436,7 +400,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       let semantics = Boolean.mk_and [semantics; strongly_disjoint] in
       let axioms = Boolean.mk_and [axioms; axiom] in
       (semantics, axioms, footprints)
-
+    *)
     else raise UnsupportedFragment
 
   (** Translation of septraction without using Skolemization
@@ -513,7 +477,6 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     in
 
     (* TODO: check footprint *)
-    let footprints = footprints in
     (semantics, axioms, footprints)
 
 let generate_heap_axioms context heap locs =
