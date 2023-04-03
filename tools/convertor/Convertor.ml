@@ -38,6 +38,16 @@ let usage_msg = "astral-convertor <input> --to format [-o filename]"
 
 let parse () = Arg.parse speclist input_fn usage_msg; !input
 
+let preprocess_variadic cond phi =
+  if not cond
+  then RemoveVariadic.apply phi
+  else phi
+
+let preprocess_precise cond phi =
+  if not cond
+  then PreciseToImprecise.to_imprecise phi
+  else phi
+
 (** Entry point *)
 let () =
   let input_path = parse () in
@@ -52,22 +62,13 @@ let () =
         |> PurePreprocessing.apply
         |> SSL.normalise
         |> Simplifier.simplify
+        |> SSL.normalise
+        |> preprocess_variadic Convertor.supports_variadic_operators
+        |> preprocess_precise Convertor.precise_semantics
       in
       {input with phi = phi}
-    else input
-  in
-  let input = {input with phi = SSL.normalise input.phi} in
-  let input =
-    if not @@ Convertor.supports_variadic_operators
-    then {input with phi = RemoveVariadic.apply input.phi}
-    else input
-  in
-  let input =
-    if not @@ Convertor.precise_semantics
-    then {input with phi = PreciseToImprecise.to_imprecise input.phi}
     else input
   in
   match !output_path with
     | "" -> Format.printf "%s" (Convertor.convert input)
     | path -> Convertor.dump (path ^ "/" ^ input_name input_path) input
-

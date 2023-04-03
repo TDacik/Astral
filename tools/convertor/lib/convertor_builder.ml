@@ -18,9 +18,16 @@ module Make (Convertor : CONVERTOR_BASE) = struct
       List.map Convertor.declare_var input.vars
       |> String.concat "\n"
     in
-    Format.asprintf "%s%s%s"
+    let sorts =
+      List.map SSL.Variable.get_sort input.vars
+      |> List.sort_uniq Sort.compare
+      |> List.map Convertor.declare_sort
+      |> String.concat "\n"
+    in
+    Format.asprintf "%s%s%s\n%s"
       (Convertor.declare_ls)
       (Convertor.declare_dls)
+      sorts
       vars
 
   let convert_formula input =
@@ -28,7 +35,7 @@ module Make (Convertor : CONVERTOR_BASE) = struct
     else Convertor.convert_assert (Input.sat_to_entl input).phi
 
   let convert input =
-    Format.asprintf ("%s\n%s\n%s\n%s\n%s")
+    Format.asprintf ("%s\n\n%s\n\n%s\n\n%s\n\n%s")
       header
       (Convertor.set_status input)
       (declarations input)

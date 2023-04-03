@@ -40,6 +40,8 @@ module type CONVERTOR_BASE = sig
 
   val declare_var : SSL.Variable.t -> string
 
+  val declare_sort : Sort.t -> string
+
   val declare_ls : string
 
   val declare_dls : string

@@ -22,6 +22,7 @@ module Convertor = struct
   let set_status context = Format.asprintf "// status: %s" (Context.show_expected_status context)
 
   (** Songbird does not declare variables *)
+  let declare_sort sort = ""
   let declare_var var = ""
 
   let convert_var var = SSL.Variable.show var

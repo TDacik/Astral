@@ -23,6 +23,8 @@ module Convertor = struct
 
   let set_status context = Format.asprintf "// status: %s" (Context.show_expected_status context)
 
+  let declare_sort sort = ""
+
   let declare_var var =
     if SSL.Variable.is_nil var then ""
     else Format.asprintf "(%s : Node)" (SSL.Variable.show var)
