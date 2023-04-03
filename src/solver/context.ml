@@ -108,7 +108,7 @@ let set_result status ?(model=None) ?(unsat_core=None) ?(reason=None) context =
 let add_assertion psi t = {t with phi_orig = psi :: t.phi_orig}
 
 let add_variable v t = match SSL.Variable.get_sort v with
-  | Sort.Loc -> {t with vars_orig = v :: t.vars_orig}
+  | Sort.Loc -> {t with vars_orig = v :: t.vars_orig; vars = v :: t.vars}
   | _ -> {t with smt_vars = v :: t.smt_vars}
 
 let add_variables vars t = List.fold_right add_variable vars t
