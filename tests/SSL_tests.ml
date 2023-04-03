@@ -13,6 +13,25 @@ let x = SSL.mk_var "x"
 let y = SSL.mk_var "y"
 let z = SSL.mk_var "z"
 
+let var_list_eq vars1 vars2 =
+  let vars1 = List.sort SSL.Variable.compare vars1 in
+  let vars2 = List.sort SSL.Variable.compare vars2 in
+  List.equal SSL.Variable.equal vars1 vars2
+
+(** Tests *)
+
+let get_vars_test1 () =
+  let phi = SSL.mk_emp () in
+  assert (var_list_eq (get_vars ~with_nil:false phi) []);
+  assert (var_list_eq (get_vars ~with_nil:true phi) [SSL.Variable.nil])
+
+let get_vars_test2 () =
+  let phi = x |-> y in
+  let x = SSL.Variable.mk "x" in
+  let y = SSL.Variable.mk "y" in
+  assert (var_list_eq (get_vars ~with_nil:false phi) [x; y]);
+  assert (var_list_eq (get_vars ~with_nil:true phi) [x; y])
+
 let is_precise () =
   assert (is_pure (p1 == p2));
   assert (is_pure (p2 != p1))
@@ -108,6 +127,10 @@ let is_symbolic_heap_entl_test2 () =
 
 let () =
   run "SSL" [
+    "get_vars", [
+      test_case "nil = nil" `Quick get_vars_test1;
+      test_case "x |-> y  " `Quick get_vars_test2;
+    ];
     "is_precise", [
       test_case "Test"  `Quick is_precise;
     ];
