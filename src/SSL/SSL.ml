@@ -488,15 +488,16 @@ let as_quantifier = function
   | Forall (xs, phi) -> `Forall, List.map (fun (Var x) -> x) xs, phi
   | Exists (xs, phi) -> `Exists, List.map (fun (Var x) -> x) xs, phi
 
+(* TODO: ... fix ... *)
 type query =
   | QF_SymbolicHeap_SAT of t
   | QF_SymbolicHeap_ENTL of t * t
   | QF_Arbitrary_SAT of t
   | QF_Arbitrary_ENTL of t * t
-  | SymbolicHeap_SAT of quantifier_view
-  | SymbolicHeap_ENTL of quantifier_view * quantifier_view
-  | Arbitrary_SAT of quantifier_view
-  | Arbitrary_ENTL of quantifier_view * quantifier_view
+  | SymbolicHeap_SAT of t
+  | SymbolicHeap_ENTL of t * t list * t
+  | Arbitrary_SAT of t
+  | Arbitrary_ENTL of t * t
 
 let as_query phi =
   if is_quantifier_free phi then begin
@@ -508,8 +509,16 @@ let as_query phi =
       | _ -> QF_Arbitrary_SAT phi
   end
   (* Quantified *)
-  else failwith "TODO"
+  else if is_symbolic_heap_entl phi then match phi with
+  | GuardedNeg (lhs, Exists (xs, rhs)) -> SymbolicHeap_ENTL (lhs, xs, rhs)
+  else Arbitrary_SAT phi
 
+let as_symbolic_heap phi =
+  if not @@ is_symbolic_heap phi then failwith ("Not a symbolic heap:" ^ show phi)
+  else match phi with
+  | Star psis -> List.partition is_pure psis
+  | psi when is_pure psi -> [psi], []
+  | psi when is_atom psi -> [], [psi]
 
 let rec has_unique_footprint = function
   | Eq _ | Distinct _ | Pure _ | PointsTo _ | LS _ | DLS _ | SkipList _ -> true
@@ -532,8 +541,14 @@ let get_vars ?(with_nil=true) phi =
 
 let rec map fn phi =
   let map = map fn in
-  match  phi with
-  | Var _ | Pure _ | Eq _ | Distinct _ | PointsTo _ | LS _ | DLS _ | NLS _ -> fn phi
+  match phi with
+  | Var _ | Pure _ -> fn phi
+  | Eq xs -> fn @@ Eq (List.map fn xs)
+  | Distinct xs -> fn @@ Distinct (List.map fn xs)
+  | PointsTo (x, ys) -> fn @@ PointsTo (fn x, List.map fn ys)
+  | LS (x, y) -> fn @@ LS (fn x, fn y)
+  | DLS (x, y, f, l) -> fn @@ DLS (fn x, fn y, fn f, fn l)
+  | NLS (x, y, z) -> fn @@ NLS (fn x, fn y, fn z)
   | And (psi1, psi2) -> fn @@ And (map psi1, map psi2)
   | Or (psi1, psi2) -> fn @@ Or (map psi1, map psi2)
   | Not psi -> fn @@ Not (map psi)
@@ -570,6 +585,13 @@ let rec select_subformulae predicate phi =
   in
   if predicate phi then phi :: acc else acc
 
+let rename_var phi old_name new_name =
+  map_vars
+    (function (name, sort) ->
+      if String.equal name old_name
+      then Var (new_name, sort)
+      else Var (name, sort)
+    ) phi
 
 module Var = struct
   module V = Variable

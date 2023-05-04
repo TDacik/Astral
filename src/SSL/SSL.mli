@@ -66,12 +66,14 @@ type query =
   | QF_SymbolicHeap_ENTL of t * t
   | QF_Arbitrary_SAT of t
   | QF_Arbitrary_ENTL of t * t
-  | SymbolicHeap_SAT of quantifier_view
-  | SymbolicHeap_ENTL of quantifier_view * quantifier_view
-  | Arbitrary_SAT of quantifier_view
-  | Arbitrary_ENTL of quantifier_view * quantifier_view
+  | SymbolicHeap_SAT of t
+  | SymbolicHeap_ENTL of t * t list * t
+  | Arbitrary_SAT of t
+  | Arbitrary_ENTL of t * t
 
 val as_query : t -> query
+
+val as_symbolic_heap : t -> t list * t list
 
 (** {2 Subformulae ID} *)
 
@@ -216,6 +218,8 @@ val select_subformulae : (t -> bool) -> t -> t list
 val substitute_pure : t -> SMT.t -> SMT.t -> t
 
 val substitute : t -> t -> t -> t
+
+val rename_var : t -> string -> string -> t
 
 module Var : sig
 
