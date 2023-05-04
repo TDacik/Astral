@@ -18,6 +18,8 @@ module Convertor = struct
 
   let comment_prefix = ";;"
 
+  let global_decls _ = ""
+
   let set_status context = Format.asprintf ";; status: %s" (Context.show_expected_status context)
 
   let declare_sort sort = ""
@@ -35,7 +37,6 @@ module Convertor = struct
 
   let rec convert = function
     | SSL.Var v -> convert_var v
-    | SSL.Pure term -> failwith "TODO"
     | SSL.And (f1, f2) -> F.asprintf "(and %s %s)\n" (convert f1) (convert f2)
     | SSL.Or (f1, f2) -> F.asprintf "(or %s %s)\n" (convert f1) (convert f2)
     | SSL.Not f ->  F.asprintf "(not %s)\n" (convert f)

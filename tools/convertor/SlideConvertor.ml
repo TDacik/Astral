@@ -19,6 +19,8 @@ module Convertor = struct
 
   let comment_prefix = "#"
 
+  let global_decls _ = ""
+
   let set_status context = F.asprintf "# status: %s\n" (Context.show_expected_status context)
 
   (** Slide does not declare variables *)

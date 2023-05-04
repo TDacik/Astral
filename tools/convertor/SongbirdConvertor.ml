@@ -19,6 +19,8 @@ module Convertor = struct
 
   let comment_prefix = "//"
 
+  let global_decls _ = ""
+
   let set_status context = Format.asprintf "// status: %s" (Context.show_expected_status context)
 
   (** Songbird does not declare variables *)

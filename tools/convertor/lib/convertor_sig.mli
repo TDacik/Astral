@@ -38,6 +38,8 @@ module type CONVERTOR_BASE = sig
 
   val set_status : Context.t -> string
 
+  val global_decls : Context.t -> string
+
   val declare_var : SSL.Variable.t -> string
 
   val declare_sort : Sort.t -> string
