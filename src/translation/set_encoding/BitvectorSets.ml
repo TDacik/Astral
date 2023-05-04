@@ -115,11 +115,12 @@ let inverse_translation (bitstring : String.t) n =
     need to correctly update all sorts. *)
 let rec rewrite t =
   let process_ranges = fun ranges -> Some (List.map (List.map rewrite) ranges) in
+  let t = Backend_preprocessor.apply t in
   Term.map
     (fun t -> match t with
       | Membership (x, set) -> mk_mem (rewrite x) (rewrite set)
       | Subset (set1, set2) -> mk_subset (rewrite set1) (rewrite set2)
-      | Disjoint (set1, set2) -> mk_disjoint (rewrite set1) (rewrite set2)
+      | Disjoint [set1; set2] -> mk_disjoint (rewrite set1) (rewrite set2)
       | Union (sets, Set sort) -> mk_union (List.map rewrite sets) sort
       | Inter (sets, Set sort) -> mk_inter (List.map rewrite sets) sort
       | Diff (set1, set2) -> mk_diff (rewrite set1) (rewrite set2)

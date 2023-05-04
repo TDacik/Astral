@@ -30,16 +30,22 @@ let split content =
   let smt_script = Str.global_replace re "" content in
   (String.trim heap_sort), smt_script
 
-(* TODO *)
-let parse_heap_sort content = Sort.mk_array Sort.Loc Sort.Loc
-
 let parse_string str =
   let context = Context.empty in
   let heap, smt_script = split str in
-  (* Parse heap sort *)
-  let _ = parse_heap_sort heap in
   (* Parse smtlib scripts *)
-  SmtlibParser.parse context smt_script
+  let context = SmtlibParser.parse context smt_script in
+  (* Parse heap sort *)
+  let type_env = HeapParser.parse context.type_env heap in
+  let context = SmtlibParser.parse Context.empty ~type_env smt_script in
+  let context = {context with type_env = type_env} in (* TODO: checl *)
+  let context = HeapParser.preprocess_loc_vars context in
+  (*Format.printf "Location variables:\n";
+  List.iter (fun v -> Format.printf "  %a\n" SSL.Variable.pp v) context.vars_orig;
+  Format.printf "SMT variables:\n";
+  List.iter (fun v -> Format.printf "  %a\n" SSL.Variable.pp v) context.smt_vars;
+  *)
+  {context with type_env = type_env}
 
 let parse_file path =
   let channel = In_channel.open_text path in

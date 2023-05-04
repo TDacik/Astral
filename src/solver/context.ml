@@ -6,13 +6,13 @@ type status = [ `Sat | `Unsat | `Unknown ]
 
 type t = {
   phi_orig : SSL.t list;           (* Conjunction of top-level assertions *)
-  vars_orig : SSL.Variable.t list; (* List of all declared variables *)
+  vars_orig : SSL.Variable.t list; (* List of all declared location variables *)
+  smt_vars : SSL.Variable.t list;
 
   phi : SSL.t;                     (* SSL formula after preprocessing *)
-  vars : SSL.Variable.t list;      (* Variables after preprocessing *)
+  vars : SSL.Variable.t list;      (* Location variables after preprocessing *)
 
-  (* Underlying separation logic *)
-  heap_type : Sort.t;
+  type_env : TypeEnvironment.t;
 
   (* Metadata *)
   sl_graph : SL_graph.t;
@@ -42,12 +42,12 @@ type t = {
 let empty = {
   phi_orig = [];
   vars_orig = [];
+  smt_vars = [];
 
   phi = SSL.mk_true ();
   vars = [];
 
-  (* Default heap type *)
-  heap_type = Sort.mk_array Sort.Loc Sort.Loc;
+  type_env = TypeEnvironment.empty;
 
   sl_graph = SL_graph.empty;
   stack_bound = (0, 0);
@@ -75,10 +75,7 @@ let get_raw_input context =
 
 let get_input context = (context.phi, context.vars)
 
-(** Set normalised formula and variables *)
-let set_normalised phi vars t = {t with phi = phi; vars = vars}
-
-let set_heap_type t heap_type = {t with heap_type = heap_type}
+let set_preprocessed phi vars t = {t with phi = phi; vars = vars}
 
 let set_bounds s_min s_max loc sl_graph t =
   {t with sl_graph = sl_graph;
@@ -110,7 +107,11 @@ let set_result status ?(model=None) ?(unsat_core=None) ?(reason=None) context =
 
 let add_assertion psi t = {t with phi_orig = psi :: t.phi_orig}
 
-let add_variables vars t = {t with vars_orig = vars @ t.vars_orig}
+let add_variable v t = match SSL.Variable.get_sort v with
+  | Sort.Loc -> {t with vars_orig = v :: t.vars_orig; vars = v :: t.vars}
+  | _ -> {t with smt_vars = v :: t.smt_vars}
+
+let add_variables vars t = List.fold_right add_variable vars t
 
 let set_expected_status status t = {t with expected_status = status}
 

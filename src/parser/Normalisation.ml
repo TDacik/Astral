@@ -15,14 +15,13 @@ let rec apply = function
   | SSL.Eq xs ->
       (* Transform equality of boolean terms to iff *)
       if all_bool xs then SSL.mk_iff (List.map apply xs)
-      else if List_utils.all_equal Sort.equal (List.map SSL.get_sort xs) then Eq xs
-      else failwith "Incompatible sorts"
+      else SSL.Eq xs
   | SSL.Distinct xs -> SSL.Distinct xs
   | SSL.And (psi1, psi2) -> SSL.And (apply psi1, apply psi2)
   | SSL.Or (psi1, psi2) -> SSL.Or (apply psi1, apply psi2)
   | SSL.Not psi -> SSL.Not (apply psi)
   | SSL.GuardedNeg (psi1, psi2) -> SSL.GuardedNeg (apply psi1, apply psi2)
-  | SSL.Star (psi1, psi2) -> SSL.mk_star [apply psi1; apply psi2]
+  | SSL.Star psis -> SSL.mk_star @@ List.map apply psis
   | SSL.Septraction (psi1, psi2) -> SSL.mk_septraction (apply psi1) (apply psi2)
   | SSL.Forall (xs, psi) -> SSL.Forall (xs, apply psi)
   | SSL.Exists (xs, psi) -> SSL.Exists (xs, apply psi)

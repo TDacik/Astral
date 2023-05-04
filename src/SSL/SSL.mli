@@ -32,6 +32,7 @@ type t =
   | PointsTo of t * t list
   | LS of t * t
   | DLS of t * t * t * t
+  | NLS of t * t * t
   | SkipList of int * t * t
   | And of t * t
   | Or of t * t
@@ -39,18 +40,40 @@ type t =
   | GuardedNeg of t * t
   | Exists of t list * t
   | Forall of t list * t
-  | Star of t * t
+  | Star of t list
   | Septraction of t * t
-
-val hash : t -> int
-
-include PRINTABLE with type t := t
-include COMPARABLE with type t := t
-include COLLECTIONS with type t := t
 
 include LOGIC with type t := t
 
+include COLLECTIONS with type t := t
+
+val hash : t -> int
+
+val (===) : t -> t -> bool
+(** More precise implementation of equality that takes into account reordering of sub-formulae.
+    The function is intended for unit tests. *)
+
 val chunk_size : t -> int
+
+(** {2 Views on SSL formulae} *)
+
+type quantifier_view = [`Forall | `Exists] * Variable.t list * t
+
+val as_quantifier : t -> quantifier_view
+
+type query =
+  | QF_SymbolicHeap_SAT of t
+  | QF_SymbolicHeap_ENTL of t * t
+  | QF_Arbitrary_SAT of t
+  | QF_Arbitrary_ENTL of t * t
+  | SymbolicHeap_SAT of t
+  | SymbolicHeap_ENTL of t * t list * t
+  | Arbitrary_SAT of t
+  | Arbitrary_ENTL of t * t
+
+val as_query : t -> query
+
+val as_symbolic_heap : t -> t list * t list
 
 (** {2 Subformulae ID} *)
 
@@ -62,6 +85,8 @@ val find_by_id : t -> int -> t
 
 val is_pure : t -> bool
 
+val is_pure_smt : t -> bool
+
 val is_atom : t -> bool
 
 val is_atomic : t -> bool
@@ -69,6 +94,8 @@ val is_atomic : t -> bool
 val is_symbolic_heap : t -> bool
 
 val is_symbolic_heap_entl : t -> bool
+
+val is_negation_free : t -> bool
 
 val is_positive : t -> bool
 
@@ -81,7 +108,7 @@ type fragment =
   | Positive
   | Arbitrary
 
-val classify_fragment : t -> bool * fragment
+val classify_fragment : t -> fragment
 
 val normalise : t -> t
 
@@ -112,6 +139,8 @@ val mk_pto_seq : t -> t list -> t
 val mk_ls : t -> t -> t
 
 val mk_dls : t -> t -> t -> t -> t
+
+val mk_nls : t -> t -> t -> t
 
 val mk_skl : int -> t -> t -> t
 
@@ -151,6 +180,14 @@ val is_false : t -> bool
 
 val is_emp : t -> bool
 
+val is_implies : t -> bool
+
+val is_iff : t -> bool
+
+val get_implies_operands : t -> t * t
+
+val get_iff_operands : t -> t * t
+
 (* {2 Fragments} *)
 
 val is_symbolic_heap : t -> bool
@@ -170,11 +207,19 @@ val fold : (t -> 'a -> 'a) -> t -> 'a -> 'a
 
 val get_vars : ?with_nil:bool -> t -> Variable.t list
 
+val map : (t -> t) -> t -> t
+
 val map_vars : (Variable.t -> t) -> t -> t
 (** Apply function to all free variables in formula. *)
 
 val select_subformulae : (t -> bool) -> t -> t list
 (** Return all subformulae satisfying given predicate. *)
+
+val substitute_pure : t -> SMT.t -> SMT.t -> t
+
+val substitute : t -> t -> t -> t
+
+val rename_var : t -> string -> string -> t
 
 module Var : sig
 
@@ -197,7 +242,7 @@ module Infix : sig
   val (|->) : t -> t -> t
   (** Infix pointer *)
 
-  val (~>) : t -> t -> t
+  val (|~>) : t -> t -> t
   (** Infix singly-linked list *)
 
   val (=>) : t -> t -> t

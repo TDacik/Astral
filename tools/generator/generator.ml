@@ -1,110 +1,58 @@
-(* Generator of random formulae
+(* Generator of random SL formulae.
  *
- * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
+ * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-open SSL
-open Batteries
+let read_param_int message =
+  Printf.printf "%s: " message;
+  read_int ()
 
-(* === Base generators === *)
+let rec read_param_bool message =
+  Printf.printf "%s(y/n): " message;
+  match read_line () with
+  | "y" -> true
+  | "n" -> false
+  | _ -> read_param_bool message
 
-let gen_var var = SSL.Var (var, Sort.Loc)
+(** Benchmark generation *)
 
-let gen_eq (x, y) = SSL.Eq [x; y]
-let gen_neq (x, y) = SSL.Distinct [x; y]
-let gen_pt (x, y) = SSL.mk_pto x y
-let gen_ls (x, y) = SSL.LS (x, y)
+let counter = ref 0
 
-let gen_and f g = SSL.And (f, g)
-let gen_or f g = SSL.Or (f, g)
-let gen_gneg f g = SSL.GuardedNeg (f, g)
-let gen_star f g = SSL.Star (f, g)
-let gen_septraction f g = SSL.Septraction (f, g)
+let next () =
+  counter := !counter + 1;
+  !counter
 
-module type PARAMS = sig
-  val n_vars : int
-  val depth : int
-  val lists : bool
-  val unfold : bool
-end
+let dump_assert prefix phi =
+  let path = Format.asprintf "%s%d.smt2" prefix (next ()) in
+  SSLDumper.dump path phi "unknown";
+  true
 
-module Make (Params : PARAMS) = struct
+let generate arbitrary n prefix =
+  let qcheck = QCheck.Test.make ~count:n arbitrary (dump_assert prefix) in
+  let _ = QCheck_runner.run_tests [qcheck] in
+  ()
 
-  let variables =
-    List.range 1 `To Params.n_vars
-    |> List.map (fun i -> Format.asprintf "x%d" i)
+(** Interactive main *)
 
-  let gen_var_name = QCheck.Gen.oneofl variables
+let () =
+  Printf.printf "Running in interactive mode\n";
+  let n_benchmarks    = read_param_int "Number of generated formulae" in
+  let n_vars          = read_param_int "Number of variables" in
+  let n_selectors     = read_param_int "Number of selectors" in
+  let depth_min       = read_param_int "Minimal depth" in
+  let depth_max       = read_param_int "Maximal depth" in
+  let unfold          = read_param_bool "Unfold predicates" in
+  let star_arity_min  = read_param_int "Star arity min" in
+  let star_arity_max  = read_param_int "Star arity max" in
 
-  let gen_var = QCheck.Gen.map gen_var gen_var_name
+  let module Params = struct
+    let n_vars = n_vars
+    let n_selectors = n_selectors, n_selectors
+    let depth = depth_min, depth_max
+    let unfold = unfold
+    let lists = true
+    let star_arity = star_arity_min, star_arity_max
+  end
+  in
 
-  let gen_var_nil =
-    QCheck.Gen.oneof [QCheck.Gen.map Variable.mk gen_var_name; fun _ -> Variable.nil]
-
-  let gen_var_pair = QCheck.Gen.pair gen_var gen_var
-
-  let gen_atom = QCheck.Gen.oneof ([
-    (*QCheck.Gen.map gen_eq gen_var_pair;
-    QCheck.Gen.map gen_neq gen_var_pair;*)
-    QCheck.Gen.map gen_pt gen_var_pair;
-  ] @ if Params.lists then [QCheck.Gen.map gen_ls gen_var_pair] else [])
-
-  let bound_gen = QCheck.Gen.int_range Params.depth Params.depth
-
-  let gen_formula = QCheck.Gen.(sized_size bound_gen @@ fix
-    (fun self n -> match n with
-      | 0 -> gen_atom
-      | n ->
-          if true then
-          (QCheck.Gen.oneof [
-              QCheck.Gen.map2 gen_and  (self (n/2)) (self (n/2));
-              QCheck.Gen.map2 gen_star (self (n/2)) (self (n/2));
-              QCheck.Gen.map2 gen_gneg (self (n/2)) (self (n/2));
-              QCheck.Gen.map2 gen_or (self (n/2)) (self (n/2));
-              (*QCheck.Gen.map2 gen_septraction (self (n/2)) (self (n/2))*)
-            ])
-          else (QCheck.Gen.oneof [
-            QCheck.Gen.map2 gen_and  (self (n/2)) (self (n/2));
-            QCheck.Gen.map2 gen_or   (self (n/2)) (self (n/2));
-            QCheck.Gen.map2 gen_star (self (n/2)) (self (n/2));
-            QCheck.Gen.map2 gen_gneg (self (n/2)) (self (n/2));
-            (*QCheck.Gen.map2 gen_septraction (self (n/2)) (self (n/2))*)
-          ])
-    ))
-
-  let arbitrary_formula = QCheck.make @@ QCheck.Gen.map2 gen_gneg gen_formula gen_formula
-  (*let arbitrary_formula = QCheck.make gen_formula*)
-
-  (* === Benchmark generation === *)
-
-  let counter = ref 0
-
-  let next () =
-    counter := !counter + 1;
-    !counter
-
-  let check phi = true
-    (*let res = Solver.solve phi (SSL.get_vars phi) ~verify_model:true in
-    match res.status with
-    | `SAT -> true (*Option.get res.model_verified*)
-    | `UNSAT -> true
-    *)
-  let dump_assert store prefix phi =
-    Format.printf "Testing: %a\n" SSL.pp phi;
-    let res = check phi in
-    if store then begin
-      let path = Format.asprintf "%s%d.smt2" prefix (next ()) in
-      let phi =
-        (*if Params.unfold then Predicate_unfolding.unfold phi 3 (* TODO: bound *)
-        else*) phi
-      in
-      SSL.dump path phi
-    end;
-    res
-
-  let generate n store prefix =
-    QCheck.Test.make ~count:n arbitrary_formula (dump_assert store prefix)
-
-  let generate n store prefix =
-    QCheck.Test.check_exn (generate n store prefix)
-
-end
+  let module Arbitrary = ArbitrarySSL.Make(Params) in
+  generate Arbitrary.qf_symbolic_heap_entl n_benchmarks "qf_shls_entailments"

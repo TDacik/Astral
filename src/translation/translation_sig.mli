@@ -70,6 +70,14 @@ module type LIST_ENCODING = sig
     SMT.Term.t
   (** axioms context x y fp *)
 
+  val footprints :
+    Translation_context.t ->
+    SMT.Term.t ->
+    SMT.Term.t ->
+    SMT.Term.t ->
+    local_bound ->
+    SMT.Term.t
+
 end
 
 (** Base encoding groups together encoding of sets and locations. *)

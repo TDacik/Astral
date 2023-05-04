@@ -2,13 +2,17 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-exception TopError
-
 module Lift (Set : Set.S) = struct
+
+  exception TopError
 
   type t =
     | Lifted of Set.t
     | Top
+
+  let is_concrete = function
+    | Lifted _ -> true
+    | _ -> false
 
   (** Functions to lift set operations. *)
 
@@ -80,6 +84,10 @@ module Lift (Set : Set.S) = struct
     | Lifted s1, Lifted s2 -> Some (cartesian_product_aux s1 s2)
     | _ -> None
 
+  (** Mappings *)
+
+  let map fn set = set >>= (Set.map fn)
+
   let apply_binop_aux fn s1 s2 =
     Set.fold (fun x acc ->
       Set.fold (fun y acc ->
@@ -89,9 +97,19 @@ module Lift (Set : Set.S) = struct
       ) s2 acc
     ) s1 Set.empty
 
-  let apply_binop fn lhs rhs = match lhs, rhs with
+  let apply_partial_binop fn lhs rhs = match lhs, rhs with
     | Lifted s1, Lifted s2 -> Lifted (apply_binop_aux fn s1 s2)
     | _ -> Top
+
+  let apply_partial_variadic_op fn operands =
+    if List.for_all is_concrete operands then
+      List.map elements operands
+      |> BatList.n_cartesian_product
+      |> List.map fn
+      |> List.filter Option.is_some
+      |> List.map Option.get
+      |> of_list
+    else Top
 
   let cardinal = lift_or_fail Set.cardinal
 

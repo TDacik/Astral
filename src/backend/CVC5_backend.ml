@@ -22,7 +22,7 @@ module Self = struct
     | SMT.Inter (es, _) -> Format.asprintf "(set.inter %s)" (translate_list es)
     | SMT.Diff (e1, e2) -> Format.asprintf "(set.minus %s %s)" (translate e1) (translate e2)
     | SMT.Compl e -> Format.asprintf "(set.complement %s)" (translate e)
-    | SMT.Disjoint (e1, e2) ->
+    | SMT.Disjoint [e1; e2] ->
       Format.asprintf "(= (set.inter %s %s) (as set.empty %s))"
         (translate e1)
         (translate e2)

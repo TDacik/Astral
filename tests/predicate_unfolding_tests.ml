@@ -2,14 +2,13 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
+open SSL
 open SSL.Infix
 
-let (===) = SSL.equal
 let unfold = Predicate_unfolding.unfold
 
 let x = SSL.mk_var "x"
 let y = SSL.mk_var "y"
-let l = SSL.mk_fresh_var "l"
 let ls = SSL.mk_ls x y
 
 
@@ -24,11 +23,15 @@ let unfold_test2 () =
   assert (unfold ls 1 === unfolding)
 
 let unfold_test3 () =
+  let unfolded = unfold ls 2 in
+  let vars = SSL.free_vars unfolded in
+  (* Variables are sorted. TODO: Remove this hack after we have alpha-equivalence in === *)
+  let l = List.hd vars in
   let unfolding0 = x == y in
   let unfolding1 = (x != y) * (x |-> y) in
-  let unfolding2 = (x != l) * (l != y) * (x |-> l) && (l |-> y) in
+  let unfolding2 = (x != y) * (l != y) * (x |-> l) * (l |-> y) in
   let unfolding = (unfolding0 || unfolding1) || unfolding2 in
-  assert (unfold ls 2 === unfolding)
+  assert (unfolded === unfolding)
 
 let () =
   run "Predicate unfolding" [

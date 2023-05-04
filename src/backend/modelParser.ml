@@ -16,14 +16,23 @@ open Std.Term
 open Std.Statement
 
 let rec parse_sort sort = match sort.term with
-  | Builtin b -> begin match b with
-    | Bool -> Sort.Bool
-    | Int -> Sort.Int
-  end
+  | Builtin b ->
+    begin match b with
+      | Bool -> Sort.Bool
+      | Int -> Sort.Int
+    end
   | App (t1, [t2]) -> Sort.Set (parse_sort t2)
   | App (t1, [t2; t3]) -> Sort.Array (parse_sort t2, parse_sort t3)
-  | Symbol id -> Sort.Finite (Format.asprintf "%a" Std.Term.print sort, [])
-  | _ -> failwith (Format.asprintf "%a" Std.Term.print sort)
+  | Symbol id ->
+    begin match Format.asprintf "%a" Std.Id.print id with
+    | "Loc" -> Sort.Finite ("Loc", [])
+    | other ->
+      (* TODO: properly! *)
+      let n = int_of_string @@ BatString.chop ~l:10 ~r:1 other in
+      Sort.Bitvector n
+    end
+  | Binder (Arrow, [], t) -> parse_sort t
+  | _ -> failwith (Format.asprintf "Unknown sort: %a" Std.Term.print sort)
 
 let parse_symbol symbol sort =
   let name = Format.asprintf "%a" Dolmen_std.Id.print symbol in
@@ -37,37 +46,38 @@ let parse_symbol symbol sort =
     | "set.empty" -> SMT.Set.mk_empty sort
     | name -> SMT.Enumeration.mk_const sort name
   end
-  | _ -> SMT.Boolean.mk_var "symbol-other"
 
 let rec parse_term term sort = match term.term with
   | Symbol id -> parse_symbol id sort
   | Colon (t, _) -> parse_term t sort
 
-  (* Set singleton || Constant array *)
-  | App (fn, [t]) ->
+  (* Set singleton *)
+  | App (fn, ts) ->
       begin match Format.asprintf "%a" Dolmen_std.Term.print fn with
       | "set.singleton" ->
-        let elem = parse_term t sort in
+        let elem = parse_term (List.hd ts) sort in
         SMT.Set.mk_singleton elem
+      | "set.empty" -> SMT.Set.mk_empty sort
+      | "set.union" ->
+        let set1 = SMT.Set.get_elems @@ parse_term (List.nth ts 0) sort in
+        let set2 = SMT.Set.get_elems @@ parse_term (List.nth ts 1) sort in
+        SMT.Set.mk_enumeration sort (set1 @ set2)
+      | "store" ->
+        let arr = parse_term (List.nth ts 0) sort in
+        let i = parse_term (List.nth ts 1) sort in
+        let v = parse_term (List.nth ts 2) sort in
+        SMT.Array.mk_store arr i v
       | "const" ->
-        let const = parse_term t sort in
+        let const = parse_term (List.hd ts) sort in
         SMT.Array.mk_const const sort (* TODO: is the sort correct? *)
+      | other -> failwith (Format.asprintf "Unknown application: '%s'" other)
       end
 
-  (* Set insert *)
-  | App (_, [t1; t2]) ->
-      let set1 = SMT.Set.get_elems @@ parse_term t1 sort in
-      let set2 = SMT.Set.get_elems @@ parse_term t2 sort in
-      SMT.Set.mk_enumeration sort (set1 @ set2)
-
-  (* Array store *)
-  | App (_, [t1; t2; t3]) ->
-      let arr = parse_term t1 sort in
-      let i = parse_term t2 sort in
-      let v = parse_term t3 sort in
-      SMT.Array.mk_store arr i v
-
-  | _ -> SMT.Boolean.mk_var "TODO"
+  (* Variables are given as x = \lambda (). var *)
+  | Binder (Fun, [], t) -> parse_term t sort
+  | _ ->
+      let _ = Format.printf "%a" Std.Term.print term in
+      failwith (Format.asprintf "Unknown term: %a" Std.Term.print term)
 
 
 let parse_def (def : Std.Statement.def) =
@@ -77,7 +87,7 @@ let parse_def (def : Std.Statement.def) =
     then "|" ^ name ^ "|"
     else name
   in
-  let sort = parse_sort def.ret_ty in
+  let sort = parse_sort def.ty in
   let interp = parse_term def.body sort in
   ((name, sort), interp)
 
@@ -95,6 +105,6 @@ let parse str =
   let stmts = unpack fn [] in
   let defs = List.concat @@ List.map parse_stmt stmts in
   List.fold_left
-    (fun model (var, interp) -> SMT.Model.add var interp model)
-    SMT.Model.empty
-    defs
+    (fun model (var, interp) ->
+      SMT.Model.add var interp model
+    ) SMT.Model.empty defs

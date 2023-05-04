@@ -2,7 +2,7 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-let rec apply  phi = match phi with
+let rec apply phi = match phi with
   | SSL.Eq [x1; x2] -> SSL.Eq [x1; x2]
   | SSL.Eq (x1 :: x2 :: xs) -> SSL.mk_and [SSL.Eq [x1; x2]; apply (SSL.Eq (x2 :: xs))]
 
@@ -14,7 +14,8 @@ let rec apply  phi = match phi with
 
   | SSL.And (psi1, psi2) -> SSL.mk_and [apply psi1; apply psi2]
   | SSL.Or (psi1, psi2) -> SSL.mk_or [apply psi1; apply psi2]
-  | SSL.Star (psi1, psi2) -> SSL.mk_star [apply psi1; apply psi2]
+  | SSL.Star [psi1; psi2] -> SSL.mk_star [apply psi1; apply psi2]
+  | SSL.Star (psi :: psis) -> SSL.mk_star [apply psi; apply @@ SSL.mk_star psis]
   | SSL.Septraction (psi1, psi2) -> SSL.mk_septraction (apply psi1) (apply psi2)
   | SSL.GuardedNeg (psi1, psi2) -> SSL.mk_gneg (apply psi1) (apply psi2)
   | SSL.Not psi -> SSL.mk_not (apply psi)

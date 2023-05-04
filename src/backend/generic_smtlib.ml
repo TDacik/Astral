@@ -27,6 +27,8 @@ and translate_std translate translate_sort term = match term with
   | SMT.Not t -> Format.asprintf "(not %s)" (translate t)
   | SMT.Implies (t1, t2) -> Format.asprintf "(=> %s %s)" (translate t1) (translate t2)
   | SMT.Iff (t1, t2) -> Format.asprintf "(= %s %s)" (translate t1) (translate t2)
+  | SMT.IfThenElse (c, x, y) ->
+      Format.asprintf "(ite %s %s %s)" (translate c) (translate x) (translate y)
 
   | SMT.LesserEq (t1, t2) -> begin match SMT.Term.get_sort t1 with
     | Sort.Bitvector _ -> Format.asprintf "(bvule %s %s)" (translate t1) (translate t2)
@@ -67,7 +69,8 @@ and translate_std translate translate_sort term = match term with
     Format.asprintf "(bvlshr %s %s)" (translate bv) (translate rotate)
 
   (* TODO: instantiation should be done somewhere else *)
-  | SMT.Forall (x :: _, phi) ->
+  | SMT.Forall ([], phi) -> translate phi
+  | SMT.Forall (x :: xs, phi) ->
     let x_sort = SMT.Term.get_sort x in
     begin match x_sort with
     | Finite (_, cs) ->
@@ -77,10 +80,11 @@ and translate_std translate translate_sort term = match term with
       Format.asprintf "(forall ((%s %s)) %s)"
         (translate x)
         (translate_sort x_sort)
-        (translate phi)
+        (translate (SMT.Forall (xs, phi)))
     end
 
-  | SMT.Exists (x :: _, phi) ->
+  | SMT.Exists ([], phi) -> translate phi
+  | SMT.Exists (x :: xs, phi) ->
     let x_sort = SMT.Term.get_sort x in
     begin match x_sort with
     | Finite (_, cs) ->
@@ -90,7 +94,7 @@ and translate_std translate translate_sort term = match term with
       Format.asprintf "(exists ((%s %s)) %s)"
         (translate x)
         (translate_sort x_sort)
-        (translate phi)
+        (translate (SMT.Exists (xs, phi)))
     end
 
   | SMT.IntConst i -> Format.asprintf "%d" i

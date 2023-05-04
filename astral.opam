@@ -19,7 +19,7 @@ depends: [
   "dune"
   "batteries"
   "z3"
-  "dolmen" {>= "0.7"}
+  "dolmen" {= "0.6"}
   "ocamlgraph"
   "qcheck"
   "yojson"

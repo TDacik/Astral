@@ -4,25 +4,44 @@
 
 module M = Stdlib.Map.Make(String)
 
-type t = Sort.t M.t
+type t = {
+  sorts : Sort.Set.t;   (* Uninterpreted sorts *)
+  vars : Sort.t M.t;    (* Declared variables *)
+
+  loc_sort : Sort.t;    (* Sort representing locations *)
+  heap_sort : Sort.t;   (* Declared sort of the heap *)
+}
 
 exception VariableRedefined of string
 
 exception VariableNotDeclared of string
 
-let empty = M.empty
+let empty = {
+  sorts = Sort.Set.empty;
+  vars = M.empty;
 
-let declare env var sort =
-  if M.mem var env then raise (VariableRedefined var)
-  else M.add var sort env
+  (* Default SL sorts *)
+  loc_sort = Sort.Loc;
+  heap_sort = Sort.mk_array Sort.Loc Sort.Loc;
+}
 
-let type_of env var =
-  try M.find var env
+let declare_var var sort env =
+  if M.mem var env.vars then raise (VariableRedefined var)
+  else {env with vars = M.add var sort env.vars}
+
+let type_of_var var env =
+  try M.find var env.vars
   with Not_found -> raise (VariableNotDeclared var)
+
+let declare_sort sort env = {env with sorts = Sort.Set.add sort env.sorts}
+
+let declare_loc_sort sort env = {env with loc_sort = sort}
+
+let declare_heap_sort sort env = {env with heap_sort = sort}
 
 let show env =
   let content =
-    M.bindings env
+    M.bindings env.vars
     |> List.map (fun (var, sort) -> Format.asprintf "%s : %a" var Sort.pp sort)
     |> String.concat ", "
   in

@@ -21,6 +21,7 @@ type t =
   | Not of t
   | Implies of t * t
   | Iff of t * t
+  | IfThenElse of t * t * t
   | True
   | False
 
@@ -62,7 +63,7 @@ type t =
   (* Sets *)
   | Membership of t * t
   | Subset of t * t
-  | Disjoint of t * t
+  | Disjoint of t list
   | Union of t list * Sort.t
   | Inter of t list * Sort.t
   | Diff of t * t
@@ -133,6 +134,7 @@ module Boolean : sig
   val mk_not : t -> t
   val mk_implies : t -> t -> t
   val mk_iff : t -> t -> t
+  val mk_ite : t -> t -> t -> t
 
 end
 
@@ -279,6 +281,7 @@ module Set : sig
   val mk_mem : t -> t -> t
   val mk_subset : t -> t -> t
   val mk_disjoint : t -> t -> t
+  val mk_disjoint_list : t list -> t
   val mk_eq_empty : t -> t
   val mk_eq_singleton : t -> t -> t
 

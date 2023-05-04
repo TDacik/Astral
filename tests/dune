@@ -7,16 +7,30 @@
     simplification_tests
     preprocessing_tests
     predicate_unfolding_tests
+    backend
+    antiprenexing_tests
+    broom_preprocessor_tests
+    model_checker_tests
+    symbolic_heaps
   )
 
   (libraries
     astral_lib
+    astral_generator
     alcotest
+    qcheck
   )
 
-  (flags :standard -open Alcotest -open Astral_lib)
+  (flags
+    :standard
+    -open Alcotest
+    -open Astral_lib
+    -open Astral_generator
+  )
 
 )
+
+(include_subdirs unqualified)
 
 (rule
   (alias runtest)

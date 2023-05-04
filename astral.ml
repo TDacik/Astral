@@ -6,12 +6,17 @@ open Astral_lib
 
 let run () =
   let input_file = Options.parse () in
-  let input = Parser.parse_file input_file in
-  Timer.add "Parsing";
 
+  (* Debug initialisation needs to be called after options' parsing *)
   Debug.init ();
 
-  let result = Solver.solve input ~verify_model:(Options.verify_model ()) in
+  let input = Parser.parse_file input_file in
+  Printexc.record_backtrace (Options.debug ());
+  Timer.add "Parsing";
+
+  let result = Solver.run input in
+
+  ModelChecker.verify_model result;
 
   if Options.json_output () then
     Json_output.output result (Options.json_output_file ())
@@ -19,7 +24,6 @@ let run () =
 
 let () =
   Timer.add "Start";
-  Printexc.record_backtrace (Options.debug ());
   run ();
   Timer.finish ();
   Timer.report ()

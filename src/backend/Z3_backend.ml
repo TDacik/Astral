@@ -50,6 +50,8 @@ let rec translate t = match t with
   | SMT.Not e -> Z3.Boolean.mk_not !context (translate e)
   | SMT.Implies (e1, e2) -> Z3.Boolean.mk_implies !context (translate e1) (translate e2)
   | SMT.Iff (e1, e2) -> Z3.Boolean.mk_iff !context (translate e1) (translate e2)
+  | SMT.IfThenElse (c, x, y) ->
+      Z3.Boolean.mk_ite !context (translate c) (translate x) (translate y)
 
   | SMT.LesserEq (e1, e2) -> begin match SMT.Term.get_sort e1 with
     | Sort.Bitvector _ -> Z3.BitVector.mk_ule !context (translate e1) (translate e2)
@@ -92,7 +94,7 @@ let rec translate t = match t with
   | SMT.BitShiftRight (bv, rotate) ->
       Z3.BitVector.mk_lshr !context (translate bv) (translate rotate)
 
-  | SMT.Disjoint (s1, s2) ->
+  | SMT.Disjoint [s1; s2] ->
       let intersect = Z3.Set.mk_intersection !context [translate s1; translate s2] in
       let sort = translate_sort @@ SMT.Set.get_elem_sort s1 in
       let empty = Z3.Set.mk_empty !context sort in
@@ -135,6 +137,7 @@ and translate_sort = function
   | Sort.Finite (name, constants) -> Z3.Enumeration.mk_sort_s !context name constants
   | Sort.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
   | Sort.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
+  | s -> failwith ("Cannot translate sort " ^ Sort.show s)
 
 and find_const const sort =
   let sort = translate_sort sort in

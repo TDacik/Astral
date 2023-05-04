@@ -22,7 +22,7 @@ module Make (Term : TERM) = struct
         let name2 = node_name term2 in
         let cmp = String.compare name1 name2 in
         if cmp != 0 then cmp
-        else List.compare compare (List.sort compare subterms1) (List.sort compare subterms2)
+        else List.compare compare subterms1 subterms2
     | Quantifier (binders1, body1), Quantifier (binders2, body2) ->
         let cmp = List.compare compare binders1 binders2 in
         if cmp != 0 then cmp
@@ -50,6 +50,16 @@ module Make (Term : TERM) = struct
 
   let free_vars term = List.sort_uniq compare (free_vars term)
 
+  let rec get_vars term = match node_type term with
+    | Var _ -> [term]
+    | Operator (terms, _) | Connective terms -> List.concat @@ List.map free_vars terms
+    | Quantifier (_, phi) -> get_vars phi
+
+  let get_operands phi = match node_type phi with
+    | Var _ -> []
+    | Operator (terms, _) | Connective terms -> terms
+    | Quantifier (_, term) -> [term]
+
   let get_all_sorts term =
     free_vars term
     |> List.map get_sort
@@ -61,6 +71,22 @@ module Make (Term : TERM) = struct
         List.fold_left (fun acc x -> acc + size x) 1 terms
     | Quantifier (binders, phi) ->
         List.length binders + size phi
+
+  (* ==== Higher-order functions ==== *)
+
+  let rec for_all predicate phi =
+    let acc = predicate phi in
+    match node_type phi with
+    | Var _ -> acc
+    | Operator (terms, _) | Connective terms -> acc && List.for_all (for_all predicate) terms
+    | Quantifier (_, psi) -> acc && for_all predicate psi
+
+  let rec exists predicate phi =
+    let acc = predicate phi in
+    match node_type phi with
+    | Var _ -> acc
+    | Operator (terms, _) | Connective terms -> acc || List.exists (exists predicate) terms
+    | Quantifier (_, psi) -> acc || exists predicate psi
 
   (* ==== Properties ==== *)
 
@@ -97,7 +123,7 @@ module Make (Term : TERM) = struct
         mk_indent n ++ "(" ++ node_name node ++ " " ++ pretty_terms_line terms ++ ")"
       else
         mk_indent n ++ "(" ++ node_name node ++ "\n" ++ pretty_terms (n + 2) terms ++ mk_indent n ++ ")\n\n"
-  | Quantifier _ -> "TODO"
+  | Quantifier _ -> "TODO: quantifier"
 
   let rec show term = (*pretty 0 term*)
     match node_type term with
