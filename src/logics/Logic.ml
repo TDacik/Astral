@@ -72,6 +72,22 @@ module Make (Term : TERM) = struct
     | Quantifier (binders, phi) ->
         List.length binders + size phi
 
+  (* ==== Higher-order functions ==== *)
+
+  let rec for_all predicate phi =
+    let acc = predicate phi in
+    match node_type phi with
+    | Var _ -> acc
+    | Operator (terms, _) | Connective terms -> acc && List.for_all (for_all predicate) terms
+    | Quantifier (_, psi) -> acc && for_all predicate psi
+
+  let rec exists predicate phi =
+    let acc = predicate phi in
+    match node_type phi with
+    | Var _ -> acc
+    | Operator (terms, _) | Connective terms -> acc || List.exists (exists predicate) terms
+    | Quantifier (_, psi) -> acc || exists predicate psi
+
   (* ==== Properties ==== *)
 
   let rec is_quantifier_free term = match node_type term with

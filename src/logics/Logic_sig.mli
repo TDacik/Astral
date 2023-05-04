@@ -81,6 +81,15 @@ module type LOGIC = sig
   val size : t -> int
   (** The size of a term is the number of nodes in its AST. *)
 
+  (** {2 Higher-order functions} *)
+
+  val for_all : (t -> bool) -> t -> bool
+  (** [for_all p f] checks whether predicate p holds for all sub-terms of f. *)
+
+  val exists : (t -> bool) -> t -> bool
+  (** [exists p f] checks whether predicate p holds for some sub-terms of f. *)
+
+
   (** Special printing functions *)
 
   val show_with_sort : t -> string
