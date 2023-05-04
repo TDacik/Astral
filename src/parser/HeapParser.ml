@@ -48,7 +48,8 @@ let parse_heap group =
       | Binder (Arrow, [], sort) -> parse_heap_sort sort
     end
 
-let preprocess_loc_vars dom context =
+let preprocess_loc_vars context =
+  let dom = context.type_env.loc_sort in
   let loc_vars, smt_vars =
    List.partition_map
     (fun (name, sort) ->
@@ -58,7 +59,21 @@ let preprocess_loc_vars dom context =
         | _ -> Right var'
     ) (SSL.Variable.nil :: context.smt_vars)
   in
-  {context with smt_vars = smt_vars; vars_orig = context.vars_orig @ loc_vars}
+  let phi = List.map (fun psi -> SSL.map
+    (function
+      | Var (name, sort) -> Var (name, Sort.substitute sort dom Sort.Loc)
+      | Pure (SMT.Variable (name, sort)) ->
+        if Sort.equal sort dom then Var (name, Sort.Loc)
+        else Pure (SMT.Variable (name, sort))
+      | phi -> phi
+    ) psi) context.phi_orig in
+  {context with
+    smt_vars = smt_vars;
+    vars_orig = context.vars_orig @ loc_vars;
+    phi_orig = phi;
+    phi = SSL.mk_and phi;
+    vars = context.vars_orig @ loc_vars;
+  }
 
 (** Parse declare-heap command. *)
 let parse type_env heap_decl =
