@@ -6,11 +6,12 @@ let read_param_int message =
   Printf.printf "%s: " message;
   read_int ()
 
-let read_param_bool message =
+let rec read_param_bool message =
   Printf.printf "%s(y/n): " message;
   match read_line () with
   | "y" -> true
   | "n" -> false
+  | _ -> read_param_bool message
 
 (** Benchmark generation *)
 
