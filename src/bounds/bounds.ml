@@ -74,12 +74,13 @@ let list_bound context x y =
   let n = stack_bound context.sl_graph context.phi context.vars in
   let min, max =
     if SL_graph.must_eq g x y then (0, 0)
+    else if SL_graph.must_pointer g x y && SL_graph.must_neq g x y then (1, 1)
     else if SL_graph.must_pointer g x y then (0, 1)
     else if context.polarity then
-      let try1 = context.location_bound - SL_graph.nb_allocated g + 1 in
+      let try1 = (context.location_bound + 1) - SL_graph.nb_allocated g in
       (0, min try1 n)
     else
-      let min_path, try1 = SL_graph.must_path g x y context.location_bound in
+      let min_path, try1 = SL_graph.must_path g x y (context.location_bound - 1) in
       let try2 = context.location_bound - SL_graph.nb_must_forks g in
       (*let try3 = try
         let ptrs, lists = SL_graph.predict_footprint g x y in
