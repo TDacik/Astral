@@ -6,6 +6,7 @@ open SSL
 
 (** If phi is positive, remove all variables that does not appear in phi *)
 let normalise_vars phi vars =
+  let phi = Simplifier.simplify phi in (* TODO: workaround for SL-COMP *)
   if SSL.is_positive phi || Options.ignore_unused_vars () then
     let phi_vars = SSL.get_vars phi in
     let vars = List.filter (fun v -> List.mem v phi_vars) vars in
@@ -15,13 +16,15 @@ let normalise_vars phi vars =
 
 let rewrite_semantics phi = match Options.semantics () with
   | `NotSpecified -> phi
-  | `Precise ->
+  | `Precise -> phi
+  (*
     let phi = PreciseToImprecise.to_precise phi in
     let _ = Debug.formula ~suffix:"1.0-to_precise" phi in
      phi
+  *)
   | `Imprecise ->
-    let phi = PreciseToImprecise.to_imprecise phi in
-    let _ = Debug.formula ~suffix:"1.0-to_imprecise" phi in
+    let phi = PreciseToImprecise.to_precise phi in
+    let _ = Debug.formula ~suffix:"1.0-to_precise" phi in
     phi
 
 let normalise phi vars =
