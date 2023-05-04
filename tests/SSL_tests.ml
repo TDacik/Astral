@@ -32,6 +32,17 @@ let get_vars_test2 () =
   assert (var_list_eq (get_vars ~with_nil:false phi) [x; y]);
   assert (var_list_eq (get_vars ~with_nil:true phi) [x; y])
 
+
+let rename_var_test1 () =
+  let phi = y |-> nil in
+  assert (rename_var phi "x" "z" === phi)
+
+let rename_var_test2 () =
+  let phi = x |-> y in
+  let phi' = z |-> y in
+  assert (rename_var phi "x" "z" === phi')
+
+
 let is_precise () =
   assert (is_pure (p1 == p2));
   assert (is_pure (p2 != p1))
@@ -39,6 +50,7 @@ let is_precise () =
 let is_pure () =
   assert (is_pure @@ SSL.mk_pure @@ SMT.Boolean.mk_false ());
   assert (is_pure @@ SSL.mk_pure @@ SMT.Boolean.mk_true ());
+  assert (is_pure @@ SSL.mk_emp ());
   assert (not @@ is_pure @@ SSL.mk_not @@ SSL.mk_emp ())
 
 
@@ -125,11 +137,45 @@ let is_symbolic_heap_entl_test2 () =
   let phi = SSL.mk_gneg lhs rhs in
   assert (SSL.is_symbolic_heap_entl phi)
 
+(** Views at SSL formulae *)
+
+let as_symbolic_heap_test1 () =
+  let pure = x == y in
+  let spatial = x |-> y in
+  let phi = spatial * pure in
+  let pure', spatial' = SSL.as_symbolic_heap phi in
+  assert (List.hd pure' === pure);
+  assert (List.hd spatial' === spatial)
+
+let as_symbolic_heap_test2 () =
+  let phi = x |-> y in
+  let pure, spatial = SSL.as_symbolic_heap phi in
+  assert (pure = []);
+  assert (List.hd spatial === phi)
+
+let as_symbolic_heap_test3 () =
+  let phi = x == y in
+  let pure, spatial = SSL.as_symbolic_heap phi in
+  assert (spatial = []);
+  assert (List.hd pure === phi)
+
+(* TODO: check *)
+let as_symbolic_heap_test4 () =
+  let phi = SSL.mk_emp () in
+  let pure, spatial = SSL.as_symbolic_heap phi in
+  assert (spatial = []);
+  assert (List.hd pure === phi)
+
+
 let () =
   run "SSL" [
     "get_vars", [
       test_case "nil = nil" `Quick get_vars_test1;
-      test_case "x |-> y  " `Quick get_vars_test2;
+      test_case "x |-> y"   `Quick get_vars_test2;
+    ];
+    "rename_var", [
+      test_case "Test" `Quick rename_var_test1;
+      test_case "Test" `Quick rename_var_test2;
     ];
     "is_precise", [
       test_case "Test"  `Quick is_precise;
@@ -169,5 +215,11 @@ let () =
     "is_symbolic_heap_entl", [
       test_case "Test"  `Quick is_symbolic_heap_entl_test1;
       test_case "Test"  `Quick is_symbolic_heap_entl_test2;
+    ];
+    "as_symbolic_heap", [
+      test_case "Test"  `Quick as_symbolic_heap_test1;
+      test_case "Test"  `Quick as_symbolic_heap_test2;
+      test_case "Test"  `Quick as_symbolic_heap_test3;
+      test_case "Test"  `Quick as_symbolic_heap_test4;
     ];
   ]
