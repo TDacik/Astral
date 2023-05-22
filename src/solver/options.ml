@@ -70,6 +70,7 @@ let semantics () = match !_semantics with
 
 let _produce_models = ref false
 let produce_models () = !_produce_models
+let set_produce_models flag = _produce_models := flag
 
 (* ==== Profiling ==== *)
 

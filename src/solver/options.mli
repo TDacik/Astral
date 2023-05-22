@@ -10,11 +10,15 @@ val parse : unit -> string
 
 val input_path : unit -> string
 
+val stats : unit -> bool
+
 val debug : unit -> bool
 
 val dry_run : unit -> bool
 
 val produce_models : unit -> bool
+
+val set_produce_models : bool -> unit
 
 val json_output : unit -> bool
 
