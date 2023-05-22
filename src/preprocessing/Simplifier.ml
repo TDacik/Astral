@@ -46,6 +46,7 @@ let remove_useless =
     )
 
 let rec simplify phi = match phi with
+  | Emp -> Emp
   | Var x -> phi
   | Pure t -> phi (* TODO: simplification using SMT *)
   | Eq xs -> if List_utils.all_equal SSL.equal xs then mk_emp () else phi

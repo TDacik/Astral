@@ -196,6 +196,7 @@ let disjoint_union graphs =
     ) G.empty graphs
 
 let rec compute phi = match phi with
+  | SSL.Emp -> G.empty
   | SSL.Var _ | SSL.Pure _ -> G.empty
   | SSL.Eq xs -> all_equal xs
   | SSL.Distinct xs -> all_distinct xs

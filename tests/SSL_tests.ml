@@ -21,7 +21,7 @@ let var_list_eq vars1 vars2 =
 (** Tests *)
 
 let get_vars_test1 () =
-  let phi = SSL.mk_emp () in
+  let phi = SSL.mk_eq nil nil in
   assert (var_list_eq (get_vars ~with_nil:false phi) []);
   assert (var_list_eq (get_vars ~with_nil:true phi) [SSL.Variable.nil])
 
@@ -50,7 +50,8 @@ let is_precise () =
 let is_pure () =
   assert (is_pure @@ SSL.mk_pure @@ SMT.Boolean.mk_false ());
   assert (is_pure @@ SSL.mk_pure @@ SMT.Boolean.mk_true ());
-  assert (is_pure @@ SSL.mk_emp ());
+  assert (is_pure @@ SSL.mk_eq (SSL.mk_nil ()) (SSL.mk_nil ()));
+  assert (not @@ is_pure @@ SSL.mk_emp ());
   assert (not @@ is_pure @@ SSL.mk_not @@ SSL.mk_emp ())
 
 

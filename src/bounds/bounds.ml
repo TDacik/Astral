@@ -27,8 +27,9 @@ let rec location_bound_atomic phi = match phi with
   | Not psi -> location_bound_atomic psi
   | Star psis -> BatList.sum @@ List.map location_bound_atomic psis
   | Septraction (_, psi2) -> location_bound_atomic psi2
-  (* For pure atoms, we have 1 instead of 0 due to the precise semantics *)
-  | PointsTo _ | Eq _ | Distinct _ | Pure _ -> 1
+  | Emp | PointsTo _ -> 1
+  (* TODO: can be improved if not under negation? *)
+  | Eq _ | Distinct _ | Pure _ -> 1
 
 (** Location bound for positive formulae *)
 let location_bound_positive sl_graph phi n =

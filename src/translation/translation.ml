@@ -89,6 +89,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   (* ==== Recursive translation of SL formulae ==== *)
 
   let rec translate context phi domain = match phi with
+    | SSL.Emp -> translate_emp context domain
     | SSL.PointsTo (x, [y]) -> translate_pointsto context domain x y
     | SSL.PointsTo (x, ys) -> translate_dpointsto context domain x ys
     | SSL.And (psi1, psi2) -> translate_and context domain psi1 psi2
@@ -112,6 +113,14 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let semantics = term in
     let axioms = Boolean.mk_true () in
 
+    let fp = Set.mk_empty context.fp_sort in
+    let footprints = Footprints.singleton fp in
+
+    (semantics, axioms, footprints)
+
+  and translate_emp context domain =
+    let semantics = Set.mk_eq_empty domain in
+    let axioms = Boolean.mk_true () in
     let fp = Set.mk_empty context.fp_sort in
     let footprints = Footprints.singleton fp in
 
