@@ -81,4 +81,11 @@ let preprocess context =
 let preprocess context =
   if Options.preprocessing ()
   then preprocess context
-  else context, SL_graph.empty
+  else begin
+    (* Only basic preprocessing *)
+    let phi, vars = Context.get_raw_input context in
+    Debug.formula ~suffix:"1-original" phi;
+    let phi, vars = normalise phi vars in
+    Debug.formula phi;
+    Context.set_preprocessed phi vars context, SL_graph.empty
+  end
