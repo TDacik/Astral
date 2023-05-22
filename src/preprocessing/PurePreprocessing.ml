@@ -13,7 +13,7 @@ let rec purify = function
   | SSL.Or (psi1, psi2) -> Boolean.mk_or [purify psi1; purify psi2]
   | SSL.GuardedNeg (psi1, psi2) -> Boolean.mk_and [purify psi1; Boolean.mk_not @@ purify psi2]
   | SSL.Not psi -> Boolean.mk_not @@ purify psi (* TODO: not sound, but needed for Broom *)
-  | other -> failwith @@ SSL.show other
+  | other -> Utils.internal_error @@ Format.asprintf "Not a pure formula: %a" SSL.pp other
 
 let purify phi = SSL.mk_pure @@ purify phi
 
