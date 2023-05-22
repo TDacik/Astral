@@ -18,6 +18,10 @@ let run () =
 
   ModelChecker.verify_model result;
 
+  if Options.stats () then
+    Json_output.print result
+  else ();
+
   if Options.json_output () then
     Json_output.output result (Options.json_output_file ())
   else ()

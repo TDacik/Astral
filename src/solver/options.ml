@@ -24,6 +24,9 @@ let debug () = !_debug
 let _dry_run = ref false
 let dry_run () = !_dry_run
 
+let _stats = ref false
+let stats () = !_stats
+
 let _json_output_file = ref ""
 let json_output_file () = !_json_output_file
 
@@ -158,7 +161,8 @@ let speclist =
     ("--sl-quantifiers", Arg.Set _sl_quant, "TODO");
 
     (* Debugging *)
-    ("--debug", Arg.Set _debug, "Print debug info");
+    ("--debug",   Arg.Set _debug,   "Print debug info");
+    ("--stats",   Arg.Set _stats,   "Print statistics and details after finishing");
     ("--dry-run", Arg.Set _dry_run, "Only translate formula and return unknown");
     ("--profile", Arg.Set _profile, "Print profiling information");
 

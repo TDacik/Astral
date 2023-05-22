@@ -26,6 +26,10 @@ let json_repr context =
     "Options",              Options.to_json ();
   ]
 
+let print results =
+  Yojson.Basic.(pretty_to_channel stdout (json_repr results));
+  Printf.printf "\n"
+
 let output results file =
   let channel = open_out_gen [Open_creat; Open_wronly] 0o666 file in
   Yojson.Basic.(pretty_to_channel channel (json_repr results));
