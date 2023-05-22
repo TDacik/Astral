@@ -27,6 +27,7 @@ end
 type t =
   | Var of Variable.t
   | Pure of SMT.Term.t
+  | Emp
   | Eq of t list
   | Distinct of t list
   | PointsTo of t * t list

@@ -36,6 +36,7 @@ type t =
   | Pure of SMT.Term.t    (* Pure boolean term which does not contain location variables *)
 
   (* Atoms *)
+  | Emp
   | Eq of t list
   | Distinct of t list
   | PointsTo of t * t list
@@ -66,6 +67,7 @@ let describe_node : t -> t node_info = function
   | Pure t -> ("pure " ^ SMT.Term.show t, Operator ([], (SMT.Term.get_sort t)))
   | Eq xs -> ("=", Operator (xs, Sort.Bool))
   | Distinct xs -> ("distinct", Operator (xs, Sort.Bool))
+  | Emp -> ("emp", Operator ([], Sort.Bool))
   | PointsTo (x, ys) -> ("pto", Operator (x :: ys, Sort.Bool))
   | LS (x, y) -> ("ls", Operator ([x; y], Sort.Bool))
   | DLS (x, y, f, l) -> ("dls", Operator ([x; y; f; l], Sort.Bool))
@@ -118,6 +120,7 @@ let rec (===) lhs rhs =
   | Eq xs1, Eq xs2 | Distinct xs1, Distinct xs2 ->
     (* Recursively uses weaker equality, but for variables this is fine *)
     Set.equal (Set.of_list xs1) (Set.of_list xs2)
+  | Emp, Emp -> true
   | PointsTo (x1, ys1), PointsTo (x2, ys2) ->
     x1 === x2 && List.equal (===) ys1 ys2
   | LS (x1, y1), LS (x2, y2) ->
@@ -156,7 +159,7 @@ let is_atom phi = match node_type phi with
 
 (* ==== Basic constructors ==== *)
 
-let mk_emp () = Eq [Var Variable.nil; Var Variable.nil]
+let mk_emp () = Emp
 let mk_not_emp () = Not (mk_emp ())
 let mk_false () = GuardedNeg (mk_emp (), mk_emp ())
 let mk_true () = Not (mk_false ())
@@ -255,7 +258,8 @@ let mk_forall xs phi = match xs with
 
 let rec is_pure phi = match phi with
   | Var _ | Distinct _ | Pure _ -> true
-  | PointsTo _ | LS _ | DLS _ | NLS _ | SkipList _ | Star _ | Septraction _ | Not _ -> false
+  | Emp | PointsTo _ | LS _ | DLS _ | NLS _ | SkipList _
+  | Star _ | Septraction _ | Not _ -> false
   | _ ->
     begin match node_type phi with
     | Operator (terms, _) | Connective terms -> List.for_all is_pure terms
@@ -265,10 +269,12 @@ let rec is_pure phi = match phi with
 (** Formula is pure_smt if it does not contain location variables. *)
 let rec is_pure_smt phi = match node_type phi with
   | Var (_, _) -> false
+  | Operator ([], _) -> false (*emp*)
   | Operator (terms, _) | Connective terms -> List.for_all is_pure_smt terms
   | Quantifier (_, psi) -> is_pure_smt psi
 
 let rec substitute_pure phi x term = match phi with
+  | Emp -> Emp
   | Var _ -> phi
   | Eq xs -> Eq xs
   | Distinct xs -> Distinct xs
@@ -295,6 +301,7 @@ let rec substitute ?(bounded=[]) phi v term = match phi with
     if equal v phi && not @@ List.mem v bounded
     then term
     else phi
+  | Emp -> Emp
   | Pure pure -> Pure pure
   | Eq xs -> Eq (List.map (fun x -> substitute ~bounded x v term) xs)
   | Distinct xs -> Eq (List.map (fun x -> substitute ~bounded x v term) xs)
@@ -355,7 +362,7 @@ let rec normalise phi =
 (** What exactly is the chunk size of single variable? *)
 (** TODO: quantifiers *)
 let rec chunk_size = function
-  | Eq _ | Distinct _ | PointsTo _ | LS _ | DLS _ | SkipList _ | Var _ -> 1
+  | Eq _ | Distinct _ | Emp | PointsTo _ | LS _ | DLS _ | SkipList _ | Var _ -> 1
   | Star psis -> BatList.sum @@ List.map chunk_size psis
   | Septraction (_, psi2) -> chunk_size psi2
   | And (psi1, psi2) | Or (psi1, psi2) | GuardedNeg (psi1, psi2) ->
@@ -446,7 +453,7 @@ let rec is_positive phi = match node_type phi with
      end
 
 let rec has_unique_shape phi = match phi with
-  | Eq _ | Distinct _ | PointsTo _ -> true
+  | Eq _ | Distinct _ | Emp | PointsTo _ -> true
   | And (psi1, psi2) -> has_unique_shape psi1 && has_unique_shape psi2
   | Star psis -> List.for_all has_unique_shape psis
   | _ -> false
@@ -521,7 +528,7 @@ let as_symbolic_heap phi =
   | psi when is_atom psi -> [], [psi]
 
 let rec has_unique_footprint = function
-  | Eq _ | Distinct _ | Pure _ | PointsTo _ | LS _ | DLS _ | SkipList _ -> true
+  | Eq _ | Distinct _ | Pure _ | Emp | PointsTo _ | LS _ | DLS _ | SkipList _ -> true
   | And (f1, f2) -> has_unique_footprint f1 || has_unique_footprint f2
   | GuardedNeg (f1, f2) -> has_unique_footprint f1
   | Star psis -> List.for_all has_unique_footprint psis
@@ -542,6 +549,7 @@ let get_vars ?(with_nil=true) phi =
 let rec map fn phi =
   let map = map fn in
   match phi with
+  | Emp -> Emp
   | Var _ | Pure _ -> fn phi
   | Eq xs -> fn @@ Eq (List.map fn xs)
   | Distinct xs -> fn @@ Distinct (List.map fn xs)
