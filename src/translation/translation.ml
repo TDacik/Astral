@@ -110,7 +110,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     | _ -> failwith (Format.asprintf "%s" (SSL.show_with_sort phi))
 
   and translate_pure context domain term =
-    let semantics = term in
+    let domain_def = Set.mk_eq_empty domain in
+    let semantics = Boolean.mk_and [term; domain_def] in
     let axioms = Boolean.mk_true () in
 
     let fp = Set.mk_empty context.fp_sort in
