@@ -10,6 +10,8 @@ module Printable (M : SHOW) = struct
 
   let pp fmt x = Format.fprintf fmt "%s" (M.show x)
 
+  let print x = Format.printf "%s\n" (M.show x)
+
   let dump filename x =
     let channel = open_out_gen [Open_creat; Open_wronly] 0o666 filename in
     Printf.fprintf channel "%s\n" (M.show x);
