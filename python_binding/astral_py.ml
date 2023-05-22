@@ -11,13 +11,6 @@ open Python_lib.Let_syntax
 open PythonTypes
 open Solver_api
 
-let f = Defunc.Of_python.create ~type_name:"formula" ~conv:SSL.t_of_python
-
-let v = Defunc.Of_python.create ~type_name:"variable" ~conv:Variable.t_of_python
-
-let vars =
-  Defunc.Of_python.create ~type_name:"variable list" ~conv:(list_of_python Variable.t_of_python)
-
 (* ==== Formula constructors ==== *)
 
 let ssl_var =
@@ -29,27 +22,39 @@ let ssl_nil = Defunc.no_arg (fun () () -> SSL.python_of_t @@ Astral.SSL.mk_nil (
 let ssl_emp = Defunc.no_arg (fun () () -> SSL.python_of_t @@ Astral.SSL.mk_emp ())
 
 let gen_ssl_atom fn =
-  let%map_open x = positional "x" f ~docstring:"x"
-           and y = positional "y" f ~docstring:"y" in
+  let%map_open x = positional "x" SSL._type ~docstring:"x"
+           and y = positional "y" SSL._type ~docstring:"y" in
   (fun () -> SSL.python_of_t (fn x y))
 
 let gen_ssl_unary fn =
-  let%map_open phi = positional "phi" f ~docstring:"phi" in
+  let%map_open phi = positional "phi" SSL._type ~docstring:"phi" in
   (fun () -> SSL.python_of_t (fn phi))
 
 let gen_ssl_binary fn =
-  let%map_open lhs = positional "lhs" f ~docstring:"lhs"
-           and rhs = positional "rhs" f ~docstring:"rhs" in
+  let%map_open lhs = positional "lhs" SSL._type ~docstring:"lhs"
+           and rhs = positional "rhs" SSL._type ~docstring:"rhs" in
   (fun () -> SSL.python_of_t (fn lhs rhs))
 
 let gen_ssl_binary_list fn =
-  let%map_open lhs = positional "lhs" f ~docstring:"lhs"
-           and rhs = positional "rhs" f ~docstring:"rhs" in
+  let%map_open lhs = positional "lhs" SSL._type ~docstring:"lhs"
+           and rhs = positional "rhs" SSL._type ~docstring:"rhs" in
   (fun () -> SSL.python_of_t (fn [lhs; rhs]))
+
+let ssl_pto =
+  let%map_open x = positional "x" SSL._type ~docstring:"x"
+           and ys = positional "ys" SSL._list ~docstring:"ys" in
+  (fun () -> SSL.python_of_t (Astral.SSL.mk_pto_seq x ys))
+
+let ssl_dls =
+  let%map_open x = positional "x" SSL._type ~docstring:"x"
+           and y = positional "y" SSL._type ~docstring:"y"
+           and f = positional "f" SSL._type ~docstring:"f"
+           and l = positional "l" SSL._type ~docstring:"l" in
+  (fun () -> SSL.python_of_t (Astral.SSL.mk_dls x y f l))
+
 
 let ssl_eq        = gen_ssl_atom Astral.SSL.mk_eq
 let ssl_distinct  = gen_ssl_atom Astral.SSL.mk_distinct
-let ssl_pto       = gen_ssl_atom Astral.SSL.mk_pto
 let ssl_ls        = gen_ssl_atom Astral.SSL.mk_ls
 
 let ssl_not  = gen_ssl_unary Astral.SSL.mk_not
@@ -61,9 +66,17 @@ let ssl_septraction = gen_ssl_binary Astral.SSL.mk_septraction
 let ssl_wand        = gen_ssl_binary Astral.SSL.mk_wand
 
 let solve =
-  let%map_open phi = positional "phi" f ~docstring:"input formula"
-          and vars = positional "vars" vars ~docstring:"variables" in
-  (fun () -> python_of_result `Sat (*solve phi vars*))
+  let%map_open phi = positional "phi" SSL._type ~docstring:"input formula" in
+          (*and vars = positional "vars" vars ~docstring:"variables" in*)
+  (fun () -> python_of_result @@ solve phi)
+
+let set_produce_models =
+  let%map_open flag = positional "flag" bool ~docstring:"produce models" in
+  (fun () -> Astral.Options.set_produce_models flag; Py.none)
+
+let set_backend =
+  let%map_open backend = positional "backend" string ~docstring:"backend" in
+  (fun () -> Astral.Options.set_backend backend; Py.none)
 
 let () =
   if not @@ Py.is_initialized () then Py.initialize ();
@@ -78,7 +91,8 @@ let () =
   Py_module.set ssl "Neq"   ssl_distinct;
   Py_module.set ssl "Emp"   ssl_emp;
   Py_module.set ssl "Pto"   ssl_pto;
-  Py_module.set ssl "List"  ssl_ls;
+  Py_module.set ssl "LS"    ssl_ls;
+  Py_module.set ssl "DLS"   ssl_dls;
 
   Py_module.set ssl "Not"   ssl_not;
   Py_module.set ssl "And"   ssl_and;
@@ -90,4 +104,6 @@ let () =
 
   (* Solver *)
   let solver = Py_module.create "solver" in
-  Py_module.set solver "solve" solve
+  Py_module.set solver "solve" solve;
+  Py_module.set solver "set_produce_models" set_produce_models;
+  Py_module.set solver "set_backend"        set_backend
