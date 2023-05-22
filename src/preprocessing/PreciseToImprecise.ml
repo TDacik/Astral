@@ -7,6 +7,7 @@ open SSL
 (** Precise -> Imprecise *)
 
 let to_imprecise_sh phi =
+  let phi = Simplifier.fold_stars phi in
   let operands = match phi with
     | SSL.Star psis -> psis
     | psi -> [psi]
