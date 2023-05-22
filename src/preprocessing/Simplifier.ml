@@ -45,6 +45,11 @@ let remove_useless =
       | phi -> phi
     )
 
+(** Exported simplification functions **)
+
+let fold_stars = SSL.map (function Star psis -> SSL.mk_star @@ fold psis | psi -> psi)
+
+
 let rec simplify phi = match phi with
   | Emp -> Emp
   | Var x -> phi
@@ -93,8 +98,7 @@ let rec simplify phi = match phi with
       |> remove_duplicate_pure
     in
     if List.exists is_false psis then mk_false ()
-    else SSL.mk_star @@ List.filter (fun psi -> not @@ is_emp psi) psis
-
+    SSL.mk_star @@ List.filter (fun psi -> not @@ is_emp psi) psis in
   | Not psi -> phi
 
   | Exists (xs, psi) ->
