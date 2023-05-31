@@ -98,7 +98,7 @@ let rec simplify phi = match phi with
       |> remove_duplicate_pure
     in
     if List.exists is_false psis then mk_false ()
-    SSL.mk_star @@ List.filter (fun psi -> not @@ is_emp psi) psis
+    else SSL.mk_star @@ List.filter (fun psi -> not @@ is_emp psi) psis
   | Not psi -> phi
 
   | Exists (xs, psi) ->
