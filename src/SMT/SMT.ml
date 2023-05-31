@@ -420,7 +420,7 @@ module Boolean = struct
   let mk_iff t1 t2 = Iff (t1, t2)
 
   let mk_ite c x y = match c with
-    | True -> c
+    | True -> x
     | False -> y
     | term -> IfThenElse (term, x, y)
 
