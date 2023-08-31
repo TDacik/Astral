@@ -23,6 +23,8 @@ module type VARIABLE = sig
 
   val get_sort : t -> Sort.t
 
+  val has_sort : Sort.t -> t -> bool
+
   val mk : string -> Sort.t -> t
   (** Create a variable of the given sort. *)
 
@@ -44,8 +46,35 @@ module type TERM = sig
   val describe_node : t -> t node_info
   (** Description of single node. *)
 
+  val pretty_print : (t -> string) -> t -> [`Node of string | `Tree of string] option
+
 end
 
+module type AST_BASE = sig
+
+  module Term : TERM
+  (** Underlying term. *)
+
+  val node_name : Term.t -> string
+  (** Name of node. *)
+
+  val get_operands : Term.t -> Term.t list
+  (** List of node's children. *)
+
+end
+
+module type AST = sig
+
+  module Term : TERM
+  (** Underlying term. *)
+
+  type t
+
+  val make : Term.t -> t
+
+  val dump : string -> t -> unit
+
+end
 
 (** Output signature of the [Logic.Make] functor. *)
 module type LOGIC = sig
@@ -55,6 +84,10 @@ module type LOGIC = sig
   include COMPARABLE with type t := t
 
   module Collections : COLLECTIONS with type t := t
+
+  module AST : AST with type Term.t := t
+  (** Operations over term's abstract syntax tree seen as a directed graph. *)
+
 
   type node_type := t node_type
   (** Generic node type fixed to type given by AST. *)
@@ -95,5 +128,7 @@ module type LOGIC = sig
   val show_with_sort : t -> string
 
   val to_smtlib_bench : t -> string
+
+  val dump_ast : string -> t -> unit
 
 end

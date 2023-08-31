@@ -4,9 +4,14 @@ module Make (Term : TERM) = struct
 
   include Term
 
-  let node_name term = fst @@ Term.describe_node term
-
   let node_type term = snd @@ Term.describe_node term
+
+  let rec node_name term = match node_type term with
+    | Var _ | Operator _ | Connective _ -> fst @@ Term.describe_node term
+    | Quantifier (binders, body) ->
+      Format.asprintf "%s %s"
+        (fst @@ Term.describe_node term)
+        (String.concat ", " @@ List.map node_name binders)
 
   (* TODO: avoid frequent string comparison *)
   let rec compare term1 term2 = match node_type term1, node_type term2 with
@@ -145,6 +150,23 @@ module Make (Term : TERM) = struct
 
   let to_smtlib_bench term = failwith "Not implemented"
 
+  let pretty term = match Term.pretty_print show term with
+    | None -> node_name term
+    | Some (`Node name) | Some (`Tree name) -> name
+
+  (** Operations over AST as graph *)
+
+  module AST = AST.Make
+    (struct
+      module Term = Term
+      let node_name = pretty
+      let get_operands t = match Term.pretty_print show t with
+        | Some (`Tree _) -> []
+        | _ -> get_operands t
+    end)
+
+  let dump_ast path (term : Term.t) : unit = AST.dump path (AST.make term)
+
   module Self = struct
     type t = Term.t
     let show = show
@@ -154,6 +176,8 @@ module Make (Term : TERM) = struct
   include Datatype.Printable(Self)
   include Datatype.Comparable(Self)
 
+  (** Collections are not directly included as the Logic instance can have
+      submodules like `Set`. *)
   module Collections = Datatype.Collections(Self)
 
 end
