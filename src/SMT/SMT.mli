@@ -309,6 +309,10 @@ module Set : sig
 
 end
 
+(* Pretty printers *)
+
+  val pretty_select : (t -> string) -> t -> string
+
 module Model : sig
 
   include Map.S with type key := VariableBase.t

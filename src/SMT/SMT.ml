@@ -223,10 +223,47 @@ module Term = struct
     | Connective _ -> Sort.Bool
     | Quantifier _ -> Sort.Bool
 
+
+  let pretty_select show term = (*`Node (fst @@ describe_node node)*)
+    let rec compute index = function
+      | Select (a, _) ->
+        let count, index = compute a index in
+        (count + 1, index)
+      | _ -> 1, index
+    in
+    match term with
+      | Select (a, i) ->
+        let count, index = compute i a in
+        (*`Tree*) (Format.asprintf "%s^%d[%s]" (show a) count (show index))
+
+  let pretty_select show term = match term with
+    | Select (a, i) -> pretty_select show term
+    | other -> show other
+
+  let pretty_print show node = None
+  (*
+    let str = match node with
+      (*
+      | Equal [x; y] -> `Tree (Format.asprintf "%s%s%s" (show x) (UnicodeSymbols.eq ()) (show y))
+      *)
+      | Equal _ -> `Node (UnicodeSymbols.eq ())
+      | Distinct _ -> `Node (UnicodeSymbols.neq ())
+      | And _ -> `Node (UnicodeSymbols.logand ())
+      | Or _ -> `Node (UnicodeSymbols.logor ())
+      | Not _ -> `Node (UnicodeSymbols.lognot ())
+      | Exists _ -> `Node (UnicodeSymbols.exists ())
+      | Forall _ -> `Node (UnicodeSymbols.forall ())
+      | Select (arr, i) -> pretty_select show arr node
+      | t -> `Node (fst @@ describe_node t)
+    in
+    Some str
+  *)
+
   include Logic.Make
     (struct
       type nonrec t = t
       let describe_node = describe_node
+      let pretty_print = pretty_print
     end)
 
   let get_sort_in_term var_name term =

@@ -82,11 +82,27 @@ let describe_node : t -> t node_info = function
   | Star psis -> ("star", Connective psis)
   | Septraction (psi1, psi2) -> ("septraction", Connective [psi1; psi2])
 
+let pretty_print show node =
+  let str = match node with
+    | Eq _ -> UnicodeSymbols.eq ()
+    | Distinct _ -> UnicodeSymbols.neq ()
+    | PointsTo _ -> UnicodeSymbols.pto ()
+    | And _ -> UnicodeSymbols.logand ()
+    | Or _ -> UnicodeSymbols.logor ()
+    | Not _ -> UnicodeSymbols.lognot ()
+    | GuardedNeg _ -> UnicodeSymbols.gneg ()
+    | Star _ -> UnicodeSymbols.star ()
+    | Septraction _ -> UnicodeSymbols.septraction ()
+    | t -> fst @@ describe_node t
+  in
+  Some (`Node str)
+
 (** First, build implementation of logical functions (including show). *)
 
 module Self = struct
   type nonrec t = t
   let describe_node = describe_node
+  let pretty_print = pretty_print
 end
 
 include Logic.Make(Self)

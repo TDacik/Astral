@@ -2,7 +2,10 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-open RichSyntax
+open SSL
+open SSL.Node
+
+module V = Variable
 
 module G = struct
 
@@ -26,17 +29,13 @@ module AST = struct
 
   type t = G.t * G.V.t
 
-  let show_seq = function
-    | [x] -> show x
-    | xs -> "<" ^ (List.map show xs |> String.concat ", ") ^ ">"
-
   let node_name top phi psi =
-    let label = match RichSyntax.of_ssl psi with
-      | True -> "true"
-      | False -> "false"
+    let label = match psi with
+      | psi when SSL.is_true psi -> "true"
+      | psi when SSL.is_false psi -> "false"
+      | psi when SSL.is_implies psi -> "→"
+      | psi when SSL.is_iff psi -> "↔"
       | Emp -> "emp"
-      | Implies (_, _) -> "→"
-      | Iff (_, _) -> "↔"
       | Var _ | Pure _ -> SSL.show psi
       | And (f1, f2) -> "∧"
       | Or (f1, f2) -> "∨"
