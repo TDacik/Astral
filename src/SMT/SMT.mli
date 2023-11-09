@@ -11,6 +11,18 @@ open Datatype_sig
 module VariableBase : VARIABLE
 (** Base module representing variables used in SMT terms. *)
 
+module Range : sig
+
+  type 'a t =
+    | Range of 'a list list
+    | Pair of ('a * 'a) list
+    | Path of ('a * 'a * int) list
+
+  val map : 'a t option -> ('a -> 'b) -> 'b t option
+  (** Apply function to all elements of the range.*)
+
+end
+
 type t =
   | Constant of String.t * Sort.t
   | Variable of VariableBase.t
@@ -31,12 +43,12 @@ type t =
   | LesserEq of t * t
 
   (* First-order quantifiers *)
-  | Exists of t list * t
-  | Forall of t list * t
+  | Exists of t list * t Range.t option * t
+  | Forall of t list * t Range.t option * t
 
   (* Second-order quantifiers *)
-  | Exists2 of t list * t list list option * t
-  | Forall2 of t list * t list list option * t
+  | Exists2 of t list * t Range.t option * t
+  | Forall2 of t list * t Range.t option * t
 
   (* Integer arithmetic *)
   | IntConst of int
@@ -81,9 +93,9 @@ module type SMT_TERM := sig
 
   include SMT_TERM
 
-  val substitute : t -> t -> t -> t
+  (*val substitute : t -> t -> t -> t
   (** substitute phi x t replaces all free occurrences of x by t in phi. *)
-  (** TODO: move to logic *)
+  (** TODO: move to logic *)*)
 
   val get_sort_in_term : string -> t -> Sort.t
   (** Find sort of variable in term. *)
@@ -100,6 +112,7 @@ module Term : sig
 
 end
 
+val substitute : t -> t -> t -> t
 include SMT_TERM with type t := t
 
 (* ==== Submodules of SMT ==== *)
@@ -136,14 +149,20 @@ module Boolean : sig
   val mk_iff : t -> t -> t
   val mk_ite : t -> t -> t -> t
 
+  val mk_multiple_ite : (t * t) list -> t -> t
+
 end
 
 module Quantifier : sig
 
-  type t := t
+  val mk_forall : t list -> ?ranges: t list list option -> t -> t
+  val mk_exists : t list -> ?ranges: t list list option -> t -> t
 
-  val mk_forall : t list -> t -> t
-  val mk_exists : t list -> t -> t
+  val mk_forall_diagonal : t -> t -> t list -> t -> t
+
+  val mk_forall_path : t -> t -> int -> t -> t -> t
+
+  val mk_forall_path_nested2 : t -> t -> t -> (Interval.t * Interval.t list * Interval.t) -> t list -> t -> t
 
   val mk_forall2 : t list -> ?ranges: t list list option -> t -> t
   val mk_exists2 : t list -> ?ranges: t list list option -> t -> t

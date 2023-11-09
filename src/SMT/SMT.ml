@@ -6,6 +6,29 @@ open Logic_sig
 
 module VariableBase = Variable.Make( )
 
+module Range = struct
+
+  type 'a t =
+    | Range of 'a list list
+    | Pair of ('a * 'a) list
+    | Path of ('a * 'a * int) list
+
+  let concat r1 r2 = match r1, r2 with
+    | Some (Range xs), Some (Range ys) -> Some (Range (xs @ ys))
+    | Some (Pair xs), Some (Pair ys) -> Some (Pair (xs @ ys))
+    | Some (Path xs), Some (Path ys) -> Some (Path (xs @ ys))
+    | None, None -> None
+
+  let map (range : 'a t option) (fn : 'a -> 'b) = match range with
+    | Some (Range xs) -> Some (Range (List.map (List.map fn) xs))
+    | Some (Pair xs) -> Some (Pair (List.map (fun (x, y) -> fn x, fn y) xs))
+    | Some (Path xs) -> Some (Path (List.map (fun (a, x, i) -> (fn a, fn x, i)) xs))
+    | None -> None
+
+  let lift_lists (r : 'a list list option) : 'a t option = Option.map (fun x -> Range x) r
+
+end
+
 module Term = struct
 
   type t =
@@ -28,12 +51,12 @@ module Term = struct
     | LesserEq of t * t
 
     (* First-order quantifiers *)
-    | Exists of t list * t
-    | Forall of t list * t
+    | Exists of t list * t Range.t option * t
+    | Forall of t list * t Range.t option * t
 
     (* Second-order quantifiers *)
-    | Exists2 of t list * t list list option * t
-    | Forall2 of t list * t list list option * t
+    | Exists2 of t list * t Range.t option * t
+    | Forall2 of t list * t Range.t option * t
 
     (* Integer arithmetic *)
     | IntConst of int
@@ -122,8 +145,9 @@ module Term = struct
 
       | LesserEq (x, y) -> f (LesserEq (map x, map y))
 
-      | Forall (xs, phi) -> f (Forall (xs, map phi))
-      | Exists (xs, phi) -> f (Exists (xs, map phi))
+      (* TODO: apply also to ranges?? *)
+      | Forall (xs, ranges, phi) -> f (Forall (xs, ranges, map phi))
+      | Exists (xs, ranges, phi) -> f (Exists (xs, ranges, map phi))
       | Forall2 (xs, ranges, phi) -> f (Forall2 (xs, ranges, map phi))
       | Exists2 (xs, ranges, phi) -> f (Exists2 (xs, ranges, map phi))
 
@@ -185,8 +209,8 @@ module Term = struct
     (* Comparisons *)
     | LesserEq (x, y) -> ("<=", Connective [x; y])
 
-    | Exists (xs, phi) -> ("exists", Quantifier (xs, phi))
-    | Forall (xs, phi) -> ("forall", Quantifier (xs, phi))
+    | Exists (xs, _, phi) -> ("exists", Quantifier (xs, phi))
+    | Forall (xs, _, phi) -> ("forall", Quantifier (xs, phi))
     | Exists2 (xs, _, phi) -> ("exists2", Quantifier (xs, phi))
     | Forall2 (xs, _, phi) -> ("forall2", Quantifier (xs, phi))
 
@@ -256,107 +280,6 @@ module Term = struct
 
     (* ==== Syntactic manipulation ==== *)
 
-    let rec substitute ?(bounded=[]) phi x term = match phi with
-      | Constant _ | BitConst _ -> phi
-      (** TODO: Handling of sorts in comparison *)
-      | Variable _ ->
-          if equal x phi && not @@ List.mem x bounded
-          then term
-          else phi
-
-      (* Quantifiers *)
-      | Exists (binders, phi) ->
-          Exists (binders, substitute ~bounded:(binders @ bounded) phi x term)
-      | Forall (binders, phi) ->
-          Forall (binders, substitute ~bounded:(binders @ bounded) phi x term)
-
-      | Exists2 (binders, ranges, phi) ->
-          Exists2 (binders, ranges, substitute ~bounded:(binders @ bounded) phi x term)
-      | Forall2 (binders, ranges, phi) ->
-          Forall2 (binders, ranges, substitute ~bounded:(binders @ bounded) phi x term)
-
-      | Membership (elem, set) ->
-        Membership (substitute ~bounded elem x term, substitute ~bounded set x term)
-      | Subset (set1, set2) ->
-        Subset (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
-      | Disjoint sets ->
-        Disjoint (List.map (fun s -> substitute ~bounded s x term) sets)
-      | Union (sets, sort) ->
-        Union (List.map (fun t -> substitute ~bounded t x term) sets, sort)
-      | Inter (sets, sort) ->
-        Inter (List.map (fun t -> substitute ~bounded t x term) sets, sort)
-      | Diff (set1, set2) ->
-        Diff (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
-      | Compl set ->
-        Compl (substitute ~bounded set x term)
-      | Enumeration (terms, sort) ->
-        Enumeration (List.map (fun t -> substitute ~bounded t x term) terms, sort)
-
-      (* Bitvectors *)
-      | BitCheck (bv, index) ->
-        BitCheck (substitute ~bounded bv x term, substitute ~bounded index x term)
-      | BitAnd (bvs, sort) ->
-        BitAnd (List.map (fun t -> substitute ~bounded t x term) bvs, sort)
-      | BitOr (bvs, sort) ->
-        BitOr (List.map (fun t -> substitute ~bounded t x term) bvs, sort)
-      | BitXor (bvs, sort) ->
-        BitXor (List.map (fun t -> substitute ~bounded t x term) bvs, sort)
-      | BitImplies (bv1, bv2) ->
-        BitImplies (substitute ~bounded bv1 x term, substitute ~bounded bv2 x term)
-      | BitCompl bv ->
-        BitCompl (substitute ~bounded bv x term)
-      | BitShiftLeft (bv, rot) ->
-        BitShiftLeft (substitute ~bounded bv x term, substitute ~bounded rot x term)
-      | BitShiftRight (bv, rot) ->
-        BitShiftRight (substitute ~bounded bv x term, substitute ~bounded rot x term)
-
-      (* Boolean *)
-      | Equal terms ->
-        Equal (List.map (fun t -> substitute ~bounded t x term) terms)
-      | Distinct terms ->
-        Distinct (List.map (fun t -> substitute ~bounded t x term) terms)
-      | And terms ->
-        And (List.map (fun t -> substitute ~bounded t x term) terms)
-      | Or terms ->
-        Or (List.map (fun t -> substitute ~bounded t x term) terms)
-      | Not t ->
-        Not (substitute ~bounded t x term)
-      | Implies (t1, t2) ->
-        Implies (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
-      | Iff (t1, t2) ->
-        Iff (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
-      | IfThenElse (c, t1, t2) ->
-        IfThenElse (
-          substitute ~bounded c x term,
-          substitute ~bounded t1 x term,
-          substitute ~bounded t2 x term
-        )
-
-      | True -> True
-      | False -> False
-
-      | LesserEq (t1, t2) ->
-        LesserEq (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
-
-      | IntConst i -> IntConst i
-      | Plus (t1, t2) ->
-        Plus (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
-      | Minus (t1, t2) ->
-        Minus (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
-      | Mult (t1, t2) ->
-        Mult (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
-
-      | ConstArr (t, sort) ->
-        ConstArr (substitute ~bounded t x term, sort)
-      | Select (arr, i) ->
-        Select (substitute ~bounded arr x term, substitute ~bounded i x term)
-      | Store (arr, i, v) ->
-        Store (substitute ~bounded arr x term,
-          substitute ~bounded i x term,
-          substitute ~bounded v x term
-        )
-
-  let substitute phi x term = substitute phi x term
 
   module Self = struct
     type nonrec t = t
@@ -631,10 +554,151 @@ module Sequence = struct
 
 end
 
+
+    let rec substitute ?(bounded=[]) phi x term =
+      let open Term in
+      match phi with
+      | Constant _ | BitConst _ -> phi
+      (** TODO: Handling of sorts in comparison *)
+      | Variable _ ->
+          if equal x phi && not @@ List.mem x bounded
+          then term
+          else phi
+
+      (* Quantifiers *)
+      | Exists (binders, ranges, phi) ->
+          Exists (binders, ranges, substitute ~bounded:(binders @ bounded) phi x term)
+      | Forall (binders, ranges, phi) ->
+          Forall (binders, ranges, substitute ~bounded:(binders @ bounded) phi x term)
+
+      | Exists2 (binders, ranges, phi) ->
+          Exists2 (binders, ranges, substitute ~bounded:(binders @ bounded) phi x term)
+      | Forall2 (binders, ranges, phi) ->
+          Forall2 (binders, ranges, substitute ~bounded:(binders @ bounded) phi x term)
+
+      | Membership (elem, set) ->
+        Membership (substitute ~bounded elem x term, substitute ~bounded set x term)
+      | Subset (set1, set2) ->
+        Subset (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
+      | Disjoint sets ->
+        Disjoint (List.map (fun s -> substitute ~bounded s x term) sets)
+      | Union (sets, sort) ->
+        Set.mk_union (List.map (fun t -> substitute ~bounded t x term) sets) sort
+      | Inter (sets, sort) ->
+        Inter (List.map (fun t -> substitute ~bounded t x term) sets, sort)
+      | Diff (set1, set2) ->
+        Diff (substitute ~bounded set1 x term, substitute ~bounded set2 x term)
+      | Compl set ->
+        Compl (substitute ~bounded set x term)
+      | Enumeration (terms, sort) ->
+        Enumeration (List.map (fun t -> substitute ~bounded t x term) terms, sort)
+
+      (* Bitvectors *)
+      | BitCheck (bv, index) ->
+        BitCheck (substitute ~bounded bv x term, substitute ~bounded index x term)
+      | BitAnd (bvs, sort) ->
+        BitAnd (List.map (fun t -> substitute ~bounded t x term) bvs, sort)
+      | BitOr (bvs, sort) ->
+        BitOr (List.map (fun t -> substitute ~bounded t x term) bvs, sort)
+      | BitXor (bvs, sort) ->
+        BitXor (List.map (fun t -> substitute ~bounded t x term) bvs, sort)
+      | BitImplies (bv1, bv2) ->
+        BitImplies (substitute ~bounded bv1 x term, substitute ~bounded bv2 x term)
+      | BitCompl bv ->
+        BitCompl (substitute ~bounded bv x term)
+      | BitShiftLeft (bv, rot) ->
+        BitShiftLeft (substitute ~bounded bv x term, substitute ~bounded rot x term)
+      | BitShiftRight (bv, rot) ->
+        BitShiftRight (substitute ~bounded bv x term, substitute ~bounded rot x term)
+
+      (* Boolean *)
+      | Equal terms ->
+        mk_eq_list (List.map (fun t -> substitute ~bounded t x term) terms)
+      | Distinct terms ->
+        mk_distinct_list (List.map (fun t -> substitute ~bounded t x term) terms)
+      | And terms ->
+        Boolean.mk_and (List.map (fun t -> substitute ~bounded t x term) terms)
+      | Or terms ->
+        Boolean.mk_or (List.map (fun t -> substitute ~bounded t x term) terms)
+      | Not t ->
+        Boolean.mk_not (substitute ~bounded t x term)
+      | Implies (t1, t2) ->
+        Implies (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+      | Iff (t1, t2) ->
+        Boolean.mk_iff (substitute ~bounded t1 x term) (substitute ~bounded t2 x term)
+      | IfThenElse (c, t1, t2) ->
+        IfThenElse (
+          substitute ~bounded c x term,
+          substitute ~bounded t1 x term,
+          substitute ~bounded t2 x term
+        )
+
+      | True -> True
+      | False -> False
+
+      | LesserEq (t1, t2) ->
+        LesserEq (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+
+      | IntConst i -> IntConst i
+      | Plus (t1, t2) ->
+        Plus (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+      | Minus (t1, t2) ->
+        Minus (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+      | Mult (t1, t2) ->
+        Mult (substitute ~bounded t1 x term, substitute ~bounded t2 x term)
+
+      | ConstArr (t, sort) ->
+        ConstArr (substitute ~bounded t x term, sort)
+      | Select (arr, i) ->
+        Select (substitute ~bounded arr x term, substitute ~bounded i x term)
+      | Store (arr, i, v) ->
+        Store (substitute ~bounded arr x term,
+          substitute ~bounded i x term,
+          substitute ~bounded v x term
+        )
+
+  let substitute phi x term =
+    (*let vars = Term.free_vars phi in
+    if BatList.mem_cmp Term.compare x vars
+    then*) substitute phi x term
+    (*else phi*)
+
 module Quantifier = struct
 
-  let mk_forall x phi = Term.Forall (x, phi)
-  let mk_exists x phi = Term.Exists (x, phi)
+  module Range = Range
+
+  let mk_forall xs ?(ranges=None) phi = Term.Forall (xs, Range.lift_lists ranges, phi)
+  let mk_exists xs ?(ranges=None) phi = Term.Exists (xs, Range.lift_lists ranges, phi)
+
+  let mk_forall_diagonal x1 x2 domain phi =
+    let product = List_utils.diagonal_product domain in
+    let range = Range.Pair product in
+    Term.Forall ([x1; x2], Some range, phi)
+
+  let mk_forall_path arr x max_length binder phi =
+    (*let range = Range.Path [(arr, x, max_length)] in
+    Term.Forall ([binder], Some range, phi)*)
+    BatList.range 0 `To max_length
+    |> List.map (fun i -> Array.mk_nary_select i arr x)
+    |> (fun xs -> Term.Forall ([binder], Some (Range.Range [xs]), phi))
+
+
+  let mk_forall_path_nested2 arr_top arr_next x (top, concrete, def) [x1; x2] phi =
+    BatList.range 0 `To (snd top - 1)
+    |> List.map (fun i -> Array.mk_nary_select i arr_top x, i)
+    |> List.map (fun (loc, i) ->
+        let bound =
+          try List.nth concrete i
+          with Failure _ -> def
+        in
+        BatList.range 0 `To (snd bound - 1)
+        |> List.map (fun i -> Array.mk_nary_select i arr_next loc)
+      )
+    |> List.concat
+    |> (fun xs ->
+        let product = List_utils.diagonal_product xs in
+        Term.Forall ([x1; x2], Some (Range.Pair product), phi))
+
 
   (** Preprocessing of quantifier binders. *)
   let process_quantifier xs ranges phi = match ranges with
@@ -643,7 +707,7 @@ module Quantifier = struct
       let xs,  ranges, phi = List.fold_left2
         (fun (xs, ranges, phi) x range -> match range with
           | [] -> (xs, ranges, phi)
-          | [r] -> (xs, ranges, Term.substitute phi x r)
+          | [r] -> (xs, ranges, substitute phi x r)
           | _ -> (x :: xs, range :: ranges, phi)
         ) ([], [], phi) xs ranges
       in
@@ -653,13 +717,13 @@ module Quantifier = struct
     let xs, ranges, phi = process_quantifier xs ranges phi in
     match xs with
     | [] -> phi
-    | _ -> Term.Forall2 (xs, ranges, phi)
+    | _ -> Term.Forall2 (xs, Range.lift_lists ranges, phi)
 
   let mk_exists2 xs ?(ranges=None) phi =
     let xs, ranges, phi = process_quantifier xs ranges phi in
     match xs with
     | [] -> phi
-    | _ -> Term.Exists2 (xs, ranges, phi)
+    | _ -> Term.Exists2 (xs, Range.lift_lists ranges, phi)
 
 end
 
@@ -685,7 +749,11 @@ module Model = struct
 
   let rec eval model t = match t with
     | Constant (c, sort) -> Constant (c, sort)
-    | Variable var -> find var model
+    | Variable var ->
+      begin
+        try find var model
+        with Not_found -> failwith ("Not found: " ^ Variable.show var)
+      end
 
     | IntConst i -> IntConst i
 
