@@ -7,15 +7,17 @@ open Logic_sig
 module Variable = struct
   include Variable.Make( )
 
-  let nil = mk "nil" Sort.Loc
+  let nil = mk "nil" Sort.loc_nil
+
+  let is_loc var = match get_sort var with
+    | Loc _ -> true
+    | _ -> false
 
   let is_nil var = equal var nil
 
-  let mk_sort name sort = mk name sort
-
-  let mk name = mk name Sort.Loc
-
-  let mk_fresh name = mk_fresh name Sort.Loc
+  let substitute var pattern target =
+    if equal var pattern then target
+    else var
 
   let hash = Hashtbl.hash
 
@@ -30,6 +32,58 @@ module Variable = struct
 
 end
 
+module Field = struct
+
+  type t =
+    | Next
+    | Prev
+    | Top
+    [@@deriving compare, equal]
+
+  let show = function
+    | Next -> "n"
+    | Prev -> "p"
+    | Top -> "t"
+
+ module Self = struct
+    type nonrec t = t
+    let show = show
+    let compare = compare
+  end
+
+  include Datatype.Printable(Self)
+  include Datatype.Collections(Self)
+
+end
+
+module Struct = struct
+
+  type t =
+    | LS_t of Variable.t
+    | DLS_t of Variable.t * Variable.t  (* next, prev *)
+    | NLS_t of Variable.t * Variable.t  (* top, next *)
+  [@@deriving compare, equal]
+
+  let show = function
+    | LS_t n -> Variable.show n
+    | DLS_t (n, p) -> Format.asprintf "<n: %s, p: %s>" (Variable.show n) (Variable.show p)
+    | NLS_t (t, n) -> Format.asprintf "<t: %s, n: %s>" (Variable.show t) (Variable.show n)
+
+  let vars = function
+    | LS_t n -> [n]
+    | DLS_t (n, p) -> [n; p]
+    | NLS_t (t, n) -> [t; n]
+
+  let map fn = function
+    | LS_t n -> LS_t (fn n)
+    | DLS_t (n, p) -> DLS_t (fn n, fn p)
+    | NLS_t (t, n) -> NLS_t (fn t, fn n)
+
+  let substitute x pattern target = map (fun v -> Variable.substitute v pattern target) x
+
+end
+
+
 (** TODO: consider variadic and & or *)
 type t =
   | Var of Variable.t     (* Location variable *)
@@ -39,7 +93,7 @@ type t =
   | Emp
   | Eq of t list
   | Distinct of t list
-  | PointsTo of t * t list
+  | PointsTo of t * Struct.t
   | LS of t * t
   | DLS of t * t * t * t
   | NLS of t * t * t
@@ -63,12 +117,12 @@ let compare = Stdlib.compare
 let hash = Hashtbl.hash
 
 let describe_node : t -> t node_info = function
-  | Var (name, Sort.Loc) -> (name, Var (name, Sort.Loc))
+  | Var (name, sort) as v -> (name, Var (name, sort))
   | Pure t -> ("pure " ^ SMT.Term.show t, Operator ([], (SMT.Term.get_sort t)))
   | Eq xs -> ("=", Operator (xs, Sort.Bool))
   | Distinct xs -> ("distinct", Operator (xs, Sort.Bool))
   | Emp -> ("emp", Operator ([], Sort.Bool))
-  | PointsTo (x, ys) -> ("pto", Operator (x :: ys, Sort.Bool))
+  | PointsTo (x, c) -> ("pto", Operator (x :: (List.map (fun v-> Var v) (Struct.vars c)), Sort.Bool))
   | LS (x, y) -> ("ls", Operator ([x; y], Sort.Bool))
   | DLS (x, y, f, l) -> ("dls", Operator ([x; y; f; l], Sort.Bool))
   | NLS (x, y, z) -> ("nls", Operator ([x; y; z], Sort.Bool))
@@ -137,8 +191,8 @@ let rec (===) lhs rhs =
     (* Recursively uses weaker equality, but for variables this is fine *)
     Set.equal (Set.of_list xs1) (Set.of_list xs2)
   | Emp, Emp -> true
-  | PointsTo (x1, ys1), PointsTo (x2, ys2) ->
-    x1 === x2 && List.equal (===) ys1 ys2
+  | PointsTo (x1, y1), PointsTo (x2, y2) ->
+    x1 === x2 && Struct.equal y1 y2
   | LS (x1, y1), LS (x2, y2) ->
     x1 === x2 && y1 === y2
   | NLS (x1, y1, z1), NLS (x2, y2, z2) ->
@@ -215,8 +269,8 @@ let is_iff phi =
 (* ==== Constructors ==== *)
 
 let mk_nil () = Var Variable.nil
-let mk_var name = Var (Variable.mk name)
-let mk_fresh_var name = Var (Variable.mk_fresh name)
+let mk_var name sort = Var (Variable.mk name sort)
+let mk_fresh_var name sort = Var (Variable.mk_fresh name sort)
 
 let mk_eq x y = Eq [x; y]
 let mk_eq_list xs = Eq xs
@@ -224,8 +278,12 @@ let mk_eq_list xs = Eq xs
 let mk_distinct x y = Distinct [x; y]
 let mk_distinct_list xs = Distinct xs
 
-let mk_pto x y = PointsTo (x, [y])
-let mk_pto_seq x ys = PointsTo (x, ys)
+let mk_pto_struct x y = PointsTo (x, y)
+
+let mk_pto x (Var y) = PointsTo (x, Struct.LS_t y)
+let mk_pto_dls x (Var n) (Var p) = PointsTo (x, Struct.DLS_t (n, p))
+let mk_pto_nls x (Var t) (Var n) = PointsTo (x, Struct.NLS_t (t, n))
+
 let mk_ls x y = LS (x, y)
 let mk_dls x y f l = DLS (x, y, f, l)
 let mk_nls x y z = NLS (x, y, z)
@@ -294,7 +352,7 @@ let rec substitute_pure phi x term = match phi with
   | Var _ -> phi
   | Eq xs -> Eq xs
   | Distinct xs -> Distinct xs
-  | PointsTo (x, ys) -> PointsTo (x, ys)
+  | PointsTo (x, y) -> PointsTo (x, y)
   | LS (x, y) -> LS (x, y)
   | DLS (x, y, f, l) -> DLS (x, y, f, l)
   | NLS (x, y, z) -> NLS (x, y, z)
@@ -321,8 +379,15 @@ let rec substitute ?(bounded=[]) phi v term = match phi with
   | Pure pure -> Pure pure
   | Eq xs -> Eq (List.map (fun x -> substitute ~bounded x v term) xs)
   | Distinct xs -> Eq (List.map (fun x -> substitute ~bounded x v term) xs)
-  | PointsTo (x, ys) ->
-      PointsTo (substitute ~bounded x v term, List.map (fun y -> substitute ~bounded y v term) ys)
+  | PointsTo (x, d) ->
+      PointsTo (substitute ~bounded x v term,
+                Struct.map (fun y ->
+                  let v = match v with Var v -> v in
+                  let term = match term with Var v -> v in
+                  if not @@ List.mem (Var y) bounded then Variable.substitute y v term
+                  else y
+                ) d
+               )
   | LS (x, y) -> LS (substitute ~bounded x v term, substitute y v term)
   | DLS (x, y, f, l) ->
       DLS (substitute ~bounded x v term, substitute ~bounded y v term,
@@ -375,10 +440,16 @@ let rec normalise phi =
   if equal phi' phi then phi'
   else normalise phi'
 
+let get_root = function
+  | PointsTo (Var x, _) | LS (Var x, _) | DLS (Var x, _, _, _)  | NLS (Var x, _, _) -> x
+
+let get_sink = function
+  | LS (_, Var y) | DLS (_, _, _, Var y)  | NLS (_, Var y, _) -> y
+
 (** What exactly is the chunk size of single variable? *)
 (** TODO: quantifiers *)
 let rec chunk_size = function
-  | Eq _ | Distinct _ | Emp | PointsTo _ | LS _ | DLS _ | SkipList _ | Var _ -> 1
+  | Eq _ | Distinct _ | Emp | PointsTo _ | LS _ | DLS _ | NLS _ | SkipList _ | Var _ -> 1
   | Star psis -> BatList.sum @@ List.map chunk_size psis
   | Septraction (_, psi2) -> chunk_size psi2
   | And (psi1, psi2) | Or (psi1, psi2) | GuardedNeg (psi1, psi2) ->
@@ -429,6 +500,10 @@ let find_by_id phi id = find_by_id phi phi id
 
 (** ==== Fragment classification ==== *)
 
+let is_predicate phi = match phi with
+  | LS _ | DLS _ | NLS _ -> true
+  | _ -> false
+
 let rec is_negation_free phi = match node_type phi with
   | Var _ | Operator _ -> true
   | Connective terms ->
@@ -476,12 +551,8 @@ let rec has_unique_shape phi = match phi with
 
 let rec is_atomic phi = match node_type phi with
   | Var _ -> true
-  | Operator _ ->
-    begin match phi with
-      | LS _ | DLS _ | SkipList _ -> false
-      | _ -> true
-    end
-  | Connective terms -> List.for_all is_atomic terms
+  | Operator _ -> is_positive phi && not @@ (is_predicate phi)
+  | Connective terms -> is_positive phi && List.for_all is_atomic terms
   | Quantifier _ -> false
 
 let rec is_quantifier_free phi = match node_type phi with
@@ -544,7 +615,7 @@ let as_symbolic_heap phi =
   | psi when is_atom psi -> [], [psi]
 
 let rec has_unique_footprint = function
-  | Eq _ | Distinct _ | Pure _ | Emp | PointsTo _ | LS _ | DLS _ | SkipList _ -> true
+  | Eq _ | Distinct _ | Pure _ | Emp | PointsTo _ | LS _ | DLS _ | NLS _ | SkipList _ -> true
   | And (f1, f2) -> has_unique_footprint f1 || has_unique_footprint f2
   | GuardedNeg (f1, f2) -> has_unique_footprint f1
   | Star psis -> List.for_all has_unique_footprint psis
@@ -562,6 +633,29 @@ let get_vars ?(with_nil=true) phi =
   then vars
   else BatList.remove vars Variable.nil
 
+let get_vars_sort sort phi =
+  get_vars phi
+  |> BatList.filter (Variable.has_sort sort)
+
+let rec get_roots sort = function
+  | Pure  _ | Emp | Eq _ | Distinct _ -> Variable.Set.empty
+  | PointsTo (Var x, _) | LS (Var x, _) | NLS (Var x, _, _) -> Variable.Set.singleton x
+  | DLS (Var x, Var x', _, _) -> Variable.Set.of_list [x; x']
+  | And (psi1, psi2)
+  | GuardedNeg (psi1, psi2)
+  | Or (psi1, psi2) -> Variable.Set.union (get_roots sort psi1) (get_roots sort psi2)
+  | Star psis ->
+    List.fold_left
+      (fun acc psi -> Variable.Set.union acc (get_roots sort psi))
+      Variable.Set.empty psis
+
+let get_roots sort phi = Variable.Set.elements @@ get_roots sort phi
+
+let get_loc_sorts phi =
+  get_vars phi
+  |> List.map Variable.get_sort
+  |> BatList.unique ~eq:Sort.equal
+
 let rec map fn phi =
   let map = map fn in
   match phi with
@@ -569,7 +663,7 @@ let rec map fn phi =
   | Var _ | Pure _ -> fn phi
   | Eq xs -> fn @@ Eq (List.map fn xs)
   | Distinct xs -> fn @@ Distinct (List.map fn xs)
-  | PointsTo (x, ys) -> fn @@ PointsTo (fn x, List.map fn ys)
+  | PointsTo (x, d) -> fn @@ PointsTo (fn x, Struct.map (fun x -> match fn (Var x) with Var x -> x) d)
   | LS (x, y) -> fn @@ LS (fn x, fn y)
   | DLS (x, y, f, l) -> fn @@ DLS (fn x, fn y, fn f, fn l)
   | NLS (x, y, z) -> fn @@ NLS (fn x, fn y, fn z)
@@ -608,6 +702,7 @@ let rec select_subformulae predicate phi =
     | Quantifier (_, psi) -> select_subformulae predicate psi
   in
   if predicate phi then phi :: acc else acc
+
 
 let rename_var phi old_name new_name =
   map_vars

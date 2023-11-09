@@ -3,7 +3,7 @@
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
 open SSL
-open SSL.Node
+open SSL.Struct
 
 module V = Variable
 
@@ -48,7 +48,9 @@ module AST = struct
       | DLS (v1, v2, v3, v4) -> Format.asprintf "dls(%a, %a, %a, %a)"
                                   pp v1 pp v2 pp v3 pp v4
       | NLS (x, y, z) -> Format.asprintf "nls(%a, %a, %a)" pp x pp y pp z
-      | PointsTo (v1, vs) -> Format.asprintf "%a ↦ %s" pp v1 (show_seq vs)
+      | PointsTo (x, LS_t n) -> Format.asprintf "%a ↦ %a" pp x V.pp n
+      | PointsTo (x, DLS_t (n, p)) -> Format.asprintf "%a ↦ <%a, %a>" pp x V.pp n V.pp p
+      | PointsTo (x, NLS_t (t, n)) -> Format.asprintf "%a ↦ <%a, %a>" pp x V.pp t V.pp n
 
       | Eq [x; y] -> Format.asprintf "%a = %a" pp x pp y
       | Eq xs -> Format.asprintf "equals(%s)" (String.concat ", " @@ List.map show xs)

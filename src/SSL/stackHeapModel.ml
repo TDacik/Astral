@@ -1,38 +1,84 @@
-(* Representation of stack-heap models.
- *
- * Stack-heap model is represented by a pair of maps:
- *   - s : Vars -> Int,
- *   - h : Int  -> Int.
- *
- * Alternatively, the model can be accessed as an
- * oriented graph where vertices are heap locations
- * labeled by set of names.
- *
- * A model also contains additional certificates:
- *  - footprints of positive subformulas
- *  - auxiliary heaps
+(* Stack-heap models of separation logic.
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
-open Graph
+(** Representation of (sorted) memory locations. *)
+module Location = struct
 
-module Location = Int
+  type t = Int.t * Sort.t
+  [@@deriving compare, equal]
 
-module Footprint = struct
-  include Set.Make(Int)
-  let show fp =
-    let names = fold (fun x acc -> Format.asprintf "%d" x :: acc) fp [] in
-    "{" ^ String.concat ", " names ^ "}"
+  let mk n sort = (n, sort)
+
+  let mk_ls n = (n, Sort.loc_ls)
+
+  let mk_dls n = (n, Sort.loc_dls)
+
+  let mk_nls n = (n, Sort.loc_nls)
+
+  let mk_nil n = (n, Sort.loc_nil)
+
+  let get_sort = snd
+
+  let show (loc, _) = Format.asprintf "%d" loc
+
+  let show_with_sort (loc, sort) = Format.asprintf "%d : %s" loc (Sort.show sort)
+
+  module Self = struct
+    type nonrec t = t
+    let show = show
+  end
+
+  include Datatype.Printable(Self)
+
 end
 
-module LocationTuple = struct
-  type t = Location.t list
-  let compare = List.compare Location.compare
-  let equal t1 t2 = if compare t1 t2 = 0 then true else false
-  let map = List.map
+module Footprint = struct
+  include Set.Make(Location)
+
+  let show fp =
+    elements fp
+    |> List.map Location.show
+    |> String.concat ", "
+    |> (fun set -> "{" ^ set ^ "}")
+
+  module Self = struct
+    type nonrec t = t
+    let show = show
+  end
+
+  include Datatype.Printable(Self)
+
+  end
+
+module Value = struct
+
+  type t =
+    | LS of Location.t
+    | DLS of Location.t * Location.t
+    | NLS of Location.t * Location.t
+  [@@deriving compare, equal]
+
+  let mk_ls n = LS n
+
+  let mk_dls ~next ~prev = DLS (next, prev)
+
+  let mk_nls ~next ~top = NLS (next, top)
+
   let show = function
-    | [next] -> string_of_int next
-    | locs -> "<" ^ (String.concat ", " @@ List.map string_of_int locs) ^ ">"
+    | LS n -> Location.show n
+    | DLS (n, p) -> Format.asprintf "<n: %s, p: %s>" (Location.show n) (Location.show p)
+    | NLS (n, t) -> Format.asprintf "<n: %s, t: %s>" (Location.show n) (Location.show t)
+
+  module Self = struct
+    type nonrec t = t
+    let show = show
+    let compare = compare
+  end
+
+  include Datatype.Printable(Self)
+  include Datatype.Comparable(Self)
+
 end
 
 module Stack = struct
@@ -41,13 +87,6 @@ module Stack = struct
   (* Fix monomorphic type *)
   type nonrec t = Location.t t
 
-  let find var stack =
-    try find var stack
-    with Not_found ->
-      failwith (Format.asprintf
-        "Internal error: Stack image of variable %a is undefined" SSL.Variable.pp var
-      )
-
   let show stack =
     bindings stack
     |> List.map (fun (s, sx) -> Format.asprintf "%s -> %d" (SSL.Variable.show s) sx)
@@ -55,8 +94,8 @@ module Stack = struct
 
   let to_smtlib stack =
     bindings stack
-    |> List.map (fun (x, sx) -> Format.asprintf "(define-const %s Loc %d)"
-        (SSL.Variable.show x) sx)
+    |> List.map (fun (x, sx) -> Format.asprintf "(define-const %s Loc %s)"
+        (SSL.Variable.show x) (Location.show sx))
     |> String.concat "\n"
 
 end
@@ -65,20 +104,41 @@ module Heap = struct
   include Map.Make(Location)
 
   (* Fix monomorphic type *)
-  type nonrec t = LocationTuple.t t
+  type nonrec t = Value.t t
 
-  let add_next x y heap = add x [y] heap
+  let add_ls heap ~src ~next = add src (Value.mk_ls next) heap
+
+  let add_dls heap ~src ~next ~prev = add src (Value.mk_dls ~next ~prev) heap
+
+  let add_nls heap ~src ~next ~top = add src (Value.mk_nls ~next ~top) heap
+
+  (** Partial field access *)
+
+  let find_field field x heap = match field, find x heap with
+    | SSL.Field.Next, Value.LS n -> n
+    | SSL.Field.Next, Value.DLS (n, _) -> n
+    | SSL.Field.Next, Value.NLS (n, _) -> n
+    | SSL.Field.Prev, Value.DLS (_, p) -> p
+    | SSL.Field.Top,  Value.NLS (_, t) -> t
 
   let show heap =
     bindings heap
-    |> List.map (fun (loc, vals) -> Format.asprintf "%d -> %s" loc (LocationTuple.show vals))
+    |> List.map (fun (loc, vals) ->
+       Format.asprintf "%s -> %s" (Location.show loc) (Value.show vals))
     |> String.concat "\n"
 
   let to_smtlib heap =
     bindings heap
     |> List.map (fun (loc, vals) ->
-        Format.asprintf "(define-const h(%d) Loc %s)" loc (LocationTuple.show vals))
+       Format.asprintf "(define-const h(%s) Loc %s)" (Location.show loc) (Value.show vals))
     |> String.concat "\n"
+
+  module Self = struct
+    type nonrec t = t
+    let show = show
+  end
+
+  include Datatype.Printable(Self)
 
 end
 
@@ -91,7 +151,7 @@ type t = {
   heaps : Heap.t SSL.Map.t;             (* Mapping of sub-formulae to their heaps *)
 }
 
-let empty () = {
+let empty = {
   stack = Stack.empty;
   heap = Heap.empty;
 
@@ -113,36 +173,24 @@ let get_heap sh = sh.heap
 
 let get_domain sh = Footprint.of_list @@ List.map fst @@ Heap.bindings sh.heap
 
-let get_footprint sh psi =
-  try SSL.Map.find psi sh.footprints
-  with Not_found ->
-    failwith (Format.asprintf
-      "Internal error: No footprint certificate for sub-formula %a" SSL.pp psi
-    )
+let get_footprint sh psi = SSL.Map.find psi sh.footprints
 
 (** Relevant only for septraction sub-formulae *)
-let get_subformula_model sh psi =
-  try {sh with heap = SSL.Map.find psi sh.heaps}
-  with Not_found ->
-    failwith (Format.asprintf
-      "Internal error: No witness heap for sub-formula %a" SSL.pp psi
-    )
+let get_subformula_model sh psi = {sh with heap = SSL.Map.find psi sh.heaps}
 
 let stack_inverse sh loc =
   Stack.fold
     (fun x loc' acc ->
-      if Int.equal loc loc'
+      if Location.equal loc loc'
       then SSL.Variable.show x :: acc else acc
   ) sh.stack []
 
 (** {2 Pretty printers} *)
 
-let fp_to_string fp = String.concat ", " @@ List.map Int.to_string @@ Footprint.elements fp
-
 let show sh =
   let str =  "Stack:\n" in
   let str = Stack.fold
-    (fun k v acc -> Format.asprintf "%s\t%s -> %d\n" acc (SSL.Variable.show k) v)
+    (fun k v acc -> Format.asprintf "%s\t%s -> %s\n" acc (SSL.Variable.show k) (Location.show v))
     sh.stack
     str
   in
@@ -151,7 +199,7 @@ let show sh =
   let str = str ^ "\nFootprints:\n" in
   SSL.Map.fold
     (fun psi fp acc ->
-      Format.asprintf "%s\t%a -> {%s}\n" acc SSL.pp psi (fp_to_string fp)
+      Format.asprintf "%s\t%a -> {%s}\n" acc SSL.pp psi (Footprint.show fp)
     ) sh.footprints str
   |> SSL.Map.fold
     (fun psi heap acc ->
@@ -160,13 +208,21 @@ let show sh =
 
 let print sh =
   Format.printf "Stack:\n";
-  Stack.iter (fun k v -> Format.printf "%s -> %d\n" (SSL.Variable.show k) v) sh.stack;
+  Stack.iter (fun k v -> Format.printf "%s -> %s\n" (SSL.Variable.show k) (Location.show v)) sh.stack;
   Format.printf "Heap (next):\n";
-  Heap.iter (fun k vals -> Format.printf "%d -> %s\n" k (LocationTuple.show vals)) sh.heap;
+  Heap.iter (fun k vals -> Format.printf "%s -> %s\n" (Location.show k) (Value.show vals)) sh.heap;
   Format.printf "Footprints:\n";
   SSL.Map.iter
-    (fun psi fp -> Format.printf "%a -> {%s}\n" SSL.pp psi (fp_to_string fp)) sh.footprints
+    (fun psi fp -> Format.printf "%a -> {%s}\n" SSL.pp psi (Footprint.show fp)) sh.footprints
 
+module Self = struct
+  type nonrec t = t
+  let show = show
+end
+
+include Datatype.Printable(Self)
+
+(** TODO: sort declaration *)
 let to_smtlib sh =
   Format.asprintf "(declare-sort Loc 0)\n%s\n%s"
     (Stack.to_smtlib sh.stack)
@@ -174,17 +230,16 @@ let to_smtlib sh =
 
 (* === Graph representation of (s,h) model === *)
 
+open Graph
+
 module Vertex = struct
-  include Int
+  include Location
   let hash = Hashtbl.hash
-  let show loc = Format.asprintf "%d" loc
 end
 
 module EdgeLabel = struct
-  type t = None | Next | Prev [@@deriving compare, equal]
-
-  let default = None
-  let show = function Next -> "next" | Prev -> "prev"
+  include SSL.Field
+  let default = SSL.Field.Next
 end
 
 module HeapGraph = struct
@@ -204,13 +259,13 @@ module HeapGraph = struct
                         let zero = 0
                       end)
 
-  let has_path g u v =
+  let has_path g ~src ~dst =
     let path_checker = PathChecker.create g in
-    PathChecker.check_path path_checker u v
+    PathChecker.check_path path_checker src dst
 
-  let get_path g u v =
+  let get_path g ~src ~dst =
     try
-      let path, _ = Dijkstra.shortest_path g u v in
+      let path, _ = Dijkstra.shortest_path g src dst in
       List.map E.src path
 
     (* If there is no path, return empty *)
@@ -224,33 +279,38 @@ module HeapGraph = struct
 
       let graph_attributes _ = []
       let default_vertex_attributes v = []
-      let vertex_name v = Int.to_string v
+      let vertex_name v = Location.show v
       let vertex_attributes v =
-        [`Label (Format.asprintf "%d : %s" v (String.concat "," (stack_inverse (Option.get !model) v)))]
+        [`Label (Format.asprintf "%s : %s" (Location.show v) (String.concat "," (stack_inverse (Option.get !model) v)))]
 
       let get_subgraph _ = None
       let edge_attributes e = [
-        `Style (match E.label e with Next -> `Solid | Prev -> `Dashed);
+        `Style (match E.label e with Next -> `Solid | Prev -> `Dashed | Top -> `Bold);
       ]
       let default_edge_attributes _ = []
     end)
 
 end
 
-let update x vals g = match vals with
-  | [next] -> HeapGraph.add_edge_e g (x, Next, next)
-  | [next; prev] ->
-      let g = HeapGraph.add_edge_e g (x, Prev, prev) in
-      HeapGraph.add_edge_e g (x, Next, next)
+let update x y g = match y with
+  | Value.LS n-> HeapGraph.add_edge_e g (x, Next, n)
+  | Value.DLS (n, p) ->
+    let g = HeapGraph.add_edge_e g (x, Next, n) in
+    HeapGraph.add_edge_e g (x, Prev, p)
+  | Value.NLS (n, t) ->
+    let g = HeapGraph.add_edge_e g (x, Next, n) in
+    HeapGraph.add_edge_e g (x, Top, t)
 
 let get_heap_graph sh =
   HeapGraph.empty
   |> Stack.fold (fun _ loc g -> HeapGraph.add_vertex g loc) sh.stack
   |> Heap.fold update sh.heap
 
-let has_path sh x y = HeapGraph.has_path (get_heap_graph sh) x y
+let domain sh = Footprint.of_list @@ List.map fst @@ Heap.bindings sh.heap
 
-let get_path sh x y = HeapGraph.get_path (get_heap_graph sh) x y
+let has_path sh ~src ~dst = HeapGraph.has_path (get_heap_graph sh) ~src ~dst
+
+let get_path sh ~src ~dst = HeapGraph.get_path (get_heap_graph sh) ~src ~dst
 
 let output_graph filename sh =
   let channel = open_out filename in

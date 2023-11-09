@@ -8,13 +8,9 @@ open Datatype_sig
 module Variable : sig
   include VARIABLE
 
-  val mk : string -> t
-
-  val mk_sort : string -> Sort.t -> t
-
-  val mk_fresh : string -> t
-
   val nil : t
+
+  val is_loc : t -> bool
 
   val is_nil : t -> bool
 
@@ -24,13 +20,38 @@ module Variable : sig
 
 end
 
+module Field : sig
+
+  type t =
+    | Next
+    | Prev
+    | Top
+    [@@deriving compare, equal]
+
+  include PRINTABLE with type t := t
+
+end
+
+module Struct : sig
+
+  type t =
+    | LS_t of Variable.t
+    | DLS_t of Variable.t * Variable.t  (* next, prev *)
+    | NLS_t of Variable.t * Variable.t  (* top, next *)
+  [@@deriving compare, equal]
+
+  val vars : t -> Variable.t list
+
+end
+
+
 type t =
   | Var of Variable.t
   | Pure of SMT.Term.t
   | Emp
   | Eq of t list
   | Distinct of t list
-  | PointsTo of t * t list
+  | PointsTo of t * Struct.t
   | LS of t * t
   | DLS of t * t * t * t
   | NLS of t * t * t
@@ -115,10 +136,10 @@ val normalise : t -> t
 
 val mk_nil : unit -> t
 
-val mk_var : string -> t
+val mk_var : string -> Sort.t -> t
 (** Create SSL term consisting of a location variable with given name. *)
 
-val mk_fresh_var : string -> t
+val mk_fresh_var : string -> Sort.t -> t
 (** Create SSL term consisting of a fresh location variable with given name. *)
 
 val mk_eq : t -> t -> t
@@ -131,11 +152,17 @@ val mk_distinct : t -> t -> t
 
 val mk_distinct_list : t list -> t
 
+val mk_pto_struct : t -> Struct.t -> t
+(** Low-level pointer constructor *)
+
 val mk_pto : t -> t -> t
 (** Create a term representing a pointer with a single target location. *)
 
-val mk_pto_seq : t -> t list -> t
-(** Create a term representing a pointer with a sequence of target locations. *)
+val mk_pto_dls : t -> t -> t -> t
+(** mk_pto_dls x next prev *)
+
+val mk_pto_nls : t -> t -> t -> t
+(** mk_pto_dls x top next *)
 
 val mk_ls : t -> t -> t
 
@@ -206,7 +233,17 @@ val iter_on_subformulas : (t -> unit) -> t -> unit
 
 val fold : (t -> 'a -> 'a) -> t -> 'a -> 'a
 
+val get_root : t -> Variable.t
+
+val get_sink : t -> Variable.t
+
 val get_vars : ?with_nil:bool -> t -> Variable.t list
+
+val get_vars_sort : Sort.t -> t -> Variable.t list
+
+val get_roots : Sort.t -> t -> Variable.t list
+
+val get_loc_sorts : t -> Sort.t list
 
 val map : (t -> t) -> t -> t
 
