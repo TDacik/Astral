@@ -16,33 +16,30 @@ module Make (Convertor : CONVERTOR_BASE) = struct
   let declarations input =
     let vars =
       List.map Convertor.declare_var input.vars
+      |> List.filter (fun s -> s <> "")
       |> String.concat "\n"
     in
     let sorts =
       List.map SSL.Variable.get_sort input.vars
-      |> List.cons Sort.Loc
       |> List.sort_uniq Sort.compare
       |> List.map Convertor.declare_sort
       |> String.concat "\n"
     in
-    Format.asprintf "%s%s%s\n%s"
-      (Convertor.declare_ls)
-      (Convertor.declare_dls)
+    Format.asprintf "%s\n%s"
       sorts
       vars
 
   let convert_formula input =
-    if Convertor.supports_sat then Convertor.convert_assert input.phi
-    else Convertor.convert_assert (Input.sat_to_entl input).phi
+    if Convertor.supports_sat then Convertor.convert_benchmark input.phi
+    else Convertor.convert_benchmark (Input.transform_to_entl input).phi
 
   let convert input =
-    Format.asprintf ("%s\n\n%s\n\n%s\n\n%s\n\n%s\n\n%s")
+    Format.asprintf ("%s\n\n%s\n\n%s\n\n%s\n\n%s")
       header
       (Convertor.set_status input)
       (declarations input)
       (Convertor.global_decls input)
       (convert_formula input)
-      Convertor.command
 
   let dump file input =
     let converted = convert input in

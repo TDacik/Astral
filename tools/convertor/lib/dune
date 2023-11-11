@@ -5,3 +5,5 @@
 
   (modules_without_implementation convertor_sig)
 )
+
+(include_subdirs unqualified)

@@ -3,6 +3,9 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
+open SSL
+open SSL.Node
+
 open Context
 open Convertor_utils
 
@@ -15,36 +18,34 @@ module Convertor = struct
   let supports_sat = true
   let supports_variadic_operators = true
   let precise_semantics = false
-  let supports_ls = false
-  let supports_dls = false
-
-  let comment_prefix = ";;"
 
   let global_decls context =
-    let dom = Sort.get_dom_sort context.type_env.heap_sort in
-    let range = Sort.get_range_sort context.type_env.heap_sort in
+    let dom = Sort.get_dom_sort context.raw_input.heap_sort in
+    let range = Sort.get_range_sort context.raw_input.heap_sort in
     F.asprintf "(declare-heap (%s %s))" (Sort.show dom) (Sort.show range)
-
-  let set_status context =
-    F.asprintf "(set-info :status %s)" (Context.show_expected_status context)
-
-  let declare_sort sort =
-    Format.asprintf "(declare-sort %s 0)" (Sort.show sort)
 
   let declare_var var =
     if SSL.Variable.is_nil var then ""
     else Format.asprintf "(declare-const %s Loc)" (SSL.Variable.show var)
 
+  let declare_sort sort =
+    Format.asprintf "(declare-sort %s 0)" (Sort.show sort)
+
+  let comment_prefix = ";;"
+
+  let set_status context =
+    F.asprintf "(set-info :status %s)" (Context.show_expected_status context)
+
   let convert_var var =
     if SSL.Variable.is_nil var then "(as sep.nil Loc)"
     else SSL.Variable.show var
 
-  let declare_ls = ""
-  let declare_dls = ""
-
   let convert_binders xs =
     List.map
-      (fun x -> match x with SSL.Var (name, sort) -> F.asprintf "(%s %a)" name Sort.pp sort) xs
+      (fun x -> match x with
+        | SSL.Var (name, sort) -> F.asprintf "(%s %a)" name Sort.pp sort
+        | _ -> assert false
+      ) xs
     |> String.concat " "
 
   let rec convert = function
@@ -54,7 +55,7 @@ module Convertor = struct
     | SSL.Not f ->  F.asprintf "(not %s)\n" (convert f)
     | SSL.GuardedNeg (f1, f2) ->  F.asprintf "(and %s (not %s))\n" (convert f1) (convert f2)
     | SSL.Star fs -> "(sep " ^ (List.map convert fs |> String.concat " ") ^ ")"
-    | SSL.PointsTo (v1, [v2]) -> F.asprintf "(pto %s %s)\n" (convert v1) (convert v2)
+    | SSL.PointsTo (x, LS_t n) -> F.asprintf "(pto %s %s)\n" (convert x) (convert_var n)
     | SSL.Eq [v1; v2] -> F.asprintf "(= %s %s)\n" (convert v1) (convert v2)
     | SSL.Distinct [v1; v2] -> F.asprintf "(distinct %s %s)\n" (convert v1) (convert v2)
     | SSL.Exists (xs, psi) -> F.asprintf "(exists (%s) %s)" (convert_binders xs) (convert psi)
@@ -67,9 +68,7 @@ module Convertor = struct
 
     | other -> raise @@ NotSupported (SSL.node_name other)
 
-  let convert_assert phi = F.asprintf "(assert %s)" (convert phi)
-
-  let command = "(check-sat)"
+  let convert_benchmark phi = F.asprintf "(assert %s)\n(check-sat)" (convert phi)
 
 end
 

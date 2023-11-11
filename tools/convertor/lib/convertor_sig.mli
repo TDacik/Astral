@@ -25,18 +25,7 @@ module type CONVERTOR_BASE = sig
   (** True if the tool uses precise semantics of (dis)equalities (they can be satisfied in empty
       heaps only). *)
 
-  val supports_ls : bool
-  (** True if the tool supports singly-linked lists. *)
-
-  val supports_dls : bool
-  (** True if the tool supports doubly-linked lists. *)
-
-
-  (** {2 Conversion functions} *)
-
-  val comment_prefix : string
-
-  val set_status : Context.t -> string
+  (** {2 Declarations} *)
 
   val global_decls : Context.t -> string
 
@@ -44,17 +33,19 @@ module type CONVERTOR_BASE = sig
 
   val declare_sort : Sort.t -> string
 
-  val declare_ls : string
+  (** {2 Metadata} *)
 
-  val declare_dls : string
+  val comment_prefix : string
+
+  val set_status : Context.t -> string
+
+  (** {2 Conversion functions} *)
 
   val convert_var : SSL.Variable.t -> string
 
   val convert : SSL.t -> string
 
-  val convert_assert : SSL.t -> string
-
-  val command : string
+  val convert_benchmark : SSL.t -> string
 
 end
 
