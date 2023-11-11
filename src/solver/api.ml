@@ -2,18 +2,20 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
+module Input = ParserContext
+
 let solve phi vars =
   (* Create input *)
   let input =
-    Context.empty
-    |> Context.add_assertion phi
-    |> Context.add_variables vars
+    let input = Input.empty in
+    let input = Input.add_assertion input phi in
+    Input.add_vars input vars
   in
   let result = Solver.solve input in
   match Option.get result.status with
   | `Sat -> `Sat (Option.get result.model)
   | `Unsat -> `Unsat
-  | `Unknown -> `Unknown
+  | `Unknown reason -> `Unknown reason
 
 let check_entl lhs rhs =
   let phi = SSL.mk_gneg lhs rhs in
