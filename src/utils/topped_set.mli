@@ -15,6 +15,7 @@ module Lift (Set : Set.S) : sig
 
   val of_list : Set.elt list -> t
 
+  val is_concrete : t -> bool
 
   (** Convertors *)
 

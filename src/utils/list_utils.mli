@@ -2,6 +2,8 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
+val index_of_cmp : ('a -> 'a -> int) -> 'a -> 'a list -> int option
+
 val all_equal : ('a -> 'a -> bool) -> 'a list -> bool
 (** Check whether all elements of list are equal w.r.t. supplied equality function. *)
 
@@ -16,3 +18,5 @@ val split3 : ('a * 'b * 'c) list -> 'a list * 'b list * 'c list
 (** Convert list of tripples to a tripple of lists *)
 
 val map3 : ('a -> 'b -> 'c -> 'd) -> 'a list -> 'b list -> 'c list -> 'd list
+
+val zip3 : 'a list -> 'b list -> 'c list -> ('a * 'b * 'c) list
