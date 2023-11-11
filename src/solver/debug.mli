@@ -4,9 +4,17 @@
 
 val init : unit -> unit
 
+(** {2 Debug on stderr} *)
+
+val out_input : Context.t -> unit
+
+(** {2 ...} *)
+
 val formula : ?suffix:string -> SSL.t -> unit
 
-val context : Translation_context.t -> unit
+val input : ParserContext.t -> unit
+
+val context : Context.t -> unit
 
 val translated : ?suffix:string -> SMT.Term.t -> unit
 
@@ -21,3 +29,5 @@ val backend_input : string -> unit
 val backend_simplified : string -> unit
 
 val backend_model : string -> unit
+
+val backend_call : string -> unit
