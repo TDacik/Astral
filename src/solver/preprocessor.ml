@@ -4,88 +4,88 @@
 
 open SSL
 
-(** If phi is positive, remove all variables that does not appear in phi *)
-let normalise_vars phi vars =
-  let phi = Simplifier.simplify phi in (* TODO: workaround for SL-COMP *)
-  if SSL.is_positive phi || Options.ignore_unused_vars () then
+(** ==== 1st phase ==== *)
+
+(** It is crucial that this pass is run in the first phase because if affects fragment
+    classification which is needed to compute bounds. *)
+let rewrite_semantics phi = match Options_base.semantics () with
+  | `NotSpecified -> phi
+  | `Precise -> phi
+  | `Imprecise ->
+    let phi = PreciseToImprecise.to_precise phi in
+    let _ = Debug.formula ~suffix:"1.0-to_precise" phi in
+    phi
+
+let broom_preprocessing phi =
+  (* TODO: Remove dependency on Options *)
+  if Options_base.broom_preprocessing ()
+  then
+    let sl_graph = SL_graph.compute phi in
+    let phi = BroomPreprocessing.apply sl_graph phi in
+    Debug.formula ~suffix:"0-broom_preprocessing" phi;
+    phi
+  else phi
+
+let first_phase context =
+  let phi, vars = Context.get_input context in
+
+  let phi = broom_preprocessing phi in
+
+  let phi = SSL.normalise phi in
+  Debug.formula ~suffix:"1-normalisation" phi;
+
+  let phi = rewrite_semantics phi in
+  Debug.formula ~suffix:"2-semantics_rewriting" phi;
+
+  Context.set_preprocessed context phi vars
+
+(** ==== 2nd phase ==== *)
+
+let remove_useless_vars phi vars =
+  (* TODO: Remove dependency on Options *)
+  if SSL.is_positive phi || Options_base.ignore_unused_vars () then
     let phi_vars = SSL.get_vars phi in
     let vars = List.filter (fun v -> List.mem v phi_vars) vars in
     if List.mem Variable.nil phi_vars then Variable.nil :: vars
     else vars
   else vars
 
-let rewrite_semantics phi = match Options.semantics () with
-  | `NotSpecified -> phi
-  | `Precise -> phi
-  (*
-    let phi = PreciseToImprecise.to_precise phi in
-    let _ = Debug.formula ~suffix:"1.0-to_precise" phi in
-     phi
-  *)
-  | `Imprecise ->
-    let phi = PreciseToImprecise.to_precise phi in
-    let _ = Debug.formula ~suffix:"1.0-to_precise" phi in
+let antiprenexing phi =
+ (* TODO: Remove dependency on Options *)
+  if Options_base.antiprenexing () then
+    let phi = Antiprenexing.apply phi in
+    let phi = Simplifier.simplify phi in
+    Debug.formula phi ~suffix:"5-antiprenexing";
     phi
+  else phi
 
-let normalise phi vars =
-  let phi = SSL.normalise phi in
-  let phi = rewrite_semantics phi in
-  let vars = normalise_vars phi vars in
-  (phi, vars)
+let second_phase_aux aggresive context =
+  let phi, vars = Context.get_input context in
 
-let preprocess context =
-  (* Original formula *)
-  let phi, vars = Context.get_raw_input context in
-  Debug.formula ~suffix:"1-original" phi;
+  let vars = remove_useless_vars phi vars in
 
-  (* Broom preprocessing - this phase needs to be before folding and normalisation to do not
-     break iffs introduced by Broom. *)
-  let phi =
-    if Options.broom_preprocessing ()
-    then
-      let g = SL_graph.compute phi in
-      let phi = BroomPreprocessing.apply g phi in
-      let _ = Debug.formula phi ~suffix:"1.1-after_broom" in
-      phi
-    else phi
-  in
-
-  (* Folding of pure terms *)
   let phi = PurePreprocessing.apply phi in
-  Debug.formula ~suffix:"2-pure_folding" phi;
+  Debug.formula ~suffix:"3-pure_folding" phi;
 
-  (* Normalisation *)
-  let phi, vars = normalise phi vars in
-  Debug.formula ~suffix:"3-normalisation" phi;
-
-  let g =
-    if Options.compute_sl_graph ()
-    then SL_graph.compute phi (*|> MustAllocations.refine_graph phi*)
-    else SL_graph.empty
-  in
-
-  (* Simplification I *)
   let phi = Simplifier.simplify phi in
-  Debug.formula phi ~suffix:"4-simplification1";
+  Debug.formula phi ~suffix:"4-simplification";
 
-  (* Antiprenexing *)
-  let phi = Antiprenexing.apply phi in
+  let phi = antiprenexing phi in
   Debug.formula phi ~suffix:"5-antiprenexing";
 
-  (* Simplification II *)
-  let phi = Simplifier.simplify (*@@ EqualityRewritter.apply g*) phi in
-  Debug.formula phi;
+  let phi, vars =
+    if aggresive then
+      let phi,vars = AggresiveSimplifier.simplify context.sl_graph phi in
+      Debug.formula phi ~suffix:"6-aggresive-simp";
+      phi, vars
+    else phi, vars
+  in
 
-  Context.set_preprocessed phi vars context, g
+  Context.set_preprocessed context phi vars
 
-let preprocess context =
-  if Options.preprocessing ()
-  then preprocess context
-  else begin
-    (* Only basic preprocessing *)
-    let phi, vars = Context.get_raw_input context in
-    Debug.formula ~suffix:"1-original" phi;
-    let phi, vars = normalise phi vars in
-    Debug.formula phi;
-    Context.set_preprocessed phi vars context, SL_graph.empty
-  end
+let second_phase context = match Options_base.preprocessing () with
+  | `None -> context
+  | `Default -> second_phase_aux false context
+  | `Aggresive -> second_phase_aux true context
+
+
