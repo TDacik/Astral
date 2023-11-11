@@ -16,16 +16,13 @@ open Std.Term
 open Std.Statement
 
 let rec parse_sort sort = match sort.term with
-  | Builtin b ->
-    begin match b with
-      | Bool -> Sort.Bool
-      | Int -> Sort.Int
-    end
+  | Builtin Bool -> Sort.Bool
+  | Builtin Int -> Sort.Int
   | App (t1, [t2]) -> Sort.Set (parse_sort t2)
   | App (t1, [t2; t3]) -> Sort.Array (parse_sort t2, parse_sort t3)
   | Symbol id ->
     begin match Format.asprintf "%a" Std.Id.print id with
-    | "Loc" -> Sort.Finite ("Loc", [])
+    | "Locations" -> Sort.Finite ("Locations", []) (* TODO: this is very fragile *)
     | other ->
       (* TODO: properly! *)
       let n = int_of_string @@ BatString.chop ~l:10 ~r:1 other in
