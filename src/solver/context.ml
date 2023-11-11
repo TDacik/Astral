@@ -1,66 +1,52 @@
-(* Formula metadata
+(* Representation of input formulae with additional data.
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-type status = [ `Sat | `Unsat | `Unknown ]
+type status = [ `Sat | `Unsat | `Unknown of string ]
+
+let negate_status = function
+  | `Sat -> `Unsat
+  | `Unsat -> `Sat
+  | `Unknown reason -> `Unknown reason
+
+let status_is_unknown = function
+  | `Sat | `Unsat -> false
+  | `Unknown _ -> true
 
 type t = {
-  phi_orig : SSL.t list;           (* Conjunction of top-level assertions *)
-  vars_orig : SSL.Variable.t list; (* List of all declared location variables *)
-  smt_vars : SSL.Variable.t list;
+  raw_input : ParserContext.t;     (* Raw parsed input *)
 
   phi : SSL.t;                     (* SSL formula after preprocessing *)
   vars : SSL.Variable.t list;      (* Location variables after preprocessing *)
 
-  type_env : TypeEnvironment.t;
+  expected_status : status;        (* This may differ from raw_input.status *)
 
-  (* Metadata *)
+  (* Bounds *)
   sl_graph : SL_graph.t;
-  stack_bound : int * int;
-  location_bound : int;
-
-  (* Solver options *)
-  check_sat : bool;
-  get_model : bool;
-  get_unsat_core : bool;
+  bounds : Bounds.t;
 
   (* Statistics *)
-  size : int option;
-
-  (* Expected values *)
-  expected_status : status;
-  expected_location_bound : int option;
+  size : Int.t option;
 
   (* Results *)
   status : status option;
   model : StackHeapModel.t option;
   unsat_core : SSL.t list option;
   reason_unknown : string option;
-
 }
 
-let empty = {
-  phi_orig = [];
-  vars_orig = [];
-  smt_vars = [];
+let init input = {
+  raw_input = input;
 
-  phi = SSL.mk_true ();
-  vars = [];
+  phi = ParserContext.get_phi input;
+  vars = ParserContext.get_sl_vars input;
 
-  type_env = TypeEnvironment.empty;
+  expected_status = input.expected_status;
 
   sl_graph = SL_graph.empty;
-  stack_bound = (0, 0);
-  location_bound = 0;
-
-  check_sat = false;
-  get_model = false;
-  get_unsat_core = false;
+  bounds = Bounds.empty;
 
   size = None;
-
-  expected_status = `Unknown;
-  expected_location_bound = None;
 
   status = None;
   model = None;
@@ -68,74 +54,55 @@ let empty = {
   reason_unknown = None;
 }
 
-(** Get input formula before preprocessing *)
-let get_raw_input context =
-  let phi = SSL.mk_and context.phi_orig in
-  (phi, context.vars_orig)
+let add_metadata input sl_graph bounds =
+  {input with sl_graph = sl_graph;
+              bounds = bounds}
 
-let get_input context = (context.phi, context.vars)
+(** {2 Setters} *)
 
-let set_preprocessed phi vars t = {t with phi = phi; vars = vars}
+(** TODO: keep normalised? *)
+let set_preprocessed input phi vars = {input with phi = phi; vars = vars}
 
-let set_bounds s_min s_max loc sl_graph t =
-  {t with sl_graph = sl_graph;
-          stack_bound = (s_min, s_max);
-          location_bound = loc
-  }
+let set_size input size = {input with size = Some size}
 
-(** Transform satisfiability to validity of entailment *)
-let sat_to_entl context = match context.phi with
-  | SSL.GuardedNeg _ -> context
-  | _ ->
-    let status' = match context.expected_status with
-      | `Sat -> `Unsat
-      | `Unsat -> `Sat
-      | `Unknown -> ` Unknown
-    in
-    {context with expected_status = status'; phi = SSL.mk_gneg context.phi (SSL.mk_false ())}
-
-(* TODO: is the size field necessary *)
-let set_statistics ?(size=None) context = {context with size = size}
-
-let set_result status ?(model=None) ?(unsat_core=None) ?(reason=None) context =
-  {context with
+let set_result status ?(model=None) ?(unsat_core=None) ?(reason=None) input =
+  {input with
     status = Some status;
     model = model;
     unsat_core = unsat_core;
     reason_unknown = reason;
   }
 
-let add_assertion psi t = {t with phi_orig = psi :: t.phi_orig}
 
-let add_variable v t = match SSL.Variable.get_sort v with
-  | Sort.Loc -> {t with vars_orig = v :: t.vars_orig; vars = v :: t.vars}
-  | _ -> {t with smt_vars = v :: t.smt_vars}
+(** {2 Getters} *)
 
-let add_variables vars t = List.fold_right add_variable vars t
+(** Get input formula before any preprocessing. *)
+let get_raw_input input =
+  let phi = ParserContext.get_phi input.raw_input in
+  let vars = ParserContext.get_vars input.raw_input in
+  (phi, vars)
 
-let set_expected_status status t = {t with expected_status = status}
+let get_input input = (input.phi, input.vars)
 
-let set_check_sat t = {t with check_sat = true}
 
-let set_get_model t = {t with get_model = true}
-
-let set_unsat_core t = {t with get_unsat_core = true}
-
-let set_expected_loc_bound bound t = {t with expected_location_bound = Some bound}
+(** Transform satisfiability to validity of entailment *)
+let transform_to_entl input = match input.phi with
+  | SSL.GuardedNeg _ -> input
+  | _ ->
+    {input with
+      phi = SSL.mk_gneg input.phi (SSL.mk_false ());
+      status = Option.map negate_status input.status;
+    }
 
 (* ==== Pretty-printing ==== *)
 
-let show_status context = match context.status with
+let show_status input = match input.status with
   | None -> "none"
   | Some `Sat -> "sat"
   | Some `Unsat -> "unsat"
-  | Some `Unknown -> "unknown"
+  | Some (`Unknown reason ) -> Format.asprintf "unknown (%s)" reason
 
-let show_expected_status context = match context.expected_status with
+let show_expected_status input = match input.expected_status with
   | `Sat -> "sat"
   | `Unsat -> "unsat"
-  | `Unknown -> "unknown"
-
-let show_stack_bound context =
-  let min, max = context.stack_bound in
-  Format.asprintf "[%d, %d]" min max
+  | `Unknown _ -> "unknown"

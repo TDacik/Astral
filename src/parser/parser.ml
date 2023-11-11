@@ -8,12 +8,14 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
+open ParserUtils
+
 let split content =
   let heap_decl_re = Str.regexp "\\(.\\|\n\\)*(declare-heap\\(.\\|\n\\)*" in
   let res = Str.string_match heap_decl_re content 0 in
   let start =
     try Str.group_end 1
-    with Invalid_argument _ -> failwith "Missing heap declaration"
+    with Invalid_argument _ -> raise @@ ParserError "Missing heap declaration"
   in
   let worklist = BatString.lchop ~n:(start+13) content in
   let _, heap_sort = String.fold_left (fun (depth, acc) c ->
@@ -26,26 +28,15 @@ let split content =
     else (depth', acc ^ BatString.of_char c)
   ) (1, "") worklist
   in
-  let re = Str.regexp ("(declare-heap" ^ heap_sort ^ ")") in
-  let smt_script = Str.global_replace re "" content in
-  (String.trim heap_sort), smt_script
+  let before = BatString.left content start in
+  let after = BatString.lchop ~n:(start + 13 + 1 + BatString.length heap_sort) content in
+  (before, heap_sort, after)
 
 let parse_string str =
-  let context = Context.empty in
-  let heap, smt_script = split str in
-  (* Parse smtlib scripts *)
-  let context = SmtlibParser.parse context smt_script in
-  (* Parse heap sort *)
-  let type_env = HeapParser.parse context.type_env heap in
-  let context = SmtlibParser.parse Context.empty ~type_env smt_script in
-  let context = {context with type_env = type_env} in (* TODO: checl *)
-  let context = HeapParser.preprocess_loc_vars context in
-  (*Format.printf "Location variables:\n";
-  List.iter (fun v -> Format.printf "  %a\n" SSL.Variable.pp v) context.vars_orig;
-  Format.printf "SMT variables:\n";
-  List.iter (fun v -> Format.printf "  %a\n" SSL.Variable.pp v) context.smt_vars;
-  *)
-  {context with type_env = type_env}
+  let decls, heap_decl, rest = split str in
+  let ctx = SmtlibParser.parse decls in
+  let ctx = HeapParser.parse ctx heap_decl in
+  SmtlibParser.parse ~ctx rest
 
 let parse_file path =
   let channel = In_channel.open_text path in

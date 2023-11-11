@@ -10,6 +10,7 @@
 let all_sort xs sort = List.for_all (fun x -> Sort.equal sort @@ SSL.get_sort x) xs
 let all_bool xs = all_sort xs Sort.Bool
 
+(** TODO: replace with map *)
 let rec apply = function
   | SSL.Var x -> SSL.Var x
   | SSL.Eq xs ->

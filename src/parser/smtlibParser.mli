@@ -4,9 +4,11 @@
 
 open Dolmen
 
-val parse : Context.t -> ?type_env:TypeEnvironment.t -> string -> Context.t
+val parse : ?ctx:ParserContext.t -> string -> ParserContext.t
 (** Parse a SMT-LIB body of separation logic formula given as a string. *)
 
-(** {2 Auxilliary functions} *)
+(** {2 Auxiliary functions} *)
+
+val parse_sort : ParserContext.t -> Std.Term.t -> Sort.t
 
 val parse_statements : string -> Std.Statement.t list
