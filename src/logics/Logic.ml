@@ -70,8 +70,9 @@ module Make (Term : TERM) = struct
     |> List.map get_sort
     |> List.sort_uniq Sort.compare
 
+  (* TODO: fix single variable *)
   let rec size term = match node_type term with
-    | Var _ -> 1
+    | Var _ -> 0
     | Operator (terms, _) | Connective terms ->
         List.fold_left (fun acc x -> acc + size x) 1 terms
     | Quantifier (binders, phi) ->
