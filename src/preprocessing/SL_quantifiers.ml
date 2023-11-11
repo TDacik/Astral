@@ -5,7 +5,7 @@ let rec apply locs phi =
   | SSL.Pure term -> SSL.mk_pure term
   | SSL.Eq xs -> SSL.mk_eq_list xs
   | SSL.Distinct xs -> SSL.mk_distinct_list xs
-  | SSL.PointsTo (x, ys) -> SSL.mk_pto_seq x ys
+  | SSL.PointsTo (x, y) -> SSL.mk_pto_struct x y
   | SSL.LS (x, y) -> SSL.mk_ls x y
   | SSL.DLS (x, y, f, l) -> SSL.mk_dls x y f l
   | SSL.And (psi1, psi2) -> SSL.mk_and [apply psi1; apply psi2]

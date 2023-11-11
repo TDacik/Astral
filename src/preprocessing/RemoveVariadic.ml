@@ -24,4 +24,4 @@ let rec apply phi = match phi with
   | SSL.Exists (x :: xs, psi) -> SSL.mk_exists [x] (apply @@ SSL.mk_exists xs psi)
   | SSL.Forall (x :: xs, psi) -> SSL.mk_forall [x] (apply @@ SSL.mk_exists xs psi)
 
-  | Pure _ | PointsTo _ | LS _ | DLS _ -> phi
+  | Emp | Pure _ | PointsTo _ | LS _ | DLS _ | NLS _ -> phi

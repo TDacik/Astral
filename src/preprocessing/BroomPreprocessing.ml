@@ -49,7 +49,7 @@ let rec remove_iffs phi =
   | SSL.Pure term -> SSL.mk_pure term
   | SSL.Eq xs -> SSL.mk_eq_list xs
   | SSL.Distinct xs -> SSL.mk_distinct_list xs
-  | SSL.PointsTo (x, ys) -> SSL.mk_pto_seq x ys
+  | SSL.PointsTo (x, y) -> SSL.mk_pto_struct x y
   | SSL.LS (x, y) -> SSL.mk_ls x y
   | SSL.And (psi1, psi2) -> SSL.mk_and [remove_iffs psi1; remove_iffs psi2]
   | SSL.Or (psi1, psi2) -> SSL.mk_or [remove_iffs psi1; remove_iffs psi2]
@@ -99,7 +99,7 @@ let rec sort_quantifiers = function
   | SSL.Pure term -> SSL.mk_pure term
   | SSL.Eq xs -> SSL.mk_eq_list xs
   | SSL.Distinct xs -> SSL.mk_distinct_list xs
-  | SSL.PointsTo (x, ys) -> SSL.mk_pto_seq x ys
+  | SSL.PointsTo (x, y) -> SSL.mk_pto_struct x y
   | SSL.LS (x, y) -> SSL.mk_ls x y
   | SSL.And (psi1, psi2) -> SSL.mk_and [sort_quantifiers psi1; sort_quantifiers psi2]
   | SSL.Or (psi1, psi2) -> SSL.mk_or [sort_quantifiers psi1; sort_quantifiers psi2]
