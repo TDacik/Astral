@@ -30,6 +30,8 @@ module type COMPARISON = sig
 
   type t
 
+  val show : t -> string
+
   val compare : t -> t -> int
 
 end
@@ -46,10 +48,44 @@ module type COLLECTIONS = sig
 
   type t
 
-  module Set : Set.S with type elt = t
+  module Set : sig
+
+    include BatSet.S with type elt = t
+
+    val show : t -> string
+
+  end
   (** Set over type t *)
 
-  module Map : Map.S with type key = t
-  (** Map from t to 'a *)
+  module Map : sig
+
+    include BatMap.S with type key = t
+
+    val keys : 'a t -> key list
+
+    val values : 'a t -> 'a list
+
+    val find_pred : (key -> bool) -> 'a t -> key
+
+    val show : ('a -> string) -> 'a t -> string
+
+  end
+  (** Map with structural equality from t to 'a *)
+
+end
+
+module type MONO_MAP = sig
+
+  type t
+  type key
+  type data
+
+  val empty : t
+
+  val add : key -> data -> t -> t
+
+  val find : key -> t -> data
+
+  val bindings : t -> (key * data) list
 
 end

@@ -33,12 +33,39 @@ module Collections (M : COMPARISON) = struct
 
   module Set = struct
 
-    include Set.Make(M)
+    include BatSet.Make(M)
 
-    let show = BatSet.print ~first:"{" ~sep:"," ~last:"}"
+    let show set =
+      if is_empty set then "{}"
+      else
+        elements set
+        |> List.map M.show
+        |> String.concat ","
+        |> (fun str -> "{" ^ str ^ "}\n")
 
   end
 
-  module Map = Map.Make(M)
+  module Map = struct
+
+    include BatMap.Make(M)
+
+    let keys map = List.map fst @@ bindings map
+
+    let values map = List.map snd @@ bindings map
+
+    let find_pred pred map =
+      filter (fun k _ -> pred k) map
+      |> any
+      |> fst
+
+    let show show_val map =
+      if is_empty map then "{}"
+      else
+        bindings map
+        |> List.map (fun (k, v) -> Format.asprintf "  %s : %s" (M.show k) (show_val v))
+        |> String.concat ",\n"
+        |> (fun str -> "{\n" ^ str ^ "\n}\n")
+
+  end
 
 end
