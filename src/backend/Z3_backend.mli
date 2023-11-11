@@ -1,3 +1,7 @@
 open Backend_sig
 
-include BACKEND
+module Init ( ) : sig
+
+  include BACKEND
+
+end

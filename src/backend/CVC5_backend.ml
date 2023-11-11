@@ -7,10 +7,15 @@ module Self = struct
   let name = "cvc5"
   let binary = "cvc5"
 
+  let model_option = "--produce-models"
+  let parser_implemented = false
+
   let supports_smtlib_options = true
   let supports_get_info = true
   let supports_sets = true
   let supports_quantifiers = true
+
+  let default_options = ["--sygus-inst"; "--cegqi-full"]
 
   let translate_non_std translate translate_sort phi =
     let translate_list es = String.concat " " @@ List.map translate es in

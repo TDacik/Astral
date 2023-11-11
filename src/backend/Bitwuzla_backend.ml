@@ -8,6 +8,11 @@ module Self = struct
   let name = "Bitwuzla"
   let binary = "bitwuzla"
 
+  let model_option = "-m"
+  let default_options = []
+
+  let parser_implemented = false (* TODO *)
+
   let supports_smtlib_options = true
   let supports_get_info = false
 

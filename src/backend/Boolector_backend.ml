@@ -8,6 +8,11 @@ module Self = struct
   let name = "Boolector"
   let binary = "boolector"
 
+  let model_option = ""
+  let default_options = []
+
+  let parser_implemented = false
+
   let supports_smtlib_options = false
   let supports_get_info = false
 
