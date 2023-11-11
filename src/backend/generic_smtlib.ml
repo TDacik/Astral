@@ -7,7 +7,7 @@
 
 (** ==== Translation ==== *)
 
-exception NonStandardTerm
+exception NonStandardTerm of string
 
 let rec translate_decl (SMT.Variable (name, sort)) translate_sort =
   Format.asprintf "(declare-const %s %s)" name (translate_sort sort)
@@ -68,34 +68,21 @@ and translate_std translate translate_sort term = match term with
   | SMT.BitShiftRight (bv, rotate) ->
     Format.asprintf "(bvlshr %s %s)" (translate bv) (translate rotate)
 
-  (* TODO: instantiation should be done somewhere else *)
-  | SMT.Forall ([], phi) -> translate phi
-  | SMT.Forall (x :: xs, phi) ->
+  | SMT.Forall ([], None, phi) -> translate phi
+  | SMT.Forall (x :: xs, None, phi) ->
     let x_sort = SMT.Term.get_sort x in
-    begin match x_sort with
-    | Finite (_, cs) ->
-      let es = List.map (fun c -> SMT.Term.substitute phi x (SMT.Constant (c, x_sort))) cs in
-      Format.asprintf "(and %s)" (translate_expr_list translate es)
-    | _ ->
-      Format.asprintf "(forall ((%s %s)) %s)"
-        (translate x)
-        (translate_sort x_sort)
-        (translate (SMT.Forall (xs, phi)))
-    end
+    Format.asprintf "(forall ((%s %s)) %s)"
+      (translate x)
+      (translate_sort x_sort)
+      (translate (SMT.Forall (xs, None, phi)))
 
-  | SMT.Exists ([], phi) -> translate phi
-  | SMT.Exists (x :: xs, phi) ->
+  | SMT.Exists ([], None, phi) -> translate phi
+  | SMT.Exists (x :: xs, None, phi) ->
     let x_sort = SMT.Term.get_sort x in
-    begin match x_sort with
-    | Finite (_, cs) ->
-      let es = List.map (fun c -> SMT.Term.substitute phi x (SMT.Constant (c, x_sort))) cs in
-      Format.asprintf "(or %s)" (translate_expr_list translate es)
-    | _ ->
-      Format.asprintf "(exists ((%s %s)) %s)"
-        (translate x)
-        (translate_sort x_sort)
-        (translate (SMT.Exists (xs, phi)))
-    end
+    Format.asprintf "(exists ((%s %s)) %s)"
+      (translate x)
+      (translate_sort x_sort)
+      (translate (SMT.Exists (xs, None, phi)))
 
   | SMT.IntConst i -> Format.asprintf "%d" i
   | SMT.Plus (t1, t2) -> Format.asprintf "(+ %s %s)" (translate t1) (translate t2)
@@ -107,7 +94,7 @@ and translate_std translate translate_sort term = match term with
               translating to backend solver"
 
   (* Raise exception for non-standard terms *)
-  | _ -> raise NonStandardTerm
+  | t -> raise @@ NonStandardTerm (SMT.Term.show t)
 
 and translate_std_sort translate_sort = function
   | Sort.Bool -> "Bool"
@@ -116,7 +103,7 @@ and translate_std_sort translate_sort = function
   | Sort.Array (d, r) -> "(Array " ^ (translate_sort d) ^ " " ^ (translate_sort r) ^ ")"
 
   (* Raise exception for non-standard sorts *)
-  | _ -> raise NonStandardTerm
+  | s -> raise @@ NonStandardTerm (Sort.show s)
 
 and translate_expr_list translate exprs =
   List.map translate exprs
