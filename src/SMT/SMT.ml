@@ -350,6 +350,8 @@ module Boolean = struct
   let mk_false () = False
   let mk_true () = True
 
+  let mk atom = if atom then mk_true () else mk_false ()
+
   let mk_const const = if const then mk_true () else mk_false ()
 
   let mk_and terms =
@@ -384,7 +386,14 @@ module Boolean = struct
     | False -> y
     | term -> IfThenElse (term, x, y)
 
+  let rec mk_multiple_ite cases t_else = match cases with
+    | (c, t) :: rest -> mk_ite c t (mk_multiple_ite rest t_else)
+    | [] -> t_else
+
+
 end
+
+
 
 module Enumeration = struct
 
@@ -438,11 +447,46 @@ module Array = struct
   let mk_var = Variable.mk
   let mk_fresh_var = Variable.mk_fresh
 
-  let mk_sort dom range = Sort.Array (dom, range)
+  (** Sorts *)
+
+  let mk_sort = Sort.mk_array
+
+  let get_dom_sort arr = Sort.get_dom_sort @@ get_sort arr
+
+  let get_range_sort arr = Sort.get_range_sort @@ get_sort arr
+
+  (** Type checks *)
+
+  let is_array term = Sort.is_array @@ get_sort term
+
+  let is_elem_of elem arr = Sort.equal (get_sort elem) (get_range_sort arr)
+
+  let is_index_of index arr = Sort.equal (get_sort index) (get_dom_sort arr)
+
+  (** Basic constructors *)
 
   let mk_const t range_sort = ConstArr (t, range_sort)
-  let mk_select arr x = Select (arr, x)
-  let mk_store arr index x = Store (arr, index, x)
+
+  let mk_select arr index =
+    (*
+     * assert (is_array arr);
+     * assert (is_index_of index arr);
+     *)
+    Select (arr, index)
+
+  let mk_store arr index x =
+    (*
+     * assert (is_array arr);
+     * assert (is_elem_of x arr);
+     * assert (is_index_of index arr);
+     *)
+    Store (arr, index, x)
+
+  (** Syntax sugar **)
+
+  let mk_nary_select n arr x =
+    List.init n (fun _ -> 0)
+    |> List.fold_left (fun acc _ -> mk_select arr acc) x
 
 end
 
@@ -478,10 +522,14 @@ module Bitvector = struct
     | [bv] -> bv
     | bvs -> BitAnd (bvs, Sort.Bitvector n)
 
-  let mk_or bvs (Sort.Bitvector n) = match bvs with
-    | [] -> mk_full_zeros n
-    | [bv] -> bv
-    | bvs -> BitOr (bvs, Sort.Bitvector n)
+  let mk_or bvs sort = match sort with
+    | Sort.Bitvector n ->
+    begin match bvs with
+      | [] -> mk_full_zeros n
+      | [bv] -> bv
+      | bvs -> BitOr (bvs, sort)
+    end
+    | other -> Utils.internal_error ("Expected bitvector sort, got " ^ Sort.show other)
 
   let mk_xor bvs sort = BitXor (bvs, sort)
   let mk_implies bv1 bv2 = BitImplies (bv1, bv2)
@@ -495,6 +543,8 @@ module Bitvector = struct
   let to_bit_string (BitConst bv) = Bitvector.to_string bv
 
 end
+
+
 
 (** Utility for smart constructors *)
 let construct cons (f : Term.t list -> Term.t list -> Term.t list) (acc : Term.t list) terms sort =
@@ -534,12 +584,37 @@ module Set = struct
 
   let mk_disjoint s1 s2 = mk_disjoint_list [s1; s2]
 
+  let mk_union_base sets sort =
+    let sets = List.filter (fun s -> not @@ equal (mk_empty sort) s) sets in
+    Union (sets, sort)
+
+  let is_enum = function Enumeration _ -> true | _ -> false
+
+  (* Accessors *)
+  let get_elems = function
+    | Enumeration (elems, _) -> elems
+    | _ -> failwith "Not a constant set term"
+
+  (** This is stronger that Term.is_const!! *)
+  let rec simplify = function
+    | Enumeration (sets, sort) -> Enumeration (List.map simplify sets, sort)
+    | Union (sets, sort) ->
+      let sets = List.map simplify sets in
+      let consts, vars = List.partition is_enum sets in
+      let consts = List.concat @@ List.map get_elems consts in
+      begin match vars with
+      | [] -> Enumeration (consts, sort)
+      | xs -> Union (Enumeration (consts, sort) :: xs, sort)
+      end
+    | x -> x
+
   let mk_union sets sort =
     assert (Sort.is_set sort);
+    let sets = List.map simplify sets in
     match sets with
     | [] -> mk_empty sort
     | [s] -> s
-    | sets -> construct (fun es sort -> Union (es, sort)) (@) [] sets sort
+    | sets -> simplify (Union (sets, sort))
 
   let mk_inter sets sort =
     assert (Sort.is_set sort);
@@ -556,17 +631,15 @@ module Set = struct
   let mk_eq_empty set = Term.mk_eq set (mk_empty @@ get_sort set)
   let mk_eq_singleton set x = Term.mk_eq set (mk_singleton x)
 
-  (* Accessors *)
-  let get_elems = function
-    | Enumeration (elems, _) -> elems
-    | _ -> failwith "Not a constant set term"
-
   (** Check whether two sets can be disjoint *)
-  let may_disjoint set1 set2 = match set1, set2 with
-    | Enumeration (e1, _), Enumeration (e2, _) ->
-        not @@ List.exists (fun x -> List.mem x e2) e1
-        && not @@ List.exists (fun x -> List.mem x e1) e2
-    | _ -> true
+  let may_disjoint sets =
+    if List.for_all is_enum sets then
+      let join =
+        List.map get_elems sets
+        |> List.concat
+      in
+      (List.length join) == (List.length @@ BatList.sort_unique compare join)
+    else true
 
 end
 
@@ -798,14 +871,19 @@ module Model = struct
     | BitConst bv -> BitConst bv
 
     (* Sets *)
-    | Membership (x, set) -> failwith "TODO: eval set mem"
+    | Membership (x, set) ->
+      let x = eval model x in
+      begin match eval model set with
+        | Enumeration (xs, _) -> Boolean.mk @@ BatList.mem_cmp Term.compare x xs
+      end
+
     | Subset (s1, s2) -> failwith "TODO: eval set subset"
     | Disjoint sets -> failwith "TODO: eval disj"
     | Union (sets, _) -> failwith "TODO: eval union"
     | Inter (sets, _) -> failwith "TODO: eval inter"
     | Diff (s1, s2) -> failwith "TODO: eval diff"
     | Compl s -> failwith "TODO: eval compl"
-    | Enumeration (elems, _) -> t
+    | Enumeration (_, _) -> t
 
     | Select (ConstArr (x, _), _) -> eval model x
     | Select (Store (a, i, v), j) ->
@@ -817,6 +895,10 @@ module Model = struct
     | Select (arr, i) -> eval model (Array.mk_select (eval model arr) i)
 
     | _ -> failwith ("TODO: eval other: " ^ Term.show t)
+
+  let check model t = match eval model t with
+    | True -> true
+    | False -> false
 
   module Self = struct
     type t = model

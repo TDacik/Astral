@@ -139,6 +139,7 @@ module Boolean : sig
   val mk_fresh_var : string -> t
   (* Create fresh boolean variable with given prefix. *)
 
+  val mk : bool -> t
   val mk_true : unit -> t
   val mk_false : unit -> t
 
@@ -270,6 +271,8 @@ module Array : sig
 
   val mk_select : t -> t -> t
 
+  val mk_nary_select : int -> t -> t -> t
+
   val mk_store : t -> t -> t -> t
 
 end
@@ -304,7 +307,7 @@ module Set : sig
   val mk_eq_empty : t -> t
   val mk_eq_singleton : t -> t -> t
 
-  val may_disjoint : t -> t -> bool
+  val may_disjoint : t list -> bool
   val get_elems : t -> t list
 
 end
@@ -325,6 +328,9 @@ module Model : sig
 
   val eval : model -> Term.t -> Term.t
   (** Evaluation of term in model. *)
+
+  val check : model -> Term.t -> bool
+  (** Check whether boolean term holds in model. *)
 
   val show_with_sorts : model -> string
 
