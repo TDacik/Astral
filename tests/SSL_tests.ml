@@ -9,9 +9,9 @@ let nil = SSL.mk_nil ()
 let p1 = SSL.mk_pure (SMT.Arithmetic.mk_var "p1")
 let p2 = SSL.mk_pure (SMT.Arithmetic.mk_var "p2")
 
-let x = SSL.mk_var "x"
-let y = SSL.mk_var "y"
-let z = SSL.mk_var "z"
+let x = SSL.mk_var "x" Sort.loc_ls
+let y = SSL.mk_var "y" Sort.loc_ls
+let z = SSL.mk_var "z" Sort.loc_ls
 
 let var_list_eq vars1 vars2 =
   let vars1 = List.sort SSL.Variable.compare vars1 in
@@ -27,8 +27,8 @@ let get_vars_test1 () =
 
 let get_vars_test2 () =
   let phi = x |-> y in
-  let x = SSL.Variable.mk "x" in
-  let y = SSL.Variable.mk "y" in
+  let x = SSL.Variable.mk "x" Sort.loc_ls in
+  let y = SSL.Variable.mk "y" Sort.loc_ls in
   assert (var_list_eq (get_vars ~with_nil:false phi) [x; y]);
   assert (var_list_eq (get_vars ~with_nil:true phi) [x; y])
 
@@ -168,6 +168,42 @@ let as_symbolic_heap_test4 () =
   assert (List.hd pure === phi)
 
 
+(* ==== Subformulae manipulation ==== *)
+
+let positive_polarity_test1 () =
+  let phi = (x |-> y) * (y |-> x) in
+  let psi = (x |-> y) * (y |-> x) in
+  assert (positive_polarity phi psi)
+
+let positive_polarity_test2 () =
+  let phi = (x |-> y) * (y |-> x) in
+  let psi1 = x |-> y in
+  let psi2 = y |-> x in
+  assert (positive_polarity phi psi1);
+  assert (positive_polarity phi psi2)
+
+let positive_polarity_test3 () =
+  let phi = SSL.mk_not @@ (x |-> y) * (y |-> x) in
+  let psi1 = x |-> y in
+  let psi2 = y |-> x in
+  assert (not @@ positive_polarity phi psi1);
+  assert (not @@ positive_polarity phi psi2)
+
+let positive_polarity_test4 () =
+  let phi = SSL.mk_gneg (x |-> y) ((x |-> y) * (y |-> x)) in
+  let psi1 = x |-> y in
+  let psi2 = y |-> x in
+  assert (positive_polarity phi psi1);
+  assert (not @@ positive_polarity phi psi2)
+
+(* Assert : fail*)
+let positive_polarity_test5 () =
+  let phi = (x |-> y) * (y |-> x) in
+  let psi = x |-> x in
+  assert (not @@ positive_polarity phi psi)
+
+
+
 let () =
   run "SSL" [
     "get_vars", [
@@ -205,6 +241,13 @@ let () =
     "subformula_id", [
       test_case "Test"  `Quick subformula_id_test1;
       test_case "Test"  `Quick subformula_id_test2;
+    ];
+    "positive_polarity", [
+      test_case "Test"  `Quick positive_polarity_test1;
+      test_case "Test"  `Quick positive_polarity_test2;
+      test_case "Test"  `Quick positive_polarity_test3;
+      test_case "Test"  `Quick positive_polarity_test4;
+      test_case "Test"  `Quick positive_polarity_test5;
     ];
     "is_symbolic_heap", [
       test_case "Test"  `Quick is_symbolic_heap_test1;

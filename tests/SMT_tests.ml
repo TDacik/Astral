@@ -34,7 +34,7 @@ let map_vars2 () =
 
 let map () =
   assert (
-    let fn = (fun t -> match t with Forall (_, phi) -> phi | _ -> t) in
+    let fn = (fun t -> match t with Forall (_, _, phi) -> phi | _ -> t) in
     map fn (Quantifier.mk_forall [x] x) == x
   )
 

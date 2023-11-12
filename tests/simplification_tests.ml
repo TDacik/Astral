@@ -5,11 +5,11 @@
 open SSL
 open SSL.Infix
 
-let x = SSL.mk_var "x"
-let y = SSL.mk_var "y"
-let f = SSL.mk_var "f"
-let l = SSL.mk_var "l"
-let z = SSL.mk_var "z"
+let x = SSL.mk_var "x" Sort.loc_ls
+let y = SSL.mk_var "y" Sort.loc_ls
+let f = SSL.mk_var "f" Sort.loc_ls
+let l = SSL.mk_var "l" Sort.loc_ls
+let z = SSL.mk_var "z" Sort.loc_ls
 
 
 (** Equality rewritting *)

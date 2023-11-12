@@ -5,9 +5,9 @@
 open SSL
 open SSL.Infix
 
-let x = SSL.mk_var "x"
-let y = SSL.mk_var "y"
-let z = SSL.mk_var "z"
+let x = SSL.mk_var "x" Sort.loc_ls
+let y = SSL.mk_var "y" Sort.loc_ls
+let z = SSL.mk_var "z" Sort.loc_ls
 
 let apply phi =
   let g = SL_graph.compute phi in

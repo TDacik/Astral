@@ -5,9 +5,10 @@
 open SSL
 open SSL.Infix
 
-let x = SSL.mk_var "x"
-let y = SSL.mk_var "y"
-let z = SSL.mk_var "z"
+let x = SSL.mk_var "x" Sort.loc_ls
+let y = SSL.mk_var "y" Sort.loc_ls
+let z = SSL.mk_var "z" Sort.loc_ls
+let nil = SSL.mk_nil ()
 
 (** Precise -> imprecise *)
 
@@ -35,11 +36,13 @@ let to_imprecise_test4 () =
 
 (** Imprecise -> precise *)
 
-let to_precise = PreciseToImprecise.to_precise
+let to_precise phi =
+  PreciseToImprecise.to_precise phi
+  |> Simplifier.simplify
 
 let to_precise_test1 () =
   let phi = x |-> y in
-  assert (to_precise phi === to_precise phi)
+  assert (to_precise phi === phi)
 
 let to_precise_test2 () =
   let phi = x == y in
@@ -47,22 +50,18 @@ let to_precise_test2 () =
   assert (to_precise phi === phi')
 
 let to_precise_test3 () =
-  let spatial = SSL.mk_star [x |-> y; y |-> x] in
-  let pure = SSL.mk_and [SSL.mk_emp () ; y == x] in
-  let phi = SSL.mk_and [spatial; pure] in
-  let phi' = SSL.mk_star [x |-> y; y |-> x; y == x] in
+  let pure = SSL.mk_and [x == y; y == nil] in
+  let spatial = SSL.mk_emp () in
+  let phi = SSL.mk_and [pure; spatial] in
+  let phi' = SSL.mk_star [x == y; y == nil] in
   assert (to_precise phi === phi')
 
 let to_precise_test4 () =
-  let lhs_spatial = SSL.mk_star [x |-> y; y |-> x] in
-  let lhs_pure = SSL.mk_and [SSL.mk_emp (); y == x] in
-  let lhs = SSL.mk_and [lhs_spatial; lhs_pure] in
-  let rhs_spatial = SSL.mk_star [x |-> y; y |-> x] in
-  let rhs_pure = SSL.mk_and [SSL.mk_emp (); y == x] in
-  let rhs = SSL.mk_and [rhs_spatial; rhs_pure] in
-  let phi = SSL.mk_gneg lhs rhs in
-  Printf.printf "%s\n" (SSL.show @@ to_precise phi);
-  assert false
+  let spatial = SSL.mk_star [x |-> y; y |-> x] in
+  let pure = SSL.mk_and [x == y; y == nil] in
+  let phi = SSL.mk_and [spatial; pure] in
+  let phi' = SSL.mk_star [x |-> y; y |-> x; x == y; y == nil] in
+  assert (to_precise phi === phi')
 
 
 (** Removing of variadic operators *)
@@ -121,7 +120,7 @@ let () =
     "Imprecise -> Precise", [
       test_case "Test" `Quick to_precise_test1;
       test_case "Test" `Quick to_precise_test2;
-      (*test_case "Test" `Quick to_precise_test3;*)
+      test_case "Test" `Quick to_precise_test3;
       test_case "Test" `Quick to_precise_test4;
     ];
     "Removing of variadic operators", [
@@ -132,7 +131,7 @@ let () =
       test_case "Test" `Quick remove_variadic_star_test1;
       test_case "Test" `Quick remove_variadic_star_test2;
     ];
-    "Pure preprocessing", [
+    "TODO: Pure preprocessing", [
       test_case "Test" `Quick pure_test1;
       test_case "Test" `Quick pure_test2;
     ];
