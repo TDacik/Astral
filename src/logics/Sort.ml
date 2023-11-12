@@ -29,10 +29,10 @@ let mk_sequence dom = Sequence dom
 let mk_uninterpreted name = Uninterpreted name
 let mk_sum sorts = Sum sorts
 
-let loc_ls = Loc "LocLS"
-let loc_dls = Loc "LocDLS"
-let loc_nls = Loc "LocNLS"
-let loc_nil = Loc "Loc_nil"
+let loc_ls = Loc "LS_t"
+let loc_dls = Loc "DLS_t"
+let loc_nls = Loc "NLS_t"
+let loc_nil = Loc "nil_t"
 
 (** Checks *)
 let is_loc = function Loc _ -> true | _ -> false
