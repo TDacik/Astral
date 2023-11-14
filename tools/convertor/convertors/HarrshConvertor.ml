@@ -4,7 +4,7 @@
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
 open SSL
-open SSL.Node
+open SSL.Struct
 
 open Context
 open Convertor_utils

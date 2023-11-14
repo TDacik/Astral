@@ -37,19 +37,19 @@ let rec check sh phi =
     List.map (fun (Var x) -> Stack.find x stack) xs
     |> List_utils.all_distinct Location.equal
 
-  | PointsTo (Var x, Node.LS_t n) ->
+  | PointsTo (Var x, Struct.LS_t n) ->
       let expected_n = Stack.find n stack in
       let n = Heap.find_field Next (Stack.find x stack) heap in
       Location.equal n expected_n
 
-  | PointsTo (Var x, Node.DLS_t (n, p)) ->
+  | PointsTo (Var x, Struct.DLS_t (n, p)) ->
       let expected_n = Stack.find n stack in
       let expected_p = Stack.find p stack in
       let n = Heap.find_field Field.Next (Stack.find x stack) heap in
       let p = Heap.find_field Field.Prev (Stack.find x stack) heap in
       Location.equal n expected_n && Location.equal p expected_p
 
-  | PointsTo (Var x, Node.NLS_t (t, n)) ->
+  | PointsTo (Var x, Struct.NLS_t (t, n)) ->
       let expected_n = Stack.find n stack in
       let expected_t = Stack.find t stack in
       let n = Heap.find_field Field.Next (Stack.find x stack) heap in
