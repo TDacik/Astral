@@ -27,9 +27,11 @@ module Location = struct
   module Self = struct
     type nonrec t = t
     let show = show
+    let compare = compare
   end
 
   include Datatype.Printable(Self)
+  include Datatype.Collections(Self)
 
 end
 
@@ -82,15 +84,8 @@ module Value = struct
 end
 
 module Stack = struct
-  include Map.Make(SSL.Variable)
 
-  (* Fix monomorphic type *)
-  type nonrec t = Location.t t
-
-  let show stack =
-    bindings stack
-    |> List.map (fun (s, sx) -> Format.asprintf "%s -> %d" (SSL.Variable.show s) sx)
-    |> String.concat "\n"
+  include SSL.Variable.MonoMap(Location)
 
   let to_smtlib stack =
     bindings stack
@@ -101,10 +96,8 @@ module Stack = struct
 end
 
 module Heap = struct
-  include Map.Make(Location)
 
-  (* Fix monomorphic type *)
-  type nonrec t = Value.t t
+  include Location.MonoMap(Value)
 
   let add_ls heap ~src ~next = add src (Value.mk_ls next) heap
 
