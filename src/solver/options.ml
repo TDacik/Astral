@@ -13,13 +13,15 @@ open Translation_sig
 
 module Options = Options_base
 
-
 let backend () = match Options.backend () with
   | "bitwuzla" -> (module Bitwuzla_backend : BACKEND)
   | "boolector" -> (module Boolector_backend : BACKEND)
   | "cvc5" -> (module CVC5_backend : BACKEND)
-  | "z3" -> (module Z3_backend.Init ( ) : BACKEND)
+  | "z3" -> (module Z3_backend.Init( ) : BACKEND)
   | "yices2" -> (module Yices_backend : BACKEND)
+  | "auto" ->
+    if Bitwuzla_backend.is_available () then (module Bitwuzla_backend : BACKEND)
+    else (module Z3_backend.Init( ) : BACKEND)
   (*| "parallel" -> (module Parallel : BACKEND)*)
   | other -> Utils.cmd_option_error "backend" other
 
