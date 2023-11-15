@@ -44,48 +44,76 @@ module type COMPARABLE = sig
 
 end
 
-module type COLLECTIONS = sig
+module type MAP = sig
 
-  type t
+  type key
 
-  module Set : sig
+  include BatMap.S with type key := key
 
-    include BatSet.S with type elt = t
+  val keys : 'a t -> key list
 
-    val show : t -> string
+  val values : 'a t -> 'a list
 
-  end
-  (** Set over type t *)
+  val find_pred : (key -> bool) -> 'a t -> key
 
-  module Map : sig
-
-    include BatMap.S with type key = t
-
-    val keys : 'a t -> key list
-
-    val values : 'a t -> 'a list
-
-    val find_pred : (key -> bool) -> 'a t -> key
-
-    val show : ('a -> string) -> 'a t -> string
-
-  end
-  (** Map with structural equality from t to 'a *)
+  val show : ('a -> string) -> 'a t -> string
 
 end
 
 module type MONO_MAP = sig
 
-  type t
   type key
   type data
+  type t
+
+  (** Copy-pasted signature of classic polymorphic map *)
 
   val empty : t
 
   val add : key -> data -> t -> t
 
+  val mem : key -> t -> bool
+
   val find : key -> t -> data
 
+  val iter : (key -> data -> unit) -> t -> unit
+
+  val fold : (key -> data -> 'acc -> 'acc) -> t -> 'acc -> 'acc
+
   val bindings : t -> (key * data) list
+
+  (** Additional functions *)
+
+  val keys : t -> key list
+
+  val values : t -> data list
+
+  val find_pred : (key -> bool) -> t -> key
+
+  val show : t -> string
+
+end
+
+module type SET = sig
+
+    type elt
+
+    include BatSet.S with type elt := elt
+
+    val show : t -> string
+
+end
+
+module type COLLECTIONS = sig
+
+  type t
+
+  module Set : SET with type elt = t
+  (** Set over type t *)
+
+  module Map : MAP with type key = t
+  (** Map with structural equality from t to 'a *)
+
+  module MonoMap (Data : SHOW) : MONO_MAP with type key = t and type data = Data.t
 
 end

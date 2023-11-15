@@ -68,4 +68,30 @@ module Collections (M : COMPARISON) = struct
 
   end
 
+  module MonoMap(Data : SHOW) = struct
+
+    type data = Data.t
+
+    (* Include polymorphic map and fix its type to Data.t *)
+    include BatMap.Make(M)
+    type nonrec t = Data.t t
+
+    let keys map = List.map fst @@ bindings map
+    let values map = List.map snd @@ bindings map
+
+    let find_pred pred map =
+      filter (fun k _ -> pred k) map
+      |> any
+      |> fst
+
+    let show map =
+      if is_empty map then "{}"
+      else
+        bindings map
+        |> List.map (fun (k, v) -> Format.asprintf "  %s : %s" (M.show k) (Data.show v))
+        |> String.concat ",\n"
+        |> (fun str -> "{\n" ^ str ^ "\n}\n")
+
+  end
+
 end
