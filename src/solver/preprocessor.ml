@@ -62,8 +62,6 @@ let antiprenexing phi =
 let second_phase_aux aggresive context =
   let phi, vars = Context.get_input context in
 
-  let vars = remove_useless_vars phi vars in
-
   let phi = PurePreprocessing.apply phi in
   Debug.formula ~suffix:"3-pure_folding" phi;
 
@@ -81,6 +79,7 @@ let second_phase_aux aggresive context =
     else phi, vars
   in
 
+  let vars = remove_useless_vars phi vars in
   Context.set_preprocessed context phi vars
 
 let second_phase context = match Options_base.preprocessing () with
