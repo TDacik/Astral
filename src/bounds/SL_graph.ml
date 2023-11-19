@@ -7,8 +7,6 @@
 open SSL
 open SSL.Field
 
-open Graph
-
 module SL_edge = struct
 
   type t =
@@ -51,11 +49,6 @@ module SL_edge = struct
 
   let all_directed = pointers @ paths
 
-  let length = function
-    | Pointer _ -> 1
-    | Path _ -> 2
-    | _ -> failwith "length undefined"
-
   let show = function
     | No            -> "X" (* TODO *)
     | Pointer Next  -> "→"
@@ -87,17 +80,6 @@ module G = struct
 
   include Self
   include Graph.Oper.P(Self)
-
-  include Path.Dijkstra
-    (Self)
-    (struct
-      type edge = Self.E.t
-      type t = Int.t
-      let weight e = SL_edge.length @@ Self.E.label e
-      let compare = Int.compare
-      let add = (+)
-      let zero = 0
-    end)
 
   include Graph.Graphviz.Dot
     (struct
@@ -146,7 +128,7 @@ let projection_field field g = projection g [Equality; Disequality; Pointer fiel
 
 
 let projection_path g = projection g SL_edge.paths
-let projection_path_field g = projection g [Equality; Pointer field; Path field]
+let projection_path_field field g = projection g [Equality; Pointer field; Path field]
 
 
 let must_disjoint_with g x field y =
@@ -167,10 +149,6 @@ let must_eq g x y =
 let must_neq g x y =
   let g = projection_neq g in
   G.mem_edge g x y || G.mem_edge g y x
-
-let must_pointer g x y =
-  let g = projection_pointer g in
-  G.mem_edge g x y
 
 let must_pointer g field x y =
   let g = projection g [Pointer field] in
@@ -211,6 +189,8 @@ let must_alloc g =
   let vs = G.fold_vertex List.cons g [] in
   List.filter (fun x -> must_pointer_any g x || must_proper_path_any g x) vs
 
+let must_allocated v g = BatList.mem_cmp G.V.compare v (must_alloc g)
+
 let nb_allocated g =
   let alloc = must_alloc g in
   List.length alloc
@@ -227,16 +207,11 @@ let must_successor_ptr g field source =
 
 let must_successor_any g field source =
   let g = projection g [Pointer field; Path field] in
-  (*let g_filtered = G.fold_edges_e (fun edge acc -> match G.E.label edge with
-    | Pointer _ -> G.add_edge_e acc edge
-    | Path _ -> if must_neq g (G.E.src edge) (G.E.dst edge) then G.add_edge_e acc edge else acc
-  ) g G.empty in*)
   List.hd @@ G.succ g source
 
 let must_successor_edge g field source =
   let g = projection g [Pointer field; Path field] in
   List.hd @@ G.succ_e g source
-
 
 let nb_joins g field =
   let g = projection g [Pointer field] in
@@ -295,14 +270,14 @@ let rec compute phi = match phi with
   | SSL.Var _ | SSL.Pure _ -> G.empty
   | SSL.Eq xs -> all_equal xs
   | SSL.Distinct xs -> all_distinct xs
-  | SSL.PointsTo (SSL.Var x, SSL.Node.LS_t n) ->
+  | SSL.PointsTo (SSL.Var x, SSL.Struct.LS_t n) ->
     G.add_edge_e G.empty (x, Pointer Next, n)
 
-  | SSL.PointsTo (SSL.Var x, SSL.Node.DLS_t (n, p)) ->
+  | SSL.PointsTo (SSL.Var x, SSL.Struct.DLS_t (n, p)) ->
     let g = G.add_edge_e G.empty (x, Pointer Next, n) in
     G.add_edge_e g (x, Pointer Prev, p)
 
-  | SSL.PointsTo (SSL.Var x, SSL.Node.NLS_t (t, n)) ->
+  | SSL.PointsTo (SSL.Var x, SSL.Struct.NLS_t (t, n)) ->
     let g = G.add_edge_e G.empty (x, Pointer Next, n) in
     G.add_edge_e g (x, Pointer Top, t)
 
@@ -330,5 +305,39 @@ let rec compute phi = match phi with
   | SSL.Septraction _ -> G.empty
   | SSL.Not _ -> G.empty
   | SSL.Exists _ | SSL.Forall _ -> G.empty (* TODO *)
+  | other -> failwith @@ SSL.show other
+
+let normalise g =
+  let nil = SSL.Variable.nil in
+  let alloc = must_alloc g in
+  let g =
+    List.fold_left (fun g x -> G.add_edge_e g (x, Disequality, nil)) g alloc
+  in
+  let g_ptr = projection_pointer g in
+  G.fold_edges_e (fun e acc ->
+    G.fold_edges_e (fun e' acc ->
+      let x, l, y = e in
+      let x', l', y' = e' in
+      if must_eq g x x' && SL_edge.is_pointer l && SL_edge.equal l l' then G.add_edge_e acc (y, Equality, y') (* TODO: on which graph should \musteq be checked? *)
+      else acc
+    ) g_ptr acc
+  ) g_ptr g
+
+exception Contradiction
+
+let has_contradiction g =
+  try
+    G.iter_vertex (fun x ->
+      G.iter_vertex (fun x' ->
+        if must_eq g x x' && must_neq g x x' then
+        raise Contradiction
+      ) g
+    ) g;
+    false
+  with Contradiction -> true
+
+let compute phi =
+  compute phi
+  |> normalise
 
 include G
