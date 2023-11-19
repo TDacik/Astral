@@ -17,6 +17,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   open Context
   open SMT
 
+  module Footprints = Topped_set.Lift(SMT.Term.Collections.Set)
+
   (* ==== Helper functions for constructing common terms ==== *)
 
   let term_to_expr context t = match t with

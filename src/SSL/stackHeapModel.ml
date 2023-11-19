@@ -37,11 +37,11 @@ end
 
 module Footprint = struct
 
-  include Set.Make(Location)
+  include Location.Set
 
-  let disjoint_list = function
+  let rec disjoint_list = function
     | [] | [_] -> true
-    | xs1 :: xs2 :: rest -> disjoint xs1 xs2 && disjoint_list res
+    | xs1 :: xs2 :: rest -> disjoint xs1 xs2 && disjoint_list (union xs1 xs2 :: rest)
 
 end
 
