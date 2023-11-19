@@ -29,8 +29,13 @@ module Location : sig
 end
 
 
-module Footprint : Set.S with type elt := Location.t
+module Footprint : sig
 
+  include Set.S with type elt := Location.t
+
+  val disjoint_list : t list -> bool
+
+end
 
 module Value : sig
 

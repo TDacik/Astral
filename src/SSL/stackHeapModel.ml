@@ -36,22 +36,14 @@ module Location = struct
 end
 
 module Footprint = struct
+
   include Set.Make(Location)
 
-  let show fp =
-    elements fp
-    |> List.map Location.show
-    |> String.concat ", "
-    |> (fun set -> "{" ^ set ^ "}")
+  let disjoint_list = function
+    | [] | [_] -> true
+    | xs1 :: xs2 :: rest -> disjoint xs1 xs2 && disjoint_list res
 
-  module Self = struct
-    type nonrec t = t
-    let show = show
-  end
-
-  include Datatype.Printable(Self)
-
-  end
+end
 
 module Value = struct
 
