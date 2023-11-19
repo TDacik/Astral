@@ -8,7 +8,7 @@ module Self = struct
   let binary = "cvc5"
 
   let model_option = "--produce-models"
-  let parser_implemented = false
+  let parser_implemented = true
 
   let supports_smtlib_options = true
   let supports_get_info = true
