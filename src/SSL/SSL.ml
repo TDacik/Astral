@@ -300,7 +300,7 @@ let mk_iff operands = match operands with
   | [] -> mk_true ()
   | [psi] -> psi
   | [psi1; psi2] -> mk_and [mk_implies psi1 psi2; mk_implies psi2 psi1]
-  | _ -> failwith "TODO"
+  | _ -> failwith "TODO: variadic iff"
 
 let mk_bin_iff psi1 psi2 = mk_iff [psi1; psi2]
 
@@ -432,6 +432,7 @@ let rec _normalise = function
   end
   | Star fs -> Star (List.map _normalise fs)
   | Septraction (f1, f2) -> Septraction (_normalise f1, _normalise f2)
+  | Emp -> Eq [Var Variable.nil; Var Variable.nil]
   | atom -> atom
 
 (** Perform normalisation until fixpoint is reached *)
@@ -560,19 +561,58 @@ let rec is_quantifier_free phi = match node_type phi with
   | Connective terms -> List.for_all is_quantifier_free terms
   | Quantifier _ -> false
 
+let rec positive_polarity phi psi =
+  let neg = function None -> None | Some b -> Some (not b) in
+  let mor x y =
+    match x, y with None, None -> None | None, Some x -> Some x | Some x, None -> Some x | Some x, Some y -> Some (x || y)
+  in
+  let exists fn xs = List.fold_left
+    (fun acc x -> mor acc (fn x)) None xs
+  in
+  if equal phi psi then (Some true)
+  else match node_type phi with
+  | Var _ | Operator _ -> None
+  | Connective terms ->
+    begin match phi with
+      | Not psi' -> neg @@ positive_polarity psi' psi
+      | GuardedNeg (lhs, rhs) ->
+        mor (positive_polarity lhs psi) (neg @@ positive_polarity rhs psi)
+      | _ -> exists (fun t -> positive_polarity t psi) terms
+    end
+  | Quantifier (_, psi') -> positive_polarity psi' psi
+
+let positive_polarity phi psi = match positive_polarity phi psi with
+  | None -> failwith "Not a subformula"
+  | Some b -> b
+
 type fragment =
   | SymbolicHeap_SAT
   | SymbolicHeap_ENTL
-  | Atomic
   | Positive
   | Arbitrary
+  | Atomic
 
 let classify_fragment phi =
-  if is_symbolic_heap phi then SymbolicHeap_SAT
+  if is_atomic phi then Atomic
+  else if is_symbolic_heap phi then SymbolicHeap_SAT
   else if is_symbolic_heap_entl phi then SymbolicHeap_ENTL
-  else if is_atomic phi then Atomic
   else if is_positive phi then Positive
   else Arbitrary
+
+(** ==== Operation over blocks ==== *)
+(** TODO: septractions *)
+(** TODO: equality *)
+
+let rec find_blocks phi =
+  if is_symbolic_heap phi then [get_operands phi]
+  else
+    List.map find_blocks @@ get_operands phi
+    |> List.flatten
+
+let subformula_block (phi : t) (psi : t) =
+  find_blocks phi
+  |> List.find (BatList.mem_cmp compare psi)
+  |> (fun xs -> BatList.remove xs psi)
 
 (** {2 Views on SSL formulae} *)
 
@@ -582,30 +622,29 @@ let as_quantifier = function
   | Forall (xs, phi) -> `Forall, List.map (fun (Var x) -> x) xs, phi
   | Exists (xs, phi) -> `Exists, List.map (fun (Var x) -> x) xs, phi
 
-(* TODO: ... fix ... *)
 type query =
-  | QF_SymbolicHeap_SAT of t
-  | QF_SymbolicHeap_ENTL of t * t
-  | QF_Arbitrary_SAT of t
-  | QF_Arbitrary_ENTL of t * t
-  | SymbolicHeap_SAT of t
-  | SymbolicHeap_ENTL of t * t list * t
-  | Arbitrary_SAT of t
-  | Arbitrary_ENTL of t * t
+  | SymbolicHeap_SAT of t list            (* List of atomic formulae *)
+  | SymbolicHeap_ENTL of t list * t list  (* List of atomic formulae on lhs and rhs *)
+  | Arbitrary of t
+
+let rec _as_symbolic_heap phi = match phi with
+  | Star psis -> List.fold_left (fun acc psi -> _as_symbolic_heap psi @ acc) psis []
+  | psi -> [psi]
+
+let _as_symbolic_heap_entl phi = match phi with
+  | GuardedNeg (lhs, rhs) -> _as_symbolic_heap lhs, _as_symbolic_heap rhs
+
+let as_entailment = function
+  | GuardedNeg (lhs, rhs) -> lhs, rhs
 
 let as_query phi =
-  if is_quantifier_free phi then begin
-    if is_symbolic_heap phi then QF_SymbolicHeap_SAT phi
-    else if is_symbolic_heap_entl phi then match phi with
-      | GuardedNeg (lhs, rhs) -> QF_SymbolicHeap_ENTL (lhs, rhs)
-    else match phi with
-      | GuardedNeg (lhs, rhs) -> QF_Arbitrary_ENTL (lhs, rhs)
-      | _ -> QF_Arbitrary_SAT phi
-  end
-  (* Quantified *)
-  else if is_symbolic_heap_entl phi then match phi with
-  | GuardedNeg (lhs, Exists (xs, rhs)) -> SymbolicHeap_ENTL (lhs, xs, rhs)
-  else Arbitrary_SAT phi
+  if is_symbolic_heap phi then
+    SymbolicHeap_SAT (_as_symbolic_heap phi)
+  else if is_symbolic_heap_entl phi then
+    let lhs, rhs = _as_symbolic_heap_entl phi in
+    SymbolicHeap_ENTL (lhs, rhs)
+  else
+    Arbitrary phi
 
 let as_symbolic_heap phi =
   if not @@ is_symbolic_heap phi then failwith ("Not a symbolic heap:" ^ show phi)
@@ -637,19 +676,26 @@ let get_vars_sort sort phi =
   get_vars phi
   |> BatList.filter (Variable.has_sort sort)
 
-let rec get_roots sort = function
+let rec get_roots = function
   | Pure  _ | Emp | Eq _ | Distinct _ -> Variable.Set.empty
   | PointsTo (Var x, _) | LS (Var x, _) | NLS (Var x, _, _) -> Variable.Set.singleton x
   | DLS (Var x, Var x', _, _) -> Variable.Set.of_list [x; x']
   | And (psi1, psi2)
   | GuardedNeg (psi1, psi2)
-  | Or (psi1, psi2) -> Variable.Set.union (get_roots sort psi1) (get_roots sort psi2)
+  | Or (psi1, psi2) -> Variable.Set.union (get_roots psi1) (get_roots psi2)
   | Star psis ->
     List.fold_left
-      (fun acc psi -> Variable.Set.union acc (get_roots sort psi))
+      (fun acc psi -> Variable.Set.union acc (get_roots psi))
       Variable.Set.empty psis
 
-let get_roots sort phi = Variable.Set.elements @@ get_roots sort phi
+  (* TODO: more precise definition? *)
+  | Septraction (_, psi2) -> get_roots psi2
+  | Not psi -> failwith "TODO"
+
+let get_roots sort phi =
+  get_roots phi
+  |> Variable.Set.filter (Variable.has_sort sort)
+  |> Variable.Set.elements
 
 let get_loc_sorts phi =
   get_vars phi

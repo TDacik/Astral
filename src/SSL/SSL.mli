@@ -84,16 +84,13 @@ type quantifier_view = [`Forall | `Exists] * Variable.t list * t
 val as_quantifier : t -> quantifier_view
 
 type query =
-  | QF_SymbolicHeap_SAT of t
-  | QF_SymbolicHeap_ENTL of t * t
-  | QF_Arbitrary_SAT of t
-  | QF_Arbitrary_ENTL of t * t
-  | SymbolicHeap_SAT of t
-  | SymbolicHeap_ENTL of t * t list * t
-  | Arbitrary_SAT of t
-  | Arbitrary_ENTL of t * t
+  | SymbolicHeap_SAT of t list
+  | SymbolicHeap_ENTL of t list * t list
+  | Arbitrary of t
 
 val as_query : t -> query
+
+val as_entailment : t -> t * t
 
 val as_symbolic_heap : t -> t list * t list
 
@@ -111,6 +108,8 @@ val is_pure_smt : t -> bool
 
 val is_atom : t -> bool
 
+val is_predicate : t -> bool
+
 val is_atomic : t -> bool
 
 val is_symbolic_heap : t -> bool
@@ -126,9 +125,9 @@ val is_quantifier_free : t -> bool
 type fragment =
   | SymbolicHeap_SAT
   | SymbolicHeap_ENTL
-  | Atomic
   | Positive
   | Arbitrary
+  | Atomic
 
 val classify_fragment : t -> fragment
 
@@ -216,6 +215,8 @@ val get_implies_operands : t -> t * t
 
 val get_iff_operands : t -> t * t
 
+val subformula_block : t -> t -> t list
+
 (* {2 Fragments} *)
 
 val is_symbolic_heap : t -> bool
@@ -252,6 +253,8 @@ val map_vars : (Variable.t -> t) -> t -> t
 
 val select_subformulae : (t -> bool) -> t -> t list
 (** Return all subformulae satisfying given predicate. *)
+
+val positive_polarity : t -> t -> bool
 
 val substitute_pure : t -> SMT.t -> SMT.t -> t
 
