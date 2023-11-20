@@ -54,10 +54,10 @@ let rec simplify phi = match phi with
   | Emp -> Emp
   | Var x -> phi
   | Pure t -> phi (* TODO: simplification using SMT *)
-  | Eq xs -> if List_utils.all_equal SSL.equal xs then mk_emp () else phi
-  | Distinct xs -> if List_utils.all_equal SSL.equal xs then mk_false () else phi
+  | Eq xs -> (*if List_utils.all_equal SSL.equal xs then mk_emp () else phi*) phi
+  | Distinct xs -> (*if List_utils.all_equal SSL.equal xs then mk_false () else phi*) phi
   | PointsTo (x, ys) -> phi
-  | LS (x, y) -> if equal x y then mk_emp () else phi
+  | LS (x, y) -> if equal x y then SSL.mk_eq x y else phi
   | DLS (x, y, f, l) ->
     if equal x l && equal y f then mk_emp ()
     else if equal x l then SSL.mk_eq y f
