@@ -34,7 +34,7 @@ let convertor () = match !_convertor with
   | "songbird" | "sls" -> (module SongbirdConvertor : CONVERTOR)
   | "slide" -> (module SlideConvertor : CONVERTOR)
   | "s2s" -> (module S2SConvertor : CONVERTOR)
-  | other -> Astral_lib.Utils.cmd_option_error "convertor" other
+  | other -> Astral.Utils.cmd_option_error "convertor" other
 
 let _debug = ref false
 let debug () = !_debug

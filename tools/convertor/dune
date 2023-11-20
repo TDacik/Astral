@@ -2,8 +2,8 @@
 
 (executable
   (name convertor)
-  (libraries astral_lib convertor_lib)
-  (flags -open Astral_lib -open Convertor_lib)
+  (libraries astral convertor_lib)
+  (flags -open Astral -open Convertor_lib)
 )
 
 (install

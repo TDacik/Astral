@@ -84,7 +84,7 @@ let max_pred_enum () = match !_max_pred_enum with
 
 (* ==== Output options ==== *)
 
-let _produce_models = ref false
+let _produce_models = ref true
 let produce_models () = !_produce_models
 let set_produce_models flag = _produce_models := flag
 
@@ -112,7 +112,7 @@ let sl_quantifiers () = !_sl_quant
 
 (* ==== SMT Backend ==== *)
 
-let _backend = ref "z3"
+let _backend = ref "cvc5"
 let backend () = !_backend
 
 let _backend_options = ref ""
@@ -135,7 +135,7 @@ let locations () = !_locations
 let _heap = ref "default"
 let heap () = !_heap
 
-let _sets = ref "direct"
+let _sets = ref "bitvectors"
 let sets () = !_sets
 
 let _quantifiers = ref "path"

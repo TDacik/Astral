@@ -1,65 +1,58 @@
-(* Solver
+(* Solver's public API
  *
- * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
+ * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-open SSL
-open Context
+module Input = ParserContext
 
-open Backend_sig
-open Translation_sig
+type solver = {
+  backend : [`Z3 | `CVC5];
+  encoding : [`Bitvectors | `Sets];
 
-module Print = Printer.Make(struct let name = "Solver" end)
+  produce_models : bool;
+  dump_queries : [`None | `Brief | `Full];
+}
 
-(** Verify result against status specified in the input *)
-let verify_status input =
-  let status = Option.get input.status in
-  let expected = input.raw_input.expected_status in
-  status = expected || status_is_unknown status || status_is_unknown expected
+let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(dump_queries=`None) () = {
+  backend = backend;
+  encoding = encoding;
 
-let verify_model_fn sh phi = None
-  (*if not @@ SSL.is_positive phi then
-    let _ = Printf.printf "[MC] Model checking of negative formulas is not implemented" in
-    None
-  else
-    let verdict = ModelChecker.check sh phi in
-    if verdict then
-      let _ = Printf.printf "[MC] Model verified\n" in
-      Some true
-    else
-      let _ = Printf.printf "[MC] Incorrect model\n" in
-      Some false
-  *)
-(*
-let select_predicate_encoding input = match SSL.classify_fragment input.phi with
-  | SymbolicHeap_SAT -> (module ListEncoding.SymbolicHeaps : PREDICATE_ENCODING)
-  | _ -> Options.list_encoding ()
-*)
-let debug_info input = match SSL.classify_fragment input.phi with
-  | Atomic -> Print.debug "Solving as atomic formula\n"
-  | SymbolicHeap_SAT -> Print.debug "Solving as satisfiability in SH-fragment\n"
-  | SymbolicHeap_ENTL -> Print.debug "Solving as entailment in SH-fragment\n"
-  | Positive -> Print.debug "Solving as positive formula\n"
-  | Arbitrary -> Print.debug "Solving as arbitrary formula\n"
+  produce_models = false;
+  dump_queries = dump_queries;
+}
 
-let solve (raw_input : ParserContext.t) =
-  let input = Context.init raw_input in
-  let input = Preprocessor.first_phase input in
-  let sl_graph = SL_graph.compute input.phi in
-  if SL_graph.has_contradiction sl_graph then
-    Context.set_result `Unsat ~unsat_core:(Some []) input
-  else
-    let bounds = Bounds.compute input.phi sl_graph in
-    let input = Context.add_metadata input sl_graph bounds in
-    let input = Preprocessor.second_phase input in
-    (* Recompute bounds TODO: really? *)
-    let bounds = Bounds.compute input.phi sl_graph in
-    let input = Context.add_metadata input sl_graph bounds in
+let activate solver = () (* TODO *)
 
-    Debug.out_input input;
 
-    let module Backend = (val Options.backend () : BACKEND) in
-    let module Encoding = (val Options.encoding () : ENCODING) in
-    let module Translation = Translation.Make(Encoding)(Backend) in
 
-    debug_info input;
-    Translation.solve input
+let solve solver phi =
+  activate solver;
+  let vars = SSL.get_vars phi in
+  let input =
+    let input = Input.empty in
+    let input = Input.add_assertion input phi in
+    Input.add_vars input vars
+  in
+  let result = Engine.solve input in
+  match Option.get result.status with
+  | `Sat -> `Sat (Option.get result.model)
+  | `Unsat -> `Unsat
+  | `Unknown reason -> `Unknown reason
+
+exception UnknownResult of string
+
+let lift res = function
+  | `Sat _ -> res
+  | `Unsat -> not res
+  | `Unknown reason -> raise @@ UnknownResult reason
+
+let check_sat solver phi = lift true @@ solve solver phi
+
+let check_entl solver lhs rhs =
+  let phi = SSL.mk_gneg lhs rhs in
+  lift false @@ solve solver phi
+
+let check_equiv solver lhs rhs =
+  let phi1 = SSL.mk_gneg lhs rhs in
+  let phi2 = SSL.mk_gneg rhs lhs in
+  let phi = SSL.mk_or [phi1; phi2] in
+  lift false @@ solve solver phi

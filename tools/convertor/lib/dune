@@ -1,7 +1,7 @@
 (library
   (name convertor_lib)
-  (libraries astral_lib)
-  (flags -open Astral_lib)
+  (libraries astral)
+  (flags -open Astral)
 
   (modules_without_implementation convertor_sig)
 )

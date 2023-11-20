@@ -1,5 +1,6 @@
 (library
-  (name astral_lib)
+  (name astral)
+  (public_name astral)
 
   (inline_tests)
 
@@ -31,6 +32,12 @@
     backend_sig
     translation_sig
     printer_sig
+    PredicateEncoding_sig
+    set_sig
+    SetEncoding_sig
+    location_sig
+    context_sig
+    HeapEncoding_sig
   )
 )
 

@@ -6,7 +6,6 @@
     list_utils_tests
     simplification_tests
     preprocessing_tests
-    predicate_unfolding_tests
     backend
     antiprenexing_tests
     broom_preprocessor_tests
@@ -15,7 +14,7 @@
   )
 
   (libraries
-    astral_lib
+    astral
     astral_generator
     alcotest
     qcheck
@@ -24,7 +23,7 @@
   (flags
     :standard
     -open Alcotest
-    -open Astral_lib
+    -open Astral
     -open Astral_generator
   )
 
