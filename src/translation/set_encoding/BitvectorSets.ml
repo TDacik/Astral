@@ -1,11 +1,10 @@
-(* Set encoding based on bitvetors
+(* Set encoding based on bitvectors.
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
 module BV = Bitvector
 
 open SMT
-open BatOption.Infix
 
 include Term
 
@@ -20,7 +19,11 @@ let get_elem_sort set = get_sort set
 
 let mk_sort sort = sort
 
-let mk_empty = function Sort.Bitvector n -> Bitvector.mk_zero n
+let mk_empty = function
+  | Sort.Bitvector n -> Bitvector.mk_zero n
+  | other -> Utils.internal_error @@ Format.asprintf
+    "Sort of abstract sets needs to be a bitvector sort, instead sort %s is used"
+      (Sort.show other)
 
 (** Singleton set {x} is represented by `1` shifted to position x. *)
 let mk_singleton elem =
@@ -45,6 +48,12 @@ let mk_disjoint set1 set2 =
   let bv_and = Bitvector.mk_and [set1; set2] (Sort.Bitvector n) in
   mk_eq bv_and (Bitvector.mk_zero n)
 
+(* TODO: more efficiently? Add bit-disjoint (...) to SMT for easier debugging? *)
+let mk_disjoint_list sets =
+  List_utils.diagonal_product sets
+  |> List.map (fun (set1, set2) -> mk_disjoint set1 set2)
+  |> Boolean.mk_and
+
 let mk_union sets sort = Bitvector.mk_or sets sort
 let mk_inter sets sort = Bitvector.mk_and sets sort
 let mk_diff set1 set2 =
@@ -60,6 +69,8 @@ let mk_eq_singleton set x = Bitvector.mk_eq set (mk_singleton x)
 let get_elems set = failwith "TODO: get_elems"
 
 let may_disjoint _ _ = true
+
+(* === Implementation of rewritting === *)
 
 let hex_to_bin str = BatString.fold_left (fun acc digit ->
   let bits = match digit with
@@ -88,7 +99,6 @@ let hex_to_bin str = BatString.fold_left (fun acc digit ->
 (** Translate a bitstring to the set which it encodes. *)
 let inverse_translation (bitstring : String.t) n =
   let acc = Set.mk_empty (Sort.Bitvector n) in
-  Printf.printf "str: %s" bitstring;
   let set = match String.get bitstring 1 with
   | 'b' ->
     BatString.fold_lefti
@@ -114,7 +124,6 @@ let inverse_translation (bitstring : String.t) n =
     The function rewrites all set expressions to corresponding bitvector expressions and also
     need to correctly update all sorts. *)
 let rec rewrite t =
-  let process_ranges = fun ranges -> Some (List.map (List.map rewrite) ranges) in
   let t = Backend_preprocessor.apply t in
   Term.map
     (fun t -> match t with
@@ -128,9 +137,9 @@ let rec rewrite t =
       | Enumeration (elems, Set sort) -> mk_enumeration sort (List.map rewrite elems)
       | Variable (name, Set sort) -> Variable (name, sort)
       | Exists2 (binders, ranges, phi) ->
-        Exists2 (List.map rewrite binders, ranges >>= process_ranges, phi)
+        Exists2 (List.map rewrite binders, Range.map ranges rewrite, phi)
       | Forall2 (binders, ranges, phi) ->
-        Forall2 (List.map rewrite binders, ranges >>= process_ranges, phi)
+        Forall2 (List.map rewrite binders, Range.map ranges rewrite, phi)
       | other -> other
     ) t
 
