@@ -19,7 +19,6 @@
   (preprocess
     (pps
       ppx_compare
-      ppx_inline_test
     )
   )
 
