@@ -33,7 +33,7 @@ let is_ok phi =
   let lists = SSL.select_subformulae (function SSL.LS _ -> true | _ -> false) phi in
   let c1 = SSL.Set.subset rhs_vars lhs_vars in
   let c2 = not @@ SL_graph.has_contradiction g in
-  let c3 = List.for_all (function SSL.LS (x, y) -> not @@ SSL.equal x y) lists in
+  let c3 = List.for_all (function SSL.LS (x, y) -> not @@ SSL.equal x y | _ -> assert false) lists in
   let res = c1 && c2 in
   if res
   then Format.printf "Good %b %b %b\n" c1 c2 c3
