@@ -432,7 +432,6 @@ let rec _normalise = function
   end
   | Star fs -> Star (List.map _normalise fs)
   | Septraction (f1, f2) -> Septraction (_normalise f1, _normalise f2)
-  | Emp -> Eq [Var Variable.nil; Var Variable.nil]
   | atom -> atom
 
 (** Perform normalisation until fixpoint is reached *)
