@@ -2,84 +2,85 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-open Batteries
-
 open SSL
+open Location_sig
 
-type t = {
+module Make (L : LOCATIONS) = struct
 
-  (* Input *)
-  phi : SSL.t;
-  vars : Variable.t list;
+  module Locations = L
+  module HeapEncoding = HeapEncoding.Make(L)
 
-  (* Abstractions *)
-  sl_graph : SL_graph.t;
-  stack_bound : int * int;
-  location_bound : int;
+  type t = {
 
-  (* Translation context *)
-  can_skolemise : bool;
-  under_star : bool;
-  polarity : bool;
+    (* Input *)
+    phi : SSL.t;
+    vars : Variable.t list;
 
-  (* Translation sorts *)
-  locs_sort : Sort.t;
-  fp_sort : Sort.t;
-  heap_sort : Sort.t;
+    smt_vars : SMT.t list;
 
-  (* Translation terms *)
-  heap : SMT.Term.t;
-  heap_prev : SMT.Term.t;
-  locs : SMT.Term.t list;
-  global_footprint : SMT.Term.t;
+    (* Bounds *)
+    sl_graph : SL_graph.t;
+    bounds : Bounds.t;
 
-  (* Auxiliary translation terms *)
-  mutable footprints : SMT.Term.t list;
-  mutable heaps : SMT.Term.t list;
-}
+    (* Translation context *)
+    can_skolemise : bool;
+    under_star : bool;
+    polarity : bool;
 
-let add_footprint ctx fp = ctx.footprints <- fp :: ctx.footprints
+    (* Translation sorts *)
+    loc_sort : Sort.t;
+    fp_sort : Sort.t;
 
-let add_heap ctx heap = ctx.heaps <- heap :: ctx.heaps
+    locs : Locations.t;
+    heap : HeapEncoding.t;
 
-let formula_footprint ?(physically=true) context psi =
-  let id = SSL.subformula_id ~physically context.phi psi in
-  Format.asprintf "footprint%d" id
+    global_footprint : SMT.Term.t;
 
-let formula_witness_heap context psi =
-  let id = SSL.subformula_id context.phi psi in
-  Format.asprintf "heap%d" id
+    (* Auxiliary translation terms *)
+    mutable footprints : SMT.Term.t list;
+    mutable heaps : SMT.Term.t list;
+  }
 
-(** Compute powerset of list *)
-let rec powerset = function
-  | [] -> [[]]
-  | x :: xs ->
-      let ps = powerset xs in
-      ps @ List.map (fun s -> x :: s) ps
+  (* ==== Basic translation operations ==== *)
 
-let locations_powerset context = powerset context.locs
+  let translate_var loc_sort x = SMT.Variable.mk (SSL.Variable.show x) loc_sort
 
-let init (context : Context.t) locs_sort locs global_fp heap heap_prev =
-{
-  phi = context.phi;
-  vars = context.vars;
+  let add_footprint ctx fp = ctx.footprints <- fp :: ctx.footprints
 
-  sl_graph = context.sl_graph;
-  stack_bound = context.stack_bound;
-  location_bound = context.location_bound;
+  let add_heap ctx heap = ctx.heaps <- heap :: ctx.heaps
 
-  can_skolemise = true;
-  under_star = false;
-  polarity = true;
+  let init (context : Context.t) =
+    let locs = Locations.init context.bounds in
+    let loc_sort = Locations.get_sort locs in
 
-  locs_sort = locs_sort;
-  fp_sort = SMT.Set.mk_sort locs_sort;
-  heap_sort = SMT.Array.mk_sort locs_sort locs_sort;
+    let fp_sort = SMT.Set.mk_sort loc_sort in
+    let domain = SMT.Set.mk_var "footprint0" fp_sort in
 
-  heap = heap;
-  heap_prev = heap_prev;
-  locs = locs;
-  global_footprint = global_fp;
-  footprints = [global_fp];
-  heaps = [heap]
-}
+    let heap = HeapEncoding.mk context.phi locs in
+    {
+      phi = context.phi;
+      vars = context.vars;
+
+      smt_vars = List.map (translate_var loc_sort) context.vars;
+
+      sl_graph = context.sl_graph;
+      bounds = context.bounds;
+
+      can_skolemise = true;
+      under_star = false;
+      polarity = true;
+
+      loc_sort = loc_sort;
+      fp_sort = fp_sort;
+
+      locs = locs;
+      heap = heap;
+
+      global_footprint = domain;
+
+      (* TODO *)
+      footprints = [domain];
+      heaps = [];
+    }
+
+end
