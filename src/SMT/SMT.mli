@@ -87,7 +87,6 @@ type t =
   | SeqIndex of t * t            (* Sequence indexing *)
   | SeqContains of t * t         (* Membership in sequence *)
   | SeqReverse of t              (* Reverse of sequence *)
-  [@@deriving fold]
 
 module type SMT_TERM := sig
 

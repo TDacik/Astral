@@ -95,7 +95,6 @@ module Term = struct
     | SeqIndex of t * t            (* Sequence indexing *)
     | SeqContains of t * t         (* Membership in sequence *)
     | SeqReverse of t              (* Reverse of sequence *)
-    [@@deriving map, fold]
 
   (* TODO: could this be derived? *)
   let rec map f term =
