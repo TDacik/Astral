@@ -31,7 +31,7 @@ let set_encoding () = match Options.sets () with
   | other -> Utils.cmd_option_error "sets" other
 
 let location_encoding () = match Options.locations () with
-  | "enum" -> (module EnumerationLocations : LOCATIONS)
+  | "enum" -> (module DatatypeLocations : LOCATIONS)
   | "bitvectors" -> (module BitvectorLocations : LOCATIONS)
   | other -> Utils.cmd_option_error "location" other
 
