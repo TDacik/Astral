@@ -244,7 +244,7 @@ val get_vars_sort : Sort.t -> t -> Variable.t list
 
 val get_roots : Sort.t -> t -> Variable.t list
 
-val get_loc_sorts : t -> Sort.t list
+val get_loc_sorts : ?with_nil:bool -> t -> Sort.t list
 
 val map : (t -> t) -> t -> t
 

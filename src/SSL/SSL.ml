@@ -696,8 +696,8 @@ let get_roots sort phi =
   |> Variable.Set.filter (Variable.has_sort sort)
   |> Variable.Set.elements
 
-let get_loc_sorts phi =
-  get_vars phi
+let get_loc_sorts ?(with_nil=false) phi =
+  get_vars ~with_nil phi
   |> List.map Variable.get_sort
   |> BatList.unique ~eq:Sort.equal
 
