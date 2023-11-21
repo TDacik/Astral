@@ -2,7 +2,6 @@
   (name astral)
   (public_name astral)
 
-  (inline_tests)
 
   (libraries
     z3
