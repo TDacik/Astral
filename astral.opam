@@ -17,6 +17,7 @@ bug-reports: "https://github.com/TDacik/Astral/issues"
 depends: [
   "ocaml"
   "dune"
+  "alcotest"
   "batteries"
   "z3"
   "dolmen" {= "0.6"}
@@ -24,6 +25,7 @@ depends: [
   "qcheck"
   "yojson"
   "ppx_compare"
+  "ppx_deriving"
 ]
 
 build: [

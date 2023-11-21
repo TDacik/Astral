@@ -18,8 +18,6 @@
 
   (preprocess
     (pps
-      ppx_deriving.fold
-      ppx_deriving.map
       ppx_compare
       ppx_inline_test
     )
