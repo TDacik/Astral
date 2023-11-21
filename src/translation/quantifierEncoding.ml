@@ -15,7 +15,7 @@ module Utils (Locations : LOCATIONS) = struct
     ) xs
 
   let enumerate connective phi x range =
-    List.map (SMT.substitute phi x)
+    List.map (SMT.substitute phi x) range
     |> connective
 
   let enumerate_footprints xs locs =
