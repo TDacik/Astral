@@ -112,7 +112,7 @@ let sl_quantifiers () = !_sl_quant
 
 (* ==== SMT Backend ==== *)
 
-let _backend = ref "cvc5"
+let _backend = ref "auto"
 let backend () = !_backend
 
 let _backend_options = ref ""
