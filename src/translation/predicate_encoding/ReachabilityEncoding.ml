@@ -72,7 +72,7 @@ module Make (Encoding : CONTEXT) = struct
     |> List.map (fun n -> reach_n selector source sink n, n)
     |> List.map (fun (p, n) -> Boolean.mk_and
       [p;
-       Locations.mk_subset_of_type ctx.locs (path_n ctx selector (fun _ x -> x) source n) typ
+       Locations.mk_set_of_type ctx.locs (path_n ctx selector (fun _ x -> x) source n) typ
       ])
     |> Boolean.mk_or
 

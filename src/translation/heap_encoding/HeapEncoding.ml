@@ -74,8 +74,7 @@ module Make (Locations : LOCATIONS) = struct
     Set.mk_union [mk_image self domain; domain] fp_sort
 
   let mk_eq_on_domain_selector locs domain lhs rhs =
-    let locs_sort = Locations.get_sort locs in
-    Locations.mk_forall locs_sort
+    Locations.mk_forall locs
       (fun loc ->
         let in_domain = Set.mk_mem loc domain in
         let lhs_select = Array.mk_select lhs loc in

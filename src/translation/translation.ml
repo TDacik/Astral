@@ -449,17 +449,15 @@ let translate_phi (context : Context.t) ssl_phi =
   (** Introduction of `next` array. May be ignored for positive formulae. *)
   let next_intro = SMT.mk_eq nil @@ HeapEncoding.mk_next context.heap nil in
 
-  let location_axioms = Locations.axioms context.locs context.vars in
+  let location_axioms = Locations.axioms context.locs context.phi in
   let heap_axioms = HeapEncoding.axioms context.heap in
-  let domain_axioms = Locations.domain_axioms context.locs context.global_footprint in
-
   let location_lemmas = Locations.lemmas context.locs in
 
   Boolean.mk_and
     [
       phi; axioms; nil_not_in_fp; location_lemmas;
       next_intro;
-      location_axioms; heap_axioms; domain_axioms
+      location_axioms; heap_axioms
     ]
 
   (* ==== Translation of SMT model to stack-heap model ==== *)

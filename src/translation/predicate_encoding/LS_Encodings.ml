@@ -43,7 +43,7 @@ module Default (Context : CONTEXT) = struct
     let semantics ctx [x; y] [heap] domain (LS_bound bound) =
       let reach = reach heap x y bound in
       let path = Set.mk_eq domain (path ctx heap x y bound) in
-      let types = Locations.mk_subset_of_type ctx.locs domain Sort.loc_ls in
+      let types = Locations.mk_set_of_type ctx.locs domain Sort.loc_ls in
       Boolean.mk_and [reach; path; types]
 
     let footprints ctx [x; y] [heap] domain (LS_bound bound) = [path ctx heap x y bound]

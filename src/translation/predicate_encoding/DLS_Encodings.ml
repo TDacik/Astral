@@ -5,7 +5,6 @@
 open SSL
 open SMT
 
-open SortBound
 open PredicateBounds.Entry
 
 open Context_sig
@@ -59,9 +58,9 @@ module Default (Context : CONTEXT) = struct
         SMT.mk_eq loc (HeapEncoding.mk_prev ctx.heap @@ HeapEncoding.mk_next ctx.heap loc)
       in
       let inv = Boolean.mk_implies precond conseq in
-      let dls_loc_bound = Bounds.sort_bound ctx.bounds Sort.loc_dls in
+      let dls_loc_bound = Bounds.sort_total ctx.bounds Sort.loc_dls in
       let invariant =
-        if (2 * (snd bounds) >= dls_loc_bound.allocated)
+        if (2 * (snd bounds) >= dls_loc_bound)
         then Quantifier.mk_forall [loc] inv
         else Quantifier.mk_forall_path next x (snd bounds) loc inv
       in
@@ -80,7 +79,7 @@ module Default (Context : CONTEXT) = struct
         Boolean.mk_eq ny (HeapEncoding.mk_next ctx.heap y);
 
         reach next x y bounds;
-        Locations.mk_subset_of_type ctx.locs domain Sort.loc_dls;
+        Locations.mk_set_of_type ctx.locs domain Sort.loc_dls;
         Set.mk_eq domain (domain_term ctx next x y bounds);
         invariant
       ] in

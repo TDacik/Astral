@@ -5,7 +5,6 @@
 open SSL
 open SMT
 
-open SortBound
 open PredicateBounds.Entry
 
 open Context_sig
@@ -41,15 +40,15 @@ module Default (Context : CONTEXT) = struct
 
     module Context = Context
 
-    let name = "default3"
+    let name = "default"
 
     let semantics ctx [x; y; z] [next; top] domain (NLS_bound (top_bound, nested_bounds)) =
       let top_reach = reach top x y top_bound in
       let top_path = path ctx top x y top_bound in
       let domain_def = Set.mk_eq domain (nested_path ctx top next x y z top_bound nested_bounds) in
-      let top_loc_bound = Bounds.sort_bound ctx.bounds Sort.loc_nls in
+      let top_loc_bound = Bounds.sort_total ctx.bounds Sort.loc_nls in
       let loc_sort = Locations.get_sort ctx.locs in
-      let types = Locations.mk_subset_of_type ctx.locs top_path Sort.loc_nls in
+      let types = Locations.mk_set_of_type ctx.locs top_path Sort.loc_nls in
 
       let loc = Variable.mk_fresh "loc" loc_sort in
       let precond =
@@ -59,15 +58,15 @@ module Default (Context : CONTEXT) = struct
         ]
       in
       let bounds = nested_bounds.default :: nested_bounds.concrete in
-      let i_bounds = Interval.meet_of_list bounds in
+      let i_bounds = Interval.meet_list bounds in
       let i_bounds = Interval.minus i_bounds (1, 1) in
       let invariant =
         typed_reach ctx next (HeapEncoding.mk_next ctx.heap loc) z Sort.loc_ls i_bounds in
       let body = Boolean.mk_implies precond invariant in
       let invariant =
-        if (2 * (snd top_bound) >= top_loc_bound.allocated)
-        then let _ = Printf.printf "A\n" in SMT.Quantifier.mk_forall [loc] body
-        else let _ = Printf.printf "B\n" in SMT.Quantifier.mk_forall_path top x (snd i_bounds) loc body
+        if (2 * (snd top_bound) >= top_loc_bound)
+        then SMT.Quantifier.mk_forall [loc] body
+        else SMT.Quantifier.mk_forall_path top x (snd i_bounds) loc body
       in
       let loc1 = Variable.mk_fresh "loc1" loc_sort in
       let loc2 = Variable.mk_fresh "loc2" loc_sort in
@@ -81,7 +80,7 @@ module Default (Context : CONTEXT) = struct
       let downs_not_alloc = Boolean.mk_not @@ Set.mk_mem down_loc1 domain in
       let body = Boolean.mk_implies cond downs_not_alloc in
       let nested_disjoint =
-        if (2 * (snd top_bound) >= top_loc_bound.allocated)
+        if (2 * (snd top_bound) >= top_loc_bound)
         then SMT.Quantifier.mk_forall [loc1; loc2] body
         else
           Quantifier.mk_forall_path_nested2 top next x
