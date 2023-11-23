@@ -16,7 +16,7 @@ let check g lhs_vars = function
 let simplify g phi = match phi with
   | GuardedNeg (lhs, rhs) ->
     let lhs_vars = SSL.get_vars lhs in
-    let lists = SSL.select_subformulae (function SSL.LS _ | SSL.PointsTo _ -> true | _ -> false) rhs in
+    let lists = SSL.filter (function SSL.LS _ | SSL.PointsTo _ -> true | _ -> false) rhs in
     if List.exists (check g lhs_vars) lists
     then (lhs, SSL.get_vars lhs)
     else (phi, SSL.get_vars phi)

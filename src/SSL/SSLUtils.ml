@@ -95,12 +95,12 @@ module AST = struct
     else if SSL.is_false psi then make_leaf "false"
     else if SSL.is_emp psi then make_leaf "emp"
     else if SSL.is_implies psi then
-      let lhs, rhs = SSL.get_implies_operands psi in
+      let lhs, rhs = SSL.as_implies psi in
         let lhs = create phi lhs in
         let rhs = create phi rhs in
         make_binary_node lhs rhs (node_name top phi psi)
     else if SSL.is_iff psi then
-      let lhs, rhs = SSL.get_iff_operands psi in
+      let lhs, rhs = SSL.as_iff psi in
         let lhs = create phi lhs in
         let rhs = create phi rhs in
         make_binary_node lhs rhs (node_name top phi psi)

@@ -15,9 +15,9 @@ let rec apply locs phi =
   | SSL.Star psis -> SSL.mk_star @@ List.map apply psis
   | SSL.Septraction (psi1, psi2) -> SSL.mk_septraction (apply psi1) (apply psi2)
   | SSL.Exists (xs, psi) ->
-      List.map (fun x ->
+      List.map (fun (SSL.Var x) ->
         List.map (fun l ->
-          SSL.substitute psi x l
+          SSL.substitute psi ~var:x ~by:l
         ) locs
       ) xs
       |> List.concat

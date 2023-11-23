@@ -18,6 +18,7 @@ module type VARIABLE = sig
 
   include PRINTABLE with type t := t
   include COMPARABLE with type t := t
+  include COLLECTIONS with type t := t
 
   val get_name : t -> string
 

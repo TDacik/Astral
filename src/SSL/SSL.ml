@@ -241,28 +241,28 @@ let is_false phi = equal phi (mk_false ()) || equal phi (mk_not @@ mk_true ())
 let is_true phi = equal phi (mk_true ()) || equal phi (mk_not @@ mk_false ())
 let is_emp phi = equal phi (mk_emp ())
 
-let get_implies_operands = function
+let as_implies = function
   | Or (Not lhs, rhs) -> (lhs, rhs)
   | Or (rhs, Not lhs) -> (lhs, rhs)
   | _ -> raise (Invalid_argument "Not an implication")
 
 let is_implies phi =
   try
-    let _ = get_implies_operands phi in
+    let _ = as_implies phi in
     true
   with _ -> false
 
-let get_iff_operands = function
+let as_iff phi = match phi with
   | And (lhs, rhs) when is_implies lhs && is_implies rhs ->
-    let lhs1, lhs2 = get_implies_operands lhs in
-    let rhs1, rhs2 = get_implies_operands rhs in
+    let lhs1, lhs2 = as_implies lhs in
+    let rhs1, rhs2 = as_implies rhs in
     if equal lhs1 rhs2 && equal rhs1 lhs2 then (lhs1, rhs1)
-    else raise (Invalid_argument "Not an iff")
-  | _ -> raise (Invalid_argument "Not an iff")
+    else raise @@ Invalid_argument ("Not an iff" ^ show phi)
+  | _ -> raise @@ Invalid_argument ("Not an iff" ^ show phi)
 
 let is_iff phi =
   try
-    let _ = get_iff_operands phi in
+    let _ = as_iff phi in
     true
   with _ -> false
 
@@ -347,7 +347,9 @@ let rec is_pure_smt phi = match node_type phi with
   | Operator (terms, _) | Connective terms -> List.for_all is_pure_smt terms
   | Quantifier (_, psi) -> is_pure_smt psi
 
-let rec substitute_pure phi x term = match phi with
+let rec substitute_pure phi ~var:x ~by:term =
+  let rec_subst phi = substitute_pure phi ~var:x ~by:term in
+  match phi with
   | Emp -> Emp
   | Var _ -> phi
   | Eq xs -> Eq xs
@@ -357,18 +359,16 @@ let rec substitute_pure phi x term = match phi with
   | DLS (x, y, f, l) -> DLS (x, y, f, l)
   | NLS (x, y, z) -> NLS (x, y, z)
   | SkipList (depth, x, y) -> SkipList (depth, x, y)
-  | And (psi1, psi2) -> And (substitute_pure psi1 x term, substitute_pure psi2 x term)
-  | Or (psi1, psi2) -> Or (substitute_pure psi1 x term, substitute_pure psi2 x term)
-  | Not psi -> Not (substitute_pure psi x term)
-  | GuardedNeg (psi1, psi2) ->
-      GuardedNeg (substitute_pure psi1 x term, substitute_pure psi2 x term)
-  | Exists (xs, psi) -> Exists (xs, substitute_pure psi x term)
-  | Forall (xs, psi) -> Forall (xs, substitute_pure psi x term)
-  | Star psis -> Star (List.map (fun psi -> substitute_pure psi x term) psis)
-  | Septraction (psi1, psi2) ->
-      Septraction (substitute_pure psi1 x term, substitute_pure psi2 x term)
+  | And (psi1, psi2) -> And (rec_subst psi1, rec_subst psi2)
+  | Or (psi1, psi2) -> Or (rec_subst psi1, rec_subst psi2)
+  | Not psi -> Not (rec_subst psi)
+  | GuardedNeg (psi1, psi2) -> GuardedNeg (rec_subst psi1, rec_subst psi2)
+  | Exists (xs, psi) -> Exists (xs, rec_subst psi)
+  | Forall (xs, psi) -> Forall (xs, rec_subst psi)
+  | Star psis -> Star (List.map (fun psi -> rec_subst psi) psis)
+  | Septraction (psi1, psi2) -> Septraction (rec_subst psi1, rec_subst psi2)
   (* Delegate to SMT substitution *)
-  | Pure pure -> Pure (SMT.substitute pure x term)
+  | Pure pure -> Pure (SMT.substitute pure (SMT.Variable x) term)
 
 let rec substitute ?(bounded=[]) phi v term = match phi with
   | Var _ ->
@@ -403,7 +403,7 @@ let rec substitute ?(bounded=[]) phi v term = match phi with
   | Septraction (psi1, psi2) ->
       Septraction (substitute ~bounded psi1 v term, substitute ~bounded psi2 v term)
 
-let substitute phi v term = substitute ~bounded:[] phi v term
+let substitute phi ~var:v ~by:term = substitute ~bounded:[] phi (Var v) (Var term)
 
 (** Transform suitable negations to guarded form
  *  TODO: quantifiers, move to preprocessing *)
@@ -724,12 +724,12 @@ let rec map fn phi =
 let map_vars fn phi = map (function Var x -> fn x | psi -> psi) phi
 
 
-let fold_on_vars fn acc phi =
+let fold_vars fn acc phi =
   let vars = get_vars phi in
   List.fold_right fn vars acc
 
-let rec iter_on_subformulas fn phi =
-  let iter = iter_on_subformulas fn in
+let rec iter fn phi =
+  let iter = iter fn in
   match phi with
   | And (f1, f2) -> iter f1; iter f2; fn phi
   | Or (f1, f2) -> iter f1; iter f2; fn phi
@@ -740,11 +740,11 @@ let rec iter_on_subformulas fn phi =
   | Forall (_, psi) | Exists (_, psi) -> fn phi; iter psi
   | atom -> fn atom
 
-let rec select_subformulae predicate phi =
+let rec filter predicate phi =
   let acc = match node_type phi with
     | Var _ | Operator _ -> []
-    | Connective psis -> List.concat @@ List.map (select_subformulae predicate) psis
-    | Quantifier (_, psi) -> select_subformulae predicate psi
+    | Connective psis -> List.concat @@ List.map (filter predicate) psis
+    | Quantifier (_, psi) -> filter predicate psi
   in
   if predicate phi then phi :: acc else acc
 

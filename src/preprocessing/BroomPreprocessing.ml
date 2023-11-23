@@ -14,9 +14,8 @@ let sort_vars vars =
 (** Replace quantification over boolean variables by boolean connectives. *)
 let unfold_bool kind x psi = match x with
   | SSL.Pure (SMT.Variable x) ->
-    let x = SMT.Variable x in
-    let psi_true = SSL.substitute_pure psi x (SMT.Boolean.mk_true ()) in
-    let psi_false = SSL.substitute_pure psi x (SMT.Boolean.mk_false ()) in
+    let psi_true = SSL.substitute_pure psi ~var:x ~by:(SMT.Boolean.mk_true ()) in
+    let psi_false = SSL.substitute_pure psi ~var:x ~by:(SMT.Boolean.mk_false ()) in
     begin match kind with
       | `Forall -> SSL.mk_and [psi_true; psi_false]
       | `Exists -> SSL.mk_or [psi_true; psi_false]
@@ -32,7 +31,7 @@ let is_pure_false phi = SSL.equal phi (SSL.mk_pure @@ SMT.Boolean.mk_false ())
 
 let rec remove_iffs phi =
   if SSL.is_iff phi then begin
-    let lhs, rhs = SSL.get_iff_operands phi in
+    let lhs, rhs = SSL.as_iff phi in
     if SSL.is_true lhs then rhs
     else if SSL.is_true rhs then lhs
     else if SSL.is_false lhs then SSL.mk_not rhs
@@ -66,7 +65,7 @@ let unpack (SSL.Pure x) = x
 let rec collect_bool_atoms pred phi =
   let collect_bool_atoms = collect_bool_atoms pred in
   if SSL.is_iff phi then begin
-    let lhs, rhs = SSL.get_iff_operands phi in
+    let lhs, rhs = SSL.as_iff phi in
     if pred lhs then [unpack rhs]
     else if pred rhs then [unpack lhs]
     else []
@@ -87,9 +86,13 @@ let replace_iffs phi =
   let trues = collect_bool_atoms SSL.is_true phi in
   let falses = collect_bool_atoms SSL.is_false phi in
   let phi =
-    List.fold_left (fun phi x -> SSL.substitute_pure phi x (SMT.Boolean.mk_true ())) phi trues
+    List.fold_left (fun phi (SMT.Variable var) ->
+      SSL.substitute_pure phi ~var ~by:(SMT.Boolean.mk_true ())
+    ) phi trues
   in
-  List.fold_left (fun phi x -> SSL.substitute_pure phi x (SMT.Boolean.mk_false ())) phi falses
+  List.fold_left (fun phi (SMT.Variable var) ->
+      SSL.substitute_pure phi ~var ~by:(SMT.Boolean.mk_false ())
+    ) phi falses
 
 let rec sort_quantifiers = function
   (* TODO: *)
