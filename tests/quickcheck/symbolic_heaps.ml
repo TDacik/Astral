@@ -6,11 +6,12 @@ let solve_and_check phi =
   let solver = Solver.init () in
   let phi = SSL.normalise phi in
   match Solver.solve solver phi with
-  | `Sat sh ->
+  | `Sat (Some sh) ->
       if ModelChecker.check sh phi then true
       else (SSL.print phi ;StackHeapModel.print sh; exit 1)
   | `Unsat -> true
   | `Unknown _ -> false
+  | `Sat None -> assert false
 
 module Arbitrary = ArbitrarySSL.Make
   (struct
