@@ -34,7 +34,7 @@ let solve solver phi =
   in
   let result = Engine.solve input in
   match Option.get result.status with
-  | `Sat -> `Sat (Option.get result.model)
+  | `Sat -> `Sat (result.model)
   | `Unsat -> `Unsat
   | `Unknown reason -> `Unknown reason
 

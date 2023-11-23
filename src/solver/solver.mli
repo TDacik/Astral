@@ -11,7 +11,7 @@ val init :
   ?dump_queries : [`None | `Brief | `Full] ->
   unit -> solver
 
-val solve : solver -> SSL.t -> [ `Sat of StackHeapModel.t | `Unsat | `Unknown of string ]
+val solve : solver -> SSL.t -> [ `Sat of StackHeapModel.t option | `Unsat | `Unknown of string ]
 
 (** {2 Queries} *)
 
