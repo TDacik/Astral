@@ -21,10 +21,10 @@ let parse_heap_sort ctx sort = match sort.term with
     let dom = SmtlibParser.parse_sort ctx dom in
     let range = SmtlibParser.parse_sort ctx range in
     let heap_sort = Sort.mk_array dom range in
-    Context.declare_heap_sort ctx heap_sort
+    Some heap_sort
 
   (* Skip sort declarations *)
-  | Builtin Ttype -> ctx
+  | Builtin Ttype -> None
 
 let parse_decls ctx decls =
   (* There should be no recursive group *)
@@ -38,11 +38,27 @@ let fake_input ctx heap_sort =
   let decls = sort_decls ctx in
   Format.asprintf "%s\n(declare-const heap %s)\n" decls heap_sort
 
-let parse ctx heap_sort =
+let split heap_sorts =
+  String.split_on_char ')' heap_sorts
+  |> List.map String.trim
+  |> List.filter (fun s -> s <> "")
+  |> List.map (fun s -> s ^ ")")
+
+let parse_one ctx heap_sort =
   let input = fake_input ctx heap_sort in
   (*Format.printf "%s" input;*)
   let stmts = SmtlibParser.parse_statements input in
-  List.fold_left
-    (fun ctx stmt -> match stmt.descr with
+  List.map
+    (fun stmt -> match stmt.descr with
       | Decls decls -> parse_decls ctx decls
-    ) ctx stmts
+    ) stmts
+
+let parse ctx heap_sorts =
+  split heap_sorts
+  |> List.map (parse_one ctx)
+  |> List.map (List.filter Option.is_some)
+  |> List.flatten
+  |> List.filter Option.is_some
+  |> List.map Option.get
+  |> Context.declare_heap_sort ctx
+

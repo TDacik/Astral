@@ -20,9 +20,7 @@ module Convertor = struct
   let precise_semantics = false
 
   let global_decls context =
-    let dom = Sort.get_dom_sort context.raw_input.heap_sort in
-    let range = Sort.get_range_sort context.raw_input.heap_sort in
-    F.asprintf "(declare-heap (%s %s))" (Sort.show dom) (Sort.show range)
+    F.asprintf "(declare-heap %s)" @@ ParserContext.show_heap_sort context.raw_input
 
   let declare_var var =
     if SSL.Variable.is_nil var then ""

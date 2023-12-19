@@ -8,9 +8,9 @@ module M = Map.Make(String)
 
 type t = {
   (* Declarations *)
-  sorts : Sort.Set.t;   (* Uninterpreted sorts *)
-  vars : Sort.t M.t;    (* Declared variables *)
-  heap_sort : Sort.t;   (* Declared sort of the heap *)
+  sorts : Sort.Set.t;       (* Uninterpreted sorts *)
+  vars : Sort.t M.t;        (* Declared variables *)
+  heap_sort : Sort.t list;  (* Declared sort of the heap *)
 
   (* Attributes *)
   expected_status : [ `Sat | `Unsat | `Unknown of string ];
@@ -26,7 +26,7 @@ type t = {
 let empty = {
   sorts = Sort.Set.empty;
   vars = M.empty;
-  heap_sort = Sort.mk_array (Sort.loc_ls) (Sort.loc_ls);
+  heap_sort = [];
 
   expected_status = `Unknown "not provided";
   attributes = M.empty;
@@ -49,7 +49,7 @@ let type_of_var ctx var =
   try M.find var ctx.vars
   with Not_found -> raise @@ VariableNotDeclared var
 
-let declare_heap_sort ctx sort = {ctx with heap_sort = sort}
+let declare_heap_sort ctx sorts = {ctx with heap_sort = sorts}
 
 let set_expected_status ctx = function
   | "sat" -> {ctx with expected_status = `Sat}
@@ -107,7 +107,9 @@ let show_assertions ctx =
   |> String.concat "\t\n"
   |> Format.asprintf "Assertions: {\t\n%s\n}"
 
-let show_heap_sort ctx = Format.asprintf "Heap sort: %s" (Sort.show ctx.heap_sort)
+let show_heap_sort ctx =
+  List.map Sort.show ctx.heap_sort
+  |> String.concat " "
 
 let show ctx =
   Format.asprintf "%s\n%s\n%s\n%s\n%s\n"

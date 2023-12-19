@@ -17,7 +17,7 @@ let input_to_json context =
     "Expected status",      `String (Context.show_expected_status context);
     "Size",                 `Int (SSL.size context.phi);
     (*"Location sort",        `String (Sort.show context.type_env.loc_sort);*)
-    "Heap sort",            `String (Sort.show context.raw_input.heap_sort);
+    "Heap sort",            `String (ParserContext.show_heap_sort context.raw_input);
   ]
 
 let json_repr context =

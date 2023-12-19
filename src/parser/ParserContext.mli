@@ -6,9 +6,9 @@ module M := Stdlib.Map.Make(String)
 
 type t = {
   (* Declarations *)
-  sorts : Sort.Set.t;   (* Uninterpreted sorts *)
-  vars : Sort.t M.t;    (* Declared variables *)
-  heap_sort : Sort.t;   (* Declared sort of the heap *)
+  sorts : Sort.Set.t;       (* Uninterpreted sorts *)
+  vars : Sort.t M.t;        (* Declared variables *)
+  heap_sort : Sort.t list;  (* Declared sort of the heap *)
 
   (* Attributes *)
   expected_status : [ `Sat | `Unsat | `Unknown of string ];
@@ -27,7 +27,7 @@ val declare_var : t -> string -> Sort.t -> t
 
 val declare_sort : t -> Sort.t -> t
 
-val declare_heap_sort : t -> Sort.t -> t
+val declare_heap_sort : t -> Sort.t list -> t
 
 val type_of_var : t -> string -> Sort.t
 
@@ -49,3 +49,5 @@ val get_sl_vars : t -> SSL.Variable.t list
 val get_phi : t -> SSL.t
 
 val show : t -> string
+
+val show_heap_sort : t -> string
