@@ -19,7 +19,7 @@ depends: [
   "dune"
   "alcotest"
   "batteries"
-  "z3"
+  "z3" {= "4.11.2"}
   "dolmen" {= "0.6"}
   "ocamlgraph"
   "qcheck"
