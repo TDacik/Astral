@@ -10,7 +10,6 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    
     container: tdacik/astral:system-dependencies
 
     steps:

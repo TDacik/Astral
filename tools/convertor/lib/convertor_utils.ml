@@ -1,0 +1,1 @@
+exception NotSupported of string

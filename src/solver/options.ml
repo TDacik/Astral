@@ -1,136 +1,164 @@
-(* Solver's options
+(* High-level access to command-line options.
  *
- * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
+ * This module needs to be factored out of Options_base to prevent circular dependencies.
+ *
+ * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-open Options_sig
 open Backend_sig
+open Location_sig
+open Context_sig
+open SetEncoding_sig
+open HeapEncoding_sig
+open Translation_sig
 
-let usage_msg = "astral [options] <input>"
+module Options = Options_base
 
-(* ==== Input ==== *)
-
-let _input_path = ref None
-let input_path () = match !_input_path with
-  | Some path -> path
-  | None -> failwith "No input file was specified"
-
-let _ignore_unused_vars = ref false
-let ignore_unused_vars () = !_ignore_unused_vars
-
-(* ==== Output ==== *)
-
-let _debug = ref false
-let debug () = !_debug
-
-let _json_output_file = ref ""
-let json_output_file () = !_json_output_file
-
-(* ==== Additional features ==== *)
-
-let _verify_model = ref false
-let verify_model () = !_verify_model
-
-let _unsat_core = ref false
-let unsat_core () = !_unsat_core
-
-(* ==== Translation options ==== *)
-
-let _separation = ref "strong"
-let strong_separation () = match !_separation with
-  | "strong" -> true
-  | "weak" -> false
-
-let _location_bound = ref None
-let set_location_bound x = _location_bound := Some x
-let location_bound () = match !_location_bound with
-  | None -> None
-  | Some x ->
-      if x > 0 then Some x
-      else failwith "Location bound has to be positive integer"
-
-let _list_bounds = ref true
-let list_bounds () = !_list_bounds
-
-let _compute_sl_graph = ref true
-let compute_sl_graph () = !_compute_sl_graph
-
-let _sl_comp = ref false
-let sl_comp () = !_sl_comp
-
-(* ==== Quickcheck ==== *)
-
-let _quickcheck_runs = ref 0
-let set_quickcheck_runs x = _quickcheck_runs := x
-let quickcheck_runs () = !_quickcheck_runs
-
-let _quickcheck_store = ref false
-let quickcheck_store () = !_quickcheck_store
-
-(* ==== Profiling ==== *)
-
-let _profile = ref false
-let profile () = !_profile
-
-(* ==== SMT Backend ==== *)
-
-let _backend = ref "z3"
-let backend () = match !_backend with
+let backend () = match Options.backend () with
+  | "bitwuzla" -> (module Bitwuzla_backend : BACKEND)
+  | "boolector" -> (module Boolector_backend : BACKEND)
   | "cvc5" -> (module CVC5_backend : BACKEND)
-  | "z3" -> (module Z3_backend : BACKEND)
+  | "z3" -> (module Z3_backend.Init( ) : BACKEND)
+  | "yices2" -> (module Yices_backend : BACKEND)
+  | "auto" ->
+    if Bitwuzla_backend.is_available () then (module Bitwuzla_backend : BACKEND)
+    else (module Z3_backend.Init( ) : BACKEND)
   (*| "parallel" -> (module Parallel : BACKEND)*)
-  | other -> failwith ("unknown backend `" ^ other ^ "`")
+  | other -> Utils.cmd_option_error "backend" other
 
-(* ==== Conversions and preprocessing ==== *)
+let set_encoding () = match Options.sets () with
+  | "direct" -> (module DirectSets : SET_ENCODING)
+  | "bitvectors" -> (module BitvectorSets : SET_ENCODING)
+  | other -> Utils.cmd_option_error "sets" other
 
-let _out_path = ref ""
-let output_path suffix = match !_out_path with
-  | "" -> (input_path ()) ^ suffix
-  | path -> path
+let location_encoding () = match Options.locations () with
+  | "enum" -> (module DatatypeLocations : LOCATIONS)
+  | "bitvectors" -> (module BitvectorLocations : LOCATIONS)
+  | other -> Utils.cmd_option_error "location" other
 
-let _convertor = ref "none"
-let convertor () = match !_convertor with
-  | "none" -> None
-  | "sloth" -> Some ((module Sloth_convertor : CONVERTOR), output_path ".smt2")
-  | "grasshopper" -> Some ((module Grasshopper_convertor : CONVERTOR), output_path ".spl")
-  | "list_unfold" -> Some ((module Predicate_unfolding : CONVERTOR), output_path "_unfold.smt2")
-  | other -> failwith ("unknown conversion option `" ^ other ^ "`")
+let encoding () =
+  let module L = (val location_encoding () : LOCATIONS) in
+  let (module H) =
+    (module HeapEncoding.Make(L ) : HEAP_ENCODING with type Locations.t = L.t) in
+  let (module C) =
+    (module Translation_context.Make(L ) :
+      CONTEXT with type Locations.t = L.t
+               and type HeapEncoding.t = HeapEncoding.Make(L).t
+    )
+  in
+  let module S = (val set_encoding () : SET_ENCODING) in
+  let (module Q) = match Options.quantifiers () with
+    | "direct" ->
+        (module QuantifierEncoding.Direct(L ) :
+          QUANTIFIER_ENCODING with type Locations.t = L.t
+        )
+    | "path" ->
+        (module QuantifierEncoding.Path(L ) :
+          QUANTIFIER_ENCODING with type Locations.t = L.t
+        )
+    | "enum" ->
+        (module QuantifierEncoding.Enumeration(L ) :
+          QUANTIFIER_ENCODING with type Locations.t = L.t
+        )
+    | "smart_enum" ->
+        (module QuantifierEncoding.SmartEnumeration(L ) :
+          QUANTIFIER_ENCODING with type Locations.t = L.t
+        )
+    | other -> Utils.cmd_option_error "quantifier encoding" other
+  in
+  (module struct
+    module Locations = L
+    module Context = C
+    module SetEncoding = S
+    module QuantifierEncoding = Q
+
+    module LS_Encoding = LS_Encodings.Default(C)
+    module DLS_Encoding = DLS_Encodings.Default(C)
+    module NLS_Encoding = NLS_Encodings.Default(C)
+  end : ENCODING)
+
+(** === Parsing === *)
+
+(** Check consistency of options *)
+let check () =
+  let module Backend = (val backend () : BACKEND) in
+
+  if not @@ Backend.is_available ()
+  then failwith "Selected backend solver is not installed";
+
+  if Options.sets () = "bitvectors" && Options.locations () = "enum"
+  then failwith "Encoding combining 'bitvector' sets and 'enum' locations is not available";
+
+  if not Backend.supports_sets && Options.sets () = "direct"
+  then failwith "Selected backend solver does not support direct set encoding";
+
+  if not Backend.supports_quantifiers && Options.quantifiers () = "direct"
+  then failwith "Selected backend solver does not support direct quantifier encoding"
+
+let set_debug () =
+  if Options.debug () then
+    Options.set_produce_models true
+  else ()
+
+let parse () =
+  Options.parse ();
+  check ();
+  set_debug ();
+  Options.input_path ()
 
 
-let speclist =
-  [
-    ("--debug", Arg.Set _debug, "Print debug info");
-    ("--verify-model", Arg.Set _verify_model, "Verify obtained model");
-    ("--unsat-core", Arg.Set _unsat_core, "Print unsat core");
-    ("--json-output", Arg.Set_string _json_output_file, "Store solver's result as json");
-    ("--backend", Arg.Set_string _backend, "Backend SMT solver (default cvc5)");
-    ("--no-list-bounds", Arg.Clear _list_bounds, "Do not use list-length bounds");
-    ("--compute-sl-graph", Arg.Clear _compute_sl_graph, "Force location bound");
-    ("--loc-bound", Arg.Int set_location_bound, "Force location bound");
-    ("--separation", Arg.Set_string _separation, "Separation (weak | strong");
-    ("--ignore-unused-vars", Arg.Set _ignore_unused_vars, "Ignore variables that do not occur
-      in the input formula");
-    ("--sl-comp", Arg.Set _sl_comp, "Preprocessing for SL-comp");
-    ("--convertor", Arg.Set_string _convertor,
-     "Convert input formula to other format (sloth | grasshopper | list_unfold)");
-    ("--output", Arg.Set_string _out_path, "Output path of translation");
-    ("--quickcheck", Arg.Int set_quickcheck_runs, "Run test on random formulae");
-    ("--store", Arg.Set _quickcheck_store, "Store formulae generated by Quickcheck");
-    ("--profile", Arg.Set _profile, "Print profiling information");
+(*
+let location_encoding () = match !locations with
+  | "enum" -> (module EnumerationLocations : LOCATIONS)
+  | other -> failwith ("unknown location encoding `" ^ other ^ "`")
 
-    (* Do not show '-help' *)
-    ("-help", Arg.Unit ignore, "");
-  ]
+let heap_encoding locs =
+  let module L = (val locs : LOCATIONS) in
+  match !heap with
+  | "default" ->
+      (module HeapEncoding.Make(L)
+        : HEAP_ENCODING with type Locations.t = (val locs : LOCATIONS).t)
+  | other -> failwith ("unknown heap encoding `" ^ other ^ "`")
 
-let input_fn filename = match filename with
-  | "" -> failwith "No input file"
-  | _ -> _input_path := Some filename
+let memory_encoding () =
+  (module struct
+    module Locations = (val location_encoding () : LOCATIONS)
+    module HeapEncoding = (val heap_encoding (module Locations) :
+      HEAP_ENCODING with type Locations.t = Locations.t)
+  end : MEMORY_ENCODING)
 
-let json_output () = match !_json_output_file with
-  | "" -> false
-  | _ -> true
+let base_encoding () =
+  let module M = (val memory_encoding () : MEMORY_ENCODING) in
+  Translation_context.Make(M)
 
-let exit_usage error =
-  Arg.usage speclist usage_msg;
-  exit error
+let set_encoding () = match !sets with
+  | "direct" -> (module DirectSets : SET_ENCODING)
+  | "bitvectors" -> (module BitvectorSets : SET_ENCODING)
+  | other -> failwith ("unknown set encoding `" ^ other ^ "`")
 
-let parse () = Arg.parse speclist input_fn usage_msg
+let quantifier_encoding () =
+  let module B = (val base_encoding () : BASE_ENCODING) in
+  match !quantifiers with
+  | "none" -> QuantifierEncoding.Direct(B)
+  | "enum" -> QuantifierEncoding.Enumeration (B)
+  | other -> failwith ("unknown quantifier elimination method `" ^ other ^ "`")
+
+let encoding () =
+  (module struct
+    module B = (val base_encoding () : BASE_ENCODING)
+    module SetEncoding = (val set_encoding () : SET_ENCODING)
+    module QuantifierEncoding = (val quantifier_encoding () : QUANTIFIER_ENCODING)
+    module LS_Encoding = LS_Encodings.Default(BaseEncoding)
+    module DLS_Encoding = DLS_Encodings.Default(BaseEncoding)
+    module NLS_Encoding = NLS_Encodings.Default(BaseEncoding)
+  end)
+*)
+(*
+let _list_encoding = ref "functional"
+let list_encoding () = match !_list_encoding with
+  (* TODO:
+  | "predicate" -> (module ListEncoding.Classic : Translation_sig.LIST_ENCODING)
+  | "functional" -> (module ListEncoding.Functional : Translation_sig.LIST_ENCODING)
+  (*| "generic" -> (module GenericLists.LS : Translation_sig.LIST_ENCODING)
+  *)*)
+  | other -> failwith ("unknown list encoding `" ^ other ^ "`")
+*)

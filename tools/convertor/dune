@@ -1,0 +1,12 @@
+(include_subdirs unqualified)
+
+(executable
+  (name convertor)
+  (libraries astral convertor_lib)
+  (flags -open Astral -open Convertor_lib)
+)
+
+(install
+  (section bin)
+  (files (convertor.exe as astral-convertor))
+)

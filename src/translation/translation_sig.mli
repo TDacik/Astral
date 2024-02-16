@@ -2,73 +2,52 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
-module type MINIMAL_SET = Set_sig.MINIMAL_SET
+open Context_sig
+open Location_sig
+(*open HeapEncoding_sig
+*)open SetEncoding_sig
+open PredicateEncoding_sig
 
-module type SET = Set_sig.SET
+(*
+module type MEMORY_ENCODING = sig
 
-module type LOCATIONS = sig
+  module Locations : LOCATIONS
 
-  (* {3 Functions used to build Astral's context} *)
-
-  val mk_sort : string -> int -> SMT.Sort.t
-
-  val mk_const : SMT.Sort.t -> string -> SMT.Term.t
-
-  val enumeration : SMT.Sort.t -> SMT.Term.t list
-
-  (* {3 functions already using Astral's context} *)
-
-  val var_to_expr : Context.t -> SSL.Variable.t -> SMT.Term.t
-
-  val vars_to_exprs : Context.t -> SMT.Term.t list
-
-
-  val location_lemmas : Context.t -> SMT.Term.t
-
-  val exists : Context.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
-  (** First-order universal quantifier. *)
-
-  val forall : Context.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
-  (** First-order universal quantifier. *)
-
-  val exists2 : Context.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
-  (** Second-order existential quantifier. *)
-
-  val forall2 : Context.t -> (SMT.Term.t -> SMT.Term.t) -> SMT.Term.t
-  (** Second-order universal quantifier. *)
+  module HeapEncoding : HEAP_ENCODING with module Locations = Locations
 
 end
 
-type local_bound := int * int
 
-module type LIST_ENCODING = sig
+module type BASE_ENCODING = sig
 
-  val semantics :
-    Context.t ->
-    SMT.Term.t ->
-    SMT.Term.t ->
-    SMT.Term.t ->
-    local_bound ->
-    SMT.Term.t
-  (** semantics context x y fp *)
+  include MEMORY_ENCODING
 
-  val axioms :
-    Context.t ->
-    SMT.Term.t ->
-    SMT.Term.t ->
-    SMT.Term.t ->
-    local_bound ->
-    SMT.Term.t
-  (** axioms context x y fp *)
+  module Context : CONTEXT with module Locations = Locations
+                            and module HeapEncoding = HeapEncoding
+end
+*)
+
+module type QUANTIFIER_ENCODING = sig
+
+  module Locations : LOCATIONS
+  (** Input model of Make functor. *)
+
+  val name : string
+
+  val rewrite : Locations.t -> SMT.Term.t -> SMT.Term.t
 
 end
 
 module type ENCODING = sig
 
-  module Set : SET
-
   module Locations : LOCATIONS
+  module Context : CONTEXT with module Locations = Locations
 
-  module ListEncoding : LIST_ENCODING
+  module SetEncoding : SET_ENCODING
+  module QuantifierEncoding : QUANTIFIER_ENCODING with module Locations = Locations
+
+  module LS_Encoding : PREDICATE_ENCODING with module Context = Context
+  module DLS_Encoding : PREDICATE_ENCODING with module Context = Context
+  module NLS_Encoding : PREDICATE_ENCODING with module Context = Context
 
 end

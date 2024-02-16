@@ -1,73 +1,108 @@
-(* Solver's context
+(* Representation of input formulae with additional data.
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-open Batteries
+type status = [ `Sat | `Unsat | `Unknown of string ]
 
-open SSL
-open Results
+let negate_status = function
+  | `Sat -> `Unsat
+  | `Unsat -> `Sat
+  | `Unknown reason -> `Unknown reason
+
+let status_is_unknown = function
+  | `Sat | `Unsat -> false
+  | `Unknown _ -> true
 
 type t = {
+  raw_input : ParserContext.t;     (* Raw parsed input *)
 
-  (* Input *)
-  phi : SSL.formula;
-  vars : Variable.t list;
+  phi : SSL.t;                     (* SSL formula after preprocessing *)
+  vars : SSL.Variable.t list;      (* Location variables after preprocessing *)
 
-  (* Abstractions *)
+  expected_status : status;        (* This may differ from raw_input.status *)
+
+  (* Bounds *)
   sl_graph : SL_graph.t;
+  bounds : Bounds.t;
 
-  stack_bound : int * int;
-  bound : int;
+  (* Statistics *)
+  size : Int.t option;
 
-  (* Translation context *)
-  can_scolemise : bool;
-  under_star : bool;
-  polarity : bool;
-
-  locs_sort : SMT.Sort.t;
-  fp_sort : SMT.Sort.t;
-  heap_sort : SMT.Sort.t;
-
-  heap : SMT.Term.t;
-  locs : SMT.Term.t list;
-  global_footprint : SMT.Term.t;
+  (* Results *)
+  status : status option;
+  model : StackHeapModel.t option;
+  unsat_core : SSL.t list option;
+  reason_unknown : string option;
 }
 
-let formula_footprint ?(physically=true) context psi =
-  let id = SSL.subformula_id ~physically context.phi psi in
-  Format.asprintf "footprint%d" id
+let init input = {
+  raw_input = input;
 
-let formula_witness_heap context psi =
-  let id = SSL.subformula_id context.phi psi in
-  Format.asprintf "heap%d" id
+  phi = ParserContext.get_phi input;
+  vars = ParserContext.get_sl_vars input;
 
-(** Compute powerset of list *)
-let rec powerset = function
-  | [] -> [[]]
-  | x :: xs ->
-      let ps = powerset xs in
-      ps @ List.map (fun s -> x :: s) ps
+  expected_status = input.expected_status;
 
-let locations_powerset context = powerset context.locs
+  sl_graph = SL_graph.empty;
+  bounds = Bounds.empty;
 
-let init info locs_sort locs fp_sort global_fp heap_sort heap =
-{
-  phi = info.formula;
-  vars = info.variables;
+  size = None;
 
-  sl_graph = info.sl_graph;
-  bound = info.heap_bound;
-  stack_bound = info.stack_bound;
-
-  can_scolemise = true;
-  under_star = false;
-  polarity = true;
-
-  locs_sort = locs_sort;
-  fp_sort = fp_sort;
-  heap_sort = heap_sort;
-
-  heap = heap;
-  locs = locs;
-  global_footprint = global_fp;
+  status = None;
+  model = None;
+  unsat_core = None;
+  reason_unknown = None;
 }
+
+let add_metadata input sl_graph bounds =
+  {input with sl_graph = sl_graph;
+              bounds = bounds}
+
+(** {2 Setters} *)
+
+(** TODO: keep normalised? *)
+let set_preprocessed input phi vars = {input with phi = phi; vars = vars}
+
+let set_size input size = {input with size = Some size}
+
+let set_result status ?(model=None) ?(unsat_core=None) ?(reason=None) input =
+  {input with
+    status = Some status;
+    model = model;
+    unsat_core = unsat_core;
+    reason_unknown = reason;
+  }
+
+
+(** {2 Getters} *)
+
+(** Get input formula before any preprocessing. *)
+let get_raw_input input =
+  let phi = ParserContext.get_phi input.raw_input in
+  let vars = ParserContext.get_vars input.raw_input in
+  (phi, vars)
+
+let get_input input = (input.phi, input.vars)
+
+
+(** Transform satisfiability to validity of entailment *)
+let transform_to_entl input = match input.phi with
+  | SSL.GuardedNeg _ -> input
+  | _ ->
+    {input with
+      phi = SSL.mk_gneg input.phi (SSL.mk_false ());
+      status = Option.map negate_status input.status;
+    }
+
+(* ==== Pretty-printing ==== *)
+
+let show_status input = match input.status with
+  | None -> "none"
+  | Some `Sat -> "sat"
+  | Some `Unsat -> "unsat"
+  | Some (`Unknown reason ) -> Format.asprintf "unknown (%s)" reason
+
+let show_expected_status input = match input.expected_status with
+  | `Sat -> "sat"
+  | `Unsat -> "unsat"
+  | `Unknown _ -> "unknown"

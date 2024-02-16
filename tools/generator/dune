@@ -1,0 +1,10 @@
+(executable
+  (name generator)
+  (libraries astral astral_generator)
+  (flags -open Astral -open Astral_generator)
+)
+
+(install
+  (section bin)
+  (files (generator.exe as astral-generator))
+)

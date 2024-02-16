@@ -11,6 +11,6 @@ module Make (P : PRINTER) = struct
   let warning msg = Format.printf msg
 
   let debug msg =
-    if Options.debug () then Format.printf msg
-    else Format.ifprintf Format.std_formatter msg
+    if Options_base.debug () then Format.printf msg
+    else Format.ifprintf Format.err_formatter msg
 end

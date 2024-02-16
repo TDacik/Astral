@@ -3,6 +3,12 @@
   scripts
 )
 
+(executable
+  (name main)
+  (public_name astral)
+  (libraries astral)
+)
+
 (env
     (dev
         (flags (:standard -w -8    ; Partial pattern-matching
@@ -13,21 +19,4 @@
                 )
         )
     )
-)
-
-;; Tests
-
-(rule
-    (alias runtest)
-    (action (run bash -c "cd scripts; python3.9 run_tests.py"))
-)
-
-(executable
-  (name astral)
-    (libraries astral_lib)
-)
-
-(install
-  (section bin)
-  (files (astral.exe as astral))
 )
