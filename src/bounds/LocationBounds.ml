@@ -53,13 +53,6 @@ let sort_vars sort g phi =
   SSL.get_vars_sort sort phi
   |> BatList.unique ~eq:(SL_graph.must_eq g)
 
-(** Get all unique roots of a sort *)
-let sort_roots sort g phi =
-  try
-    SSL.get_roots sort phi
-    |> BatList.unique ~eq:(SL_graph.must_eq g)
-  with _ -> sort_vars sort g phi
-
 let chunk_size x =
   let sort = SSL.Variable.get_sort x in
   if Sort.is_loc sort then 2.0
@@ -71,13 +64,11 @@ let chunk_size_small x = chunk_size x -. 1.0 (* Minus anonymous location *)
 
 let var_alloc_size chunk_size_fn g phi x =
   let sort = SSL.Variable.get_sort x in
-  let roots = sort_roots sort g phi in
-  if not @@ BatList.mem_cmp SSL.Variable.compare x roots then 1.0
-  else if SL_graph.must_pointer_any g x then 1.0
+  if SL_graph.must_pointer_any g x then 1.0
   else chunk_size_fn x
 
 let compute_allocated chunk_size_fn sort g phi =
-  sort_roots sort g phi
+  sort_vars sort g phi
   |> List.map (var_alloc_size chunk_size_fn g phi)
   |> BatList.fsum
   |> Float.floor
@@ -85,11 +76,7 @@ let compute_allocated chunk_size_fn sort g phi =
 
 let compute_total chunk_size_fn sort g phi =
   let vars = sort_vars sort g phi in
-  let roots = sort_roots sort g phi in
-  let additional =
-    List.filter (fun v -> not @@ BatList.mem_cmp SSL.Variable.compare v roots) vars
-  in
-  compute_allocated chunk_size_fn sort g phi + List.length additional
+  compute_allocated chunk_size_fn sort g phi
 
 let compute_positive sort g phi =
   if Sort.is_nil sort then SortBound.init 0 1
