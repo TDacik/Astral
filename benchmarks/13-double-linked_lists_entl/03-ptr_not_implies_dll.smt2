@@ -1,14 +1,13 @@
 (set-info :source Astral)
 (set-info :status sat)
 
-(declare-sort Loc 0)
-(declare-heap (Loc Loc))
+(declare-sort DLS_t 0)
+(declare-heap (DLS_t DLS_t))
 
-(declare-const x Loc)
-(declare-const y Loc)
+(declare-const x DLS_t)
+(declare-const y DLS_t)
 
-(assert (pto x (locPair nil nil)))
-
+(assert (pto x (c_dls nil nil)))
 (assert (not (dls x y nil nil)))
 
 (check-sat)

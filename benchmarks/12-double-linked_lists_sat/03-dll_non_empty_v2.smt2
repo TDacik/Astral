@@ -6,14 +6,14 @@
 
 (declare-const x DLS_t)
 (declare-const y DLS_t)
+(declare-const px DLS_t)
+(declare-const ny DLS_t)
 
 (assert
   (sep
-    (pto x (c_dls y x))
-    (pto y (c_dls y x))
+    (distinct y px)
+    (dls x y px ny)
   )
 )
-
-(assert (not (dls x y x y)))
 
 (check-sat)
