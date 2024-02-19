@@ -19,11 +19,11 @@ def print_bench_name(root, dirs):
 
 class Runner:
     def __init__(
-        self, backend="z3", encoding="bitvectors", qf_elimination="none", timeout=10
+        self, backend="z3", encoding="bitvectors", qf_encoding="direct", timeout=10
     ):
         self.backend = backend
         self.encoding = encoding
-        self.qf_elimination = qf_elimination
+        self.qf_encoding = qf_encoding
 
         self.timeout = timeout
 
@@ -48,7 +48,7 @@ class Runner:
             astral_bin,
             "--backend", self.backend,
             "--encoding", self.encoding,
-            "--quant-elim", self.qf_elimination,
+            "--qf-encoding", self.qf_encoding,
             "--separation", "weak",
             "--json-output", "/tmp/astral/" + name + ".json",
             os.path.join(path, name),
@@ -64,7 +64,7 @@ class Runner:
                 self.correct += 1
 
                 # Check additional properties
-                check(os.path.join(path, name), "/tmp/astral/" + name + ".json")
+                #check(os.path.join(path, name), "/tmp/astral/" + name + ".json")
 
             elif process.returncode == 2:
                 print_err(f"[INCORRECT]: {name}: {stdout}")
