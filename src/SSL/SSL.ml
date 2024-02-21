@@ -378,7 +378,7 @@ let rec substitute ?(bounded=[]) phi v term = match phi with
   | Emp -> Emp
   | Pure pure -> Pure pure
   | Eq xs -> Eq (List.map (fun x -> substitute ~bounded x v term) xs)
-  | Distinct xs -> Eq (List.map (fun x -> substitute ~bounded x v term) xs)
+  | Distinct xs -> Distinct (List.map (fun x -> substitute ~bounded x v term) xs)
   | PointsTo (x, d) ->
       PointsTo (substitute ~bounded x v term,
                 Struct.map (fun y ->
