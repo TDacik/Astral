@@ -10,9 +10,13 @@ let size context = match context.size with Some x -> string_of_int x | None -> "
 
 let solved_by context = match context.size with Some x -> "translation" | None -> "sl-graph"
 
+let input_path () =
+  if Options.interactive () then "- (interactive mode)"
+  else Options.input_path ()
+
 let input_to_json context =
   `Assoc [
-    "Name",                 `String (Options.input_path ());
+    "Name",                 `String (input_path ());
     "# variables",          `Int (List.length context.vars);
     "Expected status",      `String (Context.show_expected_status context);
     "Size",                 `Int (SSL.size context.phi);

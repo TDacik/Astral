@@ -95,6 +95,8 @@ let model sh =
   debug_out "sh.out" (StackHeapModel.show sh);
   StackHeapModel.output_graph path_model_dot sh
 
+let result result =
+  Json_output.output result ((debug_dir ()) ^ "/result.json")
 
 (* === Backend's data === *)
 
@@ -109,6 +111,7 @@ let input      = decorate input
 let context    = decorate context
 let model      = decorate model
 let smt_model  = decorate smt_model
+let result     = decorate result
 
 let backend_translated = decorate backend_translated
 let backend_simplified = decorate backend_simplified

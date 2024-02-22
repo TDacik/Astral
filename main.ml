@@ -62,6 +62,7 @@ let run () =
   Profiler.add "Model checker";
 
   print_stats result;
+  Debug.result result;
 
   if Options_base.json_output () then
     Json_output.output result (Options_base.json_output_file ())
