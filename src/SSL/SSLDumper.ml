@@ -42,6 +42,14 @@ let translate_vars phi =
   |> List.filter (fun v -> not @@ SSL.Variable.is_nil v)
   |> List.map declare_var
   |> String.concat "\n"
+  
+let convert_binders xs =
+    List.map
+      (fun x -> match x with
+        | SSL.Var (name, sort) -> F.asprintf "(%s %a)" name Sort.pp sort
+        | _ -> assert false
+      ) xs
+    |> String.concat " "
 
 let pretty_atom = function
   | LS (v1, v2) -> Format.asprintf "(ls %s %s)" (SSL.show v1) (SSL.show v2)
@@ -69,6 +77,7 @@ let rec pretty phi =
   | Star fs -> F.asprintf "(sep %s" (String.concat " " @@ List.map pretty fs)
   | Septraction (f1, f2) -> F.asprintf "(not (wand %s (not %s))"
       (pretty f1) (pretty f2)
+  | Exists (xs, psi) -> F.asprintf "(exists (%s) %s)" (convert_binders xs) (pretty psi)
   | _ -> pretty_atom phi
   in
   if SSL.is_atom phi
@@ -81,14 +90,18 @@ let rec pretty phi =
     "\n" ^ _indent ^ res ^ "\n" ^ (indent ()) ^ ")\n"
   end
 
+let pretty phi = match phi with
+  | GuardedNeg (lhs, rhs) ->
+    Format.asprintf "(assert %s)\n\n(assert (not %s)" (pretty lhs) (pretty rhs)
+  | phi -> Format.asprintf "(assert %s)" (pretty phi)
+
 let translate_all phi =
   header
   ^ "\n"
   ^ (translate_vars phi)
   ^ "\n\n"
-  ^ "(assert "
   ^ (pretty phi)
-  ^ ")\n\n"
+  ^ "\n\n" 
   ^ "(check-sat)"
 
 let dump file phi status =
