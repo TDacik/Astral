@@ -9,21 +9,28 @@ type solver = {
   encoding : [`Bitvectors | `Sets];
 
   produce_models : bool;
-  dump_queries : [`None | `Brief | `Full];
+  dump_queries : [`None | `Full of string];
 }
 
-let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(dump_queries=`None) () = {
-  backend = backend;
-  encoding = encoding;
+let activate solver =
+  Debug.next_query ();
+  Options_base.set_interactive true;
+  match solver.dump_queries with
+  | `None -> Options_base.set_debug false
+  | `Full dir -> Options_base.set_debug true; Options_base.set_debug_dir dir
 
-  produce_models = false;
-  dump_queries = dump_queries;
-}
+let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(dump_queries=`None) () = 
+  let solver = {
+    backend = backend;
+    encoding = encoding;
 
-let activate solver = () (* TODO *)
-
-
-
+    produce_models = false;
+    dump_queries = dump_queries;
+  } in
+  activate solver;
+  Debug.init ();
+  solver
+  
 let solve solver phi =
   activate solver;
   let vars = SSL.get_vars phi in

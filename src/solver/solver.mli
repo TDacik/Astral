@@ -8,7 +8,7 @@ val init :
   ?backend : [`Z3 | `CVC5] ->
   ?encoding : [`Bitvectors | `Sets] ->
   ?produce_models : bool ->
-  ?dump_queries : [`None | `Brief | `Full] ->
+  ?dump_queries : [`None | `Full of string] ->
   unit -> solver
 
 val solve : solver -> SSL.t -> [ `Sat of StackHeapModel.t option | `Unsat | `Unknown of string ]

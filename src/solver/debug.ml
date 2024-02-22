@@ -13,29 +13,32 @@ let delim = "========================================="
 
 (** {2 Debug on stderr} *)
 let out_input input =
-  if Options.debug () then
+  if Options.debug () && not @@ Options.interactive () then
     Format.printf "Input:\n%s\n%s%s\n"
       delim
       (Bounds.show input.bounds)
       delim
 
-(** {2} *)
+(** {2 Logging} *)
 
-let debug_dir = "astral_debug"
+let query_counter = ref 0
+let next_query () = query_counter := !query_counter + 1
 
-let path_ast file = debug_dir ^ "/" ^ file ^ ".dot"
-let path_smt_model = debug_dir ^ "/" ^ "smt_model.out"
-let path_model_dot = debug_dir ^ "/" ^ "model.dot"
+let debug_dir () =
+  if Options.interactive () then (Options.debug_dir ()) ^ "/query_" ^ (string_of_int !query_counter)
+  else (Options.debug_dir ())
 
-let sl_graph_dot suffix = Format.asprintf "%s/sl_graph%s.dot" debug_dir suffix
+let path_ast file = (debug_dir ()) ^ "/" ^ file ^ ".dot"
+let path_smt_model = (debug_dir ()) ^ "/" ^ "smt_model.out"
+let path_model_dot = (debug_dir ()) ^ "/" ^ "model.dot"
+
+let sl_graph_dot suffix = Format.asprintf "%s/sl_graph%s.dot" (debug_dir ()) suffix
 
 let debug_out file content =
-  let path = debug_dir ^ "/" ^ file in
+  let path = (debug_dir ()) ^ "/" ^ file in
   let channel = open_out path in
   Printf.fprintf channel "%s" content;
   close_out channel
-
-let query_counter = ref 0
 
 (** Recursively remove a directory *)
 let rec rm path =
@@ -47,18 +50,19 @@ let rec rm path =
   else Sys.remove path
 
 (** Debug decorator *)
-let decorate fn =
-  fun arg ->
-    if not @@ Options.debug () then ()
-    else fn arg
+let decorate fn = fun arg ->
+  if not @@ Options.debug () then ()
+  else if Options.interactive () && not @@ Sys.file_exists (debug_dir ()) then
+    Sys.mkdir (debug_dir ()) 0o775
+  else fn arg
 
 (** Initialize debug model *)
 let init () =
   if not @@ Options.debug () then ()
   else begin
-    if Sys.file_exists debug_dir
-    then rm debug_dir else ();
-    Sys.mkdir debug_dir 0o775
+    if Sys.file_exists (Options.debug_dir ())
+    then rm (Options.debug_dir ()) else ();
+    Sys.mkdir (Options.debug_dir ()) 0o775
   end
 
 let formula suffix phi =
@@ -73,6 +77,7 @@ let input input =
   debug_out "input.txt" (ParserContext.show input)
 
 let context context =
+  SSLDumper.dump ((debug_dir ()) ^ "/input.smt2") context.phi "unknown";
   SL_graph.output_file context.sl_graph (sl_graph_dot "");
   SL_graph.output_file (SL_graph.spatial_projection context.sl_graph) (sl_graph_dot "_spatial")
 
@@ -82,7 +87,7 @@ let translated suffix phi =
     else "translated_" ^ suffix
   in
   debug_out (out_file ^ ".smt2") (SMT.to_smtlib_bench phi);
-  SMT.dump_ast (debug_dir ^ "/" ^ out_file ^ ".dot") phi
+  SMT.dump_ast ((debug_dir ()) ^ "/" ^ out_file ^ ".dot") phi
 
 let smt_model model = debug_out "smt_model.out" (SMT.Model.show model)
 

@@ -4,6 +4,8 @@
 
 val init : unit -> unit
 
+val next_query : unit -> unit
+
 (** {2 Debug on stderr} *)
 
 val out_input : Context.t -> unit

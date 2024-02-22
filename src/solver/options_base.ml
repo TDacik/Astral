@@ -5,6 +5,10 @@
 
 let usage_msg = "astral [options] <input>"
 
+let _interactive = ref false
+let interactive () = !_interactive
+let set_interactive flag = _interactive := flag
+
 (* ==== Input ==== *)
 
 let _input_path = ref None
@@ -19,6 +23,11 @@ let ignore_unused_vars () = !_ignore_unused_vars
 
 let _debug = ref false
 let debug () = !_debug
+let set_debug flag = _debug := flag
+
+let _debug_dir = ref "astral_debug"
+let debug_dir () = !_debug_dir
+let set_debug_dir dir = _debug_dir := dir
 
 let _dry_run = ref false
 let dry_run () = !_dry_run

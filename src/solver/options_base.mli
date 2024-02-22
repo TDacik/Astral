@@ -5,6 +5,9 @@
 val parse : unit -> unit
 (** Parse command-line options and return path to the input file. *)
 
+val interactive : unit -> bool
+val set_interactive : bool -> unit
+
 val input_path : unit -> string
 
 val produce_models : unit -> bool
@@ -26,6 +29,10 @@ val predicate_bounds : unit -> [`Both | `Upper | `None]
 (** === Debugging === *)
 
 val debug : unit -> bool
+val set_debug : bool -> unit
+
+val debug_dir : unit -> string
+val set_debug_dir : string -> unit
 
 val stats : unit -> bool
 
