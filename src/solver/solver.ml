@@ -5,8 +5,8 @@
 module Input = ParserContext
 
 type solver = {
-  backend : [`Z3 | `CVC5];
-  encoding : [`Bitvectors | `Sets];
+  backend : Options.backend;
+  encoding : Options.encoding;
 
   produce_models : bool;
   dump_queries : [`None | `Full of string];
@@ -17,9 +17,12 @@ let activate solver =
   Options_base.set_interactive true;
   match solver.dump_queries with
   | `None -> Options_base.set_debug false
-  | `Full dir -> Options_base.set_debug true; Options_base.set_debug_dir dir
+  | `Full dir -> Options_base.set_debug true; Options_base.set_debug_dir dir;
 
-let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(dump_queries=`None) () = 
+  Options.set_backend solver.backend;
+  Options.set_encoding solver.encoding
+
+let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(dump_queries=`None) () =
   let solver = {
     backend = backend;
     encoding = encoding;
@@ -28,6 +31,7 @@ let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(dump_queries
     dump_queries = dump_queries;
   } in
   activate solver;
+  Options.check ();
   Debug.init ();
   solver
   
@@ -40,6 +44,7 @@ let solve solver phi =
     Input.add_vars input vars
   in
   let result = Engine.solve input in
+  Debug.result result;
   match Option.get result.status with
   | `Sat -> `Sat (result.model)
   | `Unsat -> `Unsat

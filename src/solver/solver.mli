@@ -5,8 +5,8 @@
 type solver
 
 val init :
-  ?backend : [`Z3 | `CVC5] ->
-  ?encoding : [`Bitvectors | `Sets] ->
+  ?backend : Options.backend ->
+  ?encoding : Options.encoding ->
   ?produce_models : bool ->
   ?dump_queries : [`None | `Full of string] ->
   unit -> solver

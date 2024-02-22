@@ -13,6 +13,9 @@ open Translation_sig
 
 module Options = Options_base
 
+type backend = [`Bitwuzla | `CVC5 | `Z3 | `Auto ]
+type encoding = [`Bitvectors | `Sets]
+
 let backend () = match Options.backend () with
   | "bitwuzla" -> (module Bitwuzla_backend : BACKEND)
   | "boolector" -> (module Boolector_backend : BACKEND)
@@ -25,7 +28,7 @@ let backend () = match Options.backend () with
   (*| "parallel" -> (module Parallel : BACKEND)*)
   | other -> Utils.cmd_option_error "backend" other
 
-let set_encoding () = match Options.sets () with
+let sets_encoding () = match Options.sets () with
   | "direct" -> (module DirectSets : SET_ENCODING)
   | "bitvectors" -> (module BitvectorSets : SET_ENCODING)
   | other -> Utils.cmd_option_error "sets" other
@@ -45,7 +48,7 @@ let encoding () =
                and type HeapEncoding.t = HeapEncoding.Make(L).t
     )
   in
-  let module S = (val set_encoding () : SET_ENCODING) in
+  let module S = (val sets_encoding () : SET_ENCODING) in
   let (module Q) = match Options.quantifiers () with
     | "direct" ->
         (module QuantifierEncoding.Direct(L ) :
@@ -76,6 +79,20 @@ let encoding () =
     module NLS_Encoding = NLS_Encodings.Default(C)
   end : ENCODING)
 
+(** === Setters === *)
+  
+let set_backend = function
+  | `Bitwuzla -> Options_base.set_backend "bitwuzla"
+  | `CVC5 -> Options_base.set_backend "cvc5"
+  | `Z3 -> Options_base.set_backend "z3"
+  | `Auto -> 
+    if Bitwuzla_backend.is_available () then Options_base.set_backend "bitwuzla"
+    else Options_base.set_backend "z3"
+
+let set_encoding = function
+  | `Sets -> Options_base.set_encoding "enum"
+  | `Bitvectors -> Options_base.set_encoding "bitvectors"
+
 (** === Parsing === *)
 
 (** Check consistency of options *)
@@ -89,10 +106,15 @@ let check () =
   then failwith "Encoding combining 'bitvector' sets and 'enum' locations is not available";
 
   if not Backend.supports_sets && Options.sets () = "direct"
-  then failwith "Selected backend solver does not support direct set encoding";
+  then failwith @@
+    Format.asprintf "Selected backend solver (%s) does not support direct set encoding"
+      Backend.name
+  ;
 
   if not Backend.supports_quantifiers && Options.quantifiers () = "direct"
-  then failwith "Selected backend solver does not support direct quantifier encoding"
+  then failwith @@
+    Format.asprintf "Selected backend solver (%s) does not support direct quantifier encoding"
+      Backend.name
 
 let set_debug () =
   if Options.debug () then

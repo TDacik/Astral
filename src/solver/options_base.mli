@@ -63,6 +63,7 @@ val ignore_unused_vars : unit -> bool
 val sl_quantifiers : unit -> bool
 
 val backend : unit -> string
+val set_backend : string -> unit
 
 val backend_options : unit -> string list
 
@@ -81,6 +82,8 @@ val quantifiers : unit -> string
 val set_backend : string -> unit
 
 val semantics : unit -> [`NotSpecified | `Precise | `Imprecise]
+
+val set_encoding : string -> unit
 
 val to_json : unit -> Yojson.Basic.t
 

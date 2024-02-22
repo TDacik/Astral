@@ -132,6 +132,7 @@ let backend_options () = match !_backend_options with
 let set_backend = function
   | "cvc5" -> _backend := "cvc5"
   | "z3" -> _backend := "z3"
+  | "bitwuzla" -> _backend := "bitwuzla"
   | "boolector" -> _backend := "boolector"
   | "yices2" -> _backend := "yices2"
   | other -> failwith ("unknown backend `" ^ other ^ "`")
@@ -150,7 +151,7 @@ let sets () = !_sets
 let _quantifiers = ref "path"
 let quantifiers () = !_quantifiers
 
-let select_encoding = function
+let set_encoding = function
   | "enum" -> _locations := "enum"; _sets := "direct"
   | "bitvectors" -> _locations := "bitvectors"; _sets := "bitvectors"
   | other -> Utils.cmd_option_error "encoding" other
@@ -186,7 +187,7 @@ let speclist =
      "Encoding of sets in SMT (direct | bitvectors");
     ("--qf-encoding", Arg.Set_string _quantifiers,
      "Encoding of SMT quantifiers (direct | enum)");
-    ("--encoding", Arg.String select_encoding,
+    ("--encoding", Arg.String set_encoding,
      "Predefined encoding of locations and sets (enum | bitvectors)");
 
     ("--max-footprints", Arg.Set_int _max_footprints, "");
