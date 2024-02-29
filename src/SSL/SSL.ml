@@ -325,10 +325,11 @@ let mk_wand lhs rhs = Not (Septraction (lhs, Not rhs))
 
 let mk_exists xs phi = match xs with
   | [] -> phi
-  | xs -> Exists (xs, phi)
+  | xs -> Exists (BatList.unique ~eq:equal xs, phi)
+
 let mk_forall xs phi = match xs with
   | [] -> phi
-  | xs -> Forall (xs, phi)
+  | xs -> Forall (BatList.unique ~eq:equal xs, phi)
 
 let rec is_pure phi = match phi with
   | Var _ | Distinct _ | Pure _ -> true
