@@ -65,16 +65,19 @@ let second_phase_aux aggresive context =
   let phi = PurePreprocessing.apply phi in
   Debug.formula ~suffix:"3-pure_folding" phi;
 
+  let phi = QuantifierElimination.apply context.sl_graph phi in
+  Debug.formula phi ~suffix:"4-quantifier_elimination";
+
   let phi = Simplifier.simplify phi in
-  Debug.formula phi ~suffix:"4-simplification";
+  Debug.formula phi ~suffix:"5-simplification";
 
   let phi = antiprenexing phi in
-  Debug.formula phi ~suffix:"5-antiprenexing";
+  Debug.formula phi ~suffix:"6-antiprenexing";
 
   let phi, vars =
     if aggresive then
       let phi,vars = AggresiveSimplifier.simplify context.sl_graph phi in
-      Debug.formula phi ~suffix:"6-aggresive-simp";
+      Debug.formula phi ~suffix:"7-aggresive-simp";
       phi, vars
     else phi, vars
   in

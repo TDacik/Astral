@@ -219,6 +219,11 @@ let nb_joins g field =
   |> List.map (fun v -> if G.in_degree g v > 1 then G.in_degree g v - 1 else 0)
   |> BatList.sum
 
+let equivalence_class g x =
+  let g = projection g [Equality] in
+  try BatList.unique ~eq:G.V.equal (x :: G.succ g x)
+  with _ -> [x]
+
 (** ==== SL-graph construction ==== *)
 
 let all_equal xs =
@@ -304,7 +309,9 @@ let rec compute phi = match phi with
 
   | SSL.Septraction _ -> G.empty
   | SSL.Not _ -> G.empty
-  | SSL.Exists _ | SSL.Forall _ -> G.empty (* TODO *)
+
+  (** TODO *)
+  | SSL.Exists (xs, psi) | SSL.Forall (xs, psi) -> compute psi
   | other -> failwith @@ SSL.show other
 
 let normalise g =
