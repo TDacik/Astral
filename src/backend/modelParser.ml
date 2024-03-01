@@ -72,9 +72,7 @@ let rec parse_term term sort = match term.term with
 
   (* Variables are given as x = \lambda (). var *)
   | Binder (Fun, [], t) -> parse_term t sort
-  | _ ->
-      let _ = Format.printf "%a" Std.Term.print term in
-      failwith (Format.asprintf "Unknown term: %a" Std.Term.print term)
+  | _ -> failwith (Format.asprintf "Unknown term: %a" Std.Term.print term)
 
 
 let parse_def (def : Std.Statement.def) =

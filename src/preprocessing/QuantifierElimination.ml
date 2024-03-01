@@ -23,17 +23,10 @@ let remove_binder sl_graph phi psi x =
   let sl_graph = SL_graph.normalise @@ SL_graph.union sl_graph local_sl_graph in
   let eq_vars = SL_graph.equivalence_class sl_graph x in
   let free_vars = List.map (fun (SSL.Var x) -> x) (SSL.free_vars phi) in
-  SSL.print phi;
-  Format.printf "EQ: %s\n" (String.concat ", " @@ List.map SSL.Variable.show eq_vars);
-  Format.printf "Free: %s\n" (String.concat ", " @@ List.map SSL.Variable.show free_vars);
   let inter = list_inter eq_vars free_vars in
   match inter with
     | [] -> psi, [x]
-    | x' :: _ ->
-      let psi' = SSL.substitute psi ~var:x ~by:x' in
-      Format.printf "Should subsitute %s ~> %s\n" (SSL.Variable.show x) (SSL.Variable.show x');
-      Format.printf "%s ~> %s\n" (SSL.show psi) (SSL.show psi');
-      psi', [] 
+    | x' :: _ -> SSL.substitute psi ~var:x ~by:x', []
 
 let remove_determined sl_graph phi =
   SSL.map (fun psi -> match psi with

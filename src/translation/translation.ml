@@ -251,7 +251,6 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         try
           if Option.is_some @@ Options_base.max_footprints () &&
             Footprints.cardinal fp_worklist > Option.get @@ Options_base.max_footprints () then
-            let _ = Format.printf "Maximum reached\n" in
             Footprints.top, None
           else fp_worklist, ranges
         with _ -> Footprints.top, None

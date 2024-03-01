@@ -104,7 +104,6 @@ and parse_local_var ctx var = match var.term with
       | Loc _ -> SSL.mk_var name sort
       | smt_sort -> SSL.mk_pure @@ SMT.Variable.mk name smt_sort
     in
-    SSL.print var;
     (local_ctx, var)
 
 
