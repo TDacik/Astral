@@ -1,5 +1,7 @@
 (* Computation of bounds on paths in SL-graphs
  *
+ * TODO: check whether caching is really needed
+ *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
 open SL_graph
@@ -22,6 +24,8 @@ let cache_add (x, y, f) bound =
 let cache_find (x, y, f) =
   M.find (x, y, f) !bound_cache
 
+let cache_reset () =
+  bound_cache := M.empty
 
 let rec path_lower_bound g field x y =
   try fst @@ cache_find (x, y, field) with Not_found ->

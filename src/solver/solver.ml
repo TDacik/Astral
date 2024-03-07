@@ -12,6 +12,10 @@ type solver = {
   dump_queries : [`None | `Full of string];
 }
 
+let reset () =
+  PathBound.cache_reset ();
+  Profiler.reset ()
+
 let activate solver =
   Debug.next_query ();
   Options_base.set_interactive true;
