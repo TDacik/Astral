@@ -30,10 +30,14 @@ let activate solver =
 
 let json_stats solver =
   let total = BatList.fsum solver.stats in
+  let stats =
+    List.mapi (fun i f -> Format.asprintf "Query #%d" i, f) solver.stats
+    |> List.sort (fun (_, f1) (_, f2) -> Float.compare f1 f2)
+    |> List.rev
+  in
   `Assoc [
      "Total time", `Float total;
-     "Queries",    `Assoc 
-        (List.mapi (fun i f -> (Format.asprintf "Query #%d" i), (`Float f)) solver.stats)
+     "Queries",    `Assoc (List.map (fun (name, f) -> name, `Float f) stats)
    ]
 
 let dump_stats solver = match solver.dump_queries with
