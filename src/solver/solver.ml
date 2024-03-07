@@ -10,6 +10,8 @@ type solver = {
 
   produce_models : bool;
   dump_queries : [`None | `Full of string];
+
+  mutable stats : Float.t list;
 }
 
 let reset () =
@@ -26,6 +28,22 @@ let activate solver =
   Options.set_backend solver.backend;
   Options.set_encoding solver.encoding
 
+let json_stats solver =
+  let total = BatList.fsum solver.stats in
+  `Assoc [
+     "Total time", `Float total;
+     "Queries",    `Assoc 
+        (List.mapi (fun i f -> (Format.asprintf "Query #%d" i), (`Float f)) solver.stats)
+   ]
+
+let dump_stats solver = match solver.dump_queries with
+  | `None -> ()
+  | `Full dir ->
+    let path = Filename.concat dir "summary.json" in
+    let channel = open_out_gen [Open_creat; Open_wronly] 0o666 path in
+    Yojson.Basic.pretty_to_channel channel @@ json_stats solver;
+    close_out channel
+
 let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(dump_queries=`None) () =
   let solver = {
     backend = backend;
@@ -33,6 +51,8 @@ let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(dump_queries
 
     produce_models = false;
     dump_queries = dump_queries;
+
+    stats = [];
   } in
   activate solver;
   Options.check ();
@@ -40,7 +60,9 @@ let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(dump_queries
   solver
   
 let solve solver phi =
+  reset ();
   activate solver;
+  Profiler.add "Start";
   let vars = SSL.get_vars phi in
   let input =
     let input = Input.empty in
@@ -48,7 +70,9 @@ let solve solver phi =
     Input.add_vars input vars
   in
   let result = Engine.solve input in
+  Profiler.finish ();
   Debug.result result;
+  solver.stats <- Profiler.total_time () :: solver.stats; 
   match Option.get result.status with
   | `Sat -> `Sat (result.model)
   | `Unsat -> `Unsat

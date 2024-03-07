@@ -6,7 +6,14 @@ open Unix
 
 let self : (string * float * float) list ref = ref []
 
+let start = ref Float.zero
+
 let total = ref Float.minus_one
+
+let reset () =
+  self := [];
+  start := (Unix.times ()).tms_utime;
+  total := Float.zero
 
 let add name =
   let times = Unix.times () in
@@ -22,9 +29,14 @@ let compute_stats () =
   in
   List.rev stats
 
+let total_time () = !total -. !start
 
 let json_repr () =
-  `Assoc (List.map (fun (name, t1, t2) -> (name, `List [`Float t1; `Float t2])) !self)
+  let stats = compute_stats () in
+  `Assoc [
+    "Total time", `Float (!total -. !start);
+    "Phases",     `Assoc (List.map (fun (name, _, _, self, childs) -> (name, `List [`Float self; `Float childs])) stats)
+  ]
 
 let report () =
   let stats = compute_stats () in

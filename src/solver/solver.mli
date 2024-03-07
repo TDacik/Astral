@@ -13,6 +13,8 @@ val init :
 
 val solve : solver -> SSL.t -> [ `Sat of StackHeapModel.t option | `Unsat | `Unknown of string ]
 
+val dump_stats : solver -> unit
+
 (** {2 Queries} *)
 
 exception UnknownResult of string

@@ -557,7 +557,10 @@ let translate_phi (context : Context.t) ssl_phi =
     Profiler.add "Translation";
 
     (* Solve *)
-    match Backend.solve input translated produce_models user_options with
+    let result = Backend.solve input translated produce_models user_options in
+    Profiler.add "SMT backend";
+
+    match result with
     | SMT_Sat None -> Input.set_result `Sat input
     | SMT_Sat (Some (smt_model, backend_model)) ->
       let _ = Debug.backend_model (Backend.show_model backend_model) in
