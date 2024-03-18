@@ -46,7 +46,7 @@ let translate_vars phi =
 let convert_binders xs =
     List.map
       (fun x -> match x with
-        | SSL.Var (name, sort) -> F.asprintf "(%s %a)" name Sort.pp sort
+        | SSL.Var (name, sort) -> F.asprintf "(%s %a)" (Identifier.show name) Sort.pp sort
         | _ -> assert false
       ) xs
     |> String.concat " "
@@ -92,7 +92,7 @@ let rec pretty phi =
 
 let pretty phi = match phi with
   | GuardedNeg (lhs, rhs) ->
-    Format.asprintf "(assert %s)\n\n(assert (not %s)" (pretty lhs) (pretty rhs)
+    Format.asprintf "(assert %s)\n\n(assert (not %s))" (pretty lhs) (pretty rhs)
   | phi -> Format.asprintf "(assert %s)" (pretty phi)
 
 let translate_all phi =

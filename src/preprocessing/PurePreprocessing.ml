@@ -5,7 +5,7 @@
 open SMT
 
 let rec purify = function
-  | SSL.Var (name, sort) -> SMT.Variable.mk name sort
+  | SSL.Var (name, sort) -> SMT.Variable.mk (Identifier.show name) sort
   | SSL.Pure t -> t
   | SSL.Eq xs -> Boolean.mk_eq_list (List.map purify xs)
   | SSL.Distinct xs -> Boolean.mk_distinct_list (List.map purify xs)

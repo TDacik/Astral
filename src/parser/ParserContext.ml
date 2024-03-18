@@ -66,7 +66,7 @@ let add_assertion ctx phi = {ctx with assertions = phi :: ctx.assertions}
 let add_vars ctx vars =
   List.fold_left
     (fun ctx (name, sort) ->
-      declare_var ctx name sort
+      declare_var ctx (Identifier.show name) sort
     ) ctx vars
 
 (*** Accessors ***)

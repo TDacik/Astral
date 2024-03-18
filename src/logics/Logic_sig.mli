@@ -14,7 +14,7 @@ type 'term node_info = string * 'term node_type
 
 module type VARIABLE = sig
 
-  type t = string * Sort.t
+  type t = Identifier.t * Sort.t
 
   include PRINTABLE with type t := t
   include COMPARABLE with type t := t

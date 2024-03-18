@@ -15,7 +15,7 @@ module Build (P : PREDICATE_BASE_ENCODING) = struct
   include P
   open Context
 
-  let to_var ctx (SSL.Var (name, _)) = SMT.Variable.mk name ctx.loc_sort
+  let to_var ctx (SSL.Var (name, _)) = SMT.Variable.mk (Identifier.show name) ctx.loc_sort
 
   let translate ctx predicate domain =
     let x, y = match predicate with LS (x, y) -> (to_var ctx x, to_var ctx y) in

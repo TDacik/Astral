@@ -28,7 +28,7 @@ module Make (Locations : LOCATIONS_BASE) = struct
 
   let translate_sort locs _ = Locations.get_sort locs
 
-  let translate_var locs = function SSL.Var (name, _) -> mk_var locs name
+  let translate_var locs = function SSL.Var (name, _) -> mk_var locs (Identifier.show name)
 
 
   (** Typing *)

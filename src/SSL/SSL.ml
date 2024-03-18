@@ -117,7 +117,7 @@ let compare = Stdlib.compare
 let hash = Hashtbl.hash
 
 let describe_node : t -> t node_info = function
-  | Var (name, sort) as v -> (name, Var (name, sort))
+  | Var (name, sort) as v -> (Identifier.show name, Var (Identifier.show name, sort))
   | Pure t -> ("pure " ^ SMT.Term.show t, Operator ([], (SMT.Term.get_sort t)))
   | Eq xs -> ("=", Operator (xs, Sort.Bool))
   | Distinct xs -> ("distinct", Operator (xs, Sort.Bool))
@@ -753,9 +753,9 @@ let rec filter predicate phi =
 let rename_var phi old_name new_name =
   map_vars
     (function (name, sort) ->
-      if String.equal name old_name
-      then Var (new_name, sort)
-      else Var (name, sort)
+      if Identifier.equal_with_string name old_name
+      then Var (Variable.mk new_name sort)
+      else Var (Variable.mk (Identifier.show name) sort)
     ) phi
 
 module Var = struct
@@ -766,7 +766,7 @@ module Var = struct
   let equal (Var v1) (Var v2) = V.equal v1 v2
 
   let nil = Var V.nil
-  let is_nil (Var (name, _)) = String.equal "nil" name
+  let is_nil (Var (name, _)) = Identifier.equal_with_string name "nil"
 
 
   module Self = struct

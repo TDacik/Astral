@@ -152,7 +152,7 @@ module Term = struct
 
   let rec describe_node = function
     | Constant (c, sort) -> (c, Operator ([], sort))
-    | Variable (name, sort) -> (name, Var (name, sort))
+    | Variable (name, sort) -> (Identifier.show name, Var (Identifier.show name, sort))
 
     | IntConst i -> (string_of_int i, Operator ([], Sort.Int))
     | Plus (x, y) -> ("+", Operator ([x; y], Sort.Int))

@@ -38,7 +38,8 @@ module Init ( ) = struct
 
   let rec translate t = match t with
     | SMT.Constant (name, sort) -> find_const name sort
-    | SMT.Variable (name, sort) -> Z3.Expr.mk_const_s !context name (translate_sort sort)
+    | SMT.Variable (name, sort) -> 
+      Z3.Expr.mk_const_s !context (Identifier.show name) (translate_sort sort)
 
     | SMT.True -> Z3.Boolean.mk_true !context
     | SMT.False -> Z3.Boolean.mk_false !context

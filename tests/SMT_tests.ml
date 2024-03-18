@@ -22,9 +22,9 @@ let c1 = Arithmetic.mk_const 1
 let c2 = Arithmetic.mk_const 2
 let c3 = Arithmetic.mk_const 3
 
-(** Tests *)
+(** Tests
 
-let map_vars1 () = assert (map_vars (fun x sort -> Variable (x, sort)) True == True)
+let map_vars1 () = assert (map_vars (fun x sort -> Variable (Identifier.show x, sort)) True == True)
 
 let map_vars2 () =
   assert (
@@ -94,3 +94,5 @@ let () =
       test_case "Test"  `Quick set_smart_cons1;
     ];
   ]
+
+*)

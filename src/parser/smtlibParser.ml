@@ -174,8 +174,8 @@ and parse_pointer ctx [source; target] =
 and to_pure xs =
   List.map
     (fun ssl -> match ssl with
-      | SSL.Var (x, Sort.Int) -> SMT.Arithmetic.mk_var x
-      | SSL.Var (x, Sort.Bool) -> SMT.Boolean.mk_var x
+      | SSL.Var (x, Sort.Int) -> SMT.Arithmetic.mk_var (Identifier.show x)
+      | SSL.Var (x, Sort.Bool) -> SMT.Boolean.mk_var (Identifier.show x)
       | SSL.Pure phi -> phi
       | SSL.Eq xs -> SMT.mk_eq_list @@ to_pure xs
       | SSL.Distinct xs -> SMT.mk_distinct_list @@ to_pure xs

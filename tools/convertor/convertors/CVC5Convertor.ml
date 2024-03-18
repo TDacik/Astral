@@ -41,7 +41,7 @@ module Convertor = struct
   let convert_binders xs =
     List.map
       (fun x -> match x with
-        | SSL.Var (name, sort) -> F.asprintf "(%s %a)" name Sort.pp sort
+        | SSL.Var (name, sort) -> F.asprintf "(%a %a)" Identifier.pp name Sort.pp sort
         | _ -> assert false
       ) xs
     |> String.concat " "

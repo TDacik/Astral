@@ -156,7 +156,7 @@ let rewrite_back phi_orig (model : SMT.Model.model) =
   in
   SMT.Model.fold
     (fun (name, sort) term acc ->
-      let sort', term' = match SMT.get_sort_in_term name phi_orig with
+      let sort', term' = match SMT.get_sort_in_term (Identifier.show name) phi_orig with
         | Set _ -> (Sort.Set sort, rewrite_term term)
         | _ -> (sort, term)
       in

@@ -224,8 +224,14 @@ let to_json () =
     "Separation",              `String !_separation;
     "Semantics of pure atoms", `String !_semantics;
     "Backend",                 `String !_backend;
-    (*"Encoding",                `String !_encoding;*)
-    (*"Quantifier elimination",  `String !_quantifier_elimination*)
+    "Location encoding",       `String !_locations;
+    "Set encoding",            `String !_sets;
+    "Quantifier encoding",     `String !_quantifiers;
+    "Preprocessing",           `String !_preprocessing;
+
+    "Maximal number of footprints",      `Int !_max_footprints;
+    "Maximal enumeration in predicates", `Int !_max_pred_enum;
+
   ]
 
 let exit_usage error =
