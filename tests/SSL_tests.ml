@@ -4,7 +4,6 @@
 
 open SSL
 open SSL.Infix
-open SSL_test_utils
 
 let nil = SSL.mk_nil ()
 let p1 = SSL.mk_pure (SMT.Arithmetic.mk_var "p1")
@@ -19,6 +18,7 @@ let var_list_eq vars1 vars2 =
   let vars2 = List.sort SSL.Variable.compare vars2 in
   List.equal SSL.Variable.equal vars1 vars2
 
+let assert_equal a b = assert (a = b)
 (** Tests *)
 
 let get_vars_test1 () =
@@ -36,7 +36,7 @@ let get_vars_test2 () =
 
 let rename_var_test1 () =
   let phi = y |-> nil in
-  SSL_test_utils.assert_equal (rename_var phi "x" "z") (nil |-> y)
+  assert_equal (rename_var phi "x" "z") (nil |-> y)
 
 let rename_var_test2 () =
   let phi = x |-> y in

@@ -100,6 +100,7 @@ let parse str =
   let stmts = unpack fn [] in
   let defs = List.concat @@ List.map parse_stmt stmts in
   List.fold_left
-    (fun model (var, interp) ->
+    (fun model ((name, sort), interp) ->
+      let var = SMT.VariableBase.mk name sort in
       SMT.Model.add var interp model
     ) SMT.Model.empty defs
