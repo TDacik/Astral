@@ -10,20 +10,22 @@ jobs:
 
   build:
     runs-on: ubuntu-latest
-    container: tdacik/astral:system-dependencies
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
     
-      - name: Configure git
-        run: git config --global --add safe.directory /__w/Astral/Astral
+      # based on https://github.com/ocaml/setup-ocaml
+      - name: Set-up OCaml
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: "5.2"
 
       - name: Install dependencies
         run: opam install --deps-only -y .
 
-      - name: Install Astral
-        run: opam install -y .
+      - name: Build Astral
+        run: opam exec -- dune build
 
       - name: Run tests
         run: python3 scripts/run_tests.py

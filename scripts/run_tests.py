@@ -10,7 +10,7 @@ from subprocess import run, PIPE, TimeoutExpired
 from utils import *
 from property_checker import check
 
-astral_bin = "astral"
+astral_bin = "_build/default/main.exe"
 
 
 def print_bench_name(root, dirs):
