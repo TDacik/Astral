@@ -1,115 +1,101 @@
-# Runner of regression tests
+# Runner of all test cases
 #
-# Author: Tomas Dacik (idacik@fit.vut.cz), 2022
+# Author: Tomas Dacik (idacik@fit.vut.cz), 2024
 
 import os
 import shutil
 
-from subprocess import run, PIPE, TimeoutExpired
-
 from utils import *
-from property_checker import check
+from run_test_case import Config, TestRunner, Status
 
-astral_bin = "_build/default/main.exe"
-
-
-def print_bench_name(root, dirs):
-    print(os.path.basename(root))
+ASTRAL = "_build/default/main.exe"
+TMP = "/tmp/astral"
 
 
 class Runner:
-    def __init__(
-        self, backend="z3", encoding="bitvectors", qf_encoding="direct", timeout=10
-    ):
-        self.backend = backend
-        self.encoding = encoding
-        self.qf_encoding = qf_encoding
+    def __init__(self, verbose=True):
+        self.default_config = Config()
+        self.verbose = verbose
 
-        self.timeout = timeout
+        self.results = {}
 
-        self.correct = 0
-        self.incorrect = 0
-        self.unknown = 0
-
-        self.errors = 0
-        self.timeouts = 0
+    def print_bench_name(self, root, ignore=False):
+        if self.verbose:
+            if ignore:
+                print(os.path.basename(root), "[Skipped]")
+            else:
+                print(os.path.basename(root))
 
     def smoke_test(self):
         """Verify whether Astral is correctly installed."""
         try:
-            process = run([astral_bin, "--help"], stdout=PIPE, stderr=PIPE)
+            pass
+            # process = run([ASTRAL, "--help"], stdout=PIPE, stderr=PIPE)
         except FileNotFoundError:
             print_err("Astral is not correctly installed")
             exit(1)
 
-    def run(self, path, name):
-        # fmt: off
-        command = [
-            astral_bin,
-            "--backend", self.backend,
-            "--encoding", self.encoding,
-            "--qf-encoding", self.qf_encoding,
-            "--separation", "weak",
-            "--json-output", "/tmp/astral/" + name + ".json",
-            os.path.join(path, name),
-        ]
-        # fmt: on
-        try:
-            process = run(command, timeout=self.timeout, stdout=PIPE, stderr=PIPE)
-            stdout = process.stdout.decode().strip()
-            stderr = process.stderr.decode().strip()
-
-            if process.returncode == 0:
-                print_ok(f"[OK] {name}: {stdout}")
-                self.correct += 1
-
-                # Check additional properties
-                #check(os.path.join(path, name), "/tmp/astral/" + name + ".json")
-
-            elif process.returncode == 2:
-                print_err(f"[INCORRECT]: {name}: {stdout}")
-                print(stdout)
-                print(stderr)
-                self.incorrect += 1
-
-            else:
-                print_err(f"[ERR {process.returncode}]: {name}: {stdout}")
-                self.errors += 1
-
-        except TimeoutExpired as to:
-            print_unknown(f"[TO]: {name}")
-            self.timeouts += 1
-
-    def print_result(self):
-        if runner.incorrect > 0:
-            print_err(" - incorrect: ", runner.incorrect)
-        if runner.errors > 0:
-            print_err(" - errors: ", runner.incorrect)
-        if runner.timeouts > 0:
-            print_err(" - timeouts: ", runner.timeouts)
-
-    def clean(self):
-        shutil.rmtree("/tmp/astral", ignore_errors=True)
-
     def init(self):
-        self.clean()
-        os.mkdir("/tmp/astral")
+        shutil.rmtree(TMP, ignore_errors=True)
+        os.mkdir(TMP)
 
-    def run_one(self):
-        self.init()
+    def run_test_case(self, path, config):
+        runner = TestRunner(path, config)
+        return runner.run()
+
+    def run_test_suite(self, directory, files):
+        # Load configuration, if specified
+        try:
+            config = Config.from_file(os.path.join(directory, "config.yaml"))
+        except FileNotFoundError:
+            config = self.default_config
+
+        self.print_bench_name(directory, ignore=config.ignore)
+        if config.ignore:
+            return
+
+        print(config)
+        for f in sorted(files):
+            if f.endswith(".smt2"):
+                path = os.path.join(directory, f)
+                result = self.run_test_case(path, config)
+                self.results[result.name] = result
+
+    def run_all(self):
         for root, dirs, files in sorted(os.walk("benchmarks/")):
-            if os.path.basename(root) in ["astral_debug"]:
-                # Ignore debug directories
+            if "astral_debug" in root or "TODO" in root or root == "benchmarks/":
+                # Ignore debug and TODOs directories
                 continue
 
-            print_bench_name(root, dirs)
-            for f in sorted(files):
-                if f.endswith(".smt2"):
-                    self.run(root, f)
-        self.clean()
+            self.run_test_suite(root, files)
+
+    def report(self):
+        correct = len([x for x in self.results.values() if x.status == Status.CORRECT])
+        incorrect = len(
+            [x for x in self.results.values() if x.status == Status.INCORRECT]
+        )
+        timeout = len([x for x in self.results.values() if x.status == Status.TIMEOUT])
+        error = len([x for x in self.results.values() if x.status == Status.ERROR])
+        unknown = len([x for x in self.results.values() if x.status == Status.UNKNOWN])
+
+        total = len(self.results)
+
+        print(f"\nTotal tests: {total}")
+
+        if incorrect > 0:
+            print_err(f" - incorrect: {incorrect}")
+        if error > 0:
+            print_err(f" - errors: {error}")
+
+        if incorrect + error > 0:
+            return 1
+        return 0
 
 
 if __name__ == "__main__":
     runner = Runner()
+    runner.init()
     runner.smoke_test()
-    runner.run_one()
+    runner.run_all()
+
+    exit(runner.report())

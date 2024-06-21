@@ -1,0 +1,4 @@
+separation: "weak"
+
+#restrict_encodings: ["sets"]
+#restrict_qelims: ["none"]
