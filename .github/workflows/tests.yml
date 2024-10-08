@@ -14,7 +14,7 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v2
-    
+
       # based on https://github.com/ocaml/setup-ocaml
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v2
@@ -27,5 +27,8 @@ jobs:
       - name: Build Astral
         run: opam exec -- dune build
 
-      - name: Run tests
+      - name: Run unit tests
+        run: sh tests/run.sh
+
+      - name: Run regression tests
         run: python3 scripts/run_tests.py
