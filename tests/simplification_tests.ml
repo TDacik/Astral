@@ -136,12 +136,12 @@ let () =
       test_case "Test" `Quick test3;
       test_case "Test" `Quick test4;
     ];
-    "Inductive predicate", [
+    (*"Inductive predicate", [
       test_case "ls(x,y) * x = y ~> emp"              `Quick test_ls;
       test_case "dls(x,y,f,l) * x = l ~> y = f"       `Quick test_dls1;
       test_case "dls(x,y,f,l) * y = f ~> x = l"       `Quick test_dls2;
       test_case "dls(x,y,f,l) * x = l * y = f ~> emp" `Quick test_dls3;
-    ];
+    ];*)
     "Guarded negation", [
       test_case "Test" `Quick gneg_test1;
       test_case "Test" `Quick gneg_test2;

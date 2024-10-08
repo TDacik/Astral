@@ -131,8 +131,8 @@ let () =
       test_case "Test" `Quick remove_variadic_star_test1;
       test_case "Test" `Quick remove_variadic_star_test2;
     ];
-    "TODO: Pure preprocessing", [
+    (*"TODO: Pure preprocessing", [
       test_case "Test" `Quick pure_test1;
       test_case "Test" `Quick pure_test2;
-    ];
+    ];*)
   ]

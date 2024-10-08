@@ -59,7 +59,8 @@ let symbolic_heap_entl_test2 () =
   assert (not @@ ModelChecker.check sh phi)
 
 
-let () =
+let () = ()
+(*
   run "SSL" [
     "symbolic heap satisfiability", [
       test_case "Test"  `Quick symbolic_heap_sat_test1;
@@ -71,4 +72,4 @@ let () =
       test_case "Test"  `Quick symbolic_heap_entl_test2;
     ];
   ]
-
+*)

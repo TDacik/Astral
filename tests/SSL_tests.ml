@@ -36,7 +36,7 @@ let get_vars_test2 () =
 
 let rename_var_test1 () =
   let phi = y |-> nil in
-  assert_equal (rename_var phi "x" "z") (nil |-> y)
+  assert_equal (rename_var phi "x" "z") (y |-> nil)
 
 let rename_var_test2 () =
   let phi = x |-> y in
@@ -161,12 +161,11 @@ let as_symbolic_heap_test3 () =
   assert (spatial = []);
   assert_equal (List.hd pure) phi
 
-(* TODO: check *)
 let as_symbolic_heap_test4 () =
   let phi = SSL.mk_emp () in
   let pure, spatial = SSL.as_symbolic_heap phi in
-  (*assert (spatial = []);*)
-  assert_equal (List.hd pure) phi
+  assert (pure = []);
+  assert (spatial = [phi])
 
 
 (* ==== Subformulae manipulation ==== *)
