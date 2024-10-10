@@ -11,6 +11,8 @@
     broom_preprocessor_tests
     model_checker_tests
     symbolic_heaps
+
+    API_tests
   )
 
   (libraries

@@ -21,9 +21,10 @@ let reset () =
 let activate solver =
   Debug.next_query ();
   Options_base.set_interactive true;
-  match solver.dump_queries with
-  | `None -> Options_base.set_debug false
-  | `Full dir -> Options_base.set_debug true; Options_base.set_debug_dir dir;
+  let _ = match solver.dump_queries with
+    | `None -> Options_base.set_debug false
+    | `Full dir -> Options_base.set_debug true; Options_base.set_debug_dir dir
+  in
 
   Options.set_backend solver.backend;
   Options.set_encoding solver.encoding
@@ -53,7 +54,7 @@ let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(dump_queries
     backend = backend;
     encoding = encoding;
 
-    produce_models = false;
+    produce_models = produce_models;
     dump_queries = dump_queries;
 
     stats = [];
@@ -62,7 +63,7 @@ let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(dump_queries
   Options.check ();
   Debug.init ();
   solver
-  
+
 let solve solver phi =
   reset ();
   activate solver;
@@ -76,7 +77,7 @@ let solve solver phi =
   let result = Engine.solve input in
   Profiler.finish ();
   Debug.result result;
-  solver.stats <- Profiler.total_time () :: solver.stats; 
+  solver.stats <- Profiler.total_time () :: solver.stats;
   match Option.get result.status with
   | `Sat -> `Sat (result.model)
   | `Unsat -> `Unsat
