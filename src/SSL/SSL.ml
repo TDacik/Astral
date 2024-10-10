@@ -459,10 +459,10 @@ let rec chunk_size = function
 
 (** Fold using preorder traversal of AST *)
 (** TODO: quantifiers *)
-let rec fold (fn : t -> 'a -> 'a) phi (acc : 'a) = match node_type phi with
-  | Var _ -> fn phi acc
+let rec fold (fn : 'a -> t -> 'a) (acc : 'a) phi = match node_type phi with
+  | Var _ -> fn acc phi
   | Operator (terms, _) | Connective terms ->
-      List.fold_left (fun acc term -> fold fn phi acc) acc terms
+      List.fold_left (fold fn) acc terms
 
 (** Assign ID to a subformula based on the DFS travelsal. *)
 

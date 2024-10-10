@@ -240,7 +240,7 @@ val rename_var : t -> string -> string -> t
 
 val iter : (t -> unit) -> t -> unit
 val map : (t -> t) -> t -> t
-val fold : (t -> 'a -> 'a) -> t -> 'a -> 'a
+val fold : ('a -> t -> 'a) -> 'a -> t -> 'a
 val filter : (t -> bool) -> t -> t list
 
 (** {3 Higher-order functions on free variables of formulae} *)
