@@ -28,6 +28,11 @@ module Init ( ) = struct
 
   let solver = ref (Z3.Solver.mk_simple_solver !context)
 
+  (** Enumeration sort in Z3 cannot be declared multiple times. We thus
+      use a simple cache for a location sort. This works as long as there
+      is a SINGLE enumeration sort. *)
+  let enum_sort = ref (None : Z3.Sort.sort option)
+
   let is_available () = true
 
   let init () =
@@ -38,7 +43,7 @@ module Init ( ) = struct
 
   let rec translate t = match t with
     | SMT.Constant (name, sort) -> find_const name sort
-    | SMT.Variable (name, sort) -> 
+    | SMT.Variable (name, sort) ->
       Z3.Expr.mk_const_s !context (Identifier.show name) (translate_sort sort)
 
     | SMT.True -> Z3.Boolean.mk_true !context
@@ -140,9 +145,16 @@ module Init ( ) = struct
     | Sort.Bool -> Z3.Boolean.mk_sort !context
     | Sort.Int -> Z3.Arithmetic.Integer.mk_sort !context
     | Sort.Bitvector n -> Z3.BitVector.mk_sort !context n
-    | Sort.Finite (name, constants) -> Z3.Enumeration.mk_sort_s !context name constants
     | Sort.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
     | Sort.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
+    | Sort.Finite (name, constants) ->
+      begin match !enum_sort with
+        | Some sort -> sort
+        | None ->
+          let sort = Z3.Enumeration.mk_sort_s !context name constants in
+          enum_sort := Some sort;
+          sort
+      end
     | s -> Utils.internal_error ("Cannot translate sort " ^ Sort.show s)
 
   and find_const const sort =
