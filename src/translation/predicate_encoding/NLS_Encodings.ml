@@ -51,12 +51,8 @@ module Default (Context : CONTEXT) = struct
       let types = Locations.mk_set_of_type ctx.locs top_path Sort.loc_nls in
 
       let loc = Variable.mk_fresh "loc" loc_sort in
-      let precond =
-        Boolean.mk_and [
-          Locations.mk_of_type ctx.locs loc Sort.loc_nls;
-          Set.mk_mem loc domain
-        ]
-      in
+      let precond = Set.mk_mem loc top_path in
+
       let bounds = nested_bounds.default :: nested_bounds.concrete in
       let i_bounds = Interval.meet_list bounds in
       let i_bounds = Interval.minus i_bounds (1, 1) in
