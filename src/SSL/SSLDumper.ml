@@ -42,7 +42,7 @@ let translate_vars phi =
   |> List.filter (fun v -> not @@ SSL.Variable.is_nil v)
   |> List.map declare_var
   |> String.concat "\n"
-  
+
 let convert_binders xs =
     List.map
       (fun x -> match x with
@@ -77,7 +77,7 @@ let rec pretty phi =
   | Star fs -> F.asprintf "(sep %s" (String.concat " " @@ List.map pretty fs)
   | Septraction (f1, f2) -> F.asprintf "(not (wand %s (not %s))"
       (pretty f1) (pretty f2)
-  | Exists (xs, psi) -> F.asprintf "(exists (%s) %s)" (convert_binders xs) (pretty psi)
+  | Exists (xs, psi) -> F.asprintf "(exists (%s) %s" (convert_binders xs) (pretty psi)
   | _ -> pretty_atom phi
   in
   if SSL.is_atom phi
@@ -101,7 +101,7 @@ let translate_all phi =
   ^ (translate_vars phi)
   ^ "\n\n"
   ^ (pretty phi)
-  ^ "\n\n" 
+  ^ "\n\n"
   ^ "(check-sat)"
 
 let dump file phi status =
