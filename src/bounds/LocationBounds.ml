@@ -96,6 +96,7 @@ let rec garbage_chunk_bound = function
   | Not psi -> garbage_chunk_bound psi
   | Star psis -> BatList.sum @@ List.map garbage_chunk_bound psis
   | Septraction (_, psi2) -> garbage_chunk_bound psi2
+  | Exists (_, psi) -> garbage_chunk_bound psi
   | Emp | PointsTo _ | LS _ | DLS _ | NLS _ -> 1
   | Eq _ | Distinct _ | Pure _ -> 1 (* TODO: can be improved if not under negation? *)
   | other -> failwith @@ SSL.show other
