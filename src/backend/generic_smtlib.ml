@@ -9,13 +9,13 @@
 
 exception NonStandardTerm of string
 
-let rec translate_decl (SMT.Variable (name, sort)) translate_sort =
-  Format.asprintf "(declare-const %s %s)" (Identifier.show name) (translate_sort sort)
+let translate_var_name (SMT.Variable (name, sort)) =
+  Format.asprintf "%s!%s" (Identifier.show name) (Sort.show_kind sort)
 
 (** Translation of standard terms. Translation of non-standard term raises exception
     that should be handled by concrete solver. *)
-and translate_std translate translate_sort term = match term with
-  | SMT.Variable (name, _) -> Identifier.show name
+let rec translate_std translate translate_sort term = match term with
+  | SMT.Variable _ -> translate_var_name term
   | SMT.Constant (name, _) -> name
   | SMT.True -> "true"
   | SMT.False -> "false"
