@@ -1,5 +1,5 @@
 (set-logic QF_ALL)
-(set-option :status unknown)
+(set-option :status sat)
 
 (declare-sort LS_t 0)
 (declare-heap (LS_t LS_t))
