@@ -36,8 +36,8 @@ module Make (Backend : SMTLIB_BACKEND) = struct
     try translate_std_sort translate_sort sort
     with NonStandardTerm _ -> Backend.translate_non_std_sort translate_sort sort
 
-  let translate_var_decl (SMT.Variable (name, sort)) =
-    Format.asprintf "(declare-const %s %s)" (Identifier.show name) (translate_sort sort)
+  let translate_var_decl (SMT.Variable (name, sort) as var) =
+    Format.asprintf "(declare-const %s %s)" (translate_var_name var) (translate_sort sort)
 
   let translate_sort_decl = function
     | Sort.Bool | Sort.Int | Sort.Array _ | Sort.Bitvector _ -> ""

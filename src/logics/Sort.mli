@@ -75,3 +75,5 @@ val is_atomic : t -> bool
 val substitute : t -> t -> t -> t
 (** [substitute sort pattern target] replaces all occurences of sort pattern by atomic sort
     target. *)
+
+val show_kind : t -> string

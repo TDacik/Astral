@@ -57,6 +57,15 @@ let rec show = function
   | Sum sorts -> "(" ^ (String.concat " | " @@ List.map show sorts) ^ ")"
   | Uninterpreted name -> name
 
+let rec show_kind = function
+  | Bool -> "bool"
+  | Int -> "int"
+  | Loc name -> "loc_" ^ name
+  | Finite (name, _) -> "finite_" ^ name
+  | Array (dom, range) -> "array_" ^ (show_kind dom) ^ "_" ^ (show_kind range)
+  | Bitvector width -> "bitvector_" ^ string_of_int width
+  | Uninterpreted name -> "uninterpreted_" ^ name
+
 let get_dom_sort = function
   | Set dom_sort -> dom_sort
   | Sequence dom_sort -> dom_sort
