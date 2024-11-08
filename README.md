@@ -56,7 +56,9 @@ A formula $x \mapsto y -\kern-.46em{\circledast}$ $\mathsf{ls}(x,y)$ can be repr
 After cloning the repository, run `opam install .` to install Astral. Then the solver can be run by the command `astral formula.smt2`.
 
 ## Related Papers
-* Dacík, Tomáš. [A Decision Procedure for Strong-Separation Logic](https://www.fit.vut.cz/study/thesis/25151/ ). Brno, 2022. Master's Thesis. Brno University of Technology, Faculty of Information Technology. 2022-08-25. Supervised by Vojnar Tomáš. 
+* Tomáš Dacík, Adam Rogalewicz, Tomáš Vojnar, and Florian Zuleger. [Deciding Boolean Separation Logic via Small Models](https://link.springer.com/content/pdf/10.1007/978-3-031-57246-3_11?pdf=chapter%20toc). In TACAS 2024. [Technical report](https://arxiv.org/abs/2403.18999). [Artifact](https://doi.org/10.5281/zenodo.10447097).
+
+* Dacík, Tomáš. [A Decision Procedure for Strong-Separation Logic](https://www.fit.vut.cz/study/thesis/25151/). Brno, 2022. Master's Thesis. Brno University of Technology, Faculty of Information Technology. 2022-08-25. Supervised by Vojnar Tomáš. 
 
 ## Contact
 If you have any questions, do not hesitate to contact the tool/method authors:
