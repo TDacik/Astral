@@ -393,6 +393,9 @@ let rec substitute ?(bounded=[]) phi v term = match phi with
   | DLS (x, y, f, l) ->
       DLS (substitute ~bounded x v term, substitute ~bounded y v term,
            substitute ~bounded f v term, substitute ~bounded l v term)
+  | NLS (x, y, z) ->
+    NLS (substitute ~bounded x v term, substitute ~bounded y v term,
+         substitute ~bounded z v term)
   | And (psi1, psi2) -> And (substitute ~bounded psi1 v term, substitute ~bounded psi2 v term)
   | Or (psi1, psi2) -> Or (substitute ~bounded psi1 v term, substitute ~bounded psi2 v term)
   | Not psi -> Not (substitute ~bounded psi v term)
