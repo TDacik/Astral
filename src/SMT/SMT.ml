@@ -793,7 +793,8 @@ module Quantifier = struct
 
 
   let mk_forall_path_nested2 arr_top arr_next x (top, concrete, def) [x1; x2] phi =
-    BatList.range 0 `To (snd top - 1)
+    let top_bound = if snd top > 0 then snd top - 1 else 0 in
+    BatList.range 0 `To top_bound
     |> List.map (fun i -> Array.mk_nary_select i arr_top x, i)
     |> List.map (fun (loc, i) ->
         let bound =
