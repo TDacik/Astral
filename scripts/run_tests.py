@@ -6,6 +6,7 @@ import os
 import shutil
 
 from utils import *
+from subprocess import run, PIPE
 from run_test_case import Config, TestRunner, Status
 
 ASTRAL = "_build/default/main.exe"
@@ -30,7 +31,7 @@ class Runner:
         """Verify whether Astral is correctly installed."""
         try:
             pass
-            # process = run([ASTRAL, "--help"], stdout=PIPE, stderr=PIPE)
+            process = run([ASTRAL, "--help"], stdout=PIPE, stderr=PIPE)
         except FileNotFoundError:
             print_err("Astral is not correctly installed")
             exit(1)
@@ -63,8 +64,8 @@ class Runner:
 
     def run_all(self):
         for root, dirs, files in sorted(os.walk("benchmarks/")):
-            if "astral_debug" in root or "TODO" in root or root == "benchmarks/":
-                # Ignore debug and TODOs directories
+            if "astral_debug" in root or root == "benchmarks/":
+                # Ignore debug
                 continue
 
             self.run_test_suite(root, files)
