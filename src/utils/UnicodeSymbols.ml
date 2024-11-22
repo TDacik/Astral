@@ -2,25 +2,55 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-let select (unicode, plain) =
-  if (*Options.unicode ()*) true then
-    (fun () -> unicode)
-  else
-    (fun () -> plain)
+let use_unicode = ref false
+let use_easter_eggs = ref false
 
-let eq  = select ("=", "=")
-let neq = select ("≠", "neq")
+let eq   = ref "="
+let neq  = ref "neq"
 
-let logand = select ("∧", "and")
-let logor  = select ("∨", "or")
-let lognot = select ("¬", "not")
-let gneg   = select ("∧¬", "and not")
+let and_ = ref "and"
+let or_  = ref "or"
+let not  = ref "not"
 
-let exists = select ("∃", "exists")
-let forall = select ("∀", "forall")
+let exists = ref "exists"
+let forall = ref "forall"
 
-let entails = select ("⊧", "|=")
+let entails = ref "|="
 
-let pto =  select ("↦", "pto")
-let star = select ("∗", "star")
-let septraction = select ("-⍟", "septraction")
+let empty_set = ref "empty"
+
+let maps_to = ref "|->"
+let star = ref "*"
+let septraction = ref "-(*)"
+
+let defined = ref ":="
+
+let lower_index n = failwith "TODO"
+
+let alien = ref ""
+
+let set_ref (r : string ref) value =
+  if !use_unicode then r := value
+
+let set_egg (r : string ref) value =
+  if !use_easter_eggs then r := value
+
+let init unicode =
+  use_unicode := unicode;
+  set_ref eq "=";
+  set_ref neq "≠";
+  set_ref and_ "∧";
+  set_ref or_ "∨";
+  set_ref not "¬";
+  set_ref exists "∃";
+  set_ref forall "∀";
+  set_ref entails "⊧";
+  set_ref maps_to "↦";
+  set_ref star "∗";
+  set_ref septraction "-⍟";
+  set_ref empty_set "∅";
+  set_ref defined "≜"
+
+let easter_eggs value =
+  use_easter_eggs := value;
+  set_egg alien "👽"

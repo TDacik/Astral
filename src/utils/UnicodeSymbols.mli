@@ -4,21 +4,35 @@
 
 (* {3 First-order logic} *)
 
-val eq : unit -> string
-val neq : unit -> string
+val eq : string ref
+val neq : string ref
 
-val logand : unit -> string
-val logor : unit -> string
-val lognot : unit -> string
-val gneg : unit -> string
+val and_ : string ref
+val or_ : string ref
+val not : string ref
 
-val exists : unit -> string
-val forall : unit -> string
+val exists : string ref
+val forall : string ref
 
-val entails : unit -> string
+val entails : string ref
+
+val empty_set : string ref
+
+(* *)
+
+val maps_to : string ref
+val defined : string ref
+
 
 (* {4 Separation logic.} *)
 
-val pto : unit -> string
-val star : unit -> string
-val septraction : unit -> string
+val star : string ref
+val septraction : string ref
+
+val init : bool -> unit
+
+(**/**)
+
+val easter_eggs : bool -> unit
+
+val alien : string ref
