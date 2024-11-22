@@ -19,7 +19,7 @@ module Self = struct
 
   let translate_non_std translate translate_sort phi =
     let translate_list es = String.concat " " @@ List.map translate es in
-    match phi with
+    match SMT.view phi with
     | SMT.Membership (e1, e2) ->
       Format.asprintf "(set.member %s %s)" (translate e1) (translate e2)
     | SMT.Subset (e1, e2) -> Format.asprintf "(set.subset %s %s)" (translate e1) (translate e2)
@@ -31,7 +31,7 @@ module Self = struct
       Format.asprintf "(= (set.inter %s %s) (as set.empty %s))"
         (translate e1)
         (translate e2)
-        (translate_sort @@ SMT.Set.get_sort e1)
+        (translate_sort @@ SMT.get_sort e1)
 
     | SMT.Enumeration ([], sort) -> Format.asprintf "(as set.empty %s)" (translate_sort sort)
     | SMT.Enumeration (es, sort) ->
@@ -39,15 +39,17 @@ module Self = struct
         (translate_list es)
         (translate_sort sort)
 
+    | _ -> failwith @@ SMT.show phi
+
   let translate_non_std_sort translate_sort = function
     | Sort.Set (elem_sort) -> "(Set " ^ translate_sort elem_sort ^ ")"
-    | Sort.Finite (name, consts) -> name
+    | Sort.Finite (name, consts) -> Identifier.show name
 
   let declare_non_std_sort = function
     | Sort.Set (elem_sort) -> ""
     | Sort.Finite (name, consts) ->
       let constructors = String.concat " " @@ List.map (fun c -> "(|" ^ c ^ "|)") consts in
-      Format.asprintf "(declare-datatypes ((%s 0)) ((%s)))" name constructors
+      Format.asprintf "(declare-datatypes ((%s 0)) ((%s)))" (Identifier.show name) constructors
 
 end
 

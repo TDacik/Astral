@@ -51,20 +51,19 @@ module Init ( ) = struct
     | SMT.Equal [] -> Z3.Boolean.mk_true !context
     | SMT.Equal (x :: y :: rest) ->
       let step = Z3.Boolean.mk_eq !context (translate x) (translate y) in
-      Z3.Boolean.mk_and !context [step; translate @@ SMT.mk_eq_list @@ y :: rest]
+      Z3.Boolean.mk_and !context [step; translate @@ SMT.mk_eq @@ y :: rest]
     | SMT.Distinct ts -> Z3.Boolean.mk_distinct !context (List.map translate ts)
     | SMT.And es -> Z3.Boolean.mk_and !context (List.map translate es)
     | SMT.Or es -> Z3.Boolean.mk_or !context (List.map translate es)
     | SMT.Not e -> Z3.Boolean.mk_not !context (translate e)
     | SMT.Implies (e1, e2) -> Z3.Boolean.mk_implies !context (translate e1) (translate e2)
-    | SMT.Iff (e1, e2) -> Z3.Boolean.mk_iff !context (translate e1) (translate e2)
+    | SMT.Iff [x] -> translate x
+    | SMT.Iff (x :: y :: rest) -> (* TODO: also check *)
+      let step = Z3.Boolean.mk_eq !context (translate x) (translate y) in
+      Z3.Boolean.mk_and !context [step; translate @@ SMT.mk_eq @@ y :: rest]
     | SMT.IfThenElse (c, x, y) ->
       Z3.Boolean.mk_ite !context (translate c) (translate x) (translate y)
 
-    | SMT.LesserEq (e1, e2) -> begin match SMT.Term.get_sort e1 with
-      | Sort.Bitvector _ -> Z3.BitVector.mk_ule !context (translate e1) (translate e2)
-      (* TODO: other sorts *)
-    end
     | SMT.Membership (x, s) -> Z3.Set.mk_membership !context (translate x) (translate s)
     | SMT.Subset (s1, s2) -> Z3.Set.mk_subset !context (translate s1) (translate s2)
     | SMT.Union (sets, _) -> Z3.Set.mk_union !context (List.map translate sets)
@@ -93,6 +92,10 @@ module Init ( ) = struct
       let zeros = Z3.BitVector.mk_numeral !context "0" n in
       List.fold_left (fun acc bv -> Z3.BitVector.mk_or !context acc (translate bv)) zeros bvs
 
+    | SMT.BitLesserEqual (e1, e2) -> Z3.BitVector.mk_ule !context (translate e1) (translate e2)
+    | SMT.BitLesser (e1, e2) -> Z3.BitVector.mk_ult !context (translate e1) (translate e2)
+
+
     | SMT.BitXor ([bv1; bv2], sort) ->
       Z3.BitVector.mk_xor !context (translate bv1) (translate bv2)
     | SMT.BitImplies (bv1, bv2) ->
@@ -105,7 +108,7 @@ module Init ( ) = struct
 
     | SMT.Disjoint [s1; s2] ->
       let intersect = Z3.Set.mk_intersection !context [translate s1; translate s2] in
-      let sort = translate_sort @@ SMT.Set.get_elem_sort s1 in
+      let sort = translate_sort @@ SMT.Sets.get_elem_sort s1 in
       let empty = Z3.Set.mk_empty !context sort in
       Z3.Boolean.mk_eq !context empty intersect
 
@@ -116,22 +119,23 @@ module Init ( ) = struct
 
     | SMT.ConstArr (const, _) ->
       Z3.Z3Array.mk_const_array !context (Z3.Expr.get_sort @@ translate const) (translate const)
-    | SMT.Select (a, i) -> Z3.Z3Array.mk_select !context (translate a) (translate i)
+    | SMT.Select (a, i) ->
+      Z3.Z3Array.mk_select !context (translate a) (translate i)
     | SMT.Store (a, i, v) ->
       Z3.Z3Array.mk_store !context (translate a) (translate i) (translate v)
 
     | SMT.IntConst i -> Z3.Arithmetic.Integer.mk_numeral_i !context i
-    | SMT.Plus (e1, e2) -> Z3.Arithmetic.mk_add !context [translate e1; translate e2]
+    | SMT.Plus es -> Z3.Arithmetic.mk_add !context @@ List.map translate es
     | SMT.Minus (e1, e2) -> Z3.Arithmetic.mk_sub !context [translate e1; translate e2]
-    | SMT.Mult (e1, e2) -> Z3.Arithmetic.mk_mul !context [translate e1; translate e2]
+    | SMT.Mult es -> Z3.Arithmetic.mk_mul !context @@ List.map translate es
 
     | SMT.Exists (xs, None, phi) ->
-      let binders = List.map translate xs in
+      let binders = List.map translate_var xs in
       Z3.Quantifier.mk_exists_const !context binders (translate phi) None [] [] None None
       |> Z3.Quantifier.expr_of_quantifier
 
     | SMT.Forall (xs, None, phi) ->
-      let binders = List.map translate xs in
+      let binders = List.map translate_var xs in
       Z3.Quantifier.mk_forall_const !context binders (translate phi) None [] [] None None
       |> Z3.Quantifier.expr_of_quantifier
 
@@ -139,7 +143,7 @@ module Init ( ) = struct
       Utils.internal_error
         "second order quantification should be removed before translating to backend solver"
 
-    | other -> failwith (Format.asprintf "Z3 wrapper error at: %s" (SMT.Term.show other))
+    | _ -> failwith (Format.asprintf "Z3 wrapper error at: %s" (SMT.show t))
 
   and translate_sort = function
     | Sort.Bool -> Z3.Boolean.mk_sort !context
@@ -151,11 +155,12 @@ module Init ( ) = struct
       begin match !enum_sort with
         | Some sort -> sort
         | None ->
+          let name = Identifier.show name in
           let sort = Z3.Enumeration.mk_sort_s !context name constants in
           enum_sort := Some sort;
           sort
       end
-    | s -> Utils.internal_error ("Cannot translate sort " ^ Sort.show s)
+    | sort -> Utils.internal_error ("Cannot translate sort " ^ Sort.show sort)
 
   and find_const const sort =
     let sort = translate_sort sort in

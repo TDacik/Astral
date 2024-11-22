@@ -9,6 +9,8 @@ module Make (Backend : SMTLIB_BACKEND) = struct
 
   include Backend
 
+  module Logger = Logger.Make(struct let name = Backend.name ^ "-backend" let level = 2 end)
+
   (** Formula is represented as string in SMT-LIB format. *)
   type formula = string
 
@@ -36,8 +38,10 @@ module Make (Backend : SMTLIB_BACKEND) = struct
     try translate_std_sort translate_sort sort
     with NonStandardTerm _ -> Backend.translate_non_std_sort translate_sort sort
 
-  let translate_var_decl (SMT.Variable (name, sort) as var) =
-    Format.asprintf "(declare-const %s %s)" (translate_var_name var) (translate_sort sort)
+  let translate_var_decl var =
+    Format.asprintf "(declare-const %s %s)"
+      (SMT.Variable.show var)
+      (translate_sort @@ SMT.Variable.get_sort var)
 
   let translate_sort_decl = function
     | Sort.Bool | Sort.Int | Sort.Array _ | Sort.Bitvector _ -> ""
@@ -92,7 +96,7 @@ module Make (Backend : SMTLIB_BACKEND) = struct
     let options = if produce_models then Backend.model_option :: options else options in
     "cvc5" :: options
 
-  let read_answer file produce_models =
+  let read_answer context file produce_models =
     let channel = open_in file in
     let status_line = input_line channel in
     let reason_unknown =
@@ -107,7 +111,11 @@ module Make (Backend : SMTLIB_BACKEND) = struct
       match status_line with
         | "sat" ->
           if produce_models && Backend.parser_implemented
-          then SMT_Sat (Some (ModelParser.parse model, model))
+          then
+            (*try SMT_Sat (Some (ModelParser.parse context.loc_sort model, model))
+            with _ ->*)
+              let _ = Logger.warning "Internal error when parsing backend response. Model is not available." in
+              SMT_Sat None
           else SMT_Sat None
         | "unsat" -> SMT_Unsat [] (* TODO: unsat core *)
         | "unknown" -> SMT_Unknown reason_unknown
@@ -123,7 +131,7 @@ module Make (Backend : SMTLIB_BACKEND) = struct
     Printf.fprintf query_channel "%s" smt_query;
     close_out query_channel;
 
-    let options = generate_options produce_models options in
+    let options : string list = generate_options produce_models options in
 
     let input = Unix.descr_of_in_channel @@ open_in query_filename in
     let output = Unix.descr_of_out_channel answer_channel in
@@ -152,7 +160,7 @@ module Make (Backend : SMTLIB_BACKEND) = struct
     Unix.close input;
     close_out answer_channel;
     match status with
-      | WEXITED _ -> read_answer answer_filename produce_models
+      | WEXITED _ -> read_answer context answer_filename produce_models
       (*| WEXITED i -> failwith @@
         Format.asprintf "[ERROR] Backend solver %s exited with return code %d"
           Backend.name i*)

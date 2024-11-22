@@ -1,6 +1,16 @@
 (* Parser of SMTlib models
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
+(*
+open Dolmen
+open Dolmen_smtlib2.Response.Latest
+
+module Parser = Make(Std.Loc)(Std.Id)(Std.Term)(Std.Statement)
+*)
+let parse_model model = failwith ""
+
+
+(*
 
 open Dolmen
 open Dolmen_smtlib2.Latest
@@ -15,6 +25,10 @@ open Std.Id
 open Std.Term
 open Std.Statement
 
+type ctx = {
+  loc_sort : Sort.t;
+}
+
 let rec parse_sort sort = match sort.term with
   | Builtin Bool -> Sort.Bool
   | Builtin Int -> Sort.Int
@@ -22,7 +36,7 @@ let rec parse_sort sort = match sort.term with
   | App (t1, [t2; t3]) -> Sort.Array (parse_sort t2, parse_sort t3)
   | Symbol id ->
     begin match Format.asprintf "%a" Std.Id.print id with
-    | "Locations" -> Sort.Finite ("Locations", []) (* TODO: this is very fragile *)
+    | "Locations" -> Sort.mk_finite "Locations" [] (* TODO: this is very fragile *)
     | other ->
       (* TODO: properly! *)
       let n = int_of_string @@ BatString.chop ~l:10 ~r:1 other in
@@ -40,7 +54,7 @@ let parse_symbol symbol sort =
     | _ -> failwith "Unsoppurted value"
   end
   | Term -> begin match name with
-    | "set.empty" -> SMT.Set.mk_empty sort
+    | "set.empty" -> SMT.Sets.mk_empty sort
     | name -> SMT.Enumeration.mk_const sort name
   end
 
@@ -53,12 +67,12 @@ let rec parse_term term sort = match term.term with
       begin match Format.asprintf "%a" Dolmen_std.Term.print fn with
       | "set.singleton" ->
         let elem = parse_term (List.hd ts) sort in
-        SMT.Set.mk_singleton elem
-      | "set.empty" -> SMT.Set.mk_empty sort
+        SMT.Sets.mk_singleton elem
+      | "set.empty" -> SMT.Sets.mk_empty sort
       | "set.union" ->
-        let set1 = SMT.Set.get_elems @@ parse_term (List.nth ts 0) sort in
-        let set2 = SMT.Set.get_elems @@ parse_term (List.nth ts 1) sort in
-        SMT.Set.mk_enumeration sort (set1 @ set2)
+        let set1 = SMT.Sets.get_elems @@ parse_term (List.nth ts 0) sort in
+        let set2 = SMT.Sets.get_elems @@ parse_term (List.nth ts 1) sort in
+        SMT.Sets.mk_constant sort (set1 @ set2)
       | "store" ->
         let arr = parse_term (List.nth ts 0) sort in
         let i = parse_term (List.nth ts 1) sort in
@@ -90,7 +104,8 @@ let parse_stmt stmt = match stmt.descr with
   | Defs defs -> List.map parse_def defs.contents
   | _ -> failwith "Unexpected statement"
 
-let parse str =
+let parse loc_sort str =
+  let ctx = {loc_sort = loc_sort} in
   let _, fn, _ = Parser.parse_input (`Contents ("model.smt2", str)) in
   let rec unpack generator acc =
     match generator () with
@@ -98,9 +113,13 @@ let parse str =
     | Some x -> unpack generator (x :: acc)
   in
   let stmts = unpack fn [] in
-  let defs = List.concat @@ List.map parse_stmt stmts in
-  List.fold_left
+  let defs = List.concat_map parse_stmt stmts in
+  failwith ""
+  (*List.fold_left
     (fun model ((name, sort), interp) ->
-      let var = SMT.VariableBase.mk name sort in
+      let var = SMT.Variable.mk name sort in
       SMT.Model.add var interp model
     ) SMT.Model.empty defs
+  *)
+
+*)

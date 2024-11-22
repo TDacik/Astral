@@ -9,13 +9,22 @@
 
 exception NonStandardTerm of string
 
-let translate_var_name (SMT.Variable (name, sort)) =
-  Format.asprintf "%s!%s" (Identifier.show name) (Sort.show_kind sort)
+let translate_header translate_sort xs =
+  List.map (fun x ->
+    Format.asprintf "(%s %s)"
+      (SMT.Variable.show x)
+      (translate_sort @@ SMT.Variable.get_sort x)
+  ) xs
+  |> String.concat " "
+
+let rec translate_decl var translate_sort =
+  let name, sort = SMT.Variable.describe var in
+  Format.asprintf "(declare-const %s %s)" name (translate_sort sort)
 
 (** Translation of standard terms. Translation of non-standard term raises exception
     that should be handled by concrete solver. *)
-let rec translate_std translate translate_sort term = match term with
-  | SMT.Variable _ -> translate_var_name term
+and translate_std translate translate_sort term = match SMT.view term with
+  | SMT.Variable var -> SMT.Variable.show var
   | SMT.Constant (name, _) -> name
   | SMT.True -> "true"
   | SMT.False -> "false"
@@ -26,14 +35,12 @@ let rec translate_std translate translate_sort term = match term with
   | SMT.Or ts -> Format.asprintf "(or %s)" (translate_expr_list translate ts)
   | SMT.Not t -> Format.asprintf "(not %s)" (translate t)
   | SMT.Implies (t1, t2) -> Format.asprintf "(=> %s %s)" (translate t1) (translate t2)
-  | SMT.Iff (t1, t2) -> Format.asprintf "(= %s %s)" (translate t1) (translate t2)
+  | SMT.Iff ts -> Format.asprintf "(= %s)" (translate_expr_list translate ts)
   | SMT.IfThenElse (c, x, y) ->
       Format.asprintf "(ite %s %s %s)" (translate c) (translate x) (translate y)
 
-  | SMT.LesserEq (t1, t2) -> begin match SMT.Term.get_sort t1 with
-    | Sort.Bitvector _ -> Format.asprintf "(bvule %s %s)" (translate t1) (translate t2)
-    (* TODO: other sorts *)
-  end
+  | SMT.BitLesser (t1, t2) -> Format.asprintf "(bvult %s %s)" (translate t1) (translate t2)
+  | SMT.BitLesserEqual (t1, t2) -> Format.asprintf "(bvule %s %s)" (translate t1) (translate t2)
 
   | SMT.ConstArr _ -> failwith "not implemented"
   | SMT.Select (a, i) -> Format.asprintf "(select %s %s)" (translate a) (translate i)
@@ -68,42 +75,36 @@ let rec translate_std translate translate_sort term = match term with
   | SMT.BitShiftRight (bv, rotate) ->
     Format.asprintf "(bvlshr %s %s)" (translate bv) (translate rotate)
 
-  | SMT.Forall ([], None, phi) -> translate phi
-  | SMT.Forall (x :: xs, None, phi) ->
-    let x_sort = SMT.Term.get_sort x in
-    Format.asprintf "(forall ((%s %s)) %s)"
-      (translate x)
-      (translate_sort x_sort)
-      (translate (SMT.Forall (xs, None, phi)))
+  | SMT.Forall (xs, None, phi) ->
+    Format.asprintf "(forall (%s) %s)"
+      (translate_header translate_sort xs)
+      (translate phi)
 
-  | SMT.Exists ([], None, phi) -> translate phi
-  | SMT.Exists (x :: xs, None, phi) ->
-    let x_sort = SMT.Term.get_sort x in
-    Format.asprintf "(exists ((%s %s)) %s)"
-      (translate x)
-      (translate_sort x_sort)
-      (translate (SMT.Exists (xs, None, phi)))
+  | SMT.Exists (xs, None, phi) ->
+    Format.asprintf "(exists (%s) %s)"
+      (translate_header translate_sort xs)
+      (translate phi)
 
   | SMT.IntConst i -> Format.asprintf "%d" i
-  | SMT.Plus (t1, t2) -> Format.asprintf "(+ %s %s)" (translate t1) (translate t2)
+  | SMT.Plus ts -> Format.asprintf "(+ %s)" (translate_expr_list translate ts)
   | SMT.Minus (t1, t2) -> Format.asprintf "(- %s %s)" (translate t1) (translate t2)
-  | SMT.Mult (t1, t2) -> Format.asprintf "(* %s %s)" (translate t1) (translate t2)
+  | SMT.Mult ts -> Format.asprintf "(* %s)" (translate_expr_list translate ts)
 
   | SMT.Forall2 _ | SMT.Exists2 _ ->
     failwith "Internal error: second order quantification should be removed before \
               translating to backend solver"
 
   (* Raise exception for non-standard terms *)
-  | t -> raise @@ NonStandardTerm (SMT.Term.show t)
+  | _ -> raise @@ NonStandardTerm (SMT.show term)
 
-and translate_std_sort translate_sort = function
+and translate_std_sort translate_sort sort = match sort with
   | Sort.Bool -> "Bool"
   | Sort.Int -> "Int"
   | Sort.Bitvector n -> Format.asprintf "(_ BitVec %d)" n
   | Sort.Array (d, r) -> "(Array " ^ (translate_sort d) ^ " " ^ (translate_sort r) ^ ")"
 
   (* Raise exception for non-standard sorts *)
-  | s -> raise @@ NonStandardTerm (Sort.show s)
+  | _ -> raise @@ NonStandardTerm (Sort.show sort)
 
 and translate_expr_list translate exprs =
   List.map translate exprs

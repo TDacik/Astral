@@ -7,14 +7,13 @@ open SMT
 let unfold_disjoint (s :: sets) =
   snd @@ List.fold_left
     (fun (t, phi) set ->
-      let t' = Set.mk_union [t; set] (SMT.get_sort set) in
-      let phi' = Set.mk_disjoint t set in
+      let t' = Sets.mk_union (SMT.get_sort set) [t; set] in
+      let phi' = Sets.mk_disjoint [t; set] in
       (t', Boolean.mk_and [phi; phi'])
-    ) (s, Boolean.mk_true ()) sets
+    ) (s, Boolean.tt) sets
 
 let apply term =
-  SMT.map (function
+  SMT.map_view (function
     | Disjoint sets -> unfold_disjoint sets
-    | t -> t
   ) term
 

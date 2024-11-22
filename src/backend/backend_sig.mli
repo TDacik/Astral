@@ -6,8 +6,8 @@
 
 (** Type of backend's result parametrised by its internal representation of terms and models. *)
 type ('term, 'model) status =
-  | SMT_Sat of (SMT.Model.model * 'model) option (* SMT model, backend's internal model *)
-  | SMT_Unsat of (SMT.Term.t * 'term) list       (* Unsat core *)
+  | SMT_Sat of (SMT.Model.t * 'model) option (* SMT model, backend's internal model *)
+  | SMT_Unsat of (SMT.t * 'term) list       (* Unsat core *)
   | SMT_Unknown of string                        (* Reason *)
 
 (** Signature of basic solver parameters. *)
@@ -41,7 +41,7 @@ module type BACKEND = sig
   val init : unit -> unit
   (** @raise Not_available if the solver is not available. *)
 
-  val translate : SMT.Term.t -> formula
+  val translate : SMT.t -> formula
   (** Translate formula to solver's internal representation. *)
 
   val solve : Context.t -> SMT.Term.t -> bool -> string list -> (formula, model) status
@@ -56,7 +56,7 @@ module type BACKEND = sig
 
   val show_formula : formula -> string
 
-  val to_smtlib : SMT.Term.t -> bool -> string list -> string
+  val to_smtlib : SMT.t -> bool -> string list -> string
 
   val show_model : model -> string
 
@@ -76,13 +76,13 @@ module type SMTLIB_BACKEND = sig
 
   (** Translation of non-standard terms and sorts *)
 
-  type translate_term_cont := SMT.Term.t -> string
+  type translate_term_cont := SMT.t -> string
   (** Type of continuation for term translation. *)
 
   type translate_sort_cont := Sort.t -> string
   (** Type of continuation for sort translation. *)
 
-  val translate_non_std : translate_term_cont -> translate_sort_cont -> SMT.Term.t -> string
+  val translate_non_std : translate_term_cont -> translate_sort_cont -> SMT.t -> string
 
   val declare_non_std_sort : Sort.t -> string
 
