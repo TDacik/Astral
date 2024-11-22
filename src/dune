@@ -25,8 +25,7 @@
     SMT_sig
     backend_sig
     translation_sig
-    printer_sig
-    PredicateEncoding_sig
+    logger_sig
     set_sig
     SetEncoding_sig
     location_sig
