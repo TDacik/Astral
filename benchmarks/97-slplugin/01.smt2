@@ -1,8 +1,7 @@
 (set-logic QF_ALL)
 (set-option :status sat)
 
-(declare-sort LS_t 0)
-(declare-heap (LS_t LS_t))
+(set-option :use-builtin-definitions)
 
 (declare-const s LS_t)
 (declare-const start LS_t)

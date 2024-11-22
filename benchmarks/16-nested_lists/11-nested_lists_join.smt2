@@ -1,13 +1,12 @@
 (set-info :source Astral)
 (set-info :status sat)
 
-(declare-sort Loc 0)
-(declare-heap (Loc Loc))
+(set-option :use-builtin-definitions)
 
 (declare-const x1 NLS_t)
 (declare-const x2 NLS_t)
 
-(declare-const y LS_t)
+(declare-const y Loc)
 
 (assert
   (sep
@@ -18,6 +17,6 @@
 )
 
 
-(assert (not (nll x1 nil nil)))
+(assert (not (nls x1 nil nil)))
 
 (check-sat)

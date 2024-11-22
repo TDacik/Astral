@@ -1,8 +1,7 @@
 (set-info :source Astral)
 (set-info :status sat)
 
-(declare-sort Loc 0)
-(declare-heap (Loc Loc))
+(set-option :use-builtin-definitions)
 
 ; Heap is not empty
 ;   => its size at least 1

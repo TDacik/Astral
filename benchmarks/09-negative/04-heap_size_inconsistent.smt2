@@ -1,8 +1,7 @@
 (set-info :source Astral)
 (set-info :status unsat)
 
-(declare-sort Loc 0)
-(declare-heap (Loc Loc))
+(set-option :use-builtin-definitions)
 
 ; Heap can be split into three non-empty sub-heaps
 ;   => its size is at least 3

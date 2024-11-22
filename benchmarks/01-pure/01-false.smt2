@@ -1,12 +1,12 @@
 (set-info :source Astral)
 (set-info :status unsat)
 
-(declare-sort Loc 0)
-(declare-heap (Loc Loc))
+(set-option :use-builtin-definitions)
 
 (assert false)
 
 (check-sat)
+
 
 ; Tests
 (set-info :location_bound_min 1)

@@ -1,14 +1,13 @@
 (set-info :source Astral)
 (set-info :status sat)
 
-(declare-sort Loc 0)
-(declare-heap (Loc Loc))
+(set-option :use-builtin-definitions)
 
 (declare-const x Loc)
 
 (assert
   (wand
-    (pto x (as sep.nil Loc))
+    (pto x (as nil Loc))
     false
   )
 )

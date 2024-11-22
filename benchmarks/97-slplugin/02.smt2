@@ -3,9 +3,7 @@
 (set-info :source slplugin)
 (set-info :status unsat)
 
-(declare-sort LS_t 0)
-(declare-sort NLS_t 0)
-(declare-heap (Loc Loc)) ; Fix heap decl
+(set-option :use-builtin-definitions)
 
 (declare-const s_4 NLS_t)
 (declare-const s NLS_t)
