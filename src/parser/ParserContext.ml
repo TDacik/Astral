@@ -1,55 +1,80 @@
 (* Parser context.
  *
- * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
+ * author: tomas dacik (idacik@fit.vut.cz), 2022 *)
 
+open MemoryModel
 open ParserUtils
+open ParserContext_type
 
+module S = Set.Make(String)
 module M = Map.Make(String)
 
-type t = {
-  (* Declarations *)
-  sorts : Sort.Set.t;       (* Uninterpreted sorts *)
-  vars : Sort.t M.t;        (* Declared variables *)
-  heap_sort : Sort.t list;  (* Declared sort of the heap *)
+type t = ParserContext_type.t
 
-  (* Attributes *)
-  expected_status : [ `Sat | `Unsat | `Unknown of string ];
-  attributes : String.t M.t;
+let empty ?(sorts=M.empty) ?(struct_defs=M.empty) ?(heap_sort=HeapSort.empty) ?(ids=S.empty) () =
+  {
+    sorts = sorts;
+    struct_defs = struct_defs;
+    vars = M.empty;
+    heap_sort = heap_sort;
 
-  (* Options *)
-  produce_models : bool;
+    declared_preds = ids;
 
-  (* Assertions *)
-  assertions : SSL.t list;
-}
+    expected_status = `Unknown "not provided";
+    attributes = M.empty;
 
-let empty = {
-  sorts = Sort.Set.empty;
-  vars = M.empty;
-  heap_sort = [];
-
-  expected_status = `Unknown "not provided";
-  attributes = M.empty;
-
-  produce_models = false;
-  assertions = [];
-}
+    produce_models = false;
+    assertions = [];
+  }
 
 (** Declarations *)
 
 let declare_sort ctx sort =
-  if Sort.Set.mem sort ctx.sorts then raise @@ SortRedefined sort
-  else {ctx with sorts = Sort.Set.add sort ctx.sorts}
+  let name = Sort.name sort in
+  if M.mem name ctx.sorts then raise @@ SortRedefined sort
+  else {ctx with sorts = M.add name sort ctx.sorts}
 
 let declare_var ctx var sort =
-  if M.mem var ctx.vars then raise @@ VariableRedefined var
+  if var = "nil" then parser_error "The name 'nil' is reserved for separation logic constant"
+  else if M.mem var ctx.vars then raise @@ VariableRedefined var
   else {ctx with vars = M.add var sort ctx.vars}
+
+let find_var ctx var =
+  try (SL.Variable.mk var @@ M.find var ctx.vars)
+  with Not_found -> raise @@ VariableNotDeclared var
 
 let type_of_var ctx var =
   try M.find var ctx.vars
   with Not_found -> raise @@ VariableNotDeclared var
 
-let declare_heap_sort ctx sorts = {ctx with heap_sort = sorts}
+let find_sort ctx name =
+  try M.find name ctx.sorts
+  with Not_found -> raise @@ SortNotDeclared name
+
+let declare_struct ctx name cs_name fields =
+  let def = StructDef.mk name cs_name fields in
+  {ctx with struct_defs = M.add cs_name def ctx.struct_defs}
+
+let is_declared_struct ctx name = M.mem name ctx.struct_defs
+
+let find_struct_def_by_cons ctx cs_name =
+  try M.find cs_name ctx.struct_defs
+  with Not_found -> raise @@ ConstructorNotDeclared cs_name
+
+let find_struct_def_by_name ctx name =
+  try
+    M.bindings ctx.struct_defs
+    |> List.find (fun (_, s) -> String.equal (StructDef.get_name s) name)
+    |> snd
+  with Not_found -> raise @@ StructNotDeclared name
+
+let declare_heap_sort ctx mapping =
+  {ctx with heap_sort = HeapSort.of_list mapping}
+
+let declare_pred ctx name =
+  {ctx with declared_preds = S.add name ctx.declared_preds}
+
+let is_declared_pred ctx name = S.mem name ctx.declared_preds
 
 let set_expected_status ctx = function
   | "sat" -> {ctx with expected_status = `Sat}
@@ -65,29 +90,35 @@ let add_assertion ctx phi = {ctx with assertions = phi :: ctx.assertions}
 
 let add_vars ctx vars =
   List.fold_left
-    (fun ctx (name, sort) ->
-      declare_var ctx (Identifier.show name) sort
+    (fun ctx var ->
+      let name, sort = SL.Variable.describe var in
+      declare_var ctx name sort
     ) ctx vars
 
 (*** Accessors ***)
 
 let get_vars ctx =
   M.bindings ctx.vars
-  |> List.map (fun (name, sort) -> SSL.Variable.mk name sort)
+  |> List.map (fun (name, sort) -> SL.Variable.mk name sort)
 
-let get_sl_vars ctx = List.filter SSL.Variable.is_loc (get_vars ctx)
+let get_sl_vars ctx = List.filter SL.Variable.is_loc (get_vars ctx)
 
-let get_phi ctx =
-  SSL.mk_and ctx.assertions
-  |> SSL.normalise
+let get_phi ctx = SL.mk_and ctx.assertions
 
 (*** ==== Pretty-printing ==== *)
 
 let show_sorts ctx =
-  Sort.Set.elements ctx.sorts
-  |> List.map Sort.show
+  M.bindings ctx.sorts
+  |> List.map (fun (name, sort) -> Format.asprintf "%s -> %s" name (Sort.show sort))
   |> String.concat ", "
   |> Format.asprintf "Sorts: {%s}"
+
+let show_structs ctx =
+  M.bindings ctx.struct_defs
+  |> List.map snd
+  |> List.map StructDef.show
+  |> String.concat ", "
+  |> Format.asprintf "Structs: {%s}"
 
 let show_vars ctx =
   M.bindings ctx.vars
@@ -103,18 +134,15 @@ let show_attributes ctx =
 
 let show_assertions ctx =
   ctx.assertions
-  |> List.map SSL.show
+  |> List.map SL.show
   |> String.concat "\t\n"
   |> Format.asprintf "Assertions: {\t\n%s\n}"
 
-let show_heap_sort ctx =
-  List.map Sort.show ctx.heap_sort
-  |> String.concat " "
-
 let show ctx =
-  Format.asprintf "%s\n%s\n%s\n%s\n%s\n"
+  Format.asprintf "%s\n  %s\n Heap sort: %s\n  %s\n  %s\n  %s\n"
     (show_sorts ctx)
-    (show_heap_sort ctx)
+    (show_structs ctx)
+    (HeapSort.show ctx.heap_sort)
     (show_vars ctx)
     (show_attributes ctx)
     (show_assertions ctx)

@@ -8,7 +8,6 @@
     dolmen
     batteries
     ocamlgraph
-    qcheck
     yojson
     ppx_deriving
   )
@@ -29,8 +28,10 @@
     set_sig
     SetEncoding_sig
     location_sig
-    context_sig
+    encoding_context_sig
     HeapEncoding_sig
+
+    ParserContext_type
   )
 )
 

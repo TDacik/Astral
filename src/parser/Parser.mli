@@ -3,6 +3,6 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-val parse_string : string -> ParserContext.t
+val parse_string : ?filename:string -> string -> ParserContext.t
 
-val parse_file : string -> ParserContext.t
+val parse_file :  string -> ParserContext.t
