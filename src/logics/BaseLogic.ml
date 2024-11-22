@@ -6,7 +6,7 @@
 
 open MemoryModel
 
-module Variable = BaseVariable
+module Variable = Variable.Make()
 module Sort = Sort
 
 module Application = struct

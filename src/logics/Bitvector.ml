@@ -12,18 +12,6 @@ type t = Int.t * Int.t
 let to_int = fst
 let width = snd
 
-let show (x, width) = Format.asprintf "(%d, %d)" x width
-
-module Self = struct
-  type nonrec t = t
-  let show = show
-  let equal = equal
-  let compare = compare
-end
-
-include Datatype.Printable(Self)
-include Datatype.Collections(Self)
-
 (* ==== Constructors ==== *)
 
 let of_int n width = (n, width)
@@ -59,6 +47,7 @@ let of_string str =
   let width_factor = match BatString.get str 1 with
     | 'b' | 'B' -> 1
     | 'x' | 'X' -> 4
+    | _ -> Utils.internal_error ("Bitvector.of_string " ^ str)
   in
   (int_of_string str, width_factor * (String.length str - 2))
 
@@ -96,3 +85,15 @@ let to_set bv =
 (*let%test _ = to_set (0, 3) = []
 let%test _ = to_set (3, 2) = [(0, 2); (1, 2)]
 let%test _ = to_set (5, 4) = [(0, 4); (2, 4)]*)
+
+let show = to_string
+
+module Self = struct
+  type nonrec t = t
+  let show = show
+  let equal = equal
+  let compare = compare
+end
+
+include Datatype.Printable(Self)
+include Datatype.Collections(Self)

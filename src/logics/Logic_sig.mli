@@ -1,135 +1,157 @@
-(* Logic signatures
+(* Logic signatures.
  *
- * Author: Tomas Dacik (idacik@fit.vut.cz), 2022 *)
+ * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
 open Datatype_sig
 
-type 'term node_type =
-  | Var of string * Sort.t
-  | Operator of 'term list * Sort.t
-  | Connective of 'term list          (* TODO: rename to predicate? *)
-  | Quantifier of 'term list * 'term
+module type SORT = sig
 
-type 'term node_info = string * 'term node_type
+  type t
 
-module type VARIABLE = sig
+  val show : t -> string
 
-  type t = Identifier.t * Sort.t
+  val compare : t -> t -> int
+
+  val equal : t -> t -> bool
 
   include PRINTABLE with type t := t
   include COMPARABLE with type t := t
   include COLLECTIONS with type t := t
 
-  val get_name : t -> string
+end
+
+module type SORTED = sig
+
+  module Sort : SORT
+
+  type t
 
   val get_sort : t -> Sort.t
 
   val has_sort : Sort.t -> t -> bool
 
-  val mk : string -> Sort.t -> t
-  (** Create a variable of the given sort. *)
-
-  val mk_fresh : string -> Sort.t -> t
-  (** Create a fresh variable of the given sort. *)
-
   val show_with_sort : t -> string
-end
-
-
-(** Input signature of the [Logic.Make] functor. The signature defines a type [t] which
-    corresponds to AST of formulae and a function [describe_node] that describes particular
-    nodes of AST and is used to derive generic functions over formulae. *)
-module type TERM = sig
-
-  type t
-  (** Type representing AST of formula. *)
-
-  val describe_node : t -> t node_info
-  (** Description of single node. *)
-
-  val pretty_print : (t -> string) -> t -> [`Node of string | `Tree of string] option
 
 end
 
-module type AST_BASE = sig
 
-  module Term : TERM
-  (** Underlying term. *)
 
-  val node_name : Term.t -> string
-  (** Name of node. *)
-
-  val get_operands : Term.t -> Term.t list
-  (** List of node's children. *)
-
-end
-
-module type AST = sig
-
-  module Term : TERM
-  (** Underlying term. *)
+module type VARIABLE = sig
 
   type t
 
-  val make : Term.t -> t
+  module Sort : SORT
 
-  val dump : string -> t -> unit
-
-end
-
-(** Output signature of the [Logic.Make] functor. *)
-module type LOGIC = sig
-
-  include TERM
   include PRINTABLE with type t := t
   include COMPARABLE with type t := t
+  include COLLECTIONS with type t := t
 
-  module Collections : COLLECTIONS with type t := t
+  include SORTED with type t := t and module Sort := Sort
 
-  module AST : AST with type Term.t := t
-  (** Operations over term's abstract syntax tree seen as a directed graph. *)
+  val mk : string -> Sort.t -> t
 
+  val mk_fresh : string -> Sort.t -> t
 
-  type node_type := t node_type
-  (** Generic node type fixed to type given by AST. *)
+  val refresh : t -> t
 
-  val node_name : t -> string
-  (** Name of a node. *)
+  val get_name : t -> string
 
-  val node_type : t -> node_type
-  (** Type of a node. *)
+  val describe : t -> string * Sort.t
 
-  val get_sort : t -> Sort.t
+  val show : t -> string
 
-  val free_vars : t -> t list
+  val equal : t -> t -> bool
+
+  val compare : t -> t -> int
+
+  val hash : t -> int
+
+end
+
+module type LOGIC = sig
+
+  module Sort : SORT
+  module Variable : VARIABLE with module Sort = Sort
+
+  type t
+
+  type term
+
+  (*type view
+
+  val view : t -> view
+  *)
+
+  include PRINTABLE with type t := t
+  include COMPARABLE with type t := t
+  include COLLECTIONS with type t := t
+
+  include SORTED with type t := t and module Sort := Sort
+
+  val hash : t -> int
+
+  val mk_var : string -> Sort.t -> t
+
+  val mk_fresh_var : string -> Sort.t -> t
+
+  val get_all_sorts : t -> Sort.t list
+
+  val of_var : Variable.t -> t
+
+  val of_const : Constant.t -> t
+
+  val get_sort_in_term : string -> t -> Sort.t
 
   val get_operands : t -> t list
 
-  val get_all_sorts : t -> Sort.t list
-  (** Return all sorts used in term. *)
-
-  val is_constant : t -> bool
-
   val is_quantifier_free : t -> bool
 
+  val show : t -> string
+
+  val equal : t -> t -> bool
+
+  val compare : t -> t -> int
+
+  val map : (t -> t) -> t -> t
+
+  (*val map_view : (view -> t) -> t -> t*)
+
+  val get_vars : t -> Variable.t list
+  (** Return all variables, without duplicates. *)
+
+  val free_vars : t -> Variable.t list
+
+  val rename_var : string -> string -> t -> t
+
+  val select_subformulae : (t -> bool) -> t -> t list
+
+  val substitute : t -> var:Variable.t -> by:term -> t
+
+  val substitute_list : t -> vars:Variable.t list -> by:term list -> t
+
+  val replace_subformula : t -> subformula:t -> by:t -> t
+
   val size : t -> int
-  (** The size of a term is the number of nodes in its AST. *)
 
-  (** {2 Higher-order functions} *)
+  type ast
 
-  val for_all : (t -> bool) -> t -> bool
-  (** [for_all p f] checks whether predicate p holds for all sub-terms of f. *)
+  val to_ast : ?dagify:bool -> t -> ast
 
-  val exists : (t -> bool) -> t -> bool
-  (** [exists p f] checks whether predicate p holds for some sub-terms of f. *)
+  val output_ast : string -> ast -> unit
 
+  val output_benchmark : string -> t -> [`Sat | `Unsat | `Unknown] -> unit
 
-  (** Special printing functions *)
+  val (===) : t -> t -> bool
+end
 
-  val show_with_sort : t -> string
+module type WITH_VIEW = sig
 
-  val to_smtlib_bench : t -> string
+  type t
 
-  val dump_ast : string -> t -> unit
+  type view
+
+  val view : t -> view
+
+  val map_view : (view -> t) -> t -> t
 
 end

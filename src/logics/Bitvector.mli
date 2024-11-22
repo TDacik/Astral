@@ -4,7 +4,7 @@
 
 type width := int
 
-type t = int * width
+type t = int * width [@@deriving compare, equal]
 
 val width : t -> width
 
