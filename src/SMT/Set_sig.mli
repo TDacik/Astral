@@ -1,8 +1,8 @@
-open SMT_sig
+(*open SMT_sig
 
 module type SET = sig
 
-  include SMT_TERM with type t = SMT.t
+  include EQUALITY with type t = SMT.t
 
   val name : string
   (** Name of the encoding used for logging. *)
@@ -56,4 +56,4 @@ module type SET = sig
 
   val may_disjoint : t -> t -> bool
 
-end
+end*)
