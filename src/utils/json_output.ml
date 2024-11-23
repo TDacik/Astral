@@ -19,21 +19,21 @@ let input_to_json context =
     "Name",                 `String (input_path ());
     "# variables",          `Int (List.length context.vars);
     "Expected status",      `String (Context.show_expected_status context);
-    "Size",                 `Int (SSL.size context.phi);
+    "Size",                 `Int (SL.size context.phi);
     (*"Location sort",        `String (Sort.show context.type_env.loc_sort);*)
-    "Heap sort",            `String (ParserContext.show_heap_sort context.raw_input);
+    "Heap sort",            `String (HeapSort.show context.raw_input.heap_sort);
   ]
 
 let json_repr context =
   `Assoc [
     "Input",                input_to_json context;
     "Solved by",            `String (solved_by context);
-    "Bounds",               Bounds.to_json context.bounds;
+    "Bounds",               LocationBounds.to_json context.location_bounds;
     "Formula size",         `String (size context);
     "Status",               `String (Context.show_status context);
     "Model verified",       `String "-";
     "Profiling",            Profiler.json_repr ();
-    "Options",              Options.to_json ();
+    "Config",              Options.to_json ();
   ]
 
 let print results =
