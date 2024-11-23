@@ -1,239 +1,37 @@
-(* SL graphs
+(* Operations over SL graph
+ *
+ * The representation of SL graph is in the module SL_graph0
  *
  * TODO: Sl-graph normalisation
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-open SSL
-open SSL.Field
+open MemoryModel
 
-module SL_edge = struct
-
-  type t =
-    | No
-    | Equality
-    | Disequality
-    | Pointer of Field.t
-    | Path of Field.t
-    | Disjoint of Field.t * SSL.Variable.t
-    [@@deriving compare, equal]
-
-  let default = No
-
-  let get_field = function
-    | Pointer f | Path f -> f
-
-  let is_pointer = function
-    | Pointer _ -> true
-    | _ -> false
-
-  let is_path = function
-    | Path _ -> true
-    | _ -> false
-
-  let is_disjointness = function
-    | Disjoint _ -> true
-    | _ -> false
-
-  let is_spatial_any = function
-    | Pointer _ | Path _ -> true
-    | _ -> false
-
-  let is_spatial field = function
-    | Pointer f | Path f -> Field.equal field f
-    | _ -> false
-
-  let pointers = [Pointer Next; Pointer Prev; Pointer Top]
-
-  let paths = [Path Next; Path Prev; Path Top]
-
-  let all_directed = pointers @ paths
-
-  let show = function
-    | No            -> "X" (* TODO *)
-    | Pointer Next  -> "→"
-    | Pointer Prev  -> "⇢"
-    | Pointer Top   -> "⇒"
-    | Path selector -> "⇝" ^ Field.show selector
-    | Equality      -> "="
-    | Disequality   -> "≠"
-    | Disjoint _    -> "*"
-
-  module Self = struct
-    type nonrec t = t
-    let compare = compare
-    let show = show
-  end
-
-  include Datatype.Printable(Self)
-  include Datatype.Collections(Self)
-
-end
-
+include SL_graph0
 open SL_edge
 
-module G = struct
 
-  module Self = Graph.Persistent.Digraph.ConcreteBidirectionalLabeled
-    (SSL.Variable)
-    (SL_edge)
+(** ==== Vertex substitution ==== *)
 
-  include Self
-  include Graph.Oper.P(Self)
+module GM = Graph.Gmap.Vertex(G)(struct include G let empty () = G.empty end)
 
-  include Graph.Graphviz.Dot
-    (struct
-      include Self
+let substitute g ~vertex ~by = GM.map (fun v -> if G.V.equal v vertex then by else v) g
 
-      let graph_attributes _ = []
-      let default_vertex_attributes _ = []
-      let vertex_name = SSL.Variable.show
-      let vertex_attributes v = []
+let substitute_list g ~vertices ~by =
+  BatList.fold_left2 (fun g vertex by -> substitute g ~vertex ~by) g vertices by
 
-      let get_subgraph _ = None
-      let edge_attributes e = [
-        `Label (SL_edge.show @@ E.label e);
-        `Arrowhead (match E.label e with | Pointer _ | Path _ -> `Normal | _ -> `None);
-        `Style (match E.label e with | Pointer _ | Path _ -> `Solid | _ -> `Dashed);
-
-      ]
-      let default_edge_attributes _ = []
-    end)
-
-  let output_file g path =
-    let channel = open_out path in
-    output_graph channel g;
-    close_out channel
-end
-
-(** Projections *)
-
-let filter g pred =
-  G.fold_edges_e (fun e g -> if pred e then G.add_edge_e g e else g) g G.empty
-
-let projection g labels = filter g (fun (_, label, _) -> List.mem label labels)
-
-let projection_sort sort g = filter g (fun (x, _, _) -> SSL.Variable.has_sort sort x)
-
-let projection_eq g =
-  let proj = projection g [Equality] in
-  let proj_mirror = G.mirror proj in
-  G.union proj proj_mirror
-  |> G.transitive_closure ~reflexive:true
-
-let projection_neq g = projection g [Disequality]
-let projection_pointer g = projection g SL_edge.pointers
-let spatial_projection g = projection g SL_edge.all_directed
-let projection_field field g = projection g [Equality; Disequality; Pointer field; Path field]
-
-
-let projection_path g = projection g SL_edge.paths
-let projection_path_field field g = projection g [Equality; Pointer field; Path field]
-
-
-let must_disjoint_with g x field y =
-  G.fold_edges_e (fun e acc -> match e with
-    | (x', Disjoint (field', ell), y') when
-      SSL.Variable.equal x x' && SSL.Variable.equal y y' && SSL.Field.equal field field' ->
-      ell :: acc
-    | _ -> acc
-  ) g []
-
-let must_disjoint g field x y ell =
-  BatList.mem_cmp G.V.compare ell (must_disjoint_with g x field y)
-
-let must_eq g x y =
-  let g = projection_eq g in
-  G.mem_edge g x y || SSL.Variable.equal x y
-
-let must_neq g x y =
-  let g = projection_neq g in
-  G.mem_edge g x y || G.mem_edge g y x
-
-let must_pointer g field x y =
-  let g = projection g [Pointer field] in
-  G.mem_edge g x y
-
-let must_pointer_any g x =
-  let g = projection_pointer g in
-  try
-    let out_degree = G.out_degree g x in
-    out_degree > 0
-  (* Vertex is not in graph *)
-  with Invalid_argument _ -> false
-
-let must_root g x =
-  let g = spatial_projection g in
-  try
-    let out_degree = G.out_degree g x in
-    out_degree > 0
-  (* Vertex is not in graph *)
-  with Invalid_argument _ -> false
-
-let must_path g field x y =
-  let g = projection_path g in
-  G.mem_edge_e g (x, Path field, y)
-
-let must_proper_path_any g x =
-  let spatial_g = projection_path g in
-  try G.fold_succ (fun v res -> res || must_neq g x v) spatial_g x false
-  with Invalid_argument _ -> false
-
-let nb_must_pointers g sort =
-  let g = projection_sort sort g in
-  let g = projection_pointer g in
-  let vertices = G.fold_edges (fun x y acc -> x :: acc) g [] in
-  List.length @@ List.sort_uniq G.V.compare vertices
-
-let must_alloc g =
-  let vs = G.fold_vertex List.cons g [] in
-  List.filter (fun x -> must_pointer_any g x || must_proper_path_any g x) vs
-
-let must_allocated v g = BatList.mem_cmp G.V.compare v (must_alloc g)
-
-let nb_allocated g =
-  let alloc = must_alloc g in
-  List.length alloc
-
-let nb_roots g =
-  G.fold_vertex List.cons g []
-  |> List.filter (fun x -> must_root g x)
-  |> List.length
-
-(** TODO: SL-graph normalisation *)
-let must_successor_ptr g field source =
-  let g = projection g [Pointer field] in
-  List.hd @@ G.succ g source
-
-let must_successor_any g field source =
-  let g = projection g [Pointer field; Path field] in
-  List.hd @@ G.succ g source
-
-let must_successor_edge g field source =
-  let g = projection g [Pointer field; Path field] in
-  List.hd @@ G.succ_e g source
-
-let nb_joins g field =
-  let g = projection g [Pointer field] in
-  G.fold_vertex List.cons g []
-  |> List.map (fun v -> if G.in_degree g v > 1 then G.in_degree g v - 1 else 0)
-  |> BatList.sum
-
-let equivalence_class g x =
-  let g = projection g [Equality] in
-  try BatList.unique ~eq:G.V.equal (x :: G.succ g x)
-  with _ -> [x]
 
 (** ==== SL-graph construction ==== *)
 
 let all_equal xs =
   List_utils.diagonal_product xs
-  |> List.filter_map (function (SSL.Var x, SSL.Var y) -> Some (x, Equality, y) | _ -> None)
+  |> List.map (function (x, y) -> (x, Equality, y))
   |> List.fold_left G.add_edge_e G.empty
 
 let all_distinct xs =
   List_utils.diagonal_product xs
-  |> List.filter_map (function (SSL.Var x, SSL.Var y) -> Some (x, Disequality, y) | _ -> None)
+  |> List.map (function (x, y) -> (x, Disequality, y))
   |> List.fold_left G.add_edge_e G.empty
 
 let paths g =
@@ -270,55 +68,35 @@ let disjoint_union graphs =
       ) union disequalities
     ) G.empty graphs
 
-let rec compute phi = match phi with
-  | SSL.Emp -> G.empty
-  | SSL.Var _ | SSL.Pure _ -> G.empty
-  | SSL.Eq xs -> all_equal xs
-  | SSL.Distinct xs -> all_distinct xs
-  | SSL.PointsTo (SSL.Var x, SSL.Struct.LS_t n) ->
-    G.add_edge_e G.empty (x, Pointer Next, n)
+let of_pointer x struct_def ys =
+  let fields = StructDef.get_fields struct_def in
+  List.fold_left2 (fun g field y ->
+    G.add_edge_e g (x, Pointer field, y)
+  ) G.empty fields ys
 
-  | SSL.PointsTo (SSL.Var x, SSL.Struct.DLS_t (n, p)) ->
-    let g = G.add_edge_e G.empty (x, Pointer Next, n) in
-    G.add_edge_e g (x, Pointer Prev, p)
+let rec compute phi = match SL.view phi with
+  | SL.Emp | SL.Pure _ | SL.True | SL.False -> G.empty
+  | SL.Eq xs -> all_equal xs
+  | SL.Distinct xs -> all_distinct xs
+  | SL.PointsTo (x, s, ys) -> of_pointer x s ys
+  | SL.Predicate (id, xs, defs) -> SID.sl_graph id (xs, defs)
 
-  | SSL.PointsTo (SSL.Var x, SSL.Struct.NLS_t (t, n)) ->
-    let g = G.add_edge_e G.empty (x, Pointer Next, n) in
-    G.add_edge_e g (x, Pointer Top, t)
+  | SL.Star psis -> disjoint_union (List.map compute psis)
+  | SL.And psis -> List.fold_left G.union G.empty (List.map compute psis)
+  | SL.Or psis -> List.fold_left G.intersect G.empty (List.map compute psis)
+  | SL.GuardedNeg (psi1, psi2) -> compute psi1
 
-  | SSL.LS (SSL.Var x, SSL.Var y) ->
-    if not @@ SSL.Variable.equal x y
-    then G.add_edge_e G.empty (x, Path Next, y)
-    else G.empty
-
-  | SSL.DLS (SSL.Var x, SSL.Var y, SSL.Var px, SSL.Var ny) ->
-    let g = G.add_edge_e G.empty (x, Path Next, y) in
-    G.add_edge_e g (y, Path Prev, x)
-
-  | SSL.NLS (SSL.Var x, SSL.Var y, SSL.Var z) ->
-    if not @@ SSL.Variable.equal x y
-    then
-      let g = G.add_edge_e G.empty (x, Path Next, z) in
-      G.add_edge_e g (x, Path Top, y)
-    else G.empty
-
-  | SSL.Star psis -> disjoint_union (List.map compute psis)
-  | SSL.And (psi1, psi2) -> G.union (compute psi1) (compute psi2)
-  | SSL.Or (psi1, psi2) -> G.intersect (compute psi1) (compute psi2)
-  | SSL.GuardedNeg (psi1, psi2) -> compute psi1
-
-  | SSL.Septraction _ -> G.empty
-  | SSL.Not _ -> G.empty
+  | SL.Septraction _ -> G.empty
+  | SL.Not _ -> G.empty
 
   (** TODO *)
-  | SSL.Exists (xs, psi) | SSL.Forall (xs, psi) -> compute psi
-  | other -> failwith @@ SSL.show other
+  | SL.Exists (xs, psi) | SL.Forall (xs, psi) -> compute psi
 
 let normalise g =
-  let nil = SSL.Variable.nil in
+  let nil = SL.nil in
   let alloc = must_alloc g in
   let g =
-    List.fold_left (fun g x -> G.add_edge_e g (x, Disequality, nil)) g alloc
+    List.fold_left (fun g x -> G.add_edge_e g (x, Disequality, SL.Term.nil)) g alloc
   in
   let g_ptr = projection_pointer g in
   G.fold_edges_e (fun e acc ->
@@ -346,5 +124,3 @@ let has_contradiction g =
 let compute phi =
   compute phi
   |> normalise
-
-include G

@@ -2,10 +2,9 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-type t = Int.t * Int.t [@@deriving compare]
+type t = Int.t * Int.t [@@deriving compare, equal]
 
-val show : t -> string
-
+include Datatype_sig.PRINTABLE with type t := t
 
 val plus : t -> t -> t
 (** Component-wise plus. *)

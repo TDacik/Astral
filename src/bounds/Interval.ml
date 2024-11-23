@@ -2,9 +2,14 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-type t = Int.t * Int.t [@@deriving compare]
+type t = Int.t * Int.t [@@deriving compare, equal]
 
 let show (x, y) = Format.asprintf "[%d, %d]" x y
+
+include Datatype.Printable(struct
+  type nonrec t = t
+  let show = show
+end)
 
 let monus x y = max 0 (x - y)
 

@@ -2,35 +2,19 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-module SortBound : sig
-
-  type t = {
-    allocated : Int.t;
-    total : Int.t;
-  }
-
-  include Datatype_sig.PRINTABLE with type t := t
-
-  val init : int -> int -> t
-
-  val zero : t
-
-  val n : int -> t
-
-  val plus : t -> t -> t
-
-end
-
 include Datatype_sig.MONO_MAP
   with type key := Sort.t
    and type data := SortBound.t
+   and type t = LocationBounds0.t
 
 val allocated : Sort.t -> t -> int
 
 val total : Sort.t -> t -> int
 
-val chunk_size : SSL.Variable.t -> float
+val term_bound : HeapSort.t -> SL_graph0.t -> SL.t -> SL.Term.t -> float
 
-val chunk_size_small : SSL.Variable.t -> float
+val compute : SL.t -> HeapSort.t -> SL_graph0.t -> t
 
-val compute : SSL.t -> SL_graph.t -> t
+val to_json : t -> Yojson.Basic.t
+
+val sum : t -> int
