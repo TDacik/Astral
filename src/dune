@@ -25,11 +25,11 @@
     backend_sig
     translation_sig
     logger_sig
-    set_sig
     SetEncoding_sig
     location_sig
     encoding_context_sig
     HeapEncoding_sig
+    ID_sig
 
     ParserContext_type
   )
