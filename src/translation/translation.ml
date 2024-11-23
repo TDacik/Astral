@@ -27,20 +27,34 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       (HeapEncoding.show ctx.heap)
 
   (* ==== Helper functions for constructing common terms ==== *)
+  (* TODO: we currently assume that there are no heap-terms under begin/end *)
 
-  let term_to_expr context t = match t with
-    | SSL.Var x -> Locations.translate_var context.locs t
-    | SSL.Pure psi -> psi
-    | other -> failwith ("Cannot translate term " ^ SSL.show other)
+  let translate_var ctx var = Locations.translate_var ctx.locs var
 
-  let var_to_expr context x = term_to_expr context (SSL.Var x)
+  let translate_heap_term ctx field x = HeapEncoding.mk_succ ctx.heap field x
 
-  let formula_footprint ?(physically=true) context psi =
-    let id = SSL.subformula_id ~physically context.phi psi in
-    Format.asprintf "footprint%d" id
+  let translate_block_begin ctx x = SMT.Array.mk_select ctx.block_begin x
 
-  let formula_footprint context phi =
-    Set.mk_var (formula_footprint context phi) context.fp_sort
+  let translate_block_end ctx x = SMT.Array.mk_select ctx.block_end x
+
+  (** We can use Obj.magic here because we know that SL.t and SMT.t are
+      internaly the same type. TODO: but is weird... *)
+  let rec translate_term ctx t : SMT.t =
+    Obj.magic (match SL.Term.view t with
+      | SL.Term.Var x -> SMT.of_var @@ Locations.translate_var ctx.locs x
+      | SL.Term.HeapTerm (f, _, x) -> translate_heap_term ctx f (translate_term ctx x)
+      | SL.Term.SmtTerm _ -> Locations.translate_term ctx.locs t
+      | SL.Term.BlockBegin x -> translate_block_begin ctx (translate_term ctx x)
+      | SL.Term.BlockEnd x -> translate_block_end ctx (translate_term ctx x)
+    )
+
+  let id = ref 0
+
+  (** Currently footprint ID does not match ID in printed AST *)
+  let formula_footprint ctx phi =
+    id := !id + 1;
+    let name = Format.asprintf "footprint%d" !id (*SL.subformula_id ctx.phi phi*) in
+    Sets.mk_var name ctx.fp_sort
 
   (* ==== Recursive translation of SL formulae ==== *)
 
