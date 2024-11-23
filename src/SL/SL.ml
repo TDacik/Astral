@@ -116,7 +116,7 @@ let view phi =
     | A.Pure -> Pure (to_smt @@ List.hd xs)
 
     (** This case should happen only under Pure application *)
-    | _ -> Pure phi
+    | _ -> Pure (to_smt phi)
     end
   | B.Binder (Exists None, vs, x) -> Exists (vs, x)
   | B.Binder (Forall None, vs, x) -> Forall (vs, x)
