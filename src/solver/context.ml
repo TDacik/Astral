@@ -16,14 +16,14 @@ let status_is_unknown = function
 type t = {
   raw_input : ParserContext.t;     (* Raw parsed input *)
 
-  phi : SSL.t;                     (* SSL formula after preprocessing *)
-  vars : SSL.Variable.t list;      (* Location variables after preprocessing *)
+  phi : SL.t;                     (* SL formula after preprocessing *)
+  vars : SL.Variable.t list;      (* Location variables after preprocessing *)
 
   expected_status : status;        (* This may differ from raw_input.status *)
 
   (* Bounds *)
-  sl_graph : SL_graph.t;
-  bounds : Bounds.t;
+  sl_graph : SL_graph0.t;
+  location_bounds : LocationBounds0.t;
 
   (* Statistics *)
   size : Int.t option;
@@ -31,7 +31,7 @@ type t = {
   (* Results *)
   status : status option;
   model : StackHeapModel.t option;
-  unsat_core : SSL.t list option;
+  unsat_core : SL.t list option;
   reason_unknown : string option;
 }
 
@@ -43,8 +43,8 @@ let init input = {
 
   expected_status = input.expected_status;
 
-  sl_graph = SL_graph.empty;
-  bounds = Bounds.empty;
+  sl_graph = SL_graph0.empty;
+  location_bounds = LocationBounds0.empty;
 
   size = None;
 
@@ -54,9 +54,13 @@ let init input = {
   reason_unknown = None;
 }
 
+let (let*) f ctx = match ctx.status with
+  | None -> f ctx
+  | _ -> ctx
+
 let add_metadata input sl_graph bounds =
   {input with sl_graph = sl_graph;
-              bounds = bounds}
+              location_bounds = bounds}
 
 (** {2 Setters} *)
 
@@ -86,11 +90,11 @@ let get_input input = (input.phi, input.vars)
 
 
 (** Transform satisfiability to validity of entailment *)
-let transform_to_entl input = match input.phi with
-  | SSL.GuardedNeg _ -> input
+let transform_to_entl input = match SL.view input.phi with
+  | SL.GuardedNeg _ -> input
   | _ ->
     {input with
-      phi = SSL.mk_gneg input.phi (SSL.mk_false ());
+      phi = SL.mk_gneg input.phi SL.ff;
       status = Option.map negate_status input.status;
     }
 

@@ -9,24 +9,28 @@ open Context
 
 module Options = Options_base
 
-let delim = "========================================="
+let delim = String.make 70 '='
 
 (** {2 Debug on stderr} *)
 let out_input input =
   if Options.debug () && not @@ Options.interactive () then
-    Format.printf "Input:\n%s\n%s%s\n"
+    Format.printf "%s\nInput:\n  Fragment: %s\n  Bounds: %s\n%s\n"
       delim
-      (Bounds.show input.bounds)
+      (SL.show_fragment @@ SL.classify_fragment input.phi)
+      (LocationBounds.show input.location_bounds)
       delim
 
 (** {2 Logging} *)
 
-let query_counter = ref 0
-let next_query () = query_counter := !query_counter + 1
+(** Reference to base debug directory for interactive mode. *)
+let base_debug_dir = ref ""
 
-let debug_dir () =
-  if Options.interactive () then (Options.debug_dir ()) ^ "/query_" ^ (string_of_int !query_counter)
-  else (Options.debug_dir ())
+let query_counter = ref 0
+let next_query () =
+  query_counter := !query_counter + 1;
+  Options.set_debug_dir (Format.asprintf "%s/query_%d" !base_debug_dir !query_counter)
+
+let debug_dir () = Options.debug_dir ()
 
 let path_ast file = (debug_dir ()) ^ "/" ^ file ^ ".dot"
 let path_smt_model = (debug_dir ()) ^ "/" ^ "smt_model.out"
@@ -65,29 +69,38 @@ let init () =
     Sys.mkdir (Options.debug_dir ()) 0o775
   end
 
-let formula suffix phi =
-  let out_file =
-    if suffix = "" then "phi"
-    else "phi_" ^ suffix
+let formula ?force_name ?(suffix="") phi =
+  let out_file = match force_name with
+    | None -> if suffix = "" then "phi" else "phi_" ^ suffix
+    | Some name -> name
   in
-  debug_out (out_file ^ ".out") (SSL.show phi);
-  SSLUtils.out_ast (path_ast out_file) phi
+  debug_out (out_file ^ ".out") (SL.show phi);
+  let ast = SL.to_ast phi in
+  SL.output_ast (path_ast out_file) ast
+
+let inductive_pred ?(suffix="") name phi =
+  let out_file = if suffix == "" then name else name ^ "_" ^ suffix in
+  debug_out (out_file ^ ".out") (SL.show phi);
+  let ast = SL.to_ast phi in
+  SL.output_ast (path_ast out_file) ast
 
 let input input =
-  debug_out "input.txt" (ParserContext.show input)
+  debug_out "input.txt" (ParserContext.show input);
+  formula ~force_name:"input" (ParserContext.get_phi input)
 
 let context context =
-  SSLDumper.dump ((debug_dir ()) ^ "/input.smt2") context.phi "unknown";
-  SL_graph.output_file context.sl_graph (sl_graph_dot "");
-  SL_graph.output_file (SL_graph.spatial_projection context.sl_graph) (sl_graph_dot "_spatial")
+  SL.output_benchmark ((debug_dir ()) ^ "/input.smt2") context.phi `Unknown;
+  SL_graph.output_file (sl_graph_dot "") context.sl_graph;
+  SL_graph.output_file (sl_graph_dot "_spatial") (SL_graph.spatial_projection context.sl_graph)
 
 let translated suffix phi =
   let out_file =
     if suffix = "" then "translated"
     else "translated_" ^ suffix
   in
-  debug_out (out_file ^ ".smt2") (SMT.to_smtlib_bench phi);
-  SMT.dump_ast ((debug_dir ()) ^ "/" ^ out_file ^ ".dot") phi
+  SMT.output_benchmark ((debug_dir ()) ^ "/" ^ out_file ^ ".smt2") phi `Unknown;
+  let ast = SMT.to_ast phi in
+  SMT.output_ast ((debug_dir ()) ^ "/" ^ out_file ^ ".dot") ast
 
 let smt_model model = debug_out "smt_model.out" (SMT.Model.show model)
 
@@ -119,5 +132,6 @@ let backend_model      = decorate backend_model
 let backend_input      = decorate backend_input
 let backend_call       = decorate backend_call
 
-let translated ?(suffix="") = decorate (translated suffix)
-let formula ?(suffix="")    = decorate (formula suffix)
+let translated ?(suffix="")           = decorate (translated suffix)
+let formula ?(suffix="")              = decorate (formula ~suffix)
+let inductive_pred ?(suffix="") name  = decorate (inductive_pred ~suffix name)

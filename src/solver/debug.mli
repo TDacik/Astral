@@ -4,6 +4,8 @@
 
 val init : unit -> unit
 
+val debug_dir : unit -> string
+
 val next_query : unit -> unit
 
 (** {2 Debug on stderr} *)
@@ -12,19 +14,21 @@ val out_input : Context.t -> unit
 
 (** {2 ...} *)
 
-val formula : ?suffix:string -> SSL.t -> unit
+val formula : ?suffix:string -> SL.t -> unit
+
+val inductive_pred : ?suffix:string -> string -> SL.t -> unit
 
 val input : ParserContext.t -> unit
 
 val context : Context.t -> unit
 
-val translated : ?suffix:string -> SMT.Term.t -> unit
+val translated : ?suffix:string -> SMT.t -> unit
 
 val model : StackHeapModel.t -> unit
 
 val result : Context.t -> unit
 
-val smt_model : SMT.Model.model -> unit
+val smt_model : SMT.Model.t -> unit
 
 val backend_translated : string -> unit
 
