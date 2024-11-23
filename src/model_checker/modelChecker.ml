@@ -1,67 +1,46 @@
 (* Model validation for symbolic heaps.
  *
- * TODO: dls & nls
+ * Currently, only formulae with the unique fooptrint property are supported.
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
-open SSL
-open Context
+open SL
+open MemoryModel
 
 module SH = StackHeapModel
 open SH
 
-module Print = Printer.Make(struct let name = "Model checker" end)
+module Print = Logger.Make(struct let name = "Model checker" let level = 2 end)
 
 (** Compute footprints according the unique footprint property *)
-let rec compute_footprint sh phi = match phi with
-  | Eq _ | Distinct _ -> Footprint.empty
-  | PointsTo (Var x, _) -> Footprint.singleton (Stack.find x sh.stack)
-  | LS (Var x, Var y) ->
-      let src = Stack.find x sh.stack in
-      let dst = Stack.find y sh.stack in
-      if Location.equal src dst then Footprint.empty
-      else Footprint.of_list (SH.get_path sh ~src ~dst)
+let rec compute_footprint sh phi = match SL.view phi with
+  | Emp | Eq _ | Distinct _ -> Footprint.empty
+  | PointsTo (x, _, _) -> Footprint.singleton (Stack.eval sh.stack x)
+  | Predicate (id, xs, defs) -> SID.compute_footprints id (xs, defs) sh
   | Star psis ->
     let fps = List.map (compute_footprint sh) psis in
     Footprint.of_list (List.concat @@ List.map Footprint.elements fps)
 
-let rec check sh phi =
-  let stack = sh.stack in
-  let heap = sh.heap in
-  match phi with
+(** Check whether the formula holds somewhere inside the model. *)
+let rec check sh phi = match SL.view phi with
+  | Emp -> true
   | Eq xs ->
-    List.map (fun (Var x) -> Stack.find x stack) xs
+    List.map (Stack.eval sh.stack) xs
     |> List_utils.all_equal Location.equal
 
   | Distinct xs ->
-    List.map (fun (Var x) -> Stack.find x stack) xs
+    List.map (Stack.eval sh.stack) xs
     |> List_utils.all_distinct Location.equal
 
-  | PointsTo (Var x, Struct.LS_t n) ->
-      let sx = Stack.find x stack in
-      let sn = Stack.find n stack in
-      Heap.mem sx heap && Location.equal sn @@ Heap.find_field Next sx heap
+  | PointsTo (x, s, ys) ->
+    let sx = SH.eval sh x in
+    let sys = List.map (SH.eval sh) ys in
+    let fields = StructDef.get_fields s in
+    Heap.mem sx sh.heap
+    && BatList.for_all2 (fun field y -> Location.equal y @@ Heap.find_field field sx sh.heap)
+         fields sys
 
-  | PointsTo (Var x, Struct.DLS_t (n, p)) ->
-      let sx = Stack.find x stack in
-      let sn = Stack.find n stack in
-      let sp = Stack.find p stack in
-      Heap.mem sx heap
-      && Location.equal sn @@ Heap.find_field Next sx heap
-      && Location.equal sp @@ Heap.find_field Prev sx heap
-
-  | PointsTo (Var x, Struct.NLS_t (t, n)) ->
-      let sx = Stack.find x stack in
-      let sn = Stack.find n stack in
-      let st = Stack.find t stack in
-      Heap.mem sx heap
-      && Location.equal sn @@ Heap.find_field Next sx heap
-      && Location.equal st @@ Heap.find_field Top sx heap
-
-  | LS (Var x, Var y) ->
-    let src = Stack.find x stack in
-    let dst = Stack.find y stack in
-    SH.has_path sh ~src ~dst
+  | Predicate (id, xs, defs) -> SID.model_check id (xs, defs) sh
 
   | Star psis -> List.for_all (check sh) psis
 
@@ -82,13 +61,14 @@ let check_symbolic_heap_entailment sh lhs rhs =
 (** ====  Top-level function ==== **)
 
 let check sh phi =
-  match SSL.as_query phi with
-  | SymbolicHeap_SAT psis -> check_star sh psis
-  | SymbolicHeap_ENTL (lhs, rhs) -> check_symbolic_heap_entailment sh lhs rhs
-  | _ -> failwith "Model checking is available only for symbolic heaps"
-
-let verify_model context =
-  let sh = Option.get context.model in
-  if check sh context.phi
-  then Printf.printf "[Model checker] Model verified\n"
-  else let _ = Printf.printf "[Model checker] Incorrect model\n" in exit 1
+  if not @@ SLID.has_unique_footprint phi then
+    Result.error "Model checker expects formula with unique footprint"
+  else try begin match SL.as_query phi with
+    | SymbolicHeap_SAT psis -> Result.ok @@ check_star sh psis
+    | SymbolicHeap_ENTL (lhs, rhs) -> Result.ok @@ check_symbolic_heap_entailment sh lhs rhs
+    | _ -> Result.error @@ "Model checker expects symbolic heap"
+  end
+  (* We want to continue even when model checking fails *)
+  with e ->
+    Result.error @@ Format.asprintf "Uncaught exception: %s\n %s"
+      (Printexc.to_string e) (Printexc.get_backtrace ())
