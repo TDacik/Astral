@@ -44,7 +44,8 @@ module type BACKEND = sig
   val translate : SMT.t -> formula
   (** Translate formula to solver's internal representation. *)
 
-  val solve : Context.t -> SMT.Term.t -> bool -> string list -> (formula, model) status
+  val solve :
+    (_, _) Translation_context.t -> SMT.t -> bool -> string list -> (formula, model) status
   (** Translate formula to solver's internal representation and check its
       satisfiability.
 
