@@ -175,9 +175,7 @@ and sort_of_list args =
 and parse_eq ctx args = match sort_of_list args with
   | Formula _ -> mk_formula SL.mk_iff args
   | Term _ -> mk_atom "=" SL.mk_eq args
-  | SMT smt ->
-    SMT.print smt ~prefix:">> Deciding according to:";
-    mk_smt "=" SMT.mk_eq args
+  | SMT smt -> mk_smt "=" SMT.mk_eq args
 
 (* TODO: check same sort *)
 and parse_distinct ctx args = match sort_of_list args with
