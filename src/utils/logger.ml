@@ -4,14 +4,14 @@
 
 open Logger_sig
 
-(** ANSI colors *)
-
 let warning fmt =
   Format.kasprintf (fun msg ->
     if Unix.isatty Unix.stderr
     then Format.eprintf "%s%s%s" Colors.yellow msg Colors.white
     else Format.eprintf "%s\n" msg
   ) fmt
+
+let error = warning
 
 module Make (C : CONFIG) = struct
 
@@ -31,6 +31,10 @@ module Make (C : CONFIG) = struct
       then Format.eprintf "\x1b[33m[%s] %s\x1b[0m\n%!" C.name msg
       else Format.eprintf "[%s] %s\n%!" C.name msg
     ) fmt
+
+  (* TODO *)
+  let error = warning
+
 
   let debug fmt =
     Format.kasprintf (fun msg ->

@@ -9,7 +9,7 @@ from utils import *
 from subprocess import run, PIPE
 from run_test_case import Config, TestRunner, Status
 
-ASTRAL = "_build/default/main.exe"
+ASTRAL = "_build/default/astral/main.exe"
 TMP = "/tmp/astral"
 
 

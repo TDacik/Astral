@@ -34,6 +34,8 @@ module type LOGGER = sig
 
   val warning : ('a, Format.formatter, unit) format -> 'a
 
+  val error : ('a, Format.formatter, unit) format -> 'a
+
   val debug : ('a, Format.formatter, unit, unit) format4 -> 'a
 
 end

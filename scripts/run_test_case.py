@@ -11,7 +11,7 @@ from subprocess import run, PIPE, TimeoutExpired
 
 from utils import *
 
-ASTRAL = "_build/default/main.exe"
+ASTRAL = "_build/default/astral/main.exe"
 TMP = "/tmp/astral"
 
 
