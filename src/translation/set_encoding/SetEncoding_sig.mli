@@ -10,7 +10,7 @@ module type SET_ENCODING = sig
   val rewrite : SMT.t -> SMT.t
   (** Rewrite all set symbols and operations to the encoding. *)
 
-  val rewrite_back : SMT.t -> SMT.Model.model -> SMT.Model.model
+  val rewrite_back : SMT.t -> SMT.Model.t -> SMT.Model.t
   (** Rewrite a model back from the encoding. The original formula is provided to
       reconstruct sorts of variables. *)
 
