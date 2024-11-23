@@ -28,6 +28,8 @@ module Lift (Set : Set.S) : sig
 
   val cardinal : t -> int
 
+  val cardinal_opt : t -> int option
+
   val choose : t -> Set.elt
 
   (** Binary operations *)

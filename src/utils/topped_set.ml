@@ -113,6 +113,10 @@ module Lift (Set : Set.S) = struct
 
   let cardinal = lift_or_fail Set.cardinal
 
+  let cardinal_opt = function
+    | Lifted x -> Some (Set.cardinal x)
+    | Top -> None
+  
   let choose = lift_or_fail Set.choose
 
 
