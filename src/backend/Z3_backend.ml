@@ -5,9 +5,14 @@
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
 open Backend_sig
+open Encoding_context_sig
+
+open Z3enums
+
+module Logger = Logger.Make(struct let name = "Backend:Z3" let level = 3 end)
 
 (** Generative module prevenets initialization of Z3 when it is not used *)
-module Init ( ) = struct
+module Init () = struct
 
   (* === Declarations === *)
 
@@ -41,14 +46,16 @@ module Init ( ) = struct
 
   (* === Translation === *)
 
-  let rec translate t = match t with
+  let rec translate_var var =
+    Z3.Expr.mk_const_s !context (SMT.Variable.show var) (translate_sort @@ SMT.Variable.get_sort var)
+
+  and translate t = match SMT.view t with
     | SMT.Constant (name, sort) -> find_const name sort
-    | SMT.Variable (name, sort) ->
-      Z3.Expr.mk_const_s !context (Identifier.show name) (translate_sort sort)
+    | SMT.Variable var ->  translate_var var
 
     | SMT.True -> Z3.Boolean.mk_true !context
     | SMT.False -> Z3.Boolean.mk_false !context
-    | SMT.Equal [] -> Z3.Boolean.mk_true !context
+    | SMT.Equal [x; y] -> Z3.Boolean.mk_eq !context (translate x) (translate y)
     | SMT.Equal (x :: y :: rest) ->
       let step = Z3.Boolean.mk_eq !context (translate x) (translate y) in
       Z3.Boolean.mk_and !context [step; translate @@ SMT.mk_eq @@ y :: rest]
@@ -169,63 +176,73 @@ module Init ( ) = struct
 
   (* ==== Model translation ==== *)
 
+  (* TODO: this is very slow for bitvectors. In fact, we need to check only first n values... *)
   let get_universe sort = match sort with
     | Sort.Finite _ -> SMT.Enumeration.get_constants sort
     | Sort.Bitvector width ->
       BatList.range 0 `To (BatInt.pow 2 width)
-      |> List.map (fun i -> SMT.Bitvector.mk_const i width)
+      |> List.map (fun i -> Constant.mk_bitvector_of_int i width)
+
+  let translate_constant astral_sort z3_expr =
+    let sort = Z3.Expr.get_sort z3_expr in
+    match Z3.Sort.get_sort_kind sort with
+    | BOOL_SORT -> Constant.mk_bool @@ Z3.Boolean.is_true z3_expr
+    | INT_SORT -> Constant.mk_int @@ int_of_string @@ Z3.Expr.to_string z3_expr
+    | BV_SORT -> Constant.mk_bitvector_of_string @@ Z3.Expr.to_string z3_expr
+    | DATATYPE_SORT -> Constant.mk_const astral_sort @@ Z3.Expr.to_string z3_expr
+    | _ -> failwith @@ Format.asprintf "Unknown Z3 sort: %s\n" (Z3.Sort.to_string sort)
+
+  let rec translate_m astral_ctx z3_model z3_array =
+    try
+      let operands = Z3.Expr.get_args z3_array in
+      let operands' = List.map (translate_m astral_ctx z3_model) operands in
+      match (Z3.FuncDecl.get_decl_kind @@ Z3.Expr.get_func_decl z3_array), operands' with
+      | OP_TRUE, _ -> Constant.tt
+      | OP_FALSE, _ -> Constant.ff
+
+      | OP_CONST_ARRAY, [default] -> Constant.mk_array ~default []
+      | OP_STORE, [arr; index; value] -> Constant.array_add_binding arr index value
+
+      | _, _ -> translate_constant astral_ctx.loc_sort z3_array
+
+    with Z3.Error _ ->
+      let str = Z3.Expr.to_string z3_array in
+      if String.equal str "(lambda ((x!1 Locations)) x!1)" then Constant.Array Constant.Identity
+      else failwith str
+
 
   let translate_model_var astral_context z3_model var =
-    let interp = Option.get @@ Z3.Model.eval z3_model (translate var) false in
-    match SMT.Term.get_sort var with
-    | Sort.Bool ->
-      if Z3.Boolean.is_true interp then SMT.Boolean.mk_true ()
-      else if Z3.Boolean.is_false interp then SMT.Boolean.mk_false ()
-      else failwith ("Unknown boolean value: '" ^ Z3.Expr.to_string interp ^ "'")
-
-    | Sort.Int ->
-      SMT.Arithmetic.mk_const @@ int_of_string @@ Z3.Expr.to_string interp
-
-    | Sort.Bitvector _ ->
-      SMT.Bitvector.mk_const_of_string @@ Z3.Expr.to_string interp
-
-    | Sort.Finite _ ->
-      SMT.Enumeration.mk_const (SMT.Term.get_sort var) (Z3.Expr.to_string interp)
+    let term = SMT.of_var var in
+    let sort = SMT.get_sort term in
+    let interp = Option.get @@ Z3.Model.eval z3_model (translate term) false in
+    Logger.debug "Translating variale %s = %s\n"
+      (SMT.Variable.show_with_sort var) (Z3.Expr.to_string interp);
+    match sort with
+    | Sort.Bool | Sort.Int | Sort.Bitvector _ | Sort.Finite _ -> translate_constant sort interp
 
     | Sort.Set dom ->
       let consts = get_universe dom in
-      List.filter
+      BatList.filter
         (fun c ->
-          let z3_query = Z3.Set.mk_membership !context (translate c) (translate var) in
+          let z3_query = Z3.Set.mk_membership !context (translate @@ SMT.of_const c) (translate term) in
           let res = Option.get @@ Z3.Model.eval z3_model z3_query false in
           Z3.Boolean.is_true res
         ) consts
-      |> SMT.Set.mk_enumeration (SMT.Term.get_sort var)
+      |> Constant.mk_set
+
 
     | Sort.Array (dom, range) ->
-      let consts = get_universe dom in
-      let bindings =
-        List.fold_left
-          (fun acc c ->
-            let z3_query = Z3.Z3Array.mk_select !context (translate var) (translate c) in
-            let image = Option.get @@ Z3.Model.eval z3_model z3_query false in
-            let image = match dom with
-              | Sort.Bitvector _ -> SMT.Bitvector.mk_const_of_string @@ Z3.Expr.to_string image
-              | Sort.Finite _ -> SMT.Enumeration.mk_const range (Z3.Expr.to_string image)
-            in
-            (c, image) :: acc
-          ) [] consts
-      in
-      SMT.Array.mk_const  (snd @@ List.hd bindings) dom
-      |> List.fold_right (fun (x, hx) acc -> SMT.Array.mk_store acc x hx) bindings
+      let arr = SMT.of_var var in
+      let res = Z3.Model.get_const_interp_e z3_model (translate arr) in
+      let res = BatOption.get_exn res (Failure ("No interpretation for array " ^ SMT.show arr)) in
+      translate_m astral_context z3_model res
 
   (** Translate Z3's model. This function assumes that all uninterpreted sorts are finite. *)
   let translate_model context phi z3_model =
-    let vars = SMT.Term.free_vars phi in
+    let vars = SMT.free_vars phi in
     List.fold_left
       (fun acc var ->
         let term = translate_model_var context z3_model var in
-        let var = SMT.Variable.of_term var in
         SMT.Model.add var term acc
       ) SMT.Model.empty vars
 
@@ -237,6 +254,7 @@ module Init ( ) = struct
     | Z3.Solver.SATISFIABLE ->
       if produce_models then
         let model = Option.get @@ Z3.Solver.get_model !solver in
+        let _ = Debug.backend_model @@ Z3.Model.to_string model in
         SMT_Sat (Some (translate_model context phi_orig model, model))
       else
         SMT_Sat None
