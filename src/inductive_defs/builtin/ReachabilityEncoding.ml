@@ -5,19 +5,17 @@
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
 open SMT
-open PredicateBounds.Entry
+open Encoding_context_sig
 
-open Context_sig
+module Make (E : Translation_sig.ENCODING) = struct
 
-module Make (Encoding : CONTEXT) = struct
-
-  open Encoding
+  module Locations = E.Locations
 
   (* ==== Reachability ==== *)
 
   let reach_n selector source sink n =
     let nth_succ = Array.mk_nary_select n selector source in
-    SMT.mk_eq nth_succ sink
+    SMT.mk_eq [nth_succ; sink]
 
   let reach heap source sink (min, max) =
     BatList.range min `To max
@@ -28,14 +26,14 @@ module Make (Encoding : CONTEXT) = struct
   (* ==== Paths ==== *)
 
   let combine ctx = function
-    | [] -> Set.mk_empty ctx.fp_sort
+    | [] -> Sets.mk_empty ctx.fp_sort
     | xs ->
       let sort = SMT.get_sort @@ List.hd xs in
-      if Sort.is_atomic sort then Set.mk_enumeration ctx.fp_sort xs
-      else Set.mk_union xs ctx.fp_sort
+      if Sort.is_atomic sort then Sets.mk_constant ctx.fp_sort xs
+      else Sets.mk_union ctx.fp_sort xs
 
   let path_n ctx selector constructor source n =
-    if n == 0 then Set.mk_empty ctx.fp_sort
+    if n == 0 then Sets.mk_empty ctx.fp_sort
     else
       BatList.range 0 `To (n - 1)
       |> List.map (fun n -> constructor n @@ Array.mk_nary_select n selector source)
@@ -49,23 +47,11 @@ module Make (Encoding : CONTEXT) = struct
           path_n ctx selector constructor source n
         )
     in
-    Boolean.mk_multiple_ite cases (Set.mk_empty ctx.fp_sort)
+    Boolean.mk_multiple_ite cases (Sets.mk_empty ctx.fp_sort)
 
   (* Path with identity constructor *)
   let path ctx selector source sink bounds =
     path_cons ctx selector (fun _ x -> x) source sink bounds
-
-  (** Path with one level of nesting *)
-  let nested_path ctx selector1 selector2 source sink nested_sink top_bound nested_bounds =
-    (** Nested path constructor *)
-    let cons = (fun i x ->
-      let bound =
-        try List.nth nested_bounds.concrete i
-        with Failure _ -> nested_bounds.default
-      in
-      path ctx selector2 x nested_sink bound)
-    in
-    path_cons ctx selector1 cons source sink top_bound
 
   let typed_reach ctx selector source sink typ (min, max) =
     BatList.range min `To max
