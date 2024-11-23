@@ -2,45 +2,36 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-module type LOCATIONS_BASE = sig
+type sort_encoding = SMT.t * SMT.t list
 
-  type t
+type 'a locs = {
+  internal : 'a;
+  bounds : LocationBounds0.t;
+  heap_sort : HeapSort.t;
+
+  null : SMT.t;                  (* Representation of null location *)
+  sort : Sort.t;                 (* Sort of enconded locations *)
+  constants : SMT.t list;        (* All locations *)
+  mapping : (SMT.t * SMT.t) Sort.Map.t;
+  sort_encoding : sort_encoding Sort.Map.t;
+}
+
+module type LOCATIONS_BASE = sig
 
   val name : string
   (** Name of the encoding. Used only for debugging. *)
 
-  val init : Bounds.t -> t
+  type internal
 
+  type t = internal locs
 
-  (** {2 Accessors} *)
+  val init : HeapSort.t -> LocationBounds0.t -> t
 
-  val nil_const : t -> SMT.Term.t
+  val heap_axioms : t -> SMT.t -> SMT.t
 
-  val get_sort : t -> Sort.t
-  (** Get sort of all locations. *)
+  val lemmas : t -> SMT.t
 
-  val get_sort_encoding : t -> Sort.t -> SMT.Term.t
-  (** Get set representing SMT encoding of the specified sort. *)
-
-  val get_constants : t -> SMT.Term.t list
-  (** Return list of all locations. *)
-
-  val get_constants_s : t -> Sort.t -> SMT.Term.t list
-  (** Return list of all locations of the specified sort. *)
-
-  (** {2 Inverse translation} *)
-
-  val inverse_translate : t -> SMT.Model.model -> SMT.Term.t -> StackHeapModel.Location.t
-
-  (** {2 Additional} *)
-
-  val heap_axioms : t -> SMT.Term.t -> SMT.Term.t
-
-  val lemmas : t -> SMT.Term.t
-
-  (** {2 Debuging} *)
-
-  val internal_repr : t -> string
+  val show : t -> string
 
 end
 
@@ -50,43 +41,55 @@ module type LOCATIONS = sig
 
   (** {2 Declaration} *)
 
-  val mk_var : t -> string -> SMT.Term.t
+  val mk_var : t -> string -> SMT.t
   (** Create location variable. *)
 
-  val mk_fresh_var : t -> string -> SMT.Term.t
+  val mk_fresh_var : t -> string -> SMT.t
   (** Create fresh location variable. *)
 
-  val mk_set_var : t -> string -> SMT.Term.t
+  val mk_set_var : t -> string -> SMT.t
   (** Create location set variable. *)
 
-  val mk_fresh_set_var : t -> string -> SMT.Term.t
+  val mk_fresh_set_var : t -> string -> SMT.t
   (** Create fresh location set variable. *)
 
 
+  (** {2 Accessors} *)
+
+  val null : t -> SMT.t
+
   (** {2 Translation} *)
 
-  val translate_var : t -> SSL.t -> SMT.Term.t
+  val translate_var : t -> SL.Variable.t -> SMT.Variable.t
+
+  val translate_term : t -> SL.Term.t -> SMT.t
+
+  val inverse_translate : t -> SMT.Model.t -> Constant.t -> StackHeapModel.Location.t
+  (** Translate an interpretation of a location to its representation in stack-heap model. *)
 
   (** {2 Typing} *)
 
-  val mk_of_type : t -> SMT.Term.t -> Sort.t -> SMT.t
+  val mk_of_type : t -> SMT.t -> Sort.t -> SMT.t
 
-  val mk_set_of_type : t -> SMT.Term.t -> Sort.t -> SMT.t
+  val mk_set_of_type : t -> SMT.t -> Sort.t -> SMT.t
 
   (** {2 Quantifiers} *)
 
-  val mk_exists : t -> (SMT.Term.t -> SMT.Term.t) -> SMT.t
+  val mk_exists : t -> (SMT.t -> SMT.t) -> SMT.t
 
-  val mk_forall : t -> (SMT.Term.t -> SMT.Term.t) -> SMT.t
+  val mk_forall : t -> (SMT.t -> SMT.t) -> SMT.t
+
+  val mk_exists' : t -> int -> (SMT.t list -> SMT.t) -> SMT.t
+
+  val mk_forall' : t -> int -> (SMT.t list -> SMT.t) -> SMT.t
 
   (** {2 Axioms} *)
 
-  val axioms: t -> SSL.t -> SMT.Term.t
-
+  val axioms: t -> SL.t -> SMT.t
 
   val set_sort : t -> Sort.t
   (** Sort of location sets. *)
 
-  val powerset : t -> SMT.Term.t list list
+  val powerset : t -> SMT.t list list
 
 end
