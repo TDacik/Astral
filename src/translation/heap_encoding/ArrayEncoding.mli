@@ -5,4 +5,5 @@
 open Location_sig
 open HeapEncoding_sig
 
-module Make (L : LOCATIONS) : HEAP_ENCODING with type Locations.t = L.t
+module Make (L : LOCATIONS) : HEAP_ENCODING
+  with module Locations = L

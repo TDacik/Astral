@@ -1,3 +1,5 @@
+open MemoryModel
+open StackHeapModel
 open Location_sig
 
 module type HEAP_ENCODING = sig
@@ -10,27 +12,23 @@ module type HEAP_ENCODING = sig
   type t
   (** Type of encoded heap. *)
 
-  val mk : ?suffix:string -> SSL.t -> Locations.t -> t
+  val show : t -> string
+
+  val mk : ?suffix:string -> SL.t -> HeapSort.t -> Locations.t -> t
   (* TODO: perhaps parameter could be somethin more general like Input.t? *)
 
-  val next : t -> SMT.t
-
-  val prev : t -> SMT.t
-
-  val top : t -> SMT.t
-
-  val inverse_translate : t -> SMT.Model.model -> SMT.Term.t -> StackHeapModel.Heap.t
+  val inverse_translate : t -> SMT.Model.t -> (SMT.t * Location.t) list -> StackHeapModel.Heap.t
   (** [inverse_translate t model domain] *)
 
   val axioms : t -> SMT.t
 
+  val field_encoding : t -> Field.t -> SMT.t
+
+
   (** {2 Auxiliary function} *)
 
-  val mk_next : t -> SMT.t -> SMT.t
-
-  val mk_prev : t -> SMT.t -> SMT.t
-
-  val mk_top : t -> SMT.t -> SMT.t
+  val mk_succ : t -> Field.t -> SMT.t -> SMT.t
+  (** Create a term representing a successor over the given field. *)
 
 
   val mk_image : t -> SMT.t -> SMT.t
