@@ -8,7 +8,9 @@ type solver = {
   backend : Options.backend;
   encoding : Options.encoding;
 
+  (* Options *)
   produce_models : bool;
+  use_builtin_defs: bool;
   dump_queries : [`None | `Full of string];
 
   mutable stats : Float.t list;
@@ -21,11 +23,18 @@ let reset () =
 let activate solver =
   Debug.next_query ();
   Options_base.set_interactive true;
+
   let _ = match solver.dump_queries with
     | `None -> Options_base.set_debug false
     | `Full dir -> Options_base.set_debug true; Options_base.set_debug_dir dir
   in
 
+  (* TODO: maybe elsewhere? *)
+  (if solver.use_builtin_defs then begin
+    LS.register (); DLS.register (); NLS.register ()
+  end);
+
+  Options.set_produce_models solver.produce_models;
   Options.set_backend solver.backend;
   Options.set_encoding solver.encoding
 
@@ -49,12 +58,13 @@ let dump_stats solver = match solver.dump_queries with
     Yojson.Basic.pretty_to_channel channel @@ json_stats solver;
     close_out channel
 
-let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(dump_queries=`None) () =
+let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(use_builtin_defs=true) ?(dump_queries=`None) () =
   let solver = {
     backend = backend;
     encoding = encoding;
 
     produce_models = produce_models;
+    use_builtin_defs = use_builtin_defs;
     dump_queries = dump_queries;
 
     stats = [];
@@ -68,9 +78,9 @@ let solve solver phi =
   reset ();
   activate solver;
   Profiler.add "Start";
-  let vars = SSL.get_vars phi in
+  let vars = SL.free_vars phi in
   let input =
-    let input = Input.empty in
+    let input = if solver.use_builtin_defs then SID.builtin_context () else Input.empty () in
     let input = Input.add_assertion input phi in
     Input.add_vars input vars
   in
@@ -93,11 +103,11 @@ let lift res = function
 let check_sat solver phi = lift true @@ solve solver phi
 
 let check_entl solver lhs rhs =
-  let phi = SSL.mk_gneg lhs rhs in
+  let phi = SL.mk_gneg lhs rhs in
   lift false @@ solve solver phi
 
 let check_equiv solver lhs rhs =
-  let phi1 = SSL.mk_gneg lhs rhs in
-  let phi2 = SSL.mk_gneg rhs lhs in
-  let phi = SSL.mk_or [phi1; phi2] in
+  let phi1 = SL.mk_gneg lhs rhs in
+  let phi2 = SL.mk_gneg rhs lhs in
+  let phi = SL.mk_or [phi1; phi2] in
   lift false @@ solve solver phi
