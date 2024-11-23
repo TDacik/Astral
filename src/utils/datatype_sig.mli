@@ -18,11 +18,21 @@ module type PRINTABLE = sig
   val pp : Format.formatter -> t -> unit
   (** Output to formatter *)
 
-  val print : t -> unit
+  val print : ?prefix:string -> t -> unit
   (** Output to stdout. *)
 
   val dump : string -> t -> unit
   (** Dump to file given by filename *)
+
+  (** {2 Lists of printable values} *)
+
+
+  val show_list : ?separator:string -> t list -> string
+
+  val pp_list : Format.formatter -> t list -> unit
+
+  val print_list : ?separator:string -> t list -> unit
+
 
 end
 
@@ -58,6 +68,8 @@ module type MAP = sig
 
   val show : ('a -> string) -> 'a t -> string
 
+  val show_custom : (key -> string) -> ('a -> string) -> 'a t -> string
+
 end
 
 module type MONO_MAP = sig
@@ -80,7 +92,15 @@ module type MONO_MAP = sig
 
   val fold : (key -> data -> 'acc -> 'acc) -> t -> 'acc -> 'acc
 
+  val union : (key -> data -> data -> data option) -> t -> t -> t
+
   val bindings : t -> (key * data) list
+
+  val cardinal : t -> int
+
+  val choose : t -> (key * data)
+
+  val filter : (key -> data -> bool) -> t -> t
 
   (** Additional functions *)
 
@@ -88,9 +108,13 @@ module type MONO_MAP = sig
 
   val values : t -> data list
 
+  val of_list : (key * data) list -> t
+
   val find_pred : (key -> bool) -> t -> key
 
   val show : t -> string
+
+  val show_custom : (key -> string) -> (data -> string) -> t -> string
 
 end
 
@@ -99,8 +123,7 @@ module type SET = sig
     type elt
 
     include BatSet.S with type elt := elt
-
-    val show : t -> string
+    include PRINTABLE with type t := t
 
 end
 
@@ -112,8 +135,9 @@ module type COLLECTIONS = sig
   (** Set over type t *)
 
   module Map : MAP with type key = t
-  (** Map with structural equality from t to 'a *)
+  (** Polymorphic map from t to 'a *)
 
   module MonoMap (Data : SHOW) : MONO_MAP with type key = t and type data = Data.t
+  (** Monomorphic map from t to Data.t *)
 
 end

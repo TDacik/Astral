@@ -10,12 +10,20 @@ module Printable (M : SHOW) = struct
 
   let pp fmt x = Format.fprintf fmt "%s" (M.show x)
 
-  let print x = Format.printf "%s\n" (M.show x)
+  let print ?(prefix="") x =
+    let prefix = if prefix = "" then prefix else prefix ^ " " in
+    Format.printf "%s%s\n" prefix (M.show x)
 
   let dump filename x =
     let channel = open_out_gen [Open_creat; Open_wronly] 0o666 filename in
     Printf.fprintf channel "%s\n" (M.show x);
     close_out channel
+
+  let show_list ?(separator=", ") xs = String.concat separator @@ List.map M.show xs
+
+  let pp_list (*(separator=", ")*) fmt xs = Format.fprintf fmt "%s" (show_list ~separator:"," xs)
+
+  let print_list ?(separator=", ") xs = Format.printf "%s\n" (show_list ~separator xs)
 
 end
 
@@ -26,6 +34,14 @@ module Comparable (M : COMPARISON) = struct
   let equal lhs rhs = compare lhs rhs == 0
 
 end
+
+let show_map_aux show_key show_val = function
+  | [] -> "{}"
+  | bindings ->
+    bindings
+    |> List.map (fun (k, v) -> Format.asprintf "    %s : %s" (show_key k) (show_val v))
+    |> String.concat "\n"
+    |> (fun str -> "{\n" ^ str ^ "\n  }")
 
 module Collections (M : COMPARISON) = struct
 
@@ -43,6 +59,12 @@ module Collections (M : COMPARISON) = struct
         |> String.concat ","
         |> (fun str -> "{" ^ str ^ "}\n")
 
+     include Printable(struct
+       type nonrec t = t
+       let show = show
+     end)
+
+
   end
 
   module Map = struct
@@ -53,19 +75,23 @@ module Collections (M : COMPARISON) = struct
 
     let values map = List.map snd @@ bindings map
 
+    let of_list xs = List.to_seq xs |> of_seq
+
     let find_pred pred map =
       filter (fun k _ -> pred k) map
       |> any
       |> fst
 
-    let show show_val map =
-      if is_empty map then "{}"
+    let show show_data map = show_map_aux M.show show_data (bindings map)
+
+    let show_custom show_key show_data map = show_map_aux show_key show_data (bindings map)
+      (*if is_empty map then "{}"
       else
         bindings map
-        |> List.map (fun (k, v) -> Format.asprintf "  %s : %s" (M.show k) (show_val v))
-        |> String.concat ",\n"
-        |> (fun str -> "{\n" ^ str ^ "\n}\n")
-
+        |> List.map (fun (k, v) -> Format.asprintf "    %s : %s" (M.show k) (show_data v))
+        |> String.concat "\n"
+        |> (fun str -> "{\n" ^ str ^ "\n  }\n")
+  *)
   end
 
   module MonoMap(Data : SHOW) = struct
@@ -79,18 +105,16 @@ module Collections (M : COMPARISON) = struct
     let keys map = List.map fst @@ bindings map
     let values map = List.map snd @@ bindings map
 
+    let of_list xs = List.to_seq xs |> of_seq
+
     let find_pred pred map =
       filter (fun k _ -> pred k) map
       |> any
       |> fst
 
-    let show map =
-      if is_empty map then "{}"
-      else
-        bindings map
-        |> List.map (fun (k, v) -> Format.asprintf "  %s : %s" (M.show k) (Data.show v))
-        |> String.concat ",\n"
-        |> (fun str -> "{\n" ^ str ^ "\n}\n")
+    let show map = show_map_aux M.show Data.show (bindings map)
+
+    let show_custom show_key show_data map = show_map_aux show_key show_data (bindings map)
 
   end
 

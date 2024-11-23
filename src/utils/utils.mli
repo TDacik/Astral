@@ -6,5 +6,6 @@ val error : string -> _
 
 val cmd_option_error : string -> string -> _
 
-val internal_error : ?backtrace:bool -> string -> _
+val internal_error :
+  ?backtrace:bool -> ?report:bool -> ?exit_code:int -> string -> _
 (** Fail with message. *)
