@@ -2,4 +2,4 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-val apply : SSL.t -> SSL.t
+val apply : SL.t -> SL.t

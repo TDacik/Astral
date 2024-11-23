@@ -2,26 +2,26 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-let rec apply phi = match phi with
-  | SSL.Eq [x1; x2] -> SSL.Eq [x1; x2]
-  | SSL.Eq (x1 :: x2 :: xs) -> SSL.mk_and [SSL.Eq [x1; x2]; apply (SSL.Eq (x2 :: xs))]
+let rec aux combine fn = function
+  | [x1; x2] -> fn [x1; x2]
+  | x1 :: x2 :: xs -> combine [fn [x1; x2]; aux combine fn (x2 :: xs)]
 
-  | SSL.Distinct [x1; x2] -> SSL.Distinct [x1; x2]
-  | SSL.Distinct xs ->
+let rec apply phi =
+  SL.map_view (fun psi -> match psi with
+    | SL.Eq xs -> aux SL.mk_and SL.mk_eq xs
+
+    | SL.Distinct [x1; x2] -> SL.mk_distinct [x1; x2]
+    | SL.Distinct xs ->
       List_utils.diagonal_product xs
-      |> List.map (fun (x, y) -> SSL.mk_distinct x y)
-      |> SSL.mk_and
+      |> List.map (fun (x, y) -> SL.mk_distinct [x; y])
+      |> SL.mk_and
 
-  | SSL.And (psi1, psi2) -> SSL.mk_and [apply psi1; apply psi2]
-  | SSL.Or (psi1, psi2) -> SSL.mk_or [apply psi1; apply psi2]
-  | SSL.Star [psi1; psi2] -> SSL.mk_star [apply psi1; apply psi2]
-  | SSL.Star (psi :: psis) -> SSL.mk_star [apply psi; apply @@ SSL.mk_star psis]
-  | SSL.Septraction (psi1, psi2) -> SSL.mk_septraction (apply psi1) (apply psi2)
-  | SSL.GuardedNeg (psi1, psi2) -> SSL.mk_gneg (apply psi1) (apply psi2)
-  | SSL.Not psi -> SSL.mk_not (apply psi)
-  | SSL.Exists ([x], psi) -> SSL.mk_exists [x] (apply psi)
-  | SSL.Forall ([x], psi) -> SSL.mk_forall [x] (apply psi)
-  | SSL.Exists (x :: xs, psi) -> SSL.mk_exists [x] (apply @@ SSL.mk_exists xs psi)
-  | SSL.Forall (x :: xs, psi) -> SSL.mk_forall [x] (apply @@ SSL.mk_exists xs psi)
+    | SL.And psis -> aux SL.mk_and SL.mk_and psis
+    | SL.Or psis -> aux SL.mk_or SL.mk_or psis
+    | SL.Star psis -> aux SL.mk_star SL.mk_star psis
 
-  | Emp | Pure _ | PointsTo _ | LS _ | DLS _ | NLS _ -> phi
+    | SL.Exists ([x], psi) -> SL.mk_exists [x] psi
+    | SL.Forall ([x], psi) -> SL.mk_forall [x] psi
+    | SL.Exists (x :: xs, psi) -> SL.mk_exists [x] (apply @@ SL.mk_exists xs psi)
+    | SL.Forall (x :: xs, psi) -> SL.mk_forall [x] (apply @@ SL.mk_exists xs psi)
+  ) phi

@@ -1,2 +1,2 @@
 
-val apply : SL_graph.t -> SSL.t -> SSL.t
+val apply : SL_graph.t -> HeapSort.t -> SL.t -> SL.t

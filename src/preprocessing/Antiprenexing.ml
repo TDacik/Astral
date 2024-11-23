@@ -3,40 +3,31 @@
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
 let partition x =
-  List.partition
-    (fun psi ->
-      let free = SSL.free_vars psi in
-      BatList.mem_cmp SSL.compare x free
-    )
+  List.partition (fun psi ->
+    let free = SL.free_vars psi in
+    BatList.mem_cmp SL.Variable.compare x free
+  )
 
-let rec push_star_aux xs psis = match xs with
-  | [] -> SSL.mk_star psis
-  | x :: xs ->
-    match partition x psis with
-    | plus, [] -> SSL.mk_exists [x] (push_star_aux xs plus)
-    | [], minus -> push_star_aux xs minus
-    | plus, minus ->
-      let phi_minus = push_star_aux xs minus in
-      let phi_plus = push_star_aux xs plus in
-      SSL.mk_star [apply @@ SSL.mk_exists [x] phi_plus; phi_minus]
+let push_stars xs psis =
+  let phi, rest = List.fold_left (fun (acc, psis) x ->
+    let with_x, without_x = partition x psis in
+    let lhs = SL.mk_exists [x] @@ SL.mk_star with_x in
+    let phi = SL.mk_star [acc; lhs] in
+    (phi, without_x)
+  ) (SL.emp, psis) xs
+  in
+  SL.mk_star (phi :: rest)
 
-and apply phi =
-  SSL.map
-    (fun phi -> match phi with
-      (* Forall over conjunction *)
-      | SSL.Forall (xs, And (psi1, psi2)) ->
-        SSL.mk_and [apply @@ SSL.mk_forall xs psi1; apply @@ SSL.mk_forall xs psi2]
+let apply_forall xs phi = match SL.view phi with
+  | SL.And psis -> SL.mk_and @@ List.map (SL.mk_forall xs) psis
+  | _ -> phi
 
-      (* Exists over disjunction *)
-      | SSL.Exists (xs, Or (psi1, psi2)) ->
-        SSL.mk_or [apply @@ SSL.mk_exists xs psi1; apply @@ SSL.mk_exists xs psi2]
+let apply_exists xs phi = match SL.view phi with
+  | SL.Or psis -> SL.mk_or @@ List.map (SL.mk_exists xs) psis
+  | SL.Star psis -> push_stars xs psis
 
-      (* Exists over star *)
-      | SSL.Exists (xs, Star psis) -> push_star_aux xs psis
-
-      (* Forall over star
-      | SSL.Forall (xs, Star (psi1, psi2)) ->
-        SSL.mk_star [apply @@ SSL.mk_forall xs psi1; apply @@ SSL.mk_forall xs psi2]
-      *)
-      | phi -> phi
-    ) phi
+let apply =
+  SL.map_view (function
+    | SL.Forall (xs, psi) -> apply_forall xs psi
+    | SL.Exists (xs, psi) -> apply_exists xs psi
+  )

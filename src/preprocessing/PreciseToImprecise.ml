@@ -1,73 +1,85 @@
 (* Conversion between precise and imprecise semantics of (dis-)equalities.
  *
+ * Symbolic heaps:
+ *   - to imprecise : * (atoms) <~> ( *spatial) /\ (/\ pure)
+ *
+ * General formulae:
+ *
+ *   - to imprecise : pure(X) ~> pure(X) /\ emp
+ *   - to precise :   pure(X) ~> pure(X) * true
+ *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-open SSL
+open SL
 
 (** Precise -> Imprecise *)
 
 let to_imprecise_sh psis =
-  let pure, spatial = List.partition SSL.is_pure psis in
+  let pure, spatial = List.partition SL.is_pure psis in
   match pure, spatial with
-  | [], spatial -> SSL.mk_star spatial
-  | _ -> SSL.mk_and [SSL.mk_and pure; SSL.mk_star spatial]
+  | [], spatial -> SL.mk_star spatial
+  | _ -> SL.mk_and [SL.mk_and pure; SL.mk_star spatial]
 
 let to_imprecise_arbitrary phi =
-  SSL.map (function
-    | Var x -> Var x
-    | psi when SSL.is_pure psi -> SSL.mk_and [psi; SSL.mk_emp ()]
-    | psi -> psi
+  SL.map (function
+    | psi when SL.is_pure psi -> SL.mk_and [psi; SL.emp]
   ) phi
 
-let to_imprecise phi = match SSL.as_query phi with
+let to_imprecise phi = match SL.as_query phi with
   | SymbolicHeap_SAT psis -> to_imprecise_sh psis
-  | SymbolicHeap_ENTL (lhs, rhs) -> SSL.mk_gneg (to_imprecise_sh lhs) (to_imprecise_sh rhs)
+  | SymbolicHeap_ENTL (lhs, rhs) -> SL.mk_gneg (to_imprecise_sh lhs) (to_imprecise_sh rhs)
   | _ -> to_imprecise_arbitrary phi
 
 (** Imprecise -> Precise *)
 
-let to_precise_sh phi =
-  match phi with
-  | Eq _ | Distinct _ -> SSL.mk_star [phi; SSL.mk_true ()]
-  | phi ->
-    SSL.map
+let to_precise_sh phi = match SL.view phi with
+  | Eq _ | Distinct _ | Pure _ -> SL.mk_star [phi; SL.tt]
+  | _ ->
+    SL.map_view
       (fun psi -> match psi with
-        | Var x -> Var x
-        | And (psi1, psi2) -> SSL.mk_star [psi1; psi2]
-        | psi -> psi
+        | And psis -> SL.mk_star psis
       ) phi
 
 let to_precise_arbitrary phi =
-  SSL.map (function
-    | Var x -> Var x
-    | psi when SSL.is_pure psi -> SSL.mk_star [psi; SSL.mk_true ()]
-    | psi -> psi
+  SL.map (function
+    | psi when SL.is_pure psi -> SL.mk_star [psi; SL.tt]
+    | other -> other
  ) phi
 
-let rec is_pure_part = function
-  | Eq _ | Distinct _ -> true
-  | And (lhs, rhs) -> is_pure_part lhs && is_pure_part rhs
+let rec is_pure_part phi = match SL.view phi with
+  | Eq _ | Distinct _ | Pure _ -> true
+  | And psis -> List.for_all is_pure_part psis
   | _ -> false
 
-let rec is_spatial_part = function
-  | PointsTo _ | LS _ | DLS _ | NLS _ | Emp -> true
+let rec is_spatial_part phi = match SL.view phi with
+  | PointsTo _ | Predicate _ | Emp -> true
   | Star psis -> List.for_all is_spatial_part psis
   | _ -> false
 
-let is_imprecise_sh = function
-  | Eq _ | Distinct _ | PointsTo _ | LS _ | DLS _ | NLS _ | Emp -> true
-  | And (lhs, rhs) ->
-    (is_pure_part lhs && is_spatial_part rhs)
-    || (is_spatial_part lhs && is_pure_part rhs)
-  | phi -> is_spatial_part phi
+(** Imprecise symbolic heap is in of the following forms:
+    /\ (pure1 ... pure n, emp)
+    /\ (pure1 ... pure n, * (...)) *)
 
-(* Translate formulae from SL with imprecise equalities. *)
-let to_precise phi =
-  (match phi with
-  | phi when is_imprecise_sh phi -> to_precise_sh phi
+let is_imprecise_sh phi = match SL.view phi with
+  | Eq _ | Distinct _ | PointsTo _ | Predicate _ | Emp -> true
+  | And psis ->
+    let _, spatial = List.partition SL.is_pure psis in
+    begin match List.map SL.view spatial with
+    | [] -> true
+    | [_] when SL.is_atom @@ List.hd spatial -> true
+    | [Star atoms] -> List.for_all SL.is_atom atoms
+    | _ -> false
+    end
+
+  | _ -> is_spatial_part phi
+
+(** TODO: existential symbolic heaps *)
+let to_precise phi = match SL.view phi with
+  | _ when is_imprecise_sh phi -> to_precise_sh phi
   | GuardedNeg (lhs, rhs) when is_imprecise_sh lhs && is_imprecise_sh rhs ->
-    SSL.mk_gneg (to_precise_sh lhs) (to_precise_sh rhs)
+    SL.mk_gneg (to_precise_sh lhs) (to_precise_sh rhs)
+  (*
   | GuardedNeg (lhs, Exists (xs, rhs)) when is_imprecise_sh lhs && is_imprecise_sh rhs ->
-    SSL.mk_gneg (to_precise_sh lhs) (SSL.mk_exists xs @@ to_precise_sh rhs)
-  | _ -> to_precise_arbitrary phi)
-  |> Simplifier.fold_stars
+    SL.mk_gneg (to_precise_sh lhs) (SL.mk_exists xs @@ to_precise_sh rhs)
+  *)
+  | _ -> to_precise_arbitrary phi
