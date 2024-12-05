@@ -1,9 +1,15 @@
+module type SET = sig
+  include Set.S
+  val show : t -> string
+end
 
-module Lift (Set : Set.S) : sig
+module Lift (Set : SET) : sig
 
   exception TopError
 
   type t
+
+  include Datatype_sig.PRINTABLE with type t := t
 
   (** Constructors *)
 
@@ -41,6 +47,8 @@ module Lift (Set : Set.S) : sig
   val diff : t -> t -> t
 
   val map : (Set.elt -> Set.elt) -> t -> t
+
+  val map2: (Set.elt -> Set.elt -> Set.elt) -> t -> t -> t
 
   val apply_partial_binop : (Set.elt -> Set.elt -> Set.elt option) -> t -> t -> t
 

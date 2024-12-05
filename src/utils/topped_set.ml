@@ -2,13 +2,28 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-module Lift (Set : Set.S) = struct
+module type SET = sig
+  include Set.S
+  val show : t -> string
+end
+
+module Lift (Set : SET) = struct
 
   exception TopError
 
   type t =
     | Lifted of Set.t
     | Top
+
+  let show = function
+    | Lifted set -> Set.show set
+    | Top -> "top"
+
+  include Datatype.Printable(struct
+    type nonrec t = t
+    let show = show
+  end)
+
 
   let is_concrete = function
     | Lifted _ -> true
@@ -101,6 +116,12 @@ module Lift (Set : Set.S) = struct
     | Lifted s1, Lifted s2 -> Lifted (apply_binop_aux fn s1 s2)
     | _ -> Top
 
+  let map2 fn set1 set2 =
+    let fn' x1 x2 = Some (fn x1 x2) in
+    match set1, set2 with
+    | Lifted s1, Lifted s2 -> Lifted (apply_binop_aux fn' s1 s2)
+    | _ -> Top
+
   let apply_partial_variadic_op fn operands =
     if List.for_all is_concrete operands then
       List.map elements operands
@@ -116,7 +137,7 @@ module Lift (Set : Set.S) = struct
   let cardinal_opt = function
     | Lifted x -> Some (Set.cardinal x)
     | Top -> None
-  
+
   let choose = lift_or_fail Set.choose
 
 
