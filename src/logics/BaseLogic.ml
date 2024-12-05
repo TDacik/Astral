@@ -8,6 +8,9 @@
 
 open MemoryModel
 
+(** Enable/disable simplification for debugging *)
+let use_simplification = ref true
+
 module Variable = Variable.Make()
 module Sort = Sort
 
@@ -365,25 +368,29 @@ let get_operands = function
 
 let cnt = ref 0
 
+let mk_smart_app_aux app neutral anihilator operands =
+  let is_neutral x = match neutral with Some n when equal x n -> true | _ -> false in
+  let is_anihilator x = match anihilator with Some a when equal x a -> true | _ -> false in
+  let operands =
+    if List.exists is_anihilator operands then [Option.get anihilator]
+    else List.filter (fun x -> not @@ is_neutral x) operands
+  in
+  let neutral = Option.value neutral ~default:(Application (app, [])) in
+  let operands' = List.fold_left (fun acc -> function
+    | Application (app', xs') when Application.equal app app' -> acc @ xs'
+    | x -> acc @ [x]
+  ) [] operands in
+  match operands' with
+    | [] -> neutral
+    | [x] -> x
+    | xs -> Application (app, xs)
+
 let mk_smart_app app ?neutral ?anihilator
   (*?(commutativy=false)
     ?(associative=false)*)
   operands =
-    let is_neutral x = match neutral with Some n when equal x n -> true | _ -> false in
-    let is_anihilator x = match anihilator with Some a when equal x a -> true | _ -> false in
-    let operands =
-      if List.exists is_anihilator operands then [Option.get anihilator]
-      else List.filter (fun x -> not @@ is_neutral x) operands
-    in
-    let neutral = Option.value neutral ~default:(Application (app, [])) in
-    let operands' = List.fold_left (fun acc -> function
-      | Application (app', xs') when Application.equal app app' -> acc @ xs'
-      | x -> acc @ [x]
-    ) [] operands in
-    match operands' with
-    | [] -> neutral
-    | [x] -> x
-    | xs -> Application (app, xs)
+    if not @@ !use_simplification then Application (app, operands)
+    else mk_smart_app_aux app neutral anihilator operands
 
 
 module DefaultVars = struct
@@ -533,8 +540,7 @@ module Sets = struct
       List_utils.diagonal_product xs
       |> List.for_all (fun (x, y) -> Set.disjoint x y)
     (* One of sets is symbolic *)
-    with Invalid_argument _ -> false
-
+    with Invalid_argument _ -> true
 
   let get_elem_sort set = Sort.get_dom_sort @@ get_sort set
 
