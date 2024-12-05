@@ -13,7 +13,7 @@ module Logger = L
 let dg = ref DependencyGraph.empty
 
 let is_self_recursive name = match find name with
-  | Builtin _ -> failwith "TODO"
+  | Builtin _ -> true (* Conservatively assume true *)
   | UserDefined id -> DependencyGraph.is_self_recursive !dg id
 
 let init () =
