@@ -85,6 +85,7 @@ type view =
   | Or of t list
   | Not of t
   | GuardedNeg of t * t
+  | Ite of t * t * t
 
   (* Quantifiers *)
   | Exists of Variable.t list * t
@@ -116,6 +117,7 @@ let view phi =
       let lhs = List.nth xs 0 in
       let rhs = List.nth xs 1 in
       And [B.Boolean.mk_implies lhs rhs; B.Boolean.mk_implies rhs lhs]
+    | A.IfThenElse -> Ite (List.nth xs 0, List.nth xs 1, List.nth xs 2)
     | A.Not -> Not (List.hd xs)
     | A.Star -> Star xs
     | A.Septraction -> Septraction (List.nth xs 0, List.nth xs 1)
@@ -330,6 +332,8 @@ module Infix = struct
   let (==) x y = mk_eq [x; y]
   let (!=) x y = mk_distinct [x; y]
   let (|->) = mk_pto
+  let (|=>) = mk_pto_tuple
+
   let (|~>) = mk_ls
 
   let (=>)  = mk_implies

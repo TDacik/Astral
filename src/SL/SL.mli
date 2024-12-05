@@ -106,6 +106,7 @@ type view =
   | Or of t list
   | Not of t
   | GuardedNeg of t * t
+  | Ite of t * t * t
   | Exists of Variable.t list * t
   | Forall of Variable.t list * t
   | Star of t list
@@ -140,6 +141,12 @@ val mk_distinct2 : Term.t -> Term.t -> t
 
 val mk_pto_struct : Term.t -> StructDef.t -> Term.t list -> t
 (** Low-level pointer constructor *)
+
+val mk_pto_tuple : Term.t -> Term.t list -> t
+(** Create a term representing points-to: x -> (y_0, ..., y_(n-1)).
+
+    This will create a points-to assertion using a structure definition
+    named *tuple_n* with fields *f_0*, ..., *f_(n-1)*. *)
 
 val mk_pto : Term.t -> Term.t -> t
 (** Create a term representing a pointer with a single target location. *)
@@ -274,6 +281,9 @@ module Infix : sig
   (** Infix disequality *)
 
   val (|->) : Term.t -> Term.t -> t
+  (** Infix pointer *)
+
+  val (|=>) : Term.t -> Term.t list -> t
   (** Infix pointer *)
 
   val (|~>) : Term.t -> Term.t -> t

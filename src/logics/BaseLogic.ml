@@ -1,5 +1,7 @@
 (* This module serves as a base implementation for both first-order and separation logic.
  *
+ * TODO: successor sorting in .dot output
+ *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
 [@@@warning "+8"]
@@ -412,17 +414,21 @@ module Boolean = struct
       to represent formulae in imprecise semantics. *)
   let mk_and = mk_smart_app And ~neutral:tt ~anihilator:ff
 
-  let mk_or = mk_smart_app Or  ~neutral:ff ~anihilator:tt
+  let mk_or = mk_smart_app Or ~neutral:ff ~anihilator:tt
 
   let mk_implies lhs rhs = mk_app Implies [lhs; rhs]
   let mk_iff = mk_app Iff
 
+  (** Not valid for separation logic with precise semantics! *)
   let mk_not = function
     | Application (Equal, [x; y]) -> Equality.mk_distinct [x; y]
     | Application (Distinct, [x; y]) -> Equality.mk_eq [x; y]
     | other -> mk_app Not [other]
 
-  let mk_ite cond b_then b_else = mk_app IfThenElse [cond; b_then; b_else]
+  let mk_ite cond b_then b_else = match cond with
+    | c when equal c tt -> b_then
+    | c when equal c ff -> b_else
+    | _ -> mk_app IfThenElse [cond; b_then; b_else]
 
   let rec mk_multiple_ite cases t_else = match cases with
     | (c, t) :: rest -> mk_ite c t (mk_multiple_ite rest t_else)
@@ -656,12 +662,16 @@ module SeparationLogic = struct
 
   let emp = mk_app Emp []
 
-  let mk_star psis = mk_smart_app Star ~neutral:emp psis
+  let mk_star psis = mk_smart_app Star ~neutral:emp ~anihilator:Boolean.ff psis
 
   let mk_septraction lhs rhs = mk_app Septraction [lhs; rhs]
   let mk_wand lhs rhs = Boolean.mk_not @@ mk_septraction lhs (Boolean.mk_not rhs)
 
   let mk_pto_struct x s ys = mk_app (PointsTo s) (x :: ys)
+
+  let mk_pto_tuple x ys =
+    let struct_def = StructDef.mk_tuple @@ List.length ys in
+    mk_app (PointsTo struct_def) (x :: ys)
 
   let mk_pto x y = mk_pto_struct x StructDef.ls [y]
 
@@ -735,15 +745,18 @@ module U = UnicodeSymbols
 
 module Vertex = struct
 
-  type t = Int.t Option.t * String.t [@@deriving compare, equal]
+  type t = Application.t Option.t * Int.t Option.t * String.t [@@deriving compare, equal]
 
   let hash = Hashtbl.hash
 
-  let show (_, name) = name
+  let show (_, _, name) = name
 
-  let show_full (tag, name) = match tag with
+  let show_full (_, tag, name) = match tag with
     | None -> name
     | Some i -> Format.asprintf "\"%d: %s\"" i name
+
+  let app (app, _, _) = app
+
 end
 
 (** Integer as edge labels should ensure that children are sorted as intended. *)
@@ -758,6 +771,12 @@ module G = struct
   include Graph.Oper.P(Self)
 end
 
+let edge_label e = match Vertex.app @@ G.E.src e, G.E.label e with
+  | Some IfThenElse, 0 -> "cond"
+  | Some IfThenElse, 1 -> "then"
+  | Some IfThenElse, 2 -> "else"
+  | _, n -> string_of_int n
+
 module DotConfig = struct
   include G
   let graph_attributes _ = [`Rankdir `TopToBottom]
@@ -767,7 +786,10 @@ module DotConfig = struct
   let get_subgraph _ = None
 
   let default_edge_attributes _ = []
-  let edge_attributes _ = []
+  let edge_attributes e = [
+      `Arrowhead `None;
+      `Label (edge_label e);
+    ]
 end
 
 module Dot = Graph.Graphviz.Dot(DotConfig)
@@ -841,7 +863,7 @@ let pretty_node_name =
 
 let to_ast ?(dagify=false) term =
   (* Create single node *)
-  let mk_node kind n = if dagify then (None, kind) else (Some n, kind) in
+  let mk_node ?app kind n = if dagify then (app, None, kind) else (app, Some n, kind) in
 
   (* Recursively builds sub-trees *)
   let rec builder tag = function
@@ -856,18 +878,21 @@ let to_ast ?(dagify=false) term =
         | ContinueWith (str, sub) -> str, sub
       in
       (* Construct sub-trees *)
-      let root = mk_node name tag in
-      let g, next_tag = BatList.fold_left (fun (acc, tag) x ->
+      let root = match node with
+        | Application (app, _) -> mk_node ~app name tag
+        | _ -> mk_node name tag
+      in
+      let g, next_tag = BatList.fold_lefti (fun (acc, tag) i x ->
         let g, root', next_tag = builder tag x in
         let acc = G.union g acc in
-        (G.add_edge_e acc (root, tag, root'), next_tag)
-      ) (G.empty, tag + 1) sub_trees
+        (G.add_edge_e acc (root, i, root'), next_tag)
+      ) (G.add_vertex G.empty root, tag + 1) sub_trees
       in
       (g, root, next_tag)
   in
   match term with
     | Application (GuardedNot, [lhs; rhs]) ->
-      let root = mk_node !U.entails 0 in
+      let root = mk_node ~app:Application.GuardedNot !U.entails 0 in
       let lhs, lhs_root, next_tag  = builder 1 lhs in
       let rhs, rhs_root, _ = builder next_tag rhs in
       let g = G.union lhs rhs in
