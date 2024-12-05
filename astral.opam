@@ -20,7 +20,7 @@ depends: [
   "alcotest"
   "batteries"
   "z3"
-  "dolmen" {= "0.6"}
+  "dolmen" {= "0.10"}
   "ocamlgraph"
   "qcheck"
   "yojson"
