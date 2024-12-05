@@ -12,6 +12,10 @@ open SH
 
 module Print = Logger.Make(struct let name = "Model checker" let level = 2 end)
 
+type error =
+  | Unsupported of string     (* Formula is in unsupported fragment *)
+  | Failure of string *string (* Internal failure: exception, backtrace *)
+
 (** Compute footprints according the unique footprint property *)
 let rec compute_footprint sh phi = match SL.view phi with
   | Emp | Eq _ | Distinct _ -> Footprint.empty
@@ -62,13 +66,14 @@ let check_symbolic_heap_entailment sh lhs rhs =
 
 let check sh phi =
   if not @@ SLID.has_unique_footprint phi then
-    Result.error "Model checker expects formula with unique footprint"
+    Result.error (Unsupported "Model checker expects formula with unique footprint")
   else try begin match SL.as_query phi with
     | SymbolicHeap_SAT psis -> Result.ok @@ check_star sh psis
     | SymbolicHeap_ENTL (lhs, rhs) -> Result.ok @@ check_symbolic_heap_entailment sh lhs rhs
-    | _ -> Result.error @@ "Model checker expects symbolic heap"
+    | _ -> Result.error @@ (Unsupported "Model checker expects symbolic heap")
   end
   (* We want to continue even when model checking fails *)
   with e ->
-    Result.error @@ Format.asprintf "Uncaught exception: %s\n %s"
-      (Printexc.to_string e) (Printexc.get_backtrace ())
+    let msg = Printexc.to_string e in
+    let backtrace = Printexc.get_backtrace () in
+    Result.error @@ Failure (msg, backtrace)
