@@ -2,6 +2,12 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
+(** Nothing is exported. *)
+
+(**/**)
+
+val _produce_models : bool ref
+
 val parse : unit -> unit
 (** Parse command-line options and return path to the input file. *)
 
@@ -22,17 +28,23 @@ val verify_model : unit -> bool
 
 val unsat_core : unit -> bool
 
+val use_builtins : unit -> bool
+
 val strong_separation : unit -> bool
 
 val predicate_bounds : unit -> [`Both | `Upper | `None]
 
 (** === Debugging === *)
 
+val verbosity : unit -> int
+
 val debug : unit -> bool
 val set_debug : bool -> unit
 
 val debug_dir : unit -> string
 val set_debug_dir : string -> unit
+
+val debug_key : unit -> string
 
 val stats : unit -> bool
 
@@ -88,3 +100,7 @@ val set_encoding : string -> unit
 val to_json : unit -> Yojson.Basic.t
 
 val exit_usage : int -> unit
+
+(**/**)
+
+val easter_eggs : unit -> bool

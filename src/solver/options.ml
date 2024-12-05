@@ -6,27 +6,21 @@
 
 open Backend_sig
 open Location_sig
-open Context_sig
+open Encoding_context_sig
 open SetEncoding_sig
 open HeapEncoding_sig
 open Translation_sig
 
+module Logger = Logger.Make (struct let name = "Cmdline" let level = 0 end)
+
+include Options_base
 module Options = Options_base
+
+let set_produce_models flag =
+  Options._produce_models := flag
 
 type backend = [`Bitwuzla | `CVC5 | `Z3 | `Auto ]
 type encoding = [`Bitvectors | `Sets]
-
-let backend () = match Options.backend () with
-  | "bitwuzla" -> (module Bitwuzla_backend : BACKEND)
-  | "boolector" -> (module Boolector_backend : BACKEND)
-  | "cvc5" -> (module CVC5_backend : BACKEND)
-  | "z3" -> (module Z3_backend.Init( ) : BACKEND)
-  | "yices2" -> (module Yices_backend : BACKEND)
-  | "auto" ->
-    if Bitwuzla_backend.is_available () then (module Bitwuzla_backend : BACKEND)
-    else (module Z3_backend.Init( ) : BACKEND)
-  (*| "parallel" -> (module Parallel : BACKEND)*)
-  | other -> Utils.cmd_option_error "backend" other
 
 let sets_encoding () = match Options.sets () with
   | "direct" -> (module DirectSets : SET_ENCODING)
@@ -36,56 +30,81 @@ let sets_encoding () = match Options.sets () with
 let location_encoding () = match Options.locations () with
   | "enum" -> (module DatatypeLocations : LOCATIONS)
   | "bitvectors" -> (module BitvectorLocations : LOCATIONS)
-  | other -> Utils.cmd_option_error "location" other
+  | other -> Utils.cmd_option_error "location encoding" other
+
+let auto_selection_of_backend () =
+  if not @@ Options.produce_models ()
+     && Options.sets () = "bitvectors"
+     && Bitwuzla_backend.is_available ()
+  then
+    (module Bitwuzla_backend : BACKEND)
+  else if CVC5_backend.is_available () then
+    (module CVC5_backend : BACKEND)
+  else
+    (module Z3_backend.Init( ) : BACKEND)
+
+let backend () = match Options.backend () with
+  | "bitwuzla" -> (module Bitwuzla_backend : BACKEND)
+  | "boolector" -> (module Boolector_backend : BACKEND)
+  | "cvc5" -> (module CVC5_backend : BACKEND)
+  | "z3" -> (module Z3_backend.Init( ) : BACKEND)
+  | "yices2" -> (module Yices_backend : BACKEND)
+  | "auto" -> auto_selection_of_backend ()
+  (*| "parallel" -> (module Parallel : BACKEND)*)
+  | other -> Utils.cmd_option_error "backend" other
 
 let encoding () =
   let module L = (val location_encoding () : LOCATIONS) in
+
   let (module H) =
-    (module HeapEncoding.Make(L ) : HEAP_ENCODING with type Locations.t = L.t) in
+    (module ArrayEncoding.Make(L) : HEAP_ENCODING with type Locations.internal = L.internal)
+  in
+
   let (module C) =
-    (module Translation_context.Make(L ) :
-      CONTEXT with type Locations.t = L.t
-               and type HeapEncoding.t = HeapEncoding.Make(L).t
+    (module Translation_context.Make(L)(H) : ENCODING_CONTEXT
+       with type Locations.internal = L.internal
+        and type HeapEncoding.t = H.t
+        and type HeapEncoding.Locations.internal = L.internal
+        and type t = (L.t, H.t) Encoding_context_sig.t
     )
   in
+
   let module S = (val sets_encoding () : SET_ENCODING) in
   let (module Q) = match Options.quantifiers () with
     | "direct" ->
-        (module QuantifierEncoding.Direct(L ) :
-          QUANTIFIER_ENCODING with type Locations.t = L.t
+        (module QuantifierEncoding.Direct(L) :
+          QUANTIFIER_ENCODING with type Locations.internal = L.internal
         )
     | "path" ->
-        (module QuantifierEncoding.Path(L ) :
-          QUANTIFIER_ENCODING with type Locations.t = L.t
+        (module QuantifierEncoding.Path(L) :
+          QUANTIFIER_ENCODING with type Locations.internal = L.internal
         )
     | "enum" ->
-        (module QuantifierEncoding.Enumeration(L ) :
-          QUANTIFIER_ENCODING with type Locations.t = L.t
+        (module QuantifierEncoding.Enumeration(L) :
+          QUANTIFIER_ENCODING with type Locations.internal = L.internal
         )
     | "smart_enum" ->
-        (module QuantifierEncoding.SmartEnumeration(L ) :
-          QUANTIFIER_ENCODING with type Locations.t = L.t
+        (module QuantifierEncoding.SmartEnumeration(L) :
+          QUANTIFIER_ENCODING with type Locations.internal = L.internal
         )
     | other -> Utils.cmd_option_error "quantifier encoding" other
   in
   (module struct
     module Locations = L
+    module HeapEncoding = H
     module Context = C
     module SetEncoding = S
     module QuantifierEncoding = Q
 
-    module LS_Encoding = LS_Encodings.Default(C)
-    module DLS_Encoding = DLS_Encodings.Default(C)
-    module NLS_Encoding = NLS_Encodings.Default(C)
   end : ENCODING)
 
 (** === Setters === *)
-  
+
 let set_backend = function
   | `Bitwuzla -> Options_base.set_backend "bitwuzla"
   | `CVC5 -> Options_base.set_backend "cvc5"
   | `Z3 -> Options_base.set_backend "z3"
-  | `Auto -> 
+  | `Auto ->
     if Bitwuzla_backend.is_available () then Options_base.set_backend "bitwuzla"
     else Options_base.set_backend "z3"
 
@@ -111,20 +130,28 @@ let check () =
       Backend.name
   ;
 
+  if Options.produce_models () && not @@ Backend.supports_get_info then begin
+    Logger.warning "Selected backend does not support producing of models";
+    exit 1
+  end;
+
   if not Backend.supports_quantifiers && Options.quantifiers () = "direct"
   then failwith @@
     Format.asprintf "Selected backend solver (%s) does not support direct quantifier encoding"
       Backend.name
 
-let set_debug () =
+let _set_debug () =
   if Options.debug () then
     Options.set_produce_models true
   else ()
 
+
 let parse () =
   Options.parse ();
   check ();
-  set_debug ();
+  _set_debug ();
+  UnicodeSymbols.easter_eggs (Options.easter_eggs () || Options.debug ());
+  UnicodeSymbols.init @@ Options.unicode ();
   Options.input_path ()
 
 

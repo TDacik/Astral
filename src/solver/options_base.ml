@@ -16,10 +16,16 @@ let input_path () = match !_input_path with
   | Some path -> path
   | None -> failwith "No input file was specified"
 
+let _use_builtins = ref true
+let use_builtins () = !_use_builtins
+
 let _ignore_unused_vars = ref false
 let ignore_unused_vars () = !_ignore_unused_vars
 
 (* ==== Output ==== *)
+
+let _verbosity = ref 0
+let verbosity () = !_verbosity
 
 let _debug = ref false
 let debug () = !_debug
@@ -29,6 +35,10 @@ let _debug_dir = ref "astral_debug"
 let debug_dir () = !_debug_dir
 let set_debug_dir dir = _debug_dir := dir
 
+let _debug_key = ref ".*"
+let debug_key () = !_debug_key
+let set_debug_key key = _debug_key := key
+
 let _dry_run = ref false
 let dry_run () = !_dry_run
 
@@ -37,6 +47,9 @@ let stats () = !_stats
 
 let _unicode = ref true
 let unicode () = !_unicode
+
+let _easter_eggs = ref false
+let easter_eggs () = !_easter_eggs
 
 let _json_output_file = ref ""
 let json_output_file () = !_json_output_file
@@ -74,9 +87,9 @@ let predicate_bounds () = match !_predicate_bounds with
 let _compute_sl_graph = ref true
 let compute_sl_graph () = !_compute_sl_graph
 
-let _semantics = ref ""
+let _semantics = ref "default"
 let semantics () = match !_semantics with
-  | "" -> `NotSpecified
+  | "default" -> `NotSpecified
   | "precise" -> `Precise
   | "imprecise" -> `Imprecise
   | other -> failwith ("Unknown semanics '" ^ other ^ "'")
@@ -161,8 +174,9 @@ let speclist =
     ("--produce-models", Arg.Set _produce_models, "");
     ("--verify-model", Arg.Set _verify_model, "Verify obtained model");
     ("--unsat-core", Arg.Set _unsat_core, "Print unsat core");
+    ("--no-builtins", Arg.Clear _use_builtins, "Use built-in inductive definitions");
     ("--json-output", Arg.Set_string _json_output_file, "Store solver's result as json");
-    ("--backend", Arg.Set_string _backend, "Backend SMT solver (default cvc5)");
+    ("--backend", Arg.Set_string _backend, "Backend SMT solver (default auto)");
     ("--backend-options",
       Arg.Set_string _backend_options, "Pass options to backend SMT solver");
     ("--compute-sl-graph", Arg.Clear _compute_sl_graph, "Force location bound");
@@ -197,15 +211,20 @@ let speclist =
     ("--sl-quantifiers", Arg.Set _sl_quant, "TODO");
 
     (* Debugging *)
-    ("--debug",   Arg.Set _debug,   "Print debug info");
-    ("--stats",   Arg.Set _stats,   "Print statistics and details after finishing");
-    ("--unicode", Arg.Set _unicode, "Use unicode in output");
-    ("--dry-run", Arg.Set _dry_run, "Only translate formula and return unknown");
-    ("--profile", Arg.Set _profile, "Print profiling information");
+    ("--debug",     Arg.Set _debug,     "Print debug info");
+    ("--debug-key", Arg.Set_string _debug_key, "Print only debug messages matching given regex.");
+
+
+    ("--verbose", Arg.Set_int _verbosity, "Verbosity level (default 0)");
+    ("--stats",   Arg.Set _stats,     "Print statistics and details after finishing");
+    ("--unicode", Arg.Set _unicode,   "Use unicode in output");
+    ("--dry-run", Arg.Set _dry_run,   "Only translate formula and return unknown");
+    ("--profile", Arg.Set _profile,   "Print profiling information");
 
 
     (* Hidden *)
     ("--broom", Arg.Set _broom_preprocessing, "");
+    ("--easter-eggs", Arg.Set _easter_eggs, "");
 
     (* Do not show '-help' *)
     ("-help", Arg.Unit ignore, "");
@@ -229,9 +248,8 @@ let to_json () =
     "Quantifier encoding",     `String !_quantifiers;
     "Preprocessing",           `String !_preprocessing;
 
-    "Maximal number of footprints",      `Int !_max_footprints;
-    "Maximal enumeration in predicates", `Int !_max_pred_enum;
-
+    (*"Maximal number of footprints",      `Int !_max_footprints;
+    "Maximal enumeration in predicates", `Int !_max_pred_enum;*)
   ]
 
 let exit_usage error =
