@@ -389,7 +389,12 @@ let parse_info ctx opt = match opt.term with
 
 let parse_option ctx opt = match opt.term with
   | Symbol id -> begin match Format.asprintf "%a" Id.print id with
-    | ":use-builtin-definitions" -> SID.builtin_context () (* TODO: preserve ctx *)
+    | ":use-builtin-definitions" ->
+      (* TODO: should be done by the predicates' modules *)
+      LS.register ();
+      DLS.register ();
+      NLS.register ();
+      SID.builtin_context () (* TODO: preserve already loaded ctx! *)
     | _ -> ctx
     end
   | _ -> ctx
