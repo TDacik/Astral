@@ -32,8 +32,9 @@ let to_imprecise phi = match SL.as_query phi with
 
 (** Imprecise -> Precise *)
 
-let to_precise_sh phi = match SL.view phi with
+let rec to_precise_sh phi = match SL.view phi with
   | Eq _ | Distinct _ | Pure _ -> SL.mk_star [phi; SL.tt]
+  | Exists (xs, psi) -> SL.mk_exists xs (to_precise_sh psi)
   | _ ->
     SL.map_view
       (fun psi -> match psi with
@@ -73,13 +74,18 @@ let is_imprecise_sh phi = match SL.view phi with
 
   | _ -> is_spatial_part phi
 
+let is_existential_sh phi = match SL.view phi with
+  | Exists (xs, psi) -> is_imprecise_sh psi
+  | _ -> is_imprecise_sh phi
+
 (** TODO: existential symbolic heaps *)
 let to_precise phi = match SL.view phi with
-  | _ when is_imprecise_sh phi -> to_precise_sh phi
-  | GuardedNeg (lhs, rhs) when is_imprecise_sh lhs && is_imprecise_sh rhs ->
+  | _ when is_existential_sh phi -> to_precise_sh phi
+
+  | GuardedNeg (lhs, rhs) when is_existential_sh lhs && is_existential_sh rhs ->
     SL.mk_gneg (to_precise_sh lhs) (to_precise_sh rhs)
   (*
-  | GuardedNeg (lhs, Exists (xs, rhs)) when is_imprecise_sh lhs && is_imprecise_sh rhs ->
+  | GuardedNeg (lhs, Exists (xs, rhs)) when is_imprecise_sh lhs && is_existential_sh rhs ->
     SL.mk_gneg (to_precise_sh lhs) (SL.mk_exists xs @@ to_precise_sh rhs)
   *)
   | _ -> to_precise_arbitrary phi
