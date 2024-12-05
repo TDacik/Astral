@@ -1,19 +1,17 @@
-
 module Logger = Logger.Make(struct let name = "unfolder" let level = 1 end)
 
 let unfold_predicate_lhs name xs =
-  let def = SID.get_definition name in
-  let bound = List.length xs in
+  let bound = SID.unfolding_depth name in
   Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
     name (SL.Term.show_list xs) bound;
-  InductivePredicate.unfold def xs bound
+  SID.unfold name xs bound
 
 let unfold_predicate_rhs loc_bound g name xs =
   let def = SID.get_definition name in
   let max_bound = LocationBounds.sum loc_bound in
   Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
     name (SL.Term.show_list xs) max_bound;
-  InductivePredicate.unfold_synchronised g def xs max_bound
+  SID.unfold_synchronised SL_graph.empty name xs max_bound
 
 let unfold_lhs = SL.map_view (function
   | Predicate (name, xs, _) when not @@ SID.is_builtin name ->
@@ -25,7 +23,9 @@ let unfold_rhs bound g = SL.map_view (function
     unfold_predicate_rhs bound g name xs
 )
 
-let apply location_bound phi = match SL.view phi with
+let apply location_bound phi =
+  Logger.debug "Unfolding\n";
+  match SL.view phi with
   | _ when SL.is_symbolic_heap phi -> unfold_lhs phi
   | GuardedNeg (lhs, rhs) ->
     let lhs = unfold_lhs lhs in
