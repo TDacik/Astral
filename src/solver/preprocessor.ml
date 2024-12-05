@@ -37,10 +37,12 @@ let first_phase context =
 
   let phi' = apply_list phi [
     NegationNormalisation.apply, "normalisation";
+    Inlining.inline, "inlining";
     rewrite_semantics, "semantics_rewriting";
   ]
-
   in
+
+  SID.normalise ();
 
   Context.set_preprocessed context phi' vars
 
@@ -68,12 +70,11 @@ let second_phase_aux aggresive context =
  let phi, vars = Context.get_input context in
 
   let phi' = apply_list phi [
-    (UnfoldIDs.apply context.location_bounds), "predicate_unfolding";
-    rewrite_semantics, "semantics_rewriting";
-    (QuantifierElimination.apply context.sl_graph context.raw_input.heap_sort),
-      "quantifier_elimination";
+    UnfoldIDs.apply context.location_bounds, "predicate_unfolding";
+    QuantifierElimination.apply context.sl_graph, "quantifier_elimination";
     IntroduceIfThenElse.apply, "ite_introduction";
     antiprenexing, "antiprenexing";
+    Simplifier.simplify ~dont_care:[], "simplification";
     (fun phi -> if aggresive then AggresiveSimplifier.simplify context.sl_graph phi else phi),
       "aggresive-simp";
   ]

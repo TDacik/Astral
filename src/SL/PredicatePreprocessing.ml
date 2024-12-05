@@ -2,28 +2,49 @@
 
 open InductivePredicate
 
-let preprocess (self : t) =
+let preprocess_cases fn pred =
+  InductivePredicate.map_cases fn pred
+
+let rewrite_semantics phi = match Options_base.semantics () with
+  | `NotSpecified -> phi
+  | `Precise -> phi
+  | `Imprecise ->
+    let phi = PreciseToImprecise.to_precise phi in
+    (*let _ = Debug.formula ~suffix:"1.0-to_precise" phi in
+    dump (pred.name ^ "_2-to_precise") pred;*)
+    phi
+
+let preprocess (pred : t) =
+
+  let name = (name pred) in
+  let module Logger = Logger.MakeWithDir(struct
+    let dirname = "preds/" ^ name
+    let name = name
+    let level = 2
+  end)
+  in
+
+  let dump name pred =
+    let psi = instantiate_formals pred in
+    Logger.dump SL.dump (name ^ ".smt2") psi;
+    let ast = SL.to_ast psi in
+    Logger.dump SL.output_ast (name ^ ".dot") ast
+  in
+
+  dump name pred;
+
+  let pred = preprocess_cases rewrite_semantics pred in
 
   (*
-  let name = (name self) in
-  let module Logger = Logger.MakeWithDir (let dirname = name let name = name let level = 2) in
+  let pred = preprocess_cases Antiprenexing.apply pred in
+  dump (pred.name ^ "_3-antiprenexing") pred;
   *)
 
-  let body = instantiate_formals self in
-  Debug.inductive_pred (name self) body;
+  let qelim case = QuantifierElimination.apply (SL_graph.compute case) case in
+  let pred = preprocess_cases qelim pred in
+  dump (name ^ "_4-quntifier-elim") pred;
 
-  let body = PreciseToImprecise.to_precise body in
-  Debug.inductive_pred ~suffix:"2-to_precise" (name self) body;
+  let pred = InductivePredicate.map IntroduceIfThenElse.apply pred in
+  dump (name ^ "_5-introduce-ite") pred;
 
-  let body = Antiprenexing.apply body in
-  Debug.inductive_pred ~suffix:"3-antiprenexing" (name self) body;
-
-  let body = IntroduceIfThenElse.apply body in
-  Debug.inductive_pred ~suffix:"4-introduce-ite" (name self) body;
-  (*
-  let sl_graph = SL_graph.compute body in
-  let body2 = QuantifierElimination.apply sl_graph body in
-  Debug.inductive_pred ~suffix:"2-quntifier-elim" (name self) body2;
-  *)
-
-  InductivePredicate.mk (name self) (header self) body
+  pred
