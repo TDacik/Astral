@@ -4,9 +4,8 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
-let is_conflict atom1 atom2 = match SL.view atom1, SL.view atom2 with
-  | SL.Eq [x1; x2], SL.Distinct [x1'; x2'] -> SL.Term.equal x1 x1' && SL.Term.equal x2 x2'
-  | SL.Distinct [x1; x2], SL.Eq [x1'; x2'] -> SL.Term.equal x1 x1' && SL.Term.equal x2 x2'
+(*
+
 
 let drop_non_atoms phi = match SL.view phi with
   | Or xs -> SL.mk_or @@ List.filter SL.is_atom xs
@@ -28,4 +27,24 @@ let apply =
         let lhs = SL.mk_star (p1 @ spatial1) in
         let rhs = SL.mk_star (p2 @ spatial2) in
         SL.mk_ite (SL.mk_or @@ List.map fst conflicts) lhs rhs
+  )
+
+*)
+
+let split phi =
+  let pure = SL.select_subformulae SL.is_pure phi in
+  let spatial = SL.map_view (function Eq _ | Distinct _ -> SL.emp) phi in
+  pure, Simplifier.simplify spatial
+
+let is_unsat pure1 pure2 =
+  let sl_graph = SL_graph.compute @@ SL.mk_and (pure1 @ pure2) in
+  SL_graph.has_contradiction sl_graph
+
+let apply =
+  SL.map_view (function
+    | Or [lhs; rhs] when List.for_all SL.is_symbolic_heap [lhs; rhs] ->
+      let pure1, spatial1 = split lhs in
+      let pure2, spatial2 = split rhs in
+      if is_unsat pure1 pure2 then SL.mk_ite (SL.mk_and pure1) spatial1 spatial2
+      else SL.mk_or [lhs; rhs]
   )
