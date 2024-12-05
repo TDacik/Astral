@@ -1,14 +1,10 @@
 # Build directory
 _build
 
-# Custom directories
-benchmarks_todo
-evaluation
-todos.md
-todos
-
-# Temporary
-examples
+# Custom files & directories
+TODOS.md
+IDEAS.md
+unused
 
 # Python cache
 scripts/__pycache__
