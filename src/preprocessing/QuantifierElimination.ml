@@ -1,7 +1,6 @@
 (* Elimination of quantifiers in SL formulae. *)
 
 open SL
-open MemoryModel
 
 module Logger = Logger.MakeWithDir (struct
     let name = "Quantifier elimination"
@@ -36,10 +35,9 @@ let remove_binder sl_graph phi psi x =
     | [] -> psi, [x]
     | x' :: _ -> SL.substitute psi ~var:x ~by:x', []
 
-let remove_binder2 sl_graph heap_sort phi psi (x : SL.Variable.t) =
+let remove_binder2 sl_graph phi psi (x : SL.Variable.t) =
   let local_g = SL_graph.compute psi in
-  Logger.debug "Computing local SL-graph of %s" (SL.show psi);
-  Logger.dump SL_graph.G.output_file "g.xdot" local_g;
+  Logger.dump SL_graph.G.output_file (SL.Variable.show x ^ ".xdot") local_g;
   let tx = SL.Term.of_var x in
   match SL_graph.must_pred_field local_g tx with
   | None ->
@@ -47,8 +45,7 @@ let remove_binder2 sl_graph heap_sort phi psi (x : SL.Variable.t) =
     psi, [x]
   | Some (src, field) ->
     Logger.debug "Must predecessor of %s is %s\n" (SL.Variable.show x) (SL.Term.show_with_sort src);
-    let sort = Field.get_sort field in
-    SL.substitute psi ~var:x ~by:(SL.Term.mk_heap_term field sort src), []
+    SL.substitute psi ~var:x ~by:(SL.Term.mk_heap_term field src), []
 
 let remove_determined sl_graph phi =
   SL.map_view (function
@@ -61,11 +58,11 @@ let remove_determined sl_graph phi =
       SL.mk_exists xs psi
   ) phi
 
-let remove_determined2 sl_graph heap_sort phi =
+let remove_determined2 sl_graph phi =
   SL.map_view (function
     | Exists (vars, psi) ->
       let psi, xs = List.fold_left (fun (psi, xs) x ->
-        let psi', xs' = remove_binder2 sl_graph heap_sort phi psi x in
+        let psi', xs' = remove_binder2 sl_graph phi psi x in
         psi', xs @ xs'
       ) (psi, []) vars
       in
@@ -73,7 +70,7 @@ let remove_determined2 sl_graph heap_sort phi =
   ) phi
 
 
-let apply sl_graph heap_sort phi =
+let apply sl_graph phi =
   (*remove_determined sl_graph phi
-  |>*) remove_determined2 sl_graph heap_sort phi
+  |>*) remove_determined2 sl_graph phi
   |> remove_useless
