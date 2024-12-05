@@ -8,11 +8,12 @@
 open SL
 
 let rec has_unique_footprint phi = match view phi with
-  | Emp | Eq _ | Distinct _ | PointsTo _ -> true
+  | Emp | Eq _ | Distinct _ | PointsTo _ | False -> true
   | Predicate (pred, _, _) -> SID.has_unique_footprint pred
   | Star xs | And xs -> List.for_all has_unique_footprint xs
   | Or _ | Exists _ | Not _ -> false
   | GuardedNeg (lhs, _) -> has_unique_footprint lhs
+  | Ite (_, then_, else_) -> List.for_all has_unique_footprint [then_; else_]
   | _ -> failwith @@ ("Unique footprint of: " ^ show phi)
 
 let has_unique_shape _ = failwith "has_unique_shape"
