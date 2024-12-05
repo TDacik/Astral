@@ -11,16 +11,35 @@ open MemoryModel
 include SL_graph0
 open SL_edge
 
-
 (** ==== Vertex substitution ==== *)
 
-module GM = Graph.Gmap.Vertex(G)(struct include G let empty () = G.empty end)
+  module GM = Graph.Gmap.Vertex(G)(struct include G let empty () = G.empty end)
 
-let substitute g ~vertex ~by = GM.map (fun v -> if G.V.equal v vertex then by else v) g
+  let substitute g ~vertex ~by =
+    if SL.Term.equal vertex by then g
+    else
+      let g0 = G.add_vertex g by in
+      let g1 =
+        try
+          G.fold_succ_e (fun (_, label, dst) acc ->
+            G.add_edge_e acc (by, label, dst)) g0 vertex g0
+        with Invalid_argument _ -> g0
+      in
+      let g2 =
+        try
+          G.fold_pred_e (fun (src, label, _) acc ->
+            G.add_edge_e acc (src, label, by)) g1 vertex g1
+        with Invalid_argument _ -> g1
+      in
+      let g3 = G.remove_vertex g2 vertex in
+      g3
 
-let substitute_list g ~vertices ~by =
-  BatList.fold_left2 (fun g vertex by -> substitute g ~vertex ~by) g vertices by
+  (*
+  GM.map (fun v -> if G.V.equal v vertex then by else v) g
+  *)
 
+  let substitute_list g ~vertices ~by =
+    BatList.fold_left2 (fun g vertex by -> substitute g ~vertex ~by) g vertices by
 
 (** ==== SL-graph construction ==== *)
 
@@ -55,13 +74,13 @@ let update g1 g2 =
       else g
     ) g product
 
-let disjoint_union graphs =
+let disjoint_union ?(stars=true) graphs =
   List.fold_left
     (fun acc g ->
       let must_allocs1 = must_alloc g in
       let must_allocs2 = must_alloc acc in
       let disequalities = BatList.cartesian_product must_allocs1 must_allocs2 in
-      let union = update acc g in
+      let union = if stars then update acc g else G.union acc g in
       List.fold_left
         (fun g (x, y) ->
         G.add_edge_e g (x, Disequality, y)
@@ -74,14 +93,16 @@ let of_pointer x struct_def ys =
     G.add_edge_e g (x, Pointer field, y)
   ) G.empty fields ys
 
-let rec compute phi = match SL.view phi with
+let rec compute stars phi =
+  let compute = compute stars in
+  match SL.view phi with
   | SL.Emp | SL.Pure _ | SL.True | SL.False -> G.empty
   | SL.Eq xs -> all_equal xs
   | SL.Distinct xs -> all_distinct xs
   | SL.PointsTo (x, s, ys) -> of_pointer x s ys
   | SL.Predicate (id, xs, defs) -> SID.sl_graph id (xs, defs)
 
-  | SL.Star psis -> disjoint_union (List.map compute psis)
+  | SL.Star psis -> disjoint_union ~stars (List.map compute psis)
   | SL.And psis -> List.fold_left G.union G.empty (List.map compute psis)
   | SL.Or psis -> List.fold_left G.intersect G.empty (List.map compute psis)
   | SL.GuardedNeg (psi1, psi2) -> compute psi1
@@ -125,6 +146,8 @@ let has_contradiction g =
     false
   with Contradiction -> true
 
-let compute phi =
-  compute phi
-  |> normalise
+let do_normalise = normalise
+
+let compute ?(normalise=true) ?(stars=true) phi =
+  let g = compute stars phi in
+  if normalise then do_normalise g else g

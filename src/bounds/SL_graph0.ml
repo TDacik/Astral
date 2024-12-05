@@ -79,7 +79,7 @@ module G = struct
 
       let graph_attributes _ = []
       let default_vertex_attributes _ = []
-      let vertex_name = SL.Term.show
+      let vertex_name v = Format.asprintf "\"%s\"" (SL.Term.show v)
       let vertex_attributes v = []
 
       let get_subgraph _ = None
@@ -99,7 +99,13 @@ module G = struct
 
 end
 
+
 let get_vertices g = G.fold_vertex List.cons g []
+let get_edges g = G.fold_edges_e List.cons g []
+
+let compare g1 g2 = List.compare G.E.compare (get_edges g1) (get_edges g2)
+
+let equal g1 g2 = compare g1 g2 = 0
 
 (** Projections *)
 
@@ -109,6 +115,8 @@ let filter g pred =
 let projection g labels = filter g (fun (_, label, _) -> List.mem label labels)
 
 let projection_sort sort g = filter g (fun (x, _, _) -> SL.Term.has_sort sort x)
+
+let pure_projection g = projection g [Equality; Disequality]
 
 let projection_eq g =
   let proj = projection g [Equality] in
