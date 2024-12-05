@@ -10,9 +10,6 @@ let input_path () = !input
 let _output_path = ref ""
 let output_path () = !_output_path
 
-let _broom = ref false
-let broom () = !_broom
-
 let _imprecise = ref false
 let imprecise () = !_imprecise
 
@@ -26,6 +23,7 @@ let input_name () =
 
 let _convertor = ref ""
 let convertor () = match !_convertor with
+  (*
   | "astral" -> (module AstralConvertor : CONVERTOR)
   | "cvc5" -> (module CVC5Convertor : CONVERTOR)
   | "harrsh" -> (module HarrshConvertor : CONVERTOR)
@@ -34,7 +32,7 @@ let convertor () = match !_convertor with
   | "songbird" | "sls" -> (module SongbirdConvertor : CONVERTOR)
   | "slide" -> (module SlideConvertor : CONVERTOR)
   | "s2s" -> (module S2SConvertor : CONVERTOR)
-  | other -> Astral.Utils.cmd_option_error "convertor" other
+  *)| other -> Astral.Utils.cmd_option_error "convertor" other
 
 let _debug = ref false
 let debug () = !_debug
@@ -44,7 +42,6 @@ let speclist = [
     ("--to", Arg.Set_string _convertor,
      "Select output format (sloth | grass | songbird | slide)");
     ("--debug", Arg.Set _debug, "Debug info");
-    ("--broom", Arg.Set _broom, "Broom preprocessing");
     ("--pure-imprecise", Arg.Set _imprecise,
       "Input uses imprecise semantics of pure formulae.");
   ]

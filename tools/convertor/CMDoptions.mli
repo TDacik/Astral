@@ -6,9 +6,6 @@ open Convertor_sig
 
 val convertor : unit -> (module CONVERTOR)
 
-val broom : unit -> bool
-(** Apply preprocessing for formulae coming from the Broom analyser. *)
-
 val imprecise : unit -> bool
 
 val output_path : unit -> string
