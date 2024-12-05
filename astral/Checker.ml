@@ -27,7 +27,7 @@ let check_model result =
 
 let check_result result status model = match status, model with
   | (True | Unknown), (True | Unknown) -> ()
-  | False, False ->
+  | (False), (False | Unknown) ->
     Utils.internal_error ~backtrace:false ~report:false ~exit_code:1
       ("Expected status is " ^ Context.show_expected_status result)
   | False, True ->
@@ -36,6 +36,7 @@ let check_result result status model = match status, model with
   | True, False ->
     Utils.internal_error ~backtrace:false ~report:false ~exit_code:4
       ("Generated model is not correct.")
+  | _ -> ()
 
 let check result =
   let status = check_status result in
