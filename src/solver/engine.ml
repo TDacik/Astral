@@ -24,18 +24,22 @@ let debug_info input = match SL.classify_fragment input.phi with
   | Arbitrary -> Print.debug "Solving as arbitrary formula\n"
 
 let solve (raw_input : ParserContext.t) =
+  SID.init ();
   let input = Context.init raw_input in
   let input = Preprocessor.first_phase input in
+  SID.preprocess_user_definitions PredicatePreprocessing.preprocess;
   let sl_graph = SL_graph.compute input.phi in
   if SL_graph.has_contradiction sl_graph then
     Context.set_result `Unsat ~unsat_core:(Some []) input
   else match FragmentChecker.check input with
   | Error reason -> Context.set_result (`Unknown reason) input
   | Ok () ->
+    let sm = SmallModels.compute !SID.dg in
+    SID.cache := sm;
+
+
     let bounds1 = LocationBounds.compute input.phi input.raw_input.heap_sort sl_graph in
     let input = Context.add_metadata input sl_graph bounds1 in
-
-    SmallModels.compute ();
 
     let input = Preprocessor.second_phase input in
     let bounds2 = LocationBounds.compute input.phi input.raw_input.heap_sort sl_graph in
