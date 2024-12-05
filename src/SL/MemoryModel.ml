@@ -1,4 +1,4 @@
-include MemoryModel0
+module Field = MemoryModel0.Field
 
 module StructDef = struct
 
@@ -22,6 +22,13 @@ module StructDef = struct
   let ls = mk "LS_t" "c_ls" [Field.mk "next" Sort.loc_ls]
 
   let signature def = List.map Field.get_sort def.fields
+
+  let mk_tuple n =
+    let sort = Sort.mk_loc ("tuple_" ^ string_of_int n) in
+    let name = "tuple_" ^ string_of_int n in
+    let cons = name ^ "_c" in
+    let fields = List.init n (fun i -> Field.mk ("f_" ^ string_of_int i) sort) in
+    mk name cons fields
 
   let lift_sort sort =
     let sort_name = Sort.name sort in
