@@ -29,7 +29,7 @@ module type CONVERTOR_BASE = sig
 
   val global_decls : Context.t -> string
 
-  val declare_var : SSL.Variable.t -> string
+  val declare_var : SL.Variable.t -> string
 
   val declare_sort : Sort.t -> string
 
@@ -41,11 +41,11 @@ module type CONVERTOR_BASE = sig
 
   (** {2 Conversion functions} *)
 
-  val convert_var : SSL.Variable.t -> string
+  val convert_var : SL.Variable.t -> string
 
-  val convert : SSL.t -> string
+  val convert : SL.t -> string
 
-  val convert_benchmark : SSL.t -> string
+  val convert_benchmark : SL.t -> string
 
 end
 

@@ -20,7 +20,7 @@ module Make (Convertor : CONVERTOR_BASE) = struct
       |> String.concat "\n"
     in
     let sorts =
-      List.map SSL.Variable.get_sort input.vars
+      List.map SL.Variable.get_sort input.vars
       |> List.sort_uniq Sort.compare
       |> List.map Convertor.declare_sort
       |> String.concat "\n"

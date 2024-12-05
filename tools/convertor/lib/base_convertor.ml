@@ -10,5 +10,5 @@ let declare_var _ = ""
 let declare_ls = ""
 let declare_dls = ""
 
-let convert_var = SSL.Variable.show
+let convert_var = SL.Variable.show
 
