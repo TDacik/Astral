@@ -2,7 +2,7 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-open SSL
+open SL
 open Batteries
 
 module QCheck = QCheck2
@@ -11,19 +11,19 @@ open QCheck
 (* === Base generators === *)
 
 (* TODO: sorts *)
-let gen_var var = SSL.mk_var var (Sort.loc_ls)
-let gen_eq x y = SSL.mk_eq x y
-let gen_neq x y = SSL.mk_distinct x y
-let gen_pto x y = SSL.mk_pto x y
-let gen_ls x y = SSL.mk_ls x y
-let gen_dls x y f l = SSL.mk_dls x y f l
+let gen_var var = SL.Term.mk_var var (Sort.loc_ls)
+let gen_eq x y = SL.mk_eq [x; y]
+let gen_neq x y = SL.mk_distinct [x; y]
+let gen_pto x y = SL.mk_pto x y
+let gen_ls x sink = SL_builtins.mk_ls x ~sink
+let gen_dls x sink root' sink' = SL_builtins.mk_dls x ~sink ~root' ~sink'
 
-let gen_and f g = SSL.mk_and [f; g]
-let gen_or f g = SSL.mk_or [f; g]
-let gen_gneg f g = SSL.mk_gneg f g
-let gen_bin_star psi1 psi2 = SSL.mk_star [psi1; psi2]
-let gen_star psis = SSL.mk_star psis
-let gen_septraction f g = SSL.mk_septraction f g
+let gen_and f g = SL.mk_and [f; g]
+let gen_or f g = SL.mk_or [f; g]
+let gen_gneg f g = SL.mk_gneg f g
+let gen_bin_star psi1 psi2 = SL.mk_star [psi1; psi2]
+let gen_star psis = SL.mk_star psis
+let gen_septraction f g = SL.mk_septraction f g
 
 module type PARAMS = sig
   val n_vars : int

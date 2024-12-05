@@ -1,6 +1,6 @@
 (executable
   (name generator)
-  (libraries astral astral_generator)
+  (libraries astral astral_generator qcheck)
   (flags -open Astral -open Astral_generator)
 )
 

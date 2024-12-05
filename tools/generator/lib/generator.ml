@@ -2,7 +2,7 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023
 
-open SSLDumper
+open SLDumper
 
 let counter = ref 0
 
@@ -15,7 +15,7 @@ let next () =
 
 let dump_assert prefix phi =
   let path = Format.asprintf "%s%d.smt2" prefix (next ()) in
-  SSLDumper.dump path phi "unknown";
+  SLDumper.dump path phi "unknown";
   true
 
 let generate arbitrary n prefix =

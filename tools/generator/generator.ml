@@ -25,31 +25,33 @@ let next () =
   counter := !counter + 1;
   !counter
 
-let is_ok phi =
+let is_ok phi = failwith "TODO: generator.is_ok"
+
+(*
   let g = SL_graph.compute phi in
-  let lhs, rhs = SSL.as_entailment phi in
-  let lhs_vars = SSL.Set.of_list @@ SSL.free_vars lhs in
-  let rhs_vars = SSL.Set.of_list @@ SSL.free_vars rhs in
-  let lists = SSL.filter (function SSL.LS _ -> true | _ -> false) phi in
-  let c1 = SSL.Set.subset rhs_vars lhs_vars in
+  let lhs, rhs = SL.as_entailment phi in
+  let lhs_vars = SL.Variable.Set.of_list @@ SL.free_vars lhs in
+  let rhs_vars = SL.Variable.Set.of_list @@ SL.free_vars rhs in
+  let lists = SL.filter (function SL.LS _ -> true | _ -> false) phi in
+  let c1 = SL.Set.subset rhs_vars lhs_vars in
   let c2 = not @@ SL_graph.has_contradiction g in
-  let c3 = List.for_all (function SSL.LS (x, y) -> not @@ SSL.equal x y | _ -> assert false) lists in
+  let c3 = List.for_all (function SL.LS (x, y) -> not @@ SL.equal x y | _ -> assert false) lists in
   let res = c1 && c2 in
   if res
   then Format.printf "Good %b %b %b\n" c1 c2 c3
   else Format.printf "Bad %b %b %b\n" c1 c2 c3;
   res
-
+*)
 
 let dump_assert prefix phi =
   QCheck2.assume (is_ok phi);
   let path = Format.asprintf "%s%d.smt2" prefix (next ()) in
-  if !counter <= 100 then SSLDumper.dump path phi "unknown" else ();
+  if !counter <= 100 then SL.output_benchmark path phi `Unknown else ();
   true
   (*
   if is_ok phi then
     let path = Format.asprintf "%s%d.smt2" prefix (next ()) in
-    SSLDumper.dump path phi "unknown";
+    SLDumper.dump path phi "unknown";
     Format.printf "Good %d\n" !counter;
     true
   else true
@@ -89,5 +91,5 @@ let () =
   end
   in
 
-  let module Arbitrary = ArbitrarySSL.Make(Params) in
+  let module Arbitrary = ArbitrarySL.Make(Params) in
   generate Arbitrary.entailment n_benchmarks formula_prefix

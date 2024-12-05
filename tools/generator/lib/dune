@@ -1,5 +1,5 @@
 (library
   (name astral_generator)
-  (libraries astral)
+  (libraries astral qcheck)
   (flags -open Astral)
 )
