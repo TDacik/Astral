@@ -8,7 +8,9 @@ type t = {
   inductive_cases : SL.t list;
 }
 
+include Datatype_sig.PRINTABLE with type t := t
 include Datatype_sig.COMPARABLE with type t := t
+include Datatype_sig.COLLECTIONS with type t := t
 
 val hash : t -> int
 
@@ -29,10 +31,20 @@ val fields : t -> Field.t list
 val dependencies : t -> string list
 (** Return names of predicates used in inductive cases. *)
 
-val instantiate : t -> SL.Term.t list -> SL.t
+val refresh : t -> t
 
-val instantiate_formals : t -> SL.t
+val map : (SL.t -> SL.t) -> t -> t
 
+val map_cases : (SL.t -> SL.t) -> t -> t
+
+val instantiate : refresh:bool -> t -> SL.Term.t list -> SL.t
+
+val instantiate_formals : ?refresh:bool -> t -> SL.t
+
+val unfold_finite : t -> SL.Term.t list -> SL.t
+
+(*
 val unfold : t -> SL.Term.t list -> int -> SL.t
 
 val unfold_synchronised : SL_graph0.t -> t -> SL.Term.t list -> int -> SL.t
+*)

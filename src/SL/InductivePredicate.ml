@@ -18,6 +18,16 @@ let show id =
 
 let compare id1 id2 = String.compare id1.name id2.name
 
+module Self = struct
+  type nonrec t = t
+  let show = show
+  let compare = compare
+end
+
+include Datatype.Printable(Self)
+include Datatype.Collections(Self)
+
+
 let equal id1 id2 = String.equal id1.name id2.name
 
 let hash id = String.hash id.name
@@ -25,21 +35,41 @@ let hash id = String.hash id.name
 let mk_call id = SL.mk_predicate (name id) (List.map SL.Term.of_var id.header)
 
 let mk name header def =
+  (* Create fresh predicate interface *)
+  let header' = List.map SL.Variable.refresh header in
+  let def = SL.substitute_list def ~vars:header ~by:(List.map SL.Term.of_var header') in
+
   let base, inductive = match SL.view def with
     | Or xs -> List.partition SL.is_atomic xs
     | _ when SL.is_atomic def -> [def], []
     | _ -> [], [def]
   in
-  {name = name; header = header; base_cases = base; inductive_cases = inductive}
+  {name = name; header = header'; base_cases = base; inductive_cases = inductive}
 
 let arity self = List.length self.header
 
-let instantiate id xs =
+(** Refresh existential variables for unfolding. *)
+let refresh id =
+  let aux = SL.map_view (function
+  | Exists (vs, body) ->
+    let vs' = List.map (fun x -> SL.Variable.refresh x) vs in
+    let body' = SL.substitute_list body ~vars:vs ~by:(List.map SL.Term.of_var vs') in
+    SL.mk_exists vs' body'
+  )
+  in
+  {id with base_cases = List.map aux id.base_cases; inductive_cases = List.map aux id.inductive_cases}
+
+let refresh_fn = refresh
+
+let instantiate ~refresh id xs =
+  assert (List.compare_lengths xs id.header == 0);
+  let id = if refresh then refresh_fn id else id in
   let phi = SL.mk_or (id.base_cases @ id.inductive_cases) in
   SL.substitute_list phi ~vars:id.header ~by:xs
 
-let instantiate_formals id =
-  instantiate id @@ List.map SL.Term.of_var id.header
+let instantiate_formals ?(refresh=false) id =
+  let id = if refresh then refresh_fn id else id in
+  instantiate ~refresh id @@ List.map SL.Term.of_var id.header
 
 let dependencies id =
   id.inductive_cases
@@ -51,6 +81,15 @@ let fields id = SL.get_fields @@ instantiate_formals id
 let has_base_cases id = not @@ List.is_empty id.base_cases
 
 let cases id = id.base_cases @ id.inductive_cases
+
+let map fn id = mk id.name id.header (fn @@ instantiate_formals id)
+
+let map_cases fn id =
+  {id with
+    base_cases = List.map fn id.base_cases;
+    inductive_cases = List.map fn id.inductive_cases
+  }
+
 
 (* SUBSTITUTE:
 let instantiate id xs =
@@ -70,33 +109,3 @@ let unfold_finite id xs : SL.t =
   SL.substitute_list phi ~vars:id.header ~by:xs
 
 (** {2 Unfolding of IDs *)
-
-let rule_size phi = match SL.view phi with
- | Star (xs) -> List.length @@ List.filter SL.is_pointer xs
-
-
-(** Refresh existential variables for unfolding. *)
-let refresh id =
-  let aux = SL.map_view (function
-  | Exists (vs, body) ->
-    let vs' = List.map (fun x -> SL.Variable.mk_fresh "" @@ SL.Variable.get_sort x) vs in
-    let body' = SL.substitute_list body ~vars:vs ~by:(List.map SL.Term.of_var vs') in
-    SL.mk_exists vs' body'
-  )
-  in
-  {id with base_cases = List.map aux id.base_cases; inductive_cases = List.map aux id.inductive_cases}
-
-let rec unfold id xs n =
-  if n = 0 then unfold_finite id xs
-  else SL.map_view (function
-    | Predicate (name, ys, _) ->
-      let id' = refresh id in
-      unfold id' ys (n-1)
-  ) (instantiate id xs)
-
-let rec unfold_synchronised g id xs n =
-  if n = 0 then unfold_finite id xs
-  else SL.map_view (function
-    | Predicate (name, ys, _) ->
-      unfold_synchronised g (refresh id) ys (n-1)
-  ) (instantiate id xs)
