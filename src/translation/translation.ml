@@ -31,7 +31,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
   let translate_var ctx var = Locations.translate_var ctx.locs var
 
-  let translate_heap_term ctx field x = HeapEncoding.mk_succ ctx.heap field x
+  let translate_heap_term ctx (field : MemoryModel.Field.t) x = HeapEncoding.mk_succ ctx.heap field x
 
   let translate_block_begin ctx x = SMT.Array.mk_select ctx.block_begin x
 
@@ -42,11 +42,23 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   let rec translate_term ctx t : SMT.t =
     Obj.magic (match SL.Term.view t with
       | SL.Term.Var x -> SMT.of_var @@ Locations.translate_var ctx.locs x
-      | SL.Term.HeapTerm (f, _, x) -> translate_heap_term ctx f (translate_term ctx x)
+      | SL.Term.HeapTerm (f, x) -> translate_heap_term ctx f (translate_term ctx x)
       | SL.Term.SmtTerm _ -> Locations.translate_term ctx.locs t
       | SL.Term.BlockBegin x -> translate_block_begin ctx (translate_term ctx x)
       | SL.Term.BlockEnd x -> translate_block_end ctx (translate_term ctx x)
     )
+
+  (** Translate "almost-pure" formula by replacing heap terms by select from
+      corresponding arrays. *)
+  let translate_pure_with_heap_terms ctx phi =
+    SMT.of_base_logic @@ BaseLogic.map (function
+      | BaseLogic.Application (HeapTerm f, [x]) ->
+        SMT.to_base_logic @@ translate_heap_term ctx f (SMT.of_base_logic x)
+      | BaseLogic.Variable var -> BaseLogic.Variable (Obj.magic @@ translate_var ctx (Obj.magic var))
+      | x -> x
+    ) (SL.to_base_logic phi)
+
+
 
   let id = ref 0
 
@@ -60,8 +72,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
   let lift (semantics, axioms, footprints) = (semantics, axioms, Footprints.of_list footprints)
 
-  let rec translate ctx domain phi =
-    match SL.view phi with
+  let rec translate ctx domain phi = match SL.view phi with
     | SL.Emp -> translate_emp ctx domain
     | SL.True -> translate_true ctx domain
     | SL.False -> translate_false ctx domain
@@ -75,6 +86,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     | SL.Predicate (id, xs, defs) -> translate_predicate ctx domain id xs defs
     | SL.Not (psi) -> translate_not ctx domain psi
     | SL.GuardedNeg (psi1, psi2) -> translate_guarded_neg ctx domain psi1 psi2
+    | SL.Ite (cond, then_, else_) -> translate_ite ctx domain cond then_ else_
     | SL.Pure term -> translate_pure ctx domain term
     | SL.Exists ([x], psi) -> translate_exists ctx domain x psi
     | SL.Exists (x :: xs, psi) -> translate_exists ctx domain x (SL.mk_exists xs psi)
@@ -196,6 +208,17 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let axioms = Boolean.mk_and axioms in
     let footprints = List.fold_left Footprints.union Footprints.empty footprints in
     (semantics, axioms, footprints)
+
+  and translate_ite ctx domain cond then_ else_ =
+    let semantics1, axioms1, footprints1 = translate ctx domain then_ in
+    let semantics2, axioms2, footprints2 = translate ctx domain else_ in
+    let cond = translate_pure_with_heap_terms ctx cond in
+
+    let semantics = Boolean.mk_ite cond semantics1 semantics2 in
+    let axioms = Boolean.mk_and [axioms1; axioms2] in
+    let footprints = Footprints.map2 (Boolean.mk_ite cond) footprints1 footprints2 in
+    (semantics, axioms, footprints)
+
 
   (** Translation of separating conjunction using skolemisation. *)
   and translate_star_skolemised ctx domain psis =
@@ -546,16 +569,18 @@ let translate_phi (ctx : Context.t) ssl_phi =
     let stack = List.fold_left
       (fun stack term ->
         let const = match SL.Term.view term with
-          | SL.Term.SmtTerm c -> StackHeapModel.Location.mk_smt @@ Model.eval model c
+          | SL.Term.SmtTerm c -> Some (StackHeapModel.Location.mk_smt @@ Model.eval model c)
           | SL.Term.Var var when not @@ SL.Variable.is_loc var ->
-            StackHeapModel.Location.mk_smt
-            @@ Model.eval model @@ Locations.mk_var ctx.locs (SL.Variable.show var)
+            Some (StackHeapModel.Location.mk_smt
+            @@ Model.eval model @@ Locations.mk_var ctx.locs (SL.Variable.show var))
           | SL.Term.Var var ->
-            Locations.inverse_translate ctx.locs model
-            @@ Model.eval model @@ Locations.mk_var ctx.locs (SL.Variable.show var)
+            Some (Locations.inverse_translate ctx.locs model
+            @@ Model.eval model @@ Locations.mk_var ctx.locs (SL.Variable.show var))
+          | SL.Term.HeapTerm _ -> None
 
-        in
-        Stack.M.add term const stack
+        in match const with
+        | None -> stack
+        | Some const -> Stack.M.add term const stack
       ) Stack.M.empty (SL.Term.nil :: ctx.location_terms)
     in
     Stack.mk model stack

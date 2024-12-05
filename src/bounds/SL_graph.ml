@@ -89,6 +89,10 @@ let rec compute phi = match SL.view phi with
   | SL.Septraction _ -> G.empty
   | SL.Not _ -> G.empty
 
+  (** TODO: more precise? *)
+  | SL.Ite (_, psi_then, psi_else) -> G.union (compute psi_then) (compute psi_else)
+
+
   (** TODO *)
   | SL.Exists (xs, psi) | SL.Forall (xs, psi) -> compute psi
 
