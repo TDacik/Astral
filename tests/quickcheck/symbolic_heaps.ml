@@ -3,17 +3,17 @@
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
 let solve_and_check phi =
-  let solver = Solver.init () in
-  let phi = SSL.normalise phi in
+  let solver = Solver.init ~backend:`Z3 ~produce_models:true () in
+  let phi = NegationNormalisation.apply phi in
   match Solver.solve solver phi with
   | `Sat (Some sh) ->
-      if ModelChecker.check sh phi then true
-      else (SSL.print phi ;StackHeapModel.print sh; exit 1)
+      if Result.get_ok @@ ModelChecker.check sh phi then true
+      else (SL.print phi; StackHeapModel.print sh; exit 1)
   | `Unsat -> true
   | `Unknown _ -> false
   | `Sat None -> assert false
 
-module Arbitrary = ArbitrarySSL.Make
+module Arbitrary = ArbitrarySL.Make
   (struct
     let n_vars = 10
     let n_selectors = (1, 1)
@@ -27,7 +27,7 @@ let qf_symbolic_heaps_sat () =
   QCheck2.Test.make
     ~count:10000
     ~name:"QF_SHLS_SAT"
-    ~print:SSL.show
+    ~print:SL.show
     Arbitrary.qf_symbolic_heap
     solve_and_check
 
@@ -35,7 +35,7 @@ let qf_symbolic_heaps_entl () =
   QCheck2.Test.make
     ~count:10000
     ~name:"QF_SHLS_ENTL"
-    ~print:SSL.show
+    ~print:SL.show
     Arbitrary.qf_symbolic_heap_entl
     solve_and_check
 

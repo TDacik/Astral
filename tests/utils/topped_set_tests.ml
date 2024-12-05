@@ -8,7 +8,11 @@ let (==) set1 set2 =
 
 (** Test fixtures *)
 
-module Base = Set.Make(Int)
+module Base = struct
+  include Set.Make(Int)
+  let show = assert false (* Not needed so far *)
+end
+
 module Set = Topped_set.Lift(Base)
 
 let top = Set.top

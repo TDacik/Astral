@@ -1,39 +1,41 @@
-(executables
+(tests
   (names
     SMT_tests
-    SSL_tests
+    SL_tests
     topped_set_tests
     list_utils_tests
     simplification_tests
     preprocessing_tests
+    PathBound_tests
     backend
     antiprenexing_tests
-    broom_preprocessor_tests
     model_checker_tests
-    symbolic_heaps
-
+    ;symbolic_heaps
+    BaseLogic_tests
     API_tests
+
+    ;; Preprocessing tests
+    IntroduceITE_tests
+    QuantifierElimination_tests
+
+    ;Simplifier_tests
+    RemoveVariadic_tests
   )
 
+  (modules_without_implementation testable_sig)
   (libraries
     astral
     astral_generator
     alcotest
     qcheck
   )
-
   (flags
     :standard
+    -w "+a-8-40-42-44-70"
     -open Alcotest
     -open Astral
     -open Astral_generator
   )
-
 )
 
 (include_subdirs unqualified)
-
-(rule
-  (alias runtest)
-  (action (run ./run.sh))
-)

@@ -1,38 +1,25 @@
-(* Tests for Astral's internal SMT representation
+(* Tests for communication with backends.
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
+module SMT = SMT_testable
 open SMT
 
-(** Auxiliary functions *)
-
-let (===) = SMT.equal
-let (!==) x y = not @@ SMT.equal x y
-
-(** Test fixures *)
-
-let sort = Sort.Int
-let set_sort = Sort.Set sort
-
-let x = Set.mk_var "x" set_sort
-let y = Set.mk_var "y" set_sort
-let z = Set.mk_var "z" set_sort
-
-(** Tests *)
+let apply = Backend_preprocessor.apply
 
 let simplify_disjoint_test1 () =
-  let phi = Set.mk_disjoint_list [x; y] in
-  assert (Backend_preprocessor.apply phi === phi)
+  let phi = Sets.mk_disjoint [s1; s2] in
+  SMT.check_apply apply ~input:phi ~expected:phi
 
 let simplify_disjoint_test2 () =
-  let phi = Set.mk_disjoint_list [x; y; z] in
-  let phi' =
+  let input = Sets.mk_disjoint [s1; s2; s3] in
+  let expected =
     Boolean.mk_and [
-      Set.mk_disjoint x y;
-      Set.mk_disjoint (Set.mk_union [x; y] (SMT.get_sort x)) z;
+      Sets.mk_disjoint [s1; s2];
+      Sets.mk_disjoint [Sets.mk_union set_sort [s1; s2]; s3];
     ]
   in
-  assert (Backend_preprocessor.apply phi === phi')
+  SMT.check_apply apply ~input ~expected
 
 let () =
   run "SMT" [

@@ -2,25 +2,39 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-open SMT
-
 (** Auxiliary functions *)
 
 let (==) = SMT.equal
 let (!=) x y = not @@ SMT.equal x y
 
-(** Test fixures *)
+module SMT = SMT_testable
+open SMT
 
-let sort = Sort.Int
-let set_sort = Sort.Set sort
+let sort = Sort.mk_set Sort.int
 
-let x = Arithmetic.mk_var "x"
-let y = Arithmetic.mk_var "y"
-let z = Arithmetic.mk_var "z"
+let may_disjoint_test1 () =
+  let set1 = SMT.Sets.mk_constant sort [x] in
+  let set2 = SMT.Sets.mk_constant sort [x] in
+  SMT.check_not_list SMT.Sets.may_disjoint [set1; set2]
 
-let c1 = Arithmetic.mk_const 1
-let c2 = Arithmetic.mk_const 2
-let c3 = Arithmetic.mk_const 3
+let may_disjoint_test2 () =
+  let set1 = SMT.Sets.mk_constant sort [x] in
+  let set2 = SMT.Sets.mk_constant sort [y] in
+  SMT.check_list SMT.Sets.may_disjoint [set1; set2]
+
+let may_disjoint_test3 () =
+  let set1 = SMT.mk_var "X" sort in
+  let set2 = SMT.Sets.mk_constant sort [x] in
+  SMT.check_list SMT.Sets.may_disjoint [set1; set2]
+
+let () =
+  run "SMT" [
+    "Sets.may_disjoint", [
+      test_case "{x} # {x}"  `Quick may_disjoint_test1;
+      test_case "{x} # {y}"  `Quick may_disjoint_test2;
+      test_case "X # {x}"    `Quick may_disjoint_test3;
+    ];
+  ]
 
 (** Tests
 
