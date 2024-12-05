@@ -17,6 +17,8 @@ let forall = ref "forall"
 
 let entails = ref "|="
 
+let bottom = ref "_|_"
+
 let empty_set = ref "empty"
 
 let maps_to = ref "|->"
@@ -49,6 +51,7 @@ let init unicode =
   set_ref star "∗";
   set_ref septraction "-⍟";
   set_ref empty_set "∅";
+  set_ref bottom "⊥";
   set_ref defined "≜"
 
 let easter_eggs value =

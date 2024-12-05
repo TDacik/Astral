@@ -232,8 +232,26 @@ let to_smtlib sh =
 
 open Graph
 
+(** This is a hack to access stack from vertex labelling function in Dot *)
+let model = ref None
+
 module Vertex = struct
-  include Location
+  type t =
+    | Loc of Location.t
+    | Nil of Int.t
+  [@@deriving equal, compare]
+
+  let name = function
+    | Loc loc -> Format.asprintf "\"%s\"" (Location.show loc)
+    | Nil n -> Format.asprintf "\"nil_%d\"" n
+
+  let show = function
+    | Loc loc ->
+      Format.asprintf "%s : %s"
+        (Location.show loc)
+        (String.concat "," (stack_inverse (Option.get !model) loc))
+    | Nil n -> !UnicodeSymbols.bottom
+
   let hash = Hashtbl.hash
 end
 
@@ -273,23 +291,21 @@ module HeapGraph = struct
     let path_checker = PathChecker.create g in
     PathChecker.check_path path_checker src dst
 
-  let model = ref None
-
   module Dot = Graphviz.Dot
     (struct
       include Graph
 
       let graph_attributes _ = []
       let default_vertex_attributes v = []
-      let vertex_name v = Format.asprintf "\"%s\"" (Location.show v)
-      let vertex_attributes v =
-        [`Label (Format.asprintf "%s : %s" (Location.show v) (String.concat "," (stack_inverse (Option.get !model) v)))]
-
+      let vertex_name = Vertex.name
+      let vertex_attributes v = [
+        `Label (Vertex.show v);
+        `Shape (match v with Loc _ -> `Box | Nil _ -> `Plaintext);
+      ]
       let get_subgraph _ = None
-      let edge_attributes e = [`Label (Field.show @@ E.label e); ]
-      (*
-        `Style (match E.label e with Next -> `Solid | Prev -> `Dashed | Top -> `Bold);
-      *)
+      let edge_attributes e = [
+        `Label (Field.show @@ E.label e);
+      ]
       let default_edge_attributes _ = []
     end)
 
@@ -315,38 +331,64 @@ module HeapGraph = struct
     has_path g (Some field1) ~src ~dst
     && List.for_all (fun loc -> has_path g (Some field2) ~src:loc ~dst:sink) top_path
 
+  let get sh =
+    let update x y g = match y with
+      | Value.Struct (def, ys) ->
+      let fields = StructDef.get_fields def in
+      List.fold_left2 (fun acc field y -> add_edge_e acc (Loc x, field, Loc y)) g fields ys
+    in
+    empty
+    |> Stack.M.fold (fun _ loc g -> add_vertex g (Loc loc)) sh.stack.stack
+    |> Heap.fold update sh.heap
+
+  (** Replace each link to nil with a fresh node
+      TODO: add nils directly
+  *)
+  let prettify_nils sh g =
+    let is_nil loc = List.mem "nil" @@ stack_inverse sh loc in
+    let fresh_nil =
+      let cnt = ref 0 in (* TODO *)
+      (fun () -> cnt := !cnt - 1; Vertex.Nil !cnt)
+    in
+    let isolated_vertices =
+      fold_vertex (fun v acc ->
+        if out_degree g v = 0 then add_vertex acc v
+        else acc
+      ) g empty
+    in
+    fold_edges_e (fun (src, label, Loc dst) acc ->
+      if is_nil dst then add_edge_e acc (src, label, fresh_nil ())
+      else add_edge_e acc (src, label, Loc dst)
+    ) g isolated_vertices
+
+  let output channel sh =
+    let g = get sh in
+    let g = prettify_nils sh g in
+    Dot.output_graph channel g
 
 end
-
-let update x y g = match y with
-  | Value.Struct (def, ys) ->
-    let fields = StructDef.get_fields def in
-    List.fold_left2 (fun acc field y -> HeapGraph.add_edge_e acc (x, field, y)) g fields ys
 
 let succ_field sh field loc =
   Heap.find_field field loc sh.heap
 
-let get_heap_graph sh =
-  HeapGraph.empty
-  |> Stack.M.fold (fun _ loc g -> HeapGraph.add_vertex g loc) sh.stack.stack
-  |> Heap.fold update sh.heap
-
 let domain sh = Footprint.of_list @@ List.map fst @@ Heap.bindings sh.heap
 
 let has_path ?field sh ~src ~dst =
-  HeapGraph.has_path (get_heap_graph sh) field ~src ~dst
+  HeapGraph.has_path (HeapGraph.get sh) field ~src:(Loc src) ~dst:(Loc dst)
 
 let get_path ?field sh ~src ~dst =
-  HeapGraph.get_path (get_heap_graph sh) field ~src ~dst
+  HeapGraph.get_path (HeapGraph.get sh) field ~src:(Loc src) ~dst:(Loc dst)
+  |> List.map (fun (Vertex.Loc l) -> l)
 
 let get_nested_path sh ~src ~dst ~sink ~field1 ~field2 =
-  HeapGraph.get_nested_path (get_heap_graph sh) ~src ~dst ~sink ~field1 ~field2
+  HeapGraph.get_nested_path (HeapGraph.get sh) ~src:(Loc src) ~dst:(Loc dst) ~sink:(Loc dst) ~field1 ~field2
+  |> List.map (fun xs -> List.map (fun (Vertex.Loc l) -> l) xs)
 
 let has_nested_path sh ~src ~dst ~sink ~field1 ~field2 =
-  HeapGraph.has_nested_path (get_heap_graph sh) ~src ~dst ~sink ~field1 ~field2
+  HeapGraph.has_nested_path (HeapGraph.get sh) ~src:(Loc src) ~dst:(Loc dst) ~sink:(Loc dst) ~field1 ~field2
 
 let output_graph filename sh =
   let channel = open_out filename in
-  HeapGraph.model := Some sh;
-  HeapGraph.Dot.output_graph channel (get_heap_graph sh);
+  model := Some sh;
+  HeapGraph.output channel sh;
   close_out channel

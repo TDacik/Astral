@@ -16,6 +16,8 @@ val forall : string ref
 
 val entails : string ref
 
+val bottom : string ref
+
 val empty_set : string ref
 
 (* *)
