@@ -1,5 +1,8 @@
 (* Implementation of separation logic over BaseLogic.
  *
+ * TODO: do not continue under atoms in map.
+ *         -> Using functor with input is_atom?
+ *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
 open MemoryModel
@@ -8,6 +11,9 @@ module A = BaseLogic.Application
 module B = BaseLogic
 
 include BaseLogic
+
+let to_base_logic = Fun.id
+let of_base_logic = Fun.id
 
 module Variable = struct
 
@@ -26,7 +32,7 @@ module Term = struct
 
   type view =
     | Var of Variable.t
-    | HeapTerm of Field.t * Sort.t * t
+    | HeapTerm of Field.t * t
     | SmtTerm of SMT.t
     | BlockBegin of t
     | BlockEnd of t
@@ -37,7 +43,7 @@ module Term = struct
     | B.Variable var -> SmtTerm (SMT.mk_var (Variable.show var) (Variable.get_sort var))
     | B.Application (BlockBegin, [x]) -> BlockBegin x
     | B.Application (BlockEnd, [x]) -> BlockEnd x
-    | B.Application (HeapTerm (field, sort), [x]) -> HeapTerm (field, sort, x)
+    | B.Application (HeapTerm field, [x]) -> HeapTerm (field, x)
     | x -> SmtTerm (SMT.of_base_logic x) (* TODO: checks *)
 
   let is_nil term = match view term with
@@ -48,7 +54,7 @@ module Term = struct
   let is_smt_term t = match view t with SmtTerm _ -> true | _ -> false
 
   let get_subterm t = match view t with
-    | HeapTerm (_, _, t) | BlockBegin t | BlockEnd t -> t
+    | HeapTerm (_, t) | BlockBegin t | BlockEnd t -> t
     | _ -> raise @@ Invalid_argument ("SL.Term.get_subterm: " ^ show t)
 
 end
@@ -157,6 +163,18 @@ let mk_fresh_var = BaseLogic.mk_fresh_var
 (** Redefinition with compatible types *)
 let mk_pure smt = SeparationLogic.mk_pure (of_smt smt)
 
+let mk_not phi = BaseLogic.mk_app Not [phi]
+
+(** Redefine to do not continue under atoms *)
+let rec select_subformulae pred phi =
+  let acc = match phi with
+    | Variable _ -> []
+    | Application ((PointsTo _ | Predicate _ | Equal | Distinct | Pure), _) -> [] (* Stop *)
+    | Application (_, xs) -> BatList.concat_map (select_subformulae pred) xs
+    | Binder (_, _, x) -> select_subformulae pred x
+  in
+  if pred phi then phi :: acc else acc
+
 
 let free_vars ?(with_nil=true) ?(with_pure=false) phi =
   let vars = free_vars phi in
@@ -191,11 +209,13 @@ let is_atomic =
   )
 
 (* TODO: is emp pure or not? *)
-let is_pure =
-  for_all_apps (function
-    | Predicate _ | PointsTo _ | Emp | Star | Septraction -> false
-    | _ -> true
-   )
+let is_pure psi = match psi with
+  | Variable v -> Variable.is_pure v
+  | _ ->
+    for_all_apps (function
+      | Predicate _ | PointsTo _ | Emp | Star | Septraction -> false
+      | _ -> true
+    ) psi
 
 let is_pure_smt phi =
   is_pure phi && List.for_all (Variable.is_pure) (free_vars phi)

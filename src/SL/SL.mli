@@ -8,6 +8,13 @@ open MemoryModel
 
 type t
 
+(**/**)
+
+val of_base_logic : BaseLogic.t -> t
+val to_base_logic : t -> BaseLogic.t
+
+(**/**)
+
 module Variable : sig
   include VARIABLE with module Sort = Sort
 
@@ -35,7 +42,7 @@ module Term : sig
 
   val mk_var : string -> Sort.t -> t
 
-  val mk_heap_term : Field.t -> Sort.t -> t -> t
+  val mk_heap_term : Field.t -> t -> t
 
   val mk_smt : SMT.t -> t
 
@@ -60,7 +67,7 @@ module Term : sig
 
   type view =
     | Var of Variable.t
-    | HeapTerm of Field.t * Sort.t * t
+    | HeapTerm of Field.t * t
     | SmtTerm of SMT.t
     | BlockBegin of t
     | BlockEnd of t

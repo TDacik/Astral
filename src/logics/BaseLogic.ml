@@ -32,7 +32,7 @@ module Application = struct
     (* Separation logic *)
     | Emp | Pure | PointsTo of StructDef.t
     | Predicate of Identifier.t * (StructDef.t List.t)
-    | HeapTerm of MemoryModel0.Field.t * Sort.t | BlockBegin | BlockEnd
+    | HeapTerm of MemoryModel0.Field.t | BlockBegin | BlockEnd
     | GuardedNot | Star | Septraction
   [@@ deriving equal, compare]
 
@@ -68,7 +68,7 @@ module Application = struct
 
     | Pure -> "pure"
     | Emp -> "emp"
-    | HeapTerm (field, sort) -> Format.asprintf "%s[%s]" (MemoryModel0.Field.show field) (Sort.show sort)
+    | HeapTerm field -> Format.asprintf "%s[.]" (MemoryModel0.Field.show field)
     | PointsTo def -> Format.asprintf "pto(%s)" (StructDef.show def)
     | Predicate (id, _) -> Identifier.show id
     | BlockBegin -> "begin"
@@ -89,7 +89,7 @@ module Application = struct
     | Diff | Compl -> List.hd xs
     | BitPlus width | BitAnd width | BitOr width | BitXor width -> Sort.mk_bitvector width
     | BitNot | BitShiftLeft | BitShiftRight | BitImplies | BitCompl -> List.hd xs
-    | HeapTerm (_, sort) -> sort
+    | HeapTerm (field) -> Field.get_sort field
     | IfThenElse -> List.nth xs 1
     | ConstArray sort -> List.nth xs 0
     | Select -> Sort.get_range_sort @@ List.nth xs 0
@@ -408,6 +408,8 @@ module Boolean = struct
   let tt = mk_const true
   let ff = mk_const false
 
+  (** We can never simplify pure(phi) /\ emp ~> pure(phi) to be able
+      to represent formulae in imprecise semantics. *)
   let mk_and = mk_smart_app And ~neutral:tt ~anihilator:ff
 
   let mk_or = mk_smart_app Or  ~neutral:ff ~anihilator:tt
@@ -646,7 +648,7 @@ module SeparationLogic = struct
 
   let mk_block_end x = mk_app BlockEnd [x]
 
-  let mk_heap_term field sort source = mk_app (HeapTerm (field, sort)) [source]
+  let mk_heap_term field source = mk_app (HeapTerm field) [source]
 
   let mk_pure phi =
     assert (Sort.is_bool @@ get_sort phi);
@@ -780,7 +782,7 @@ type action =
   | ContinueWith of string * t list (* Continue with modified sub-trees *)
 
 let rec fold_heap_term field ?(n=1) = function
-  | Application (HeapTerm (field', _), [x]) when Field.equal field field' ->
+  | Application (HeapTerm field', [x]) when Field.equal field field' ->
     fold_heap_term field ~n:(n+1) x
   | x ->
     let folded = Format.asprintf "%s^%d" (Field.show field) n in
@@ -804,7 +806,7 @@ let pretty_node_name =
   let show = show_with_sort in
   function
   (* Introduce syntax sugar *)
-  | Application (HeapTerm (f, _), [x]) -> fold_heap_term f x
+  | Application (HeapTerm f, [x]) -> fold_heap_term f x
   | Application (Select, [arr; index]) -> fold_select arr index
 
   | Application (Equal, [x; y]) when is_var x && is_var y ->
