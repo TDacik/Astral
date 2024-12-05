@@ -16,14 +16,26 @@ let error = warning
 module Make (C : CONFIG) = struct
 
   let match_key () =
-    let regex = Str.regexp @@ Options_base.debug_key () in
-    Str.string_match regex C.name 0
+    let key =
+      Options_base.debug_key ()
+      |> (fun str -> BatString.nreplace ~sub:"|" ~by:"\\|" ~str)
+      |> BatString.lowercase_ascii
+      |> Format.asprintf ".*%s.*"
+    in
+    let regex = Str.regexp key in
+    Str.string_match regex (BatString.lowercase_ascii C.name) 0
 
   let debug_aux () = Options_base.debug () || Options_base.verbosity () >= C.level
 
   let debug () = debug_aux () && match_key ()
 
   let info = Format.fprintf
+
+  let init path =
+    if not @@ Sys.file_exists path then
+      match Sys.command @@ Format.asprintf "mkdir -p %s" path with
+      | 0 -> ()
+      | _ -> failwith ("Cannot create directory " ^ path)
 
   let warning fmt =
     Format.kasprintf (fun msg ->
@@ -35,6 +47,14 @@ module Make (C : CONFIG) = struct
   (* TODO *)
   let error = warning
 
+  let dump dump_fn filename obj =
+    if Options_base.debug () then
+      let dir_path = Options_base.debug_dir () in
+      init dir_path;
+      let path = dir_path ^ "/" ^ filename in
+      let channel = open_out path in
+      dump_fn path obj;
+      close_out channel
 
   let debug fmt =
     Format.kasprintf (fun msg ->
@@ -50,7 +70,10 @@ module MakeWithDir (C : CONFIG_WITH_DIR) = struct
 
   let init path =
     if not @@ Sys.file_exists path then
-      Sys.mkdir path 0o775
+      match Sys.command @@ Format.asprintf "mkdir -p %s" path with
+      | 0 -> ()
+      | _ -> failwith ("Cannot create directory " ^ path)
+
 
   let dump dump_fn filename obj =
     if Options_base.debug () then

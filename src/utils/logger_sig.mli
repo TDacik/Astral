@@ -32,6 +32,8 @@ module type LOGGER = sig
 
   (*  val info : ('a, Format.formatter, unit) format -> 'a*)
 
+  val dump : (string -> 'a -> unit) -> string -> 'a -> unit
+
   val warning : ('a, Format.formatter, unit) format -> 'a
 
   val error : ('a, Format.formatter, unit) format -> 'a

@@ -23,7 +23,7 @@ module Printable (M : SHOW) = struct
 
   let pp_list (*(separator=", ")*) fmt xs = Format.fprintf fmt "%s" (show_list ~separator:"," xs)
 
-  let print_list ?(separator=", ") xs = Format.printf "%s\n" (show_list ~separator xs)
+  let print_list ?(separator=", ") ?(prefix="") xs = Format.printf "%s%s\n" prefix (show_list ~separator xs)
 
 end
 
