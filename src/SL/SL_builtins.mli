@@ -1,3 +1,8 @@
+val loc_ls : Sort.t
+val loc_dls : Sort.t
+val loc_nls : Sort.t
+
+
 val mk_pto_ls : SL.Term.t -> next:SL.Term.t -> SL.t
 
 val mk_pto_dls : SL.Term.t -> next:SL.Term.t -> prev:SL.Term.t -> SL.t
