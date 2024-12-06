@@ -28,7 +28,7 @@ jobs:
         run: opam exec -- dune build
 
       - name: Run unit tests
-        run: sh tests/run.sh
+        run: dune runtest
 
       - name: Run regression tests
         run: python3 scripts/run_tests.py
