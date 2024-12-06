@@ -1,0 +1,41 @@
+{1 Astral}
+
+Astral is a SMT solver for separation logics.
+
+{2 Solver}
+
+{!module: Astral.Solver}
+
+{2 Pure formulae}
+
+{!module: Astral.Constant}
+
+Operations over constant values.
+
+{!module: Astral.SMT}
+
+Constructors and operations over pure formulae.
+
+
+{2 Separation Logic}
+
+{!module: Astral.MemoryModel}
+
+Access to Astral's memory model.
+
+{!module: Astral.SL}
+
+Basic operations over separation logic formulae.
+
+{!module: Astral.SLID}
+
+Operations over separation logic which take into account semantics of inductive
+predicates.
+
+{!module: Astral.SL_builtins}
+
+Constructors for built-in definitions provided by Astral.
+
+{!module: Astral.StackHeapModel}
+
+Stack-heap models of separation logic.

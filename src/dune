@@ -36,3 +36,5 @@
 )
 
 (include_subdirs unqualified)
+
+(documentation (package astral))
