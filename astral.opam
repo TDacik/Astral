@@ -17,15 +17,18 @@ bug-reports: "https://github.com/TDacik/Astral/issues"
 depends: [
   "ocaml"
   "dune"
-  "alcotest"
   "batteries"
   "z3"
   "dolmen" {= "0.10"}
   "ocamlgraph"
-  "qcheck"
   "yojson"
   "ppx_compare"
   "ppx_deriving"
+
+  "alcotest" {with-test}
+  "qcheck" {with-test}
+
+  "odoc" {with-doc}
 ]
 
 build: [
