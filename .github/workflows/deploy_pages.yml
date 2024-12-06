@@ -31,29 +31,29 @@ jobs:
 
     runs-on: ubuntu-latest
 
-  steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Set-up OCaml
-      uses: ocaml/setup-ocaml@v3
-      with:
-        ocaml-compiler: 5.2
+      - name: Set-up OCaml
+        uses: ocaml/setup-ocaml@v3
+        with:
+          ocaml-compiler: 5.2
 
-    - name: Install dependencies
-      run: opam install odoc
+      - name: Install dependencies
+        run: opam install odoc
 
-    - name: Build documentation
-      run: opam exec -- dune build @doc
+      - name: Build documentation
+        run: opam exec -- dune build @doc
 
-    - name: Set-up Pages
-      uses: actions/configure-pages@v5
+      - name: Set-up Pages
+        uses: actions/configure-pages@v5
 
-    - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
-      with:
-        path: _build/default/_doc/_html
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _build/default/_doc/_html
 
-    - name: Deploy odoc to GitHub Pages
-      id: deployment
-      uses: actions/deploy-pages@v4
+      - name: Deploy odoc to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
