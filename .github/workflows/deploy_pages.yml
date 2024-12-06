@@ -43,7 +43,7 @@ jobs:
       run: opam install odoc
 
     - name: Build documentation
-      run: dune build @doc
+      run: opam exec -- dune build @doc
 
     - name: Set-up Pages
       uses: actions/configure-pages@v5
