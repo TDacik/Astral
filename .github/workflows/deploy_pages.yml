@@ -17,18 +17,19 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy-odoc: Deploy
+  deploy-odoc:
+    name: Deploy
 
-  environment:
+    environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
-  permissions:
-    contents: read
-    id-token: write
-    pages: write
+    permissions:
+      contents: read
+      id-token: write
+      pages: write
 
-  runs-on: ubuntu-latest
+    runs-on: ubuntu-latest
 
   steps:
     - name: Checkout repository
