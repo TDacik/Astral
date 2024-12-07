@@ -7,7 +7,7 @@
 name: Install dependencies and build Astral
 
 on:
-  workflow-call:
+  workflow_call:
 
 jobs:
   build:
