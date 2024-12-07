@@ -94,7 +94,7 @@ module Make (Backend : SMTLIB_BACKEND) = struct
       | options -> options
     in
     let options = if produce_models then Backend.model_option :: options else options in
-    "cvc5" :: options
+    Backend.name :: options
 
   let read_answer context file produce_models =
     let channel = open_in file in
