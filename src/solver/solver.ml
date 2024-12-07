@@ -78,7 +78,7 @@ let solve solver phi =
   reset ();
   activate solver;
   Profiler.add "Start";
-  let vars = SL.free_vars phi in
+  let vars = SL.free_vars ~with_nil:false phi in
   let input =
     let input = if solver.use_builtin_defs then SID.builtin_context () else Input.empty () in
     let input = Input.add_assertion input phi in

@@ -6,7 +6,7 @@ open SL_testable
 
 let check_sat_test1 () =
   let solver = Solver.init () in
-  let phi = SL.mk_star [SL_builtins.mk_ls x ~sink:y; SL_builtins.mk_ls x ~sink:z] in
+  let phi = SL.mk_star [SL_builtins.mk_ls x ~sink:y; SL_builtins.mk_ls x ~sink:nil] in
   assert (Solver.check_sat solver phi)
 
 let check_sat_test2 () =
