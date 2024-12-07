@@ -35,7 +35,7 @@ let declare_sort ctx sort =
   else {ctx with sorts = M.add name sort ctx.sorts}
 
 let declare_var ctx var sort =
-  if var = "nil" then parser_error "The name 'nil' is reserved for separation logic constant"
+  if var = "nil" then raise @@ SyntaxError "The name 'nil' is reserved for separation logic constant"
   else if M.mem var ctx.vars then raise @@ VariableRedefined var
   else {ctx with vars = M.add var sort ctx.vars}
 

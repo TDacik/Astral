@@ -14,6 +14,7 @@ exception NotDeclared of loc * string * string (* Kind, name *)
 
 exception Redeclared of loc * string * string (* Kind, name *)
 
+exception SyntaxError of string
 
 exception ParserError of string
 

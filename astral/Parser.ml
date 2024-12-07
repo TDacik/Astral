@@ -30,3 +30,5 @@ let parse path =
   | SortError (loc, name, expected, actual) ->
     parser_error ~loc
       (Format.asprintf "Application '%s' expects %s, but got:\n  %s" name expected actual)
+  | SyntaxError msg ->
+    parser_error msg
