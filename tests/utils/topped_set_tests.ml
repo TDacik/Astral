@@ -10,7 +10,7 @@ let (==) set1 set2 =
 
 module Base = struct
   include Set.Make(Int)
-  let show = assert false (* Not needed so far *)
+  let show _ = "TODO: show set" (* Not needed so far *)
 end
 
 module Set = Topped_set.Lift(Base)
