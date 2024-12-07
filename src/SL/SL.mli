@@ -286,9 +286,6 @@ module Infix : sig
   val (|=>) : Term.t -> Term.t list -> t
   (** Infix pointer *)
 
-  val (|~>) : Term.t -> Term.t -> t
-  (** Infix singly-linked list *)
-
   val (=>) : t -> t -> t
   (** Infix implication *)
 

@@ -5,6 +5,8 @@ module T = struct
   let equal = (===)
 end
 
+let (|~>) x y = SL_builtins.mk_ls x ~sink:y
+
 include T
 include Builder.Make(T)
 

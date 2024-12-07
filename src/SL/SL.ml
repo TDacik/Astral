@@ -334,8 +334,6 @@ module Infix = struct
   let (|->) = mk_pto
   let (|=>) = mk_pto_tuple
 
-  let (|~>) = mk_ls
-
   let (=>)  = mk_implies
   let (<=>) x y = mk_iff [x; y]
   let (&!)  = mk_gneg

@@ -2,13 +2,12 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-open SL.Infix
+module SL = SL_testable
+open SL
+
 open StackHeapModel
 
 module SH = StackHeapModel
-
-let x = SL.Term.mk_var "x" Sort.loc_ls
-let y = SL.Term.mk_var "y" Sort.loc_ls
 
 let loc1 = Location.mk_ls 1
 let loc2 = Location.mk_ls 2
@@ -20,7 +19,10 @@ let val3 = Value.mk_struct LS.struct_ls [loc3]
 
 let check sh phi =
   let msg = Format.asprintf "Model: TODO, formula: %s" (SL.show phi) in
-  let actual = Result.get_ok (ModelChecker.check sh phi) in
+  let msg, actual = match ModelChecker.check sh phi with
+    | Ok res -> msg, res
+    | Error (Failure (e, _)) -> Format.asprintf "%s, error: %s" msg e, false
+  in
   Alcotest.check' Alcotest.bool ~msg ~actual ~expected:true
 
 let check_not sh phi =
@@ -34,7 +36,7 @@ let check_not sh phi =
 let symbolic_heap_sat_test1 () =
   let phi = x |-> y in
   let stack = Stack.add x loc1 @@ Stack.add y loc2 @@ Stack.empty in
-  let heap = Heap.add loc2 val1 Heap.empty in
+  let heap = Heap.add loc1 val2 Heap.empty in
   let sh = SH.init stack heap in
   check sh phi
 
@@ -68,6 +70,7 @@ let symbolic_heap_entl_test2 () =
 
 
 let () =
+  LS.register (); (* TODO *)
   run "SL" [
     "symbolic heap satisfiability", [
       test_case "Test"  `Quick symbolic_heap_sat_test1;
