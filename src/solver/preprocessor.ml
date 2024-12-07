@@ -57,23 +57,14 @@ let remove_useless_vars phi vars =
     else vars
   else vars
 
-let antiprenexing phi =
- (* TODO: Remove dependency on Options *)
-  if Options_base.antiprenexing () then
-    let phi = Antiprenexing.apply phi in
-    (*let phi = Simplifier.simplify phi in*)
-    Debug.formula phi ~suffix:"5-antiprenexing";
-    phi
-  else phi
-
 let second_phase_aux aggresive context =
  let phi, vars = Context.get_input context in
 
   let phi' = apply_list phi [
     UnfoldIDs.apply context.location_bounds, "predicate_unfolding";
+    Antiprenexing.apply, "antiprenexing";
     QuantifierElimination.apply context.sl_graph, "quantifier_elimination";
     IntroduceIfThenElse.apply, "ite_introduction";
-    antiprenexing, "antiprenexing";
     Simplifier.simplify ~dont_care:[], "simplification";
     (fun phi -> if aggresive then AggresiveSimplifier.simplify context.sl_graph phi else phi),
       "aggresive-simp";

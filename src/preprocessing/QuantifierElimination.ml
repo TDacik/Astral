@@ -72,5 +72,6 @@ let remove_determined2 sl_graph phi =
 
 let apply sl_graph phi =
   (*remove_determined sl_graph phi
-  |>*) remove_determined2 sl_graph phi
-  |> remove_useless
+  |>*)
+  remove_useless phi
+  |> remove_determined2 sl_graph
