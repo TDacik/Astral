@@ -7,3 +7,8 @@ let inline phi = SL.map_view (function
     | None -> SL.mk_predicate name xs ~structs
     | Some res -> res
 ) phi
+
+let inline phi =
+  let phi' = inline phi in
+  if SL.equal phi phi' then phi
+  else inline phi'
