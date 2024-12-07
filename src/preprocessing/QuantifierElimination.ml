@@ -41,8 +41,15 @@ let remove_binder2 sl_graph phi psi (x : SL.Variable.t) =
   let tx = SL.Term.of_var x in
   match SL_graph.must_pred_field local_g tx with
   | None ->
-    Logger.debug "Cannot eliminate var: %s\n" (SL.Variable.show x);
-    psi, [x]
+    let eq_vars = SL_graph.equivalence_class local_g (SL.Term.of_var x) in
+    let free_vars = List.map SL.Term.of_var @@ SL.free_vars phi in
+    let inter = list_inter eq_vars free_vars in
+    begin match inter with
+      | x' :: _ -> SL.substitute psi ~var:x ~by:x', []
+      | [] ->
+        let _ = Logger.debug "Cannot eliminate quantifier var: %s\n" (SL.Variable.show x) in
+        psi, [x]
+    end
   | Some (src, field) ->
     Logger.debug "Must predecessor of %s is %s\n" (SL.Variable.show x) (SL.Term.show_with_sort src);
     SL.substitute psi ~var:x ~by:(SL.Term.mk_heap_term field src), []

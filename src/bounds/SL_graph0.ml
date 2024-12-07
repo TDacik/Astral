@@ -222,10 +222,15 @@ let nb_joins g field =
   |> List.map (fun v -> if G.in_degree g v > 1 then G.in_degree g v - 1 else 0)
   |> BatList.sum
 
+let neighbours g x =
+  let preds = try G.pred g x with Invalid_argument _ -> [] in
+  let succs = try G.succ g x with Invalid_argument _ -> [] in
+  preds @ succs
+
 let equivalence_class g x =
   let g = projection g [Equality] in
-  try BatList.unique ~eq:G.V.equal (x :: G.succ g x)
-  with _ -> [x]
+  BatList.unique ~eq:G.V.equal (x :: neighbours g x)
+
 include G
 
 let must_pred_field g x =
