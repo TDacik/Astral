@@ -17,8 +17,13 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy-odoc:
-    name: Deploy
+  build:
+    uses: "build.yml"
+
+  deploy-doc:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
 
     environment:
       name: github-pages
@@ -28,20 +33,6 @@ jobs:
       contents: read
       id-token: write
       pages: write
-
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set-up OCaml
-        uses: ocaml/setup-ocaml@v3
-        with:
-          ocaml-compiler: 5.2
-
-      - name: Install dependencies
-        run: opam install . -y --deps-only --with-doc
 
       - name: Build documentation
         run: opam exec -- dune build @doc
