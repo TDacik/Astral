@@ -50,11 +50,11 @@ module Make () = struct
     !counter
 
   let mk name =
-    let tag =
-      try HT.find_tag !hash_table name
-      with Not_found -> next_id ()
+    let tag, index =
+      try HT.find !hash_table name
+      with Not_found -> next_id (), 0
     in
-    HT.add !hash_table name (tag, 0);
+    HT.add !hash_table name (tag, index);
     (tag, name)
 
   let mk_fresh name =

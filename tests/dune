@@ -11,6 +11,8 @@
     antiprenexing_tests
     model_checker_tests
     ;symbolic_heaps
+
+    Variable_tests
     BaseLogic_tests
     API_tests
 
