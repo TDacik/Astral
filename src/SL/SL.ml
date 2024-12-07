@@ -167,6 +167,11 @@ let mk_pure smt = SeparationLogic.mk_pure (of_smt smt)
 
 let mk_not phi = BaseLogic.mk_app Not [phi]
 
+(** Simplify to emp, instead of true *)
+let mk_eq xs = match mk_eq xs with
+  | res when BaseLogic.equal res tt -> emp
+  | res -> res
+
 (** Redefine to do not continue under atoms *)
 let rec select_subformulae pred phi =
   let acc = match phi with

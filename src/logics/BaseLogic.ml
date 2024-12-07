@@ -398,8 +398,18 @@ module DefaultVars = struct
   let mk_fresh_var = mk_fresh_var
 end
 
+module Boolean0 = struct
+  let mk_const c = mk_constant (Constant.mk_bool c)
+  let tt = mk_const true
+  let ff = mk_const false
+end
+
 module Equality = struct
-  let mk_eq = mk_app Equal
+
+  let mk_eq = function
+    | xs when List_utils.all_equal equal xs -> Boolean0.tt
+    | xs -> mk_app Equal xs
+
   let mk_distinct = mk_app Distinct
 
   let mk_eq2 x y = mk_eq [x; y]
@@ -408,14 +418,11 @@ end
 
 module Boolean = struct
 
+  include Boolean0
   include Equality
 
   let mk_var name = mk_var name Sort.bool
   let mk_fresh_var name = mk_fresh_var name Sort.bool
-
-  let mk_const c = mk_constant (Constant.mk_bool c)
-  let tt = mk_const true
-  let ff = mk_const false
 
   (** We can never simplify pure(phi) /\ emp ~> pure(phi) to be able
       to represent formulae in imprecise semantics. *)
