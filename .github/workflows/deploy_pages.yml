@@ -23,7 +23,6 @@ jobs:
   deploy-doc:
     needs: build
     runs-on: ubuntu-latest
-    steps:
 
     environment:
       name: github-pages
@@ -34,6 +33,7 @@ jobs:
       id-token: write
       pages: write
 
+    steps:
       - name: Build documentation
         run: opam exec -- dune build @doc
 
