@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   build:
-    uses: "build.yml"
+    uses: "./.github/workflows/build.yml"
 
   deploy-doc:
     needs: build
