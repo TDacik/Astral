@@ -4,15 +4,6 @@
 
 open Logger_sig
 
-let warning fmt =
-  Format.kasprintf (fun msg ->
-    if Unix.isatty Unix.stderr
-    then Format.eprintf "%s%s%s" Colors.yellow msg Colors.white
-    else Format.eprintf "%s\n" msg
-  ) fmt
-
-let error = warning
-
 module Make (C : CONFIG) = struct
 
   let match_key () =
@@ -49,7 +40,7 @@ module Make (C : CONFIG) = struct
 
   let dump dump_fn filename obj =
     if Options_base.debug () then
-      let dir_path = Options_base.debug_dir () in
+      let dir_path = Logger_state.debug_dir () in
       init dir_path;
       let path = dir_path ^ "/" ^ filename in
       let channel = open_out path in
@@ -77,7 +68,7 @@ module MakeWithDir (C : CONFIG_WITH_DIR) = struct
 
   let dump dump_fn filename obj =
     if Options_base.debug () then
-      let dir_path = Options_base.debug_dir () ^ "/" ^ C.dirname in
+      let dir_path = Logger_state.debug_dir () ^ "/" ^ C.dirname in
       init dir_path;
       let path = dir_path ^ "/" ^ filename in
       let channel = open_out path in
@@ -86,7 +77,7 @@ module MakeWithDir (C : CONFIG_WITH_DIR) = struct
 
   let dump_string ~filename str =
     if Options_base.debug () then
-      let dir_path = Options_base.debug_dir () ^ "/" ^ C.dirname in
+      let dir_path = Logger_state.debug_dir () ^ "/" ^ C.dirname in
       init dir_path;
       let path = dir_path ^ "/" ^ filename in
       let channel = open_out path in
@@ -102,7 +93,7 @@ module MakeWithDump (C : CONFIG_WITH_DUMP) = struct
 
   let dump ~filename x =
     if Options_base.debug () then
-      let dir_path = Options_base.debug_dir () ^ "/" ^ C.dirname in
+      let dir_path = Logger_state.debug_dir () ^ "/" ^ C.dirname in
       init dir_path;
       let path = dir_path ^ "/" ^ filename in
       C.dump x path

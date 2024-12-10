@@ -11,8 +11,6 @@ open SetEncoding_sig
 open HeapEncoding_sig
 open Translation_sig
 
-module Logger = Logger.Make (struct let name = "Cmdline" let level = 0 end)
-
 include Options_base
 module Options = Options_base
 
@@ -131,7 +129,7 @@ let check () =
   ;
 
   if Options.produce_models () && not @@ Backend.supports_get_info then begin
-    Logger.warning "Selected backend does not support producing of models";
+    Utils.warning "Selected backend does not support producing of models";
     exit 1
   end;
 

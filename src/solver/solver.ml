@@ -21,7 +21,6 @@ let reset () =
   Profiler.reset ()
 
 let activate solver =
-  Debug.next_query ();
   Options_base.set_interactive true;
 
   let _ = match solver.dump_queries with
@@ -72,11 +71,13 @@ let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(use_builtin_
   activate solver;
   Options.check ();
   Debug.init ();
+  Logger_state.init ();
   solver
 
 let solve solver phi =
   reset ();
   activate solver;
+  Logger_state.next_query ();
   Profiler.add "Start";
   let vars = SL.free_vars ~with_nil:false phi in
   let input =

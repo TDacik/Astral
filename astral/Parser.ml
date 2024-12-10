@@ -19,7 +19,7 @@ let parse path =
       Format.asprintf "Syntax error at %a\n%s" Dolmen_std.Loc.fmt loc
         (ParserUtils.show_msg msg)
     in
-    Utils.error error_msg
+    Utils.user_error error_msg
   | VariableRedefined x -> parser_error ("Variable " ^ x ^ " redefined")
   | VariableNotDeclared x -> parser_error ("Variable " ^ x ^ " is not declared")
   | ConstructorNotDeclared x -> parser_error ("Constructor " ^ x ^ " is not declared")

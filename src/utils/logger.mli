@@ -4,10 +4,6 @@
 
 open Logger_sig
 
-val warning : ('a, Format.formatter, unit) format -> 'a
-
-val error : ('a, Format.formatter, unit) format -> 'a
-
 module Make (C : CONFIG) : LOGGER
 
 module MakeWithDir (C : CONFIG_WITH_DIR) : LOGGER_WITH_DIR

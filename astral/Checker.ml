@@ -20,9 +20,9 @@ let check_model result =
   if Options.verify_model () && Option.is_some result.model
   then match ModelChecker.check (Option.get result.model) result.phi with
     | Ok true -> Format.printf "Model verified\n"; True
-    | Ok false -> Logger.error "Model is not correct\n"; False
-    | Error (Unsupported msg) -> Logger.warning "%s\n" msg; Unknown
-    | Error (Failure (msg, backtrace)) -> Logger.error (*~backtrace:backtrace*) "%s\n" msg; Unknown
+    | Ok false -> Utils.error "Model is not correct\n"; False
+    | Error (Unsupported msg) -> Utils.warning "%s\n" msg; Unknown
+    | Error (Failure (msg, backtrace)) -> Utils.error (*~backtrace:backtrace*) "%s\n" msg; Unknown
   else Unknown
 
 let check_result result status model = match status, model with

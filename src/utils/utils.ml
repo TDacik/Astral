@@ -4,12 +4,22 @@
 
 let report_msg = "Please report this issue at https://github.com/TDacik/Astral/issues."
 
-let error msg =
-  Format.fprintf Format.err_formatter "%s\n" msg;
-  exit 1
+let warning fmt =
+  Format.kasprintf (fun msg ->
+    if Unix.isatty Unix.stderr
+    then Format.eprintf "%s%s%s" Colors.yellow msg Colors.white
+    else Format.eprintf "%s\n" msg
+  ) fmt
+
+(* TODO *)
+let error = warning
 
 let cmd_option_error opt value =
   Format.fprintf Format.err_formatter "Unknown %s: '%s'\n" opt value;
+  exit 1
+
+let user_error msg =
+  error "%s" msg;
   exit 1
 
 let internal_error ?(backtrace=true) ?(report=false) ?(exit_code=2) msg =

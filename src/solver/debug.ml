@@ -11,6 +11,8 @@ module Options = Options_base
 
 let delim = String.make 70 '='
 
+let debug_dir () = Logger_state.debug_dir ()
+
 (** {2 Debug on stderr} *)
 let out_input input =
   if Options.debug () && not @@ Options.interactive () then
@@ -21,16 +23,6 @@ let out_input input =
       delim
 
 (** {2 Logging} *)
-
-(** Reference to base debug directory for interactive mode. *)
-let base_debug_dir = ref ""
-
-let query_counter = ref 0
-let next_query () =
-  query_counter := !query_counter + 1;
-  Options.set_debug_dir (Format.asprintf "%s/query_%d" !base_debug_dir !query_counter)
-
-let debug_dir () = Options.debug_dir ()
 
 let path_ast file = (debug_dir ()) ^ "/" ^ file ^ ".dot"
 let path_smt_model = (debug_dir ()) ^ "/" ^ "smt_model.out"
