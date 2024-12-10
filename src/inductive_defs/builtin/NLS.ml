@@ -251,4 +251,4 @@ let register () = SID.register (module Self : ID_sig.BUILTIN)
 let mk_pto x ~top ~next = SL.mk_pto_struct x struct_nls [top; next]
 
 let mk root ~sink ~bottom =
-  SL.mk_predicate "nls" [root; sink; bottom] ~structs:[struct_nls]
+  SL.mk_predicate "nls" [root; sink; bottom] ~structs:[struct_nls; struct_ls]
