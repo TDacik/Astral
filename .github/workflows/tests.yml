@@ -7,18 +7,28 @@ name: Run tests
 on: [push, pull_request]
 
 jobs:
-  build:
-    uses: "./.github/workflows/build.yml"
 
-  unit-tests:
-    needs: build
+  build:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: 5.2
-      
+
+      - name: Install dependencies
+        run: opam install -y --deps-only --with-test --with-doc .
+
+      - name: Install Astral
+        run: opam exec -- dune build
+
+  unit-tests:
+    needs: build
+    runs-on: ubuntu-latest
+    steps: 
       - name: Run unit tests
         run: opam exec -- dune runtest
 
@@ -26,6 +36,34 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps: 
-
       - name: Run regression tests
         run: python3 scripts/run_tests.py
+  
+  deploy-doc:
+    needs: build
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    permissions:
+      contents: read
+      id-token: write
+      pages: write
+
+    steps: 
+      - name: Build documentation
+        run: opam exec -- dune build @doc
+
+      - name: Set-up Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _build/default/_doc/_html
+
+      - name: Deploy odoc to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
