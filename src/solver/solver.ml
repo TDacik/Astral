@@ -85,6 +85,7 @@ let solve solver phi =
     let input = Input.add_assertion input phi in
     Input.add_vars input vars
   in
+  Debug.input input;
   let result = Engine.solve input in
   Profiler.finish ();
   Debug.result result;

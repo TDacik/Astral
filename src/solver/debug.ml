@@ -78,10 +78,10 @@ let inductive_pred ?(suffix="") name phi =
 
 let input input =
   debug_out "input.txt" (ParserContext.show input);
-  formula ~force_name:"input" (ParserContext.get_phi input)
+  formula ~force_name:"input" (ParserContext.get_phi input);
+  SL.output_benchmark ((debug_dir ()) ^ "/input.smt2") (ParserContext.get_phi input) `Unknown
 
 let context context =
-  SL.output_benchmark ((debug_dir ()) ^ "/input.smt2") context.phi `Unknown;
   SL_graph.output_file (sl_graph_dot "") context.sl_graph;
   SL_graph.output_file (sl_graph_dot "_spatial") (SL_graph.spatial_projection context.sl_graph)
 
