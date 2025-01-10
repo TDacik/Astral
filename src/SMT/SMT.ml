@@ -154,6 +154,33 @@ let rec map_view fn phi =
     try fn @@ view @@ Binder (binder, vs, body)
     with Exit -> Binder (binder, vs, body)
 
+(** TODO: Theory classification
+
+type theory = {
+  quantifier_free: bool;
+  arithmetic: bool;
+  bitvectors: bool;
+  arrays: bool;
+}
+
+let show_theory {quantifier_free; arithmetic; bitvectors; arrays} =
+  let prefix = if quantifier_free then "QF_" else "" in
+  let body =
+    if arithmetic && not bitvectors then "LIA"
+    else if bitvectors && not arithmetic then "BV"
+    else "ALL"
+  in
+  let arrays = if arrays then "A" else "" in
+  match body with
+    | "ALL" -> "ALL"
+    | _ -> prefix ^ arrays ^ body
+
+let classify_theory phi = {
+  quantifier_free = is_quantifier_free phi;
+  arithmetic = has_sort Sort.int;
+
+*)
+
 (** {2 Theories} *)
 
 include BaseLogic.Equality
