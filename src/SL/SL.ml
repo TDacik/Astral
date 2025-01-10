@@ -1,7 +1,8 @@
 (* Implementation of separation logic over BaseLogic.
  *
- * TODO: do not continue under atoms in map.
+ * TODO: do not continue under atoms in map/map_view.
  *         -> Using functor with input is_atom?
+ *         -> Modify map to return an action?
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 

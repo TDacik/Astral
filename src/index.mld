@@ -19,6 +19,8 @@ Constructors and operations over pure formulae.
 
 {2 Separation Logic}
 
+{!module: Astral.Sort}
+
 {!module: Astral.MemoryModel}
 
 Access to Astral's memory model.
