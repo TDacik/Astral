@@ -90,6 +90,7 @@ val sets : unit -> string
 val locations : unit -> string
 
 val quantifiers : unit -> string
+val set_quantifiers : string -> unit
 
 val set_backend : string -> unit
 

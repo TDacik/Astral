@@ -7,10 +7,18 @@ type solver
 val init :
   ?backend : Options.backend ->
   ?encoding : Options.encoding ->
+  ?quantifier_encoding : Options.quantifier_encoding ->
   ?produce_models : bool ->
   ?use_builtin_defs : bool ->
   ?dump_queries : [`None | `Full of string] ->
   unit -> solver
+(** Create a solver object:
+
+    @param backend Backend SMT solver
+    @param encoding Strategy for encoding
+    @param use_builtins_defs Use builtin sorts, structures and inductive definitions
+    @param dump_queries Store queries in directory given by the path. *)
+
 
 val solve : solver -> SL.t -> [ `Sat of StackHeapModel.t option | `Unsat | `Unknown of string ]
 

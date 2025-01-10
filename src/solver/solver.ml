@@ -7,6 +7,7 @@ module Input = ParserContext
 type solver = {
   backend : Options.backend;
   encoding : Options.encoding;
+  quantifier_encoding : Options.quantifier_encoding;
 
   (* Options *)
   produce_models : bool;
@@ -35,7 +36,8 @@ let activate solver =
 
   Options.set_produce_models solver.produce_models;
   Options.set_backend solver.backend;
-  Options.set_encoding solver.encoding
+  Options.set_encoding solver.encoding;
+  Options.set_quantifier_encoding solver.quantifier_encoding
 
 let json_stats solver =
   let total = BatList.fsum solver.stats in
@@ -57,10 +59,19 @@ let dump_stats solver = match solver.dump_queries with
     Yojson.Basic.pretty_to_channel channel @@ json_stats solver;
     close_out channel
 
-let init ?(backend=`Z3) ?(encoding=`Sets) ?(produce_models=false) ?(use_builtin_defs=true) ?(dump_queries=`None) () =
+let init
+  ?(backend=`Z3)
+  ?(encoding=`Sets)
+  ?(quantifier_encoding=`Direct)
+  ?(produce_models=false)
+  ?(use_builtin_defs=true)
+  ?(dump_queries=`None)
+  ()
+=
   let solver = {
     backend = backend;
     encoding = encoding;
+    quantifier_encoding = quantifier_encoding;
 
     produce_models = produce_models;
     use_builtin_defs = use_builtin_defs;

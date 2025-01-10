@@ -161,8 +161,10 @@ let heap () = !_heap
 let _sets = ref "bitvectors"
 let sets () = !_sets
 
-let _quantifiers = ref "path"
+let _quantifiers = ref "direct"
 let quantifiers () = !_quantifiers
+let set_quantifiers opt = _quantifiers := opt
+
 
 let set_encoding = function
   | "enum" -> _locations := "enum"; _sets := "direct"

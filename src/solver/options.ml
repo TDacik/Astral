@@ -19,6 +19,7 @@ let set_produce_models flag =
 
 type backend = [`Bitwuzla | `CVC5 | `Z3 | `Auto ]
 type encoding = [`Bitvectors | `Sets]
+type quantifier_encoding = [`Direct | `Enum]
 
 let sets_encoding () = match Options.sets () with
   | "direct" -> (module DirectSets : SET_ENCODING)
@@ -109,6 +110,10 @@ let set_backend = function
 let set_encoding = function
   | `Sets -> Options_base.set_encoding "enum"
   | `Bitvectors -> Options_base.set_encoding "bitvectors"
+
+let set_quantifier_encoding = function
+  | `Direct -> Options_base.set_quantifiers "direct"
+  | `Enum -> Options_base.set_quantifiers "enum"
 
 (** === Parsing === *)
 

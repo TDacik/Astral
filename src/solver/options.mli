@@ -11,6 +11,7 @@ end) (** @inline *)
 
 type backend = [`Bitwuzla | `CVC5 | `Z3 | `Auto ]
 type encoding = [`Bitvectors | `Sets]
+type quantifier_encoding = [`Direct | `Enum]
 
 val parse : unit -> string
 
@@ -19,6 +20,8 @@ val set_backend : backend -> unit
 
 val encoding : unit -> (module ENCODING)
 val set_encoding : encoding -> unit
+
+val set_quantifier_encoding : quantifier_encoding -> unit
 
 val set_produce_models : bool -> unit
 
