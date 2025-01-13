@@ -139,7 +139,9 @@ module type LOGIC = sig
 
   val output_ast : string -> ast -> unit
 
-  val output_benchmark : string -> t -> [`Sat | `Unsat | `Unknown] -> unit
+  val to_smtlib : ?source:string option -> ?status:[< `Sat | `Unsat | `Unknown] option -> t -> string
+
+  val output_benchmark : ?source:string -> ?status:[< `Sat | `Unsat | `Unknown] -> string -> t -> unit
 
   val (===) : t -> t -> bool
 end

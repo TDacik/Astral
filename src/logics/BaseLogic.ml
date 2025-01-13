@@ -747,11 +747,71 @@ end
     | Application (_, psis) -> 1 + (BatList.sum @@ List.map size psis)
     | Binder (_, xs, psi) -> List.length xs + size psi
 
+(** Printing and conversions *)
 
-  let output_benchmark path phi status =
-    let channel = open_out path in
-    (* TODO *)
-    close_out channel
+open Sexplib
+module F = Format
+
+let declare_var var =
+  Format.asprintf "(declare-const %s %s)"
+    (Variable.show var)
+    (Sort.name @@ Variable.get_sort var)
+
+let header with_decls phi source status =
+  let source = match source with
+    | None -> ""
+    | Some source -> F.asprintf "(set-info :source %s)\n" source
+  in
+  let status = match status with
+    | None | Some `Unknown -> "(set-info :status unknown)\n"
+    | Some `Sat -> "(set-info :source sat)\n"
+    | Some `Unsat -> "(set-info :source unsat)\n"
+  in
+  let builtins = "(set-option :use-builtin-definitions)\n" in
+  let vars = String.concat "\n" @@ List.map declare_var (BatList.remove (free_vars phi) Variable.nil) in
+  source ^ status ^ "\n" ^ builtins ^ "\n" ^ vars ^ "\n\n"
+
+let binder_var var =
+  Sexp.List [Sexp.Atom (Variable.show var); Sexp.Atom (Sort.name @@ Variable.get_sort var)]
+
+(* TODO: names *)
+type sexp_action =
+  | App of string
+  | Modify of string * t list
+  | Skip
+
+let app_to_sexp app xs = match app with
+  | Application.Star -> App "sep"
+  | Application.GuardedNot -> Modify ("and", [List.hd xs; Boolean.mk_not @@ List.nth xs 1])
+  | Application.Pure -> Skip
+  | Application.Constructor c -> App (StructDef.show_cons c)
+
+  | app -> App (Application.show app)
+
+let rec to_sexp = function
+  | Variable v -> Sexp.Atom (Variable.show v)
+  | Application (app, []) -> Sexp.Atom (Application.show app)
+  | Application (app, xs) ->
+    begin match app_to_sexp app xs, xs with
+      | App app, _ -> List (Sexp.Atom app :: List.map to_sexp xs)
+      | Skip, [x] -> to_sexp x
+      | Modify (app, xs'), _ -> List (Sexp.Atom app :: List.map to_sexp xs')
+      | _ -> assert false
+    end
+  | Binder (binder, xs, phi) ->
+    let binder = Sexp.Atom (Binder.show binder) in
+    let vars = Sexp.List (List.map binder_var xs) in
+    Sexp.List [binder; vars; to_sexp phi]
+
+let to_smtlib ?(source=None) ?(status=None) phi =
+  let header = header true phi source status in
+  let body = Sexp.to_string_hum @@ Sexp.List [Sexp.Atom "assert"; to_sexp phi] in
+  header ^ "\n" ^ body
+
+let output_benchmark ?source ?status path phi =
+  let channel = open_out path in
+  output_string channel @@ to_smtlib ~source ~status phi;
+  Out_channel.close channel
 
 (* ----------------------------------------------------------------------------
    Pretty dot ouput
