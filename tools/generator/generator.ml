@@ -46,7 +46,9 @@ let is_ok phi = failwith "TODO: generator.is_ok"
 let dump_assert prefix phi =
   QCheck2.assume (is_ok phi);
   let path = Format.asprintf "%s%d.smt2" prefix (next ()) in
-  if !counter <= 100 then SL.output_benchmark path phi `Unknown else ();
+  (if !counter <= 100 then
+    SL.output_benchmark path phi ~source:"astral-generator" ~status:`Unknown else ()
+  );
   true
   (*
   if is_ok phi then

@@ -105,3 +105,12 @@ module Make (Params : PARAMS) = struct
   *)
 
 end
+
+module Default = Make(struct
+  let n_vars = 6
+  let n_selectors = (1, 4)
+  let depth = (2, 4)
+  let unfold = false
+  let lists = true
+  let star_arity = (2, 4)
+end)
