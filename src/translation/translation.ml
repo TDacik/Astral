@@ -642,7 +642,7 @@ let translate_phi (ctx : Context.t) ssl_phi =
     Backend.init ();
     let backend_translated = Backend.translate translated in
 
-    Debug.context input;
+    (*Debug.context input;*)
     Debug.backend_translated (Backend.show_formula backend_translated);
     Debug.backend_simplified (Backend.show_formula @@ Backend.simplify backend_translated);
     Debug.backend_input (Backend.to_smtlib translated produce_models user_options);

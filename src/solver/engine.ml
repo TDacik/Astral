@@ -37,6 +37,8 @@ let solve (raw_input : ParserContext.t) =
     let sm = SmallModels.compute !SID.dg in
     SID.cache := sm;
 
+    Debug.out_input input;
+    Debug.context input;
 
     let bounds1 = LocationBounds.compute input.phi input.raw_input.heap_sort sl_graph in
     let input = Context.add_metadata input sl_graph bounds1 in
@@ -49,8 +51,6 @@ let solve (raw_input : ParserContext.t) =
     let sl_graph = SL_graph.compute input.phi in
 
     let input = Context.add_metadata input sl_graph bounds in
-    Debug.out_input input;
-    Debug.context input;
 
     let module Backend = (val Options.backend () : BACKEND) in
     let module Encoding = (val Options.encoding () : ENCODING) in

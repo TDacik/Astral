@@ -81,7 +81,7 @@ let input input =
   formula ~force_name:"input" (ParserContext.get_phi input)
 
 let context context =
-  SL.output_benchmark ((debug_dir ()) ^ "/input.smt2") context.phi `Unknown;
+  SL.output_benchmark ((debug_dir ()) ^ "/input.smt2") context.phi ~status:`Unknown;
   SL_graph.output_file (sl_graph_dot "") context.sl_graph;
   SL_graph.output_file (sl_graph_dot "_spatial") (SL_graph.spatial_projection context.sl_graph)
 
@@ -90,7 +90,7 @@ let translated suffix phi =
     if suffix = "" then "translated"
     else "translated_" ^ suffix
   in
-  SMT.output_benchmark ((debug_dir ()) ^ "/" ^ out_file ^ ".smt2") phi `Unknown;
+  SMT.output_benchmark ((debug_dir ()) ^ "/" ^ out_file ^ ".smt2") phi ~source:"Astral" ~status:`Unknown;
   let ast = SMT.to_ast phi in
   SMT.output_ast ((debug_dir ()) ^ "/" ^ out_file ^ ".dot") ast
 
