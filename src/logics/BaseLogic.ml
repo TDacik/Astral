@@ -35,7 +35,8 @@ module Application = struct
     (* Arrays *)
     | ConstArray of Sort.t | Select | Store
     (* Separation logic *)
-    | Emp | Pure | PointsTo of StructDef.t
+    | Constructor of StructDef.t
+    | Emp | Pure | PointsTo
     | Predicate of Identifier.t * (StructDef.t List.t)
     | HeapTerm of MemoryModel0.Field.t | BlockBegin | BlockEnd
     | GuardedNot | Star | Septraction
@@ -74,7 +75,8 @@ module Application = struct
     | Pure -> "pure"
     | Emp -> "emp"
     | HeapTerm field -> Format.asprintf "%s[.]" (MemoryModel0.Field.show field)
-    | PointsTo def -> Format.asprintf "pto(%s)" (StructDef.show def)
+    | Constructor def -> StructDef.show def
+    | PointsTo -> "pto"
     | Predicate (id, _) -> Identifier.show id
     | BlockBegin -> "begin"
     | BlockEnd -> "end"
@@ -86,7 +88,7 @@ module Application = struct
   let get_sort app xs = match app with
     | Constant c -> Constant.get_sort c
     | And | Or | Not | Implies | Iff | Equal | Distinct | Lesser | LesserEqual -> Sort.bool
-    | Pure | Emp | PointsTo _ | Predicate _ | Star | Septraction | GuardedNot -> Sort.bool
+    | Pure | Emp | PointsTo | Predicate _ | Star | Septraction | GuardedNot -> Sort.bool
     | Membership | Subset | Disjoint -> Sort.bool
     | BitCheck | BitUnsignedLesser | BitUnsignedLesserEqual -> Sort.bool
     | Plus | Minus | Mult -> Sort.int
@@ -100,6 +102,8 @@ module Application = struct
     | Select -> Sort.get_range_sort @@ List.nth xs 0
     | Store -> List.hd xs
     | BlockBegin | BlockEnd -> List.hd xs
+
+    | Constructor def -> failwith "\"constructor\" should not be accessed as a standalone term"
 
 end
 
@@ -680,11 +684,14 @@ module SeparationLogic = struct
   let mk_septraction lhs rhs = mk_app Septraction [lhs; rhs]
   let mk_wand lhs rhs = Boolean.mk_not @@ mk_septraction lhs (Boolean.mk_not rhs)
 
-  let mk_pto_struct x s ys = mk_app (PointsTo s) (x :: ys)
+  let mk_pto_struct x s ys =
+    let rhs = mk_app (Constructor s) ys in
+    mk_app PointsTo [x; rhs]
 
   let mk_pto_tuple x ys =
     let struct_def = StructDef.mk_tuple @@ List.length ys in
-    mk_app (PointsTo struct_def) (x :: ys)
+    let rhs = mk_app (Constructor struct_def) ys in
+    mk_app PointsTo [x; rhs]
 
   let mk_pto x y = mk_pto_struct x StructDef.ls [y]
 

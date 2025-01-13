@@ -108,7 +108,11 @@ let view phi =
     | A.Constant (Bool false) -> False
     | A.Equal -> Eq xs
     | A.Distinct -> Distinct xs
-    | A.PointsTo s -> PointsTo (List.hd xs, s, List.tl xs)
+    | A.PointsTo ->
+      begin match xs with
+        | [x; B.Application (A.Constructor s, ys)] -> PointsTo (x, s, ys)
+        |  _ -> Utils.internal_error ("Invalid pointer expression: " ^ show phi)
+      end
     | A.Predicate (p, defs) -> Predicate (Identifier.show p, xs, defs)
     | A.And -> And xs
     | A.GuardedNot -> GuardedNeg (List.nth xs 0, List.nth xs 1)
@@ -177,7 +181,7 @@ let mk_eq xs = match mk_eq xs with
 let rec select_subformulae pred phi =
   let acc = match phi with
     | Variable _ -> []
-    | Application ((PointsTo _ | Predicate _ | Equal | Distinct | Pure), _) -> [] (* Stop *)
+    | Application ((PointsTo | Predicate _ | Equal | Distinct | Pure), _) -> [] (* Stop *)
     | Application (_, xs) -> BatList.concat_map (select_subformulae pred) xs
     | Binder (_, _, x) -> select_subformulae pred x
   in
@@ -221,7 +225,7 @@ let is_pure psi = match psi with
   | Variable v -> Variable.is_pure v
   | _ ->
     for_all_apps (function
-      | Predicate _ | PointsTo _ | Emp | Star | Septraction -> false
+      | Predicate _ | PointsTo | Emp | Star | Septraction -> false
       | _ -> true
     ) psi
 

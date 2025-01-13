@@ -10,6 +10,7 @@
     ocamlgraph
     yojson
     ppx_deriving
+    sexplib
   )
 
   (preprocess
