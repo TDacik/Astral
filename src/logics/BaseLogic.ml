@@ -781,6 +781,7 @@ type sexp_action =
   | Skip
 
 let app_to_sexp app xs = match app with
+  | Application.Equal -> App "="
   | Application.Star -> App "sep"
   | Application.GuardedNot -> Modify ("and", [List.hd xs; Boolean.mk_not @@ List.nth xs 1])
   | Application.Pure -> Skip
