@@ -49,7 +49,7 @@ let rec rm path =
 let decorate fn = fun arg ->
   if not @@ Options.debug () then ()
   else if Options.interactive () && not @@ Sys.file_exists (debug_dir ()) then
-    Sys.mkdir (debug_dir ()) 0o775; fn arg
+    (Sys.mkdir (debug_dir ()) 0o775; fn arg)
   else fn arg
 
 (** Initialize debug model *)
