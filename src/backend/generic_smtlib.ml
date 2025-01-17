@@ -9,6 +9,9 @@
 
 exception NonStandardTerm of string
 
+let translate_var var =
+  Format.asprintf "%s!%s" (SMT.Variable.show var) (Sort.show_kind @@ SMT.Variable.get_sort var)
+
 let translate_header translate_sort xs =
   List.map (fun x ->
     Format.asprintf "(%s %s)"
@@ -17,14 +20,10 @@ let translate_header translate_sort xs =
   ) xs
   |> String.concat " "
 
-let rec translate_decl var translate_sort =
-  let name, sort = SMT.Variable.describe var in
-  Format.asprintf "(declare-const %s %s)" name (translate_sort sort)
-
 (** Translation of standard terms. Translation of non-standard term raises exception
     that should be handled by concrete solver. *)
-and translate_std translate translate_sort term = match SMT.view term with
-  | SMT.Variable var -> SMT.Variable.show var
+let rec translate_std translate translate_sort term = match SMT.view term with
+  | SMT.Variable var -> translate_var var
   | SMT.Constant (name, _) -> name
   | SMT.True -> "true"
   | SMT.False -> "false"
