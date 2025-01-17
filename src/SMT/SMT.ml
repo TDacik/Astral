@@ -8,8 +8,12 @@ module A = BaseLogic.Application
 module B = BaseLogic
 include B
 
-let of_base_logic = Fun.id
 let to_base_logic = Fun.id
+
+let of_base_logic =
+  BaseLogic.map_app (fun app xs -> match app, xs with
+    | Application.GuardedNot, [lhs; rhs] -> Boolean.mk_and [lhs; Boolean.mk_not rhs]
+  )
 
 type var = B.Variable.t
 

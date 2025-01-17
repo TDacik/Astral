@@ -168,7 +168,9 @@ let mk_var = BaseLogic.mk_var
 let mk_fresh_var = BaseLogic.mk_fresh_var
 
 (** Redefinition with compatible types *)
-let mk_pure smt = SeparationLogic.mk_pure (of_smt smt)
+let mk_pure smt =
+  let smt = SMT.of_base_logic @@ SMT.to_base_logic smt in
+  SeparationLogic.mk_pure (of_smt smt)
 
 let mk_not phi = BaseLogic.mk_app Not [phi]
 
