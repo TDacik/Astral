@@ -85,6 +85,8 @@ val get_constant_names : t -> string list
 val is_atomic : t -> bool
 (** Atomic sorts are Bool, Int, Finite, Bitvector and Loc. *)
 
+val show_kind : t -> string
+
 (** {2 Operations} *)
 
 val substitute : t -> t -> t -> t

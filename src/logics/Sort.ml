@@ -84,6 +84,15 @@ let rec show = function
   | Sum sorts -> "(" ^ (String.concat " | " @@ List.map show sorts) ^ ")"
   | Uninterpreted name -> Identifier.show name
 
+let rec show_kind = function
+  | Bool -> "bool"
+  | Int -> "int"
+  | Loc (name, _) -> "loc_" ^ (Identifier.show name)
+  | Finite (name, _) -> "finite_" ^ (Identifier.show name)
+  | Array (dom, range) -> "array_" ^ (show_kind dom) ^ "_" ^ (show_kind range)
+  | Bitvector width -> "bitvector_" ^ string_of_int width
+  | Uninterpreted name -> "uninterpreted_" ^ (Identifier.show name)
+
 let name = function
   | Loc (name, _) -> Identifier.show name
   | Bitvector width -> Format.asprintf "Bitvector%d" width

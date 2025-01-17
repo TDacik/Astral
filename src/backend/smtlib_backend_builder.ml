@@ -40,7 +40,7 @@ module Make (Backend : SMTLIB_BACKEND) = struct
 
   let translate_var_decl var =
     Format.asprintf "(declare-const %s %s)"
-      (SMT.Variable.show var)
+      (translate_var var)
       (translate_sort @@ SMT.Variable.get_sort var)
 
   let translate_sort_decl = function
