@@ -205,11 +205,16 @@ let register () = SID.register (module Self : ID_sig.BUILTIN)
 
 let mk_pto x ~next ~prev = SL.mk_pto_struct x struct_dls [next; prev]
 
-let mk root ~sink ~root' ~sink' =
-  SL.mk_predicate "dls" [root; sink; sink'; root'] ~structs:[struct_dls]
+let _mk ~root ~sink ~root' ~sink' struct_def =
+  let pred = SL.mk_predicate "dls" [root; root'; sink'; sink] ~structs:[struct_def] in
+  match preprocess SL_graph.empty [root; root'; sink'; sink] with
+  | None -> pred
+  | Some phi -> phi
+
+let mk root ~sink ~root' ~sink' = _mk ~root ~sink ~root' ~sink' struct_dls
 
 let mk' def ~root ~sink ~root' ~sink' =
   let sort = SL.Term.get_sort root in
   match Self0.check_instantiation sort def with
-    | Ok _ -> SL.mk_predicate "dls" [root; sink; sink'; root'] ~structs:[def]
+    | Ok _ -> _mk ~root ~root' ~sink' ~sink def
     | Error str -> failwith str

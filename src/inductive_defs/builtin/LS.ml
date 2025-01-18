@@ -154,11 +154,17 @@ let register () = SID.register (module Self : ID_sig.BUILTIN)
 
 let mk_pto x ~next = SL.mk_pto x next
 
-let mk x ~sink = SL.mk_predicate "ls" [x; sink] ~structs:[struct_ls]
+let _mk x y struct_def =
+  let pred = SL.mk_predicate "ls" [x; y] ~structs:[struct_ls] in
+  match preprocess SL_graph.empty [x; y] with
+  | None -> pred
+  | Some phi -> phi
+
+let mk x ~sink = _mk x sink struct_ls
 
 let mk' ?def x ~sink =
   let sort = SL.Term.get_sort x in
   let def = Option.value def ~default:struct_ls in
   match check_instantiation sort def with
-    | Ok _ -> SL.mk_predicate "ls" [x; sink] ~structs:[def]
+    | Ok _ -> _mk x sink def
     | Error str -> failwith str
