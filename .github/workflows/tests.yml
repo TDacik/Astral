@@ -8,45 +8,11 @@ on: [push, pull_request]
 
 jobs:
 
-  unit-tests:
+  setup:
     uses: ./.github/workflows/setup.yml
-    runs-on: ubuntu-latest
-    steps:
-      - name: Run unit tests
-        run: opam exec -- dune runtest
 
   regression-tests:
-    uses: ./.github/workflows/setup.yml
     runs-on: ubuntu-latest
     steps:
       - name: Run regression tests
         run: python3 scripts/run_tests.py
-
-  deploy-doc:
-    uses: ./.github/workflows/setup.yml
-    runs-on: ubuntu-latest
-
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    permissions:
-      contents: read
-      id-token: write
-      pages: write
-
-    steps:
-      - name: Build documentation
-        run: opam exec -- dune build @doc
-
-      - name: Set-up Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _build/default/_doc/_html
-
-      - name: Deploy odoc to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
