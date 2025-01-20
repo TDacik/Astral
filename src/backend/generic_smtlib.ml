@@ -10,7 +10,10 @@
 exception NonStandardTerm of string
 
 let translate_var var =
+  (*
   Format.asprintf "%s!%s" (SMT.Variable.show var) (Sort.show_kind @@ SMT.Variable.get_sort var)
+  *)
+  SMT.Variable.show var
 
 let translate_header translate_sort xs =
   List.map (fun x ->
