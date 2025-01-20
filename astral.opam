@@ -15,7 +15,7 @@ dev-repo: "git://github.com/TDacik/Astral.git"
 bug-reports: "https://github.com/TDacik/Astral/issues"
 
 depends: [
-  "ocaml"
+  "ocaml" {>= "5.1.0"}
   "dune"
   "batteries"
   "z3"
