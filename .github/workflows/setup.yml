@@ -18,7 +18,6 @@ jobs:
         uses: ocaml/setup-ocaml@v2
         with:
           ocaml-compiler: 4.2
-          dunecache: true
 
       - name: Install dependencies
         run: opam install -y --deps-only --with-test --with-doc .
