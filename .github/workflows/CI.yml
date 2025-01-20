@@ -17,7 +17,7 @@ jobs:
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: 4.2
+          ocaml-compiler: 4.14.1
 
       - name: Install dependencies
         run: opam install -y --deps-only --with-test .
@@ -37,7 +37,7 @@ jobs:
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: 4.2
+          ocaml-compiler: 4.14.1
 
       - name: Install dependencies
         run: opam install -y --deps-only --with-test .
@@ -67,7 +67,7 @@ jobs:
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: 4.2
+          ocaml-compiler: 4.14.1
 
       - name: Install dependencies
         run: opam install -y --deps-only --with-test --with-doc .
