@@ -1,0 +1,88 @@
+# Workflow for running tests
+#
+# Author: Tomas Dacik (idacik@fit.vut.cz), 2022
+
+name: Run tests
+
+on: [push, pull_request]
+
+jobs:
+
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set-up OCaml
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: 4.2
+
+      - name: Install dependencies
+        run: opam install -y --deps-only --with-test .
+
+      - name: Install Astral
+        run: opam exec -- dune build
+
+      - name: Run unit tests
+        run: opam exec -- dune runtest
+
+  regression-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set-up OCaml
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: 4.2
+
+      - name: Install dependencies
+        run: opam install -y --deps-only --with-test .
+
+      - name: Install Astral
+        run: opam exec -- dune build
+
+      - name: Run regression tests
+        run: python3 scripts/run_tests.py
+
+  deploy-doc:
+    runs-on: ubuntu-latest
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    permissions:
+      contents: read
+      id-token: write
+      pages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set-up OCaml
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: 4.2
+
+      - name: Install dependencies
+        run: opam install -y --deps-only --with-test --with-doc .
+
+      - name: Build documentation
+        run: opam exec -- dune build @doc
+
+      - name: Set-up Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _build/default/_doc/_html
+
+      - name: Deploy odoc to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
