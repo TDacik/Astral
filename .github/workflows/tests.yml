@@ -8,39 +8,22 @@ on: [push, pull_request]
 
 jobs:
 
-  build:
+  unit-tests:
+    uses: .github/workflows/setup.yml
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set-up OCaml
-        uses: ocaml/setup-ocaml@v3
-        with:
-          ocaml-compiler: 5.2
-
-      - name: Install dependencies
-        run: opam install -y --deps-only --with-test --with-doc .
-
-      - name: Install Astral
-        run: opam exec -- dune build
-
-  unit-tests:
-    needs: build
-    runs-on: ubuntu-latest
-    steps: 
       - name: Run unit tests
         run: opam exec -- dune runtest
 
   regression-tests:
-    needs: build
+    uses: .github/workflows/setup.yml
     runs-on: ubuntu-latest
-    steps: 
+    steps:
       - name: Run regression tests
         run: python3 scripts/run_tests.py
-  
+
   deploy-doc:
-    needs: build
+    uses: .github/workflows/setup.yml
     runs-on: ubuntu-latest
 
     environment:
@@ -52,7 +35,7 @@ jobs:
       id-token: write
       pages: write
 
-    steps: 
+    steps:
       - name: Build documentation
         run: opam exec -- dune build @doc
 
