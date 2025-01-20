@@ -2,9 +2,10 @@
 #
 # Author: Tomas Dacik (idacik@fit.vut.cz), 2025
 
+name: Setup Astral
+
 on:
   workflow_call:
-    inputs: []
 
 jobs:
   build:

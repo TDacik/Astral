@@ -9,21 +9,21 @@ on: [push, pull_request]
 jobs:
 
   unit-tests:
-    uses: .github/workflows/setup.yml@dev
+    uses: tdacik/astral.github/workflows/setup.yml
     runs-on: ubuntu-latest
     steps:
       - name: Run unit tests
         run: opam exec -- dune runtest
 
   regression-tests:
-    uses: .github/workflows/setup.yml@dev
+    uses: tdacik/astral.github/workflows/setup.yml
     runs-on: ubuntu-latest
     steps:
       - name: Run regression tests
         run: python3 scripts/run_tests.py
 
   deploy-doc:
-    uses: .github/workflows/setup.yml@dev
+    uses: tdacik/astral.github/workflows/setup.yml
     runs-on: ubuntu-latest
 
     environment:
