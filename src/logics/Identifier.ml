@@ -30,7 +30,10 @@ include Datatype.Collections(Self)
 
 module HT = struct
 
-  include Hashtbl.Make(String)
+  include Hashtbl.Make(struct
+    include String
+    let hash = Hashtbl.hash (* Remove after switching to OCaml 5 *)
+  end)
 
   let find_tag table name = fst @@ find table name
 
