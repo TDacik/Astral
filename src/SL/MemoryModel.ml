@@ -19,7 +19,7 @@ module StructDef = struct
   let compare s1 s2 = Identifier.compare s1.name s2.name
   let equal s1 s2 = Identifier.equal s1.name s2.name
 
-  let ls = mk "LS_t" "c_ls" [Field.mk "next" Sort.loc_ls]
+  let ls = mk "LS_t" "c_ls" [Field.mk "field_next" Sort.loc_ls]
 
   let signature def = List.map Field.get_sort def.fields
 
@@ -34,7 +34,7 @@ module StructDef = struct
     let sort_name = Sort.name sort in
     let name = Format.asprintf "%s_wrapper" sort_name in
     let cons = sort_name ^ "_c" in
-    let field = Field.mk ("next") sort in (* TODO: should be qualified? *)
+    let field = Field.mk ("field_next") sort in (* TODO: should be qualified? *)
     mk name cons [field]
 
   let get_name def = Identifier.show def.name

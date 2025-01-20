@@ -18,7 +18,7 @@ module Field = struct
       (Identifier.show id)
       (Sort.show sort)
 
-  let next = mk "next" Sort.loc_ls
+  let next = mk "field_next" Sort.loc_ls
 
   let smt2_decl (id, sort) =
     Format.asprintf "%s %s"
