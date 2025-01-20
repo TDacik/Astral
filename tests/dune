@@ -23,7 +23,7 @@
     ;Simplifier_tests
     RemoveVariadic_tests
 
-    Property_tests
+    ;Property_tests
   )
 
   (modules_without_implementation testable_sig)

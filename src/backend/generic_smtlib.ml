@@ -15,7 +15,7 @@ let translate_var var =
 let translate_header translate_sort xs =
   List.map (fun x ->
     Format.asprintf "(%s %s)"
-      (SMT.Variable.show x)
+      (translate_var x)
       (translate_sort @@ SMT.Variable.get_sort x)
   ) xs
   |> String.concat " "
