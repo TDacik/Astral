@@ -18,6 +18,7 @@ jobs:
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: 5.1.0
+          dune-cache: true
 
       - name: Install dependencies
         run: opam install -y --deps-only --with-test .
@@ -38,6 +39,7 @@ jobs:
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: 5.1.0
+          dune-cache: true
 
       - name: Install dependencies
         run: opam install -y --deps-only --with-test .
@@ -68,6 +70,7 @@ jobs:
         uses: ocaml/setup-ocaml@v3
         with:
           ocaml-compiler: 5.1.0
+          dune-cache: true
 
       - name: Install dependencies
         run: opam install -y --deps-only --with-test --with-doc .
