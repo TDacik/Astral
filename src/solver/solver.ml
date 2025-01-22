@@ -51,6 +51,8 @@ let json_stats solver =
      "Queries",    `Assoc (List.map (fun (name, f) -> name, `Float f) stats)
    ]
 
+let query_id () = !Logger_state.query_counter
+
 let dump_stats solver = match solver.dump_queries with
   | `None -> ()
   | `Full dir ->

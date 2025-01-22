@@ -22,6 +22,8 @@ val init :
 
 val solve : solver -> SL.t -> [ `Sat of StackHeapModel.t option | `Unsat | `Unknown of string ]
 
+val query_id: unit -> int
+
 val dump_stats : solver -> unit
 
 (** {2 Queries} *)
