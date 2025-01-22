@@ -62,7 +62,7 @@ let second_phase_aux aggresive context =
 
   let phi' = apply_list phi [
     UnfoldIDs.apply context.location_bounds, "predicate_unfolding";
-    Antiprenexing.apply, "antiprenexing";
+    (*Antiprenexing.apply, "antiprenexing";*)
     QuantifierElimination.apply context.sl_graph, "quantifier_elimination";
     IntroduceIfThenElse.apply, "ite_introduction";
     Simplifier.simplify ~dont_care:[], "simplification";
