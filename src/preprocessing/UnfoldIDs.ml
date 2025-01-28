@@ -6,9 +6,10 @@ let unfold_predicate_lhs name xs =
     name (SL.Term.show_list xs) bound;
   SID.unfold name xs bound
 
-let unfold_predicate_rhs loc_bound g name xs =
+let unfold_predicate_rhs phi loc_bound g name xs =
   let def = SID.get_definition name in
-  let max_bound = LocationBounds.sum loc_bound in
+  (*let max_bound = LocationBounds.sum loc_bound in*)
+  let max_bound = 1 + (List.length @@ SL.free_vars phi) in
   Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
     name (SL.Term.show_list xs) max_bound;
   SID.unfold_synchronised SL_graph.empty name xs max_bound
@@ -18,9 +19,9 @@ let unfold_lhs = SL.map_view (function
     unfold_predicate_lhs name xs
 )
 
-let unfold_rhs bound g = SL.map_view (function
+let unfold_rhs bound g phi = SL.map_view (function
   | Predicate (name, xs, _) when not @@ SID.is_builtin name ->
-    unfold_predicate_rhs bound g name xs
+    unfold_predicate_rhs phi bound g name xs
 )
 
 let apply location_bound phi =
@@ -30,6 +31,6 @@ let apply location_bound phi =
   | GuardedNeg (lhs, rhs) ->
     let lhs = unfold_lhs lhs in
     let sl_graph = SL_graph.compute lhs in
-    let rhs = unfold_rhs location_bound sl_graph rhs in
+    let rhs = unfold_rhs location_bound sl_graph phi rhs in
     SL.mk_gneg lhs rhs
   | _ -> phi
