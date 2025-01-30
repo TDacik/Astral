@@ -15,12 +15,18 @@ val init :
   unit -> solver
 (** Create a solver object:
 
+    @param timeout Timeout in seconds. When the given limit is reached, return unknown.
     @param backend Backend SMT solver
     @param encoding Strategy for encoding
     @param use_builtins_defs Use builtin sorts, structures and inductive definitions
     @param dump_queries Store queries in directory given by the path. *)
 
-val solve : solver -> SL.t -> [ `Sat of StackHeapModel.t option | `Unsat | `Unknown of string ]
+val solve : ?timeout:Int.t -> solver -> SL.t -> [ `Sat of StackHeapModel.t option | `Unsat | `Unknown of string ]
+(** Check satisfiability of a formula.
+
+    @param timeout Timeout in seconds. When the given limit is reached, return unknown.
+                   When used, has higher priority than limit set by solver initialisation. *)
+
 
 val query_id: unit -> int
 

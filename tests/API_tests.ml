@@ -66,31 +66,36 @@ let nls_test2 () =
 
 (** Timeout *)
 
-let timeout_backend_test () =
-  let solver = Solver.init ~timeout:1 () in
+let timeout_template size init_to call_to expected_reason =
+  let solver = match init_to with
+    | None -> Solver.init ()
+    | Some timeout -> Solver.init ~timeout ()
+  in
   let phi = SL.mk_not @@ SL.mk_and [
     mk_ls x ~sink:y;
-    SL.mk_not (SL.mk_star @@ List.init 10 (fun _ -> SL.mk_not SL.emp))
+    SL.mk_not (SL.mk_star @@ List.init size (fun _ -> SL.mk_not SL.emp))
   ]
   in
-  let res = Solver.solve solver phi in
+  let res = match call_to with
+    | None -> Solver.solve solver phi
+    | Some timeout -> Solver.solve solver ~timeout phi
+  in
   assert (match res with
-    | `Unknown "canceled" -> true
+    | `Unknown reason -> String.equal reason expected_reason
     | _ -> false
   )
 
-let timeout_astral_test () =
-  let solver = Solver.init ~timeout:1 () in
-  let phi = SL.mk_not @@ SL.mk_and [
-    mk_ls x ~sink:y;
-    SL.mk_not (SL.mk_star @@ List.init 100 (fun _ -> SL.mk_not SL.emp))
-  ]
-  in
-  let res = Solver.solve solver phi in
-  assert (match res with
-    | `Unknown "astral timeout" -> true
-    | _ -> false
-  )
+let timeout_backend_test1 () =
+  timeout_template 40 (Some 1) None "canceled"
+
+let timeout_backend_test2 () =
+  timeout_template 40 None (Some 1) "canceled"
+
+let timeout_astral_test1 () =
+  timeout_template 100 (Some 1) None "astral timeout"
+
+let timeout_astral_test2 () =
+  timeout_template 100 None (Some 1) "astral timeout"
 
 (** Output *)
 
@@ -107,8 +112,10 @@ let () =
       test_case "input"   `Quick debug_input;
     ];
     "timeout", [
-      test_case "Backend timeout"   `Quick timeout_backend_test;
-      test_case "Astral timeout"    `Quick timeout_astral_test;
+      test_case "Backend timeout (init)"   `Quick timeout_backend_test1;
+      test_case "Backend timeout (solve)"  `Quick timeout_backend_test2;
+      test_case "Astral timeout (init)"    `Quick timeout_astral_test1;
+      test_case "Astral timeout (solve)"   `Quick timeout_astral_test2;
     ];
     "check_sat", [
       test_case "sat"   `Quick check_sat_test1;

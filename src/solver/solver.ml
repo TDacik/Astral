@@ -117,22 +117,21 @@ let _solve solver phi =
 exception UnknownResult of string
 exception Timeout
 
-let solve solver phi = match solver.timeout with
+let solve ?timeout solver phi =
+  let timeout = match solver.timeout, timeout with
+    | None, None -> None
+    | Some solver_to, None -> Some solver_to
+    | _, Some call_to -> Some call_to
+  in
+  match timeout with
   | None -> _solve solver phi
   | Some timeout ->
     Sys.set_signal Sys.sigalrm (Sys.Signal_handle (function _ -> raise Timeout));
     ignore @@ Unix.alarm timeout;
+    let solver = {solver with timeout = Some timeout} in
     try _solve solver phi
     with Timeout -> `Unknown "astral timeout"
-    (*
-    let res = ref None in
-    let worker = Thread.create (fun () -> res  := Some (_solve solver phi)) () in
-    Thread.delay @@ Float.of_int timeout;
-    Unix.kill (Thread.id worker) Sys.sigkill;
-    match !res with
-      | None -> raise Timeout
-      | Some res -> res
-  *)
+
 let lift res = function
   | `Sat _ -> res
   | `Unsat -> not res
