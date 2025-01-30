@@ -40,8 +40,12 @@ module Init () = struct
 
   let is_available () = true
 
-  let init () =
-    context := Z3.mk_context [];
+  let init ?timeout () =
+    let params = match timeout with
+      | None -> []
+      | Some timeout -> [("timeout", string_of_int timeout)]
+    in
+    context := Z3.mk_context params;
     solver := Z3.Solver.mk_simple_solver !context
 
   (* === Translation === *)

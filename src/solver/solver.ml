@@ -9,6 +9,8 @@ type solver = {
   encoding : Options.encoding;
   quantifier_encoding : Options.quantifier_encoding;
 
+  timeout : int option;
+
   (* Options *)
   produce_models : bool;
   use_builtin_defs: bool;
@@ -34,6 +36,7 @@ let activate solver =
     LS.register (); DLS.register (); NLS.register ()
   end);
 
+  Options.set_backend_timeout solver.timeout;
   Options.set_produce_models solver.produce_models;
   Options.set_backend solver.backend;
   Options.set_encoding solver.encoding;
@@ -62,6 +65,7 @@ let dump_stats solver = match solver.dump_queries with
     close_out channel
 
 let init
+  ?timeout
   ?(backend=`Z3)
   ?(encoding=`Sets)
   ?(quantifier_encoding=`Direct)
@@ -75,6 +79,8 @@ let init
     encoding = encoding;
     quantifier_encoding = quantifier_encoding;
 
+    timeout = timeout;
+
     produce_models = produce_models;
     use_builtin_defs = use_builtin_defs;
     dump_queries = dump_queries;
@@ -87,7 +93,7 @@ let init
   Logger_state.init ();
   solver
 
-let solve solver phi =
+let _solve solver phi =
   reset ();
   activate solver;
   Logger_state.next_query ();
@@ -109,7 +115,24 @@ let solve solver phi =
   | `Unknown reason -> `Unknown reason
 
 exception UnknownResult of string
+exception Timeout
 
+let solve solver phi = match solver.timeout with
+  | None -> _solve solver phi
+  | Some timeout ->
+    Sys.set_signal Sys.sigalrm (Sys.Signal_handle (function _ -> raise Timeout));
+    ignore @@ Unix.alarm timeout;
+    try _solve solver phi
+    with Timeout -> `Unknown "astral timeout"
+    (*
+    let res = ref None in
+    let worker = Thread.create (fun () -> res  := Some (_solve solver phi)) () in
+    Thread.delay @@ Float.of_int timeout;
+    Unix.kill (Thread.id worker) Sys.sigkill;
+    match !res with
+      | None -> raise Timeout
+      | Some res -> res
+  *)
 let lift res = function
   | `Sat _ -> res
   | `Unsat -> not res

@@ -23,7 +23,10 @@ module Make (Backend : SMTLIB_BACKEND) = struct
     | 0 -> true
     | _ -> false
 
-  let init () = ()
+  let _timeout = ref (None : int option)
+
+  let init ?timeout () =
+    _timeout := timeout
 
   (** ==== Solver ==== *)
 
@@ -156,7 +159,14 @@ module Make (Backend : SMTLIB_BACKEND) = struct
     Sys.set_signal Sys.sigint clean;
 
     (* Wait for the result *)
-    let _, status = Unix.wait () in
+    let _, status = match !_timeout with
+      | None -> Unix.wait ()
+      | Some timeout ->
+        Thread.delay (Float.of_int timeout);
+        Unix.kill pid Sys.sigkill;
+        (pid, Unix.WSIGNALED 0)
+    in
+
     Unix.close input;
     close_out answer_channel;
     match status with
@@ -164,10 +174,13 @@ module Make (Backend : SMTLIB_BACKEND) = struct
       (*| WEXITED i -> failwith @@
         Format.asprintf "[ERROR] Backend solver %s exited with return code %d"
           Backend.name i*)
-      | WSIGNALED i | WSTOPPED i -> failwith @@
+      | WSIGNALED i | WSTOPPED i ->
+        SMT_Unknown "canceled"
+      (*
+          failwith @@
         Format.asprintf "[ERROR] Backend solver %s was killed/stoped by signal %d"
           Backend.name i
-
+      *)
 
 
   (* === Model manipulation === *)

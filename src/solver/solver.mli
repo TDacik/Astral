@@ -5,6 +5,7 @@
 type solver
 
 val init :
+  ?timeout : Int.t ->
   ?backend : Options.backend ->
   ?encoding : Options.encoding ->
   ?quantifier_encoding : Options.quantifier_encoding ->
@@ -18,7 +19,6 @@ val init :
     @param encoding Strategy for encoding
     @param use_builtins_defs Use builtin sorts, structures and inductive definitions
     @param dump_queries Store queries in directory given by the path. *)
-
 
 val solve : solver -> SL.t -> [ `Sat of StackHeapModel.t option | `Unsat | `Unknown of string ]
 

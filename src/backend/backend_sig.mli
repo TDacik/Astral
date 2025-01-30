@@ -38,7 +38,7 @@ module type BACKEND = sig
   val is_available : unit -> bool
   (** Check whether given solver is correctly installed. *)
 
-  val init : unit -> unit
+  val init : ?timeout:int -> unit -> unit
   (** @raise Not_available if the solver is not available. *)
 
   val translate : SMT.t -> formula

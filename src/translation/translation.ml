@@ -639,7 +639,10 @@ let translate_phi (ctx : Context.t) ssl_phi =
     let produce_models = input.raw_input.produce_models || Options_base.produce_models () in
     let user_options = Options_base.backend_options () in
 
-    Backend.init ();
+    let () = match Options.backend_timeout () with
+      | None -> Backend.init ()
+      | Some timeout -> Backend.init ~timeout ()
+    in
     let backend_translated = Backend.translate translated in
 
     (*Debug.context input;*)

@@ -137,6 +137,10 @@ let sl_quantifiers () = !_sl_quant
 let _backend = ref "auto"
 let backend () = !_backend
 
+let _backend_timeout = ref None
+let set_backend_timeout t = _backend_timeout := t
+let backend_timeout () = !_backend_timeout
+
 let _backend_options = ref ""
 let backend_options () = match !_backend_options with
   | "" -> []

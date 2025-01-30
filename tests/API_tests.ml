@@ -24,6 +24,7 @@ let corner_case_test1 () =
   let phi = SL_builtins.mk_ls nil ~sink:nil in
   assert (Solver.check_sat solver phi)
 
+
 (** DLS *)
 
 let root = SL.Term.mk_var "root" loc_dls
@@ -63,6 +64,34 @@ let nls_test2 () =
   assert (Solver.check_sat solver phi)
 
 
+(** Timeout *)
+
+let timeout_backend_test () =
+  let solver = Solver.init ~timeout:1 () in
+  let phi = SL.mk_not @@ SL.mk_and [
+    mk_ls x ~sink:y;
+    SL.mk_not (SL.mk_star @@ List.init 10 (fun _ -> SL.mk_not SL.emp))
+  ]
+  in
+  let res = Solver.solve solver phi in
+  assert (match res with
+    | `Unknown "canceled" -> true
+    | _ -> false
+  )
+
+let timeout_astral_test () =
+  let solver = Solver.init ~timeout:1 () in
+  let phi = SL.mk_not @@ SL.mk_and [
+    mk_ls x ~sink:y;
+    SL.mk_not (SL.mk_star @@ List.init 100 (fun _ -> SL.mk_not SL.emp))
+  ]
+  in
+  let res = Solver.solve solver phi in
+  assert (match res with
+    | `Unknown "astral timeout" -> true
+    | _ -> false
+  )
+
 (** Output *)
 
 let debug_input () =
@@ -76,6 +105,10 @@ let () =
   run "API" [
     "debug", [
       test_case "input"   `Quick debug_input;
+    ];
+    "timeout", [
+      test_case "Backend timeout"   `Quick timeout_backend_test;
+      test_case "Astral timeout"    `Quick timeout_astral_test;
     ];
     "check_sat", [
       test_case "sat"   `Quick check_sat_test1;

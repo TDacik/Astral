@@ -77,6 +77,9 @@ val sl_quantifiers : unit -> bool
 val backend : unit -> string
 val set_backend : string -> unit
 
+val backend_timeout : unit -> int option
+val set_backend_timeout : int option -> unit
+
 val backend_options : unit -> string list
 
 val max_footprints : unit -> int option
