@@ -68,16 +68,12 @@ module Enumeration (L : LOCATIONS) = struct
           BatList.fold_left2 (enumerate Boolean.mk_and) phi [x1; x2] [fst; snd]
         *)
         | Exists2 (xs, None, phi) ->
-          Format.printf "TODO 1\n";
           BatList.fold_left2 (enumerate Boolean.mk_or) phi xs (enumerate_footprints xs context)
         | Forall2 (xs, None, phi) ->
-          Format.printf "TODO 2\n";
           BatList.fold_left2 (enumerate Boolean.mk_and) phi xs (enumerate_footprints xs context)
         | Exists2 (xs, Some ranges, phi) ->
-          Format.printf "TODO: %d x %d\n" (List.length xs) (List.length ranges);
           BatList.fold_left2 (enumerate Boolean.mk_or) phi xs (List.map Lazy.force ranges)
         | Forall2 (xs, Some ranges, phi) ->
-          Format.printf "TODO 4\n";
           BatList.fold_left2 (enumerate Boolean.mk_and) phi xs (List.map Lazy.force ranges)
 
       ) phi
