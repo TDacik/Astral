@@ -17,7 +17,7 @@ let loc_ls = Sort.loc_ls
 
 let next = Field.mk "field_next" loc_ls
 
-let struct_ls = StructDef.mk "LS_t" "c_ls" [next]
+let struct_ls = StructDef.mk "LS_t" ~cons:"c_ls" [next]
 
 (** Constructor *)
 

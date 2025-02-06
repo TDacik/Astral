@@ -70,7 +70,7 @@ let memory_model_test () =
   let tree_sort = Sort.mk_loc "Tree" in
   let left = Field.mk "left" tree_sort in
   let right = Field.mk "right" tree_sort in
-  let tree_struct = StructDef.mk "tree_t" "tree_c" [left; right] in
+  let tree_struct = StructDef.mk "tree_t" ~cons:"tree_c" [left; right] in
   let x = SL.Term.mk_var "x" tree_sort in
   let phi = SL.mk_pto_struct x tree_struct [x; x] in
 

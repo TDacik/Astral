@@ -21,7 +21,7 @@ let loc_nls = Sort.mk_loc "NLS_t" ~aliases:["RefNll_t"]
 let top = Field.mk "field_top" loc_nls
 let next = Field.mk "field_next" loc_ls
 
-let struct_nls = StructDef.mk "NLS_t" "c_nls" [top; next]
+let struct_nls = StructDef.mk "NLS_t" ~cons:"c_nls" [top; next]
 
 let mk_pto_nls x top next = SL.mk_pto_struct x struct_nls [top; next]
 

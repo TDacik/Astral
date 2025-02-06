@@ -51,9 +51,9 @@ let find_sort ctx name =
   try M.find name ctx.sorts
   with Not_found -> raise @@ SortNotDeclared name
 
-let declare_struct ctx name cs_name fields =
-  let def = StructDef.mk name cs_name fields in
-  {ctx with struct_defs = M.add cs_name def ctx.struct_defs}
+let declare_struct ctx name cons fields =
+  let def = StructDef.mk name ~cons fields in
+  {ctx with struct_defs = M.add cons def ctx.struct_defs}
 
 let is_declared_struct ctx name = M.mem name ctx.struct_defs
 

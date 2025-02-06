@@ -10,16 +10,16 @@ module StructDef = struct
     fields : Field.t list;
   }
 
-  let mk name cons fields = {
+  let mk name ?cons fields = {
     name = ID.mk name;
-    cons = ID.mk cons;
+    cons = ID.mk (Option.value cons ~default:name);
     fields = fields;
   }
 
   let compare s1 s2 = Identifier.compare s1.name s2.name
   let equal s1 s2 = Identifier.equal s1.name s2.name
 
-  let ls = mk "LS_t" "c_ls" [Field.mk "field_next" Sort.loc_ls]
+  let ls = mk "LS_t" ~cons:"c_ls" [Field.mk "field_next" Sort.loc_ls]
 
   let signature def = List.map Field.get_sort def.fields
 
@@ -28,14 +28,14 @@ module StructDef = struct
     let name = "tuple_" ^ string_of_int n in
     let cons = name ^ "_c" in
     let fields = List.init n (fun i -> Field.mk ("f_" ^ string_of_int i) sort) in
-    mk name cons fields
+    mk name ~cons fields
 
   let lift_sort sort =
     let sort_name = Sort.name sort in
     let name = Format.asprintf "%s_wrapper" sort_name in
     let cons = sort_name ^ "_c" in
     let field = Field.mk ("field_next") sort in (* TODO: should be qualified? *)
-    mk name cons [field]
+    mk name ~cons [field]
 
   let get_name def = Identifier.show def.name
 
