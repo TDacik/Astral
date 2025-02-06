@@ -63,6 +63,21 @@ let nls_test2 () =
   let phi = mk_nls nil ~sink:nil ~bottom:nil in
   assert (Solver.check_sat solver phi)
 
+(** Custom memory model *)
+
+let memory_model_test () =
+  let open MemoryModel in
+  let tree_sort = Sort.mk_loc "Tree" in
+  let left = Field.mk "left" tree_sort in
+  let right = Field.mk "right" tree_sort in
+  let tree_struct = StructDef.mk "tree_t" "tree_c" [left; right] in
+  let x = SL.Term.mk_var "x" tree_sort in
+  let phi = SL.mk_pto_struct x tree_struct [x; x] in
+
+  let heap_sort = HeapSort.of_list [(tree_sort, tree_struct)] in
+  let solver = Solver.init () in
+  let solver = Solver.set_heap_sort solver heap_sort in
+  assert (Solver.check_sat solver phi)
 
 (** Timeout *)
 
@@ -110,6 +125,9 @@ let () =
   run "API" [
     "debug", [
       test_case "input"   `Quick debug_input;
+    ];
+    "Custom memory model", [
+      test_case "tree ptr"   `Quick memory_model_test;
     ];
     "timeout", [
       test_case "Backend timeout (init)"   `Quick timeout_backend_test1;

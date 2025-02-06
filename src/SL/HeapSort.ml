@@ -9,6 +9,8 @@ include M
 
 type t = M.t
 
+let to_list = M.bindings
+
 let show self =
   M.bindings self
   |> List.map (fun (dom, range) ->

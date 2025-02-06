@@ -27,6 +27,8 @@ val solve : ?timeout:Int.t -> solver -> SL.t -> [ `Sat of StackHeapModel.t optio
     @param timeout Timeout in seconds. When the given limit is reached, return unknown.
                    When used, has higher priority than limit set by solver initialisation. *)
 
+val set_heap_sort : solver -> HeapSort.t -> solver
+
 
 val query_id: unit -> int
 

@@ -11,6 +11,8 @@ val union : t list -> t
 
 val of_list : (Sort.t * StructDef.t) list -> t
 
+val to_list : t -> (Sort.t * StructDef.t) list
+
 val find_target : Sort.t -> t -> StructDef.t
 (** Find target struct for a location sort. *)
 

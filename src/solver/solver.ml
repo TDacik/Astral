@@ -9,6 +9,8 @@ type solver = {
   encoding : Options.encoding;
   quantifier_encoding : Options.quantifier_encoding;
 
+  heap_sort : HeapSort.t;
+
   timeout : int option;
 
   (* Options *)
@@ -79,6 +81,8 @@ let init
     encoding = encoding;
     quantifier_encoding = quantifier_encoding;
 
+    heap_sort = HeapSort.empty;
+
     timeout = timeout;
 
     produce_models = produce_models;
@@ -93,6 +97,9 @@ let init
   Logger_state.init ();
   solver
 
+let set_heap_sort solver heap_sort =
+  {solver with heap_sort = heap_sort}
+
 let _solve solver phi =
   reset ();
   activate solver;
@@ -102,6 +109,7 @@ let _solve solver phi =
   let input =
     let input = if solver.use_builtin_defs then SID.builtin_context () else Input.empty () in
     let input = Input.add_assertion input phi in
+    let input = Input.declare_heap_sort input @@ HeapSort.to_list solver.heap_sort in
     Input.add_vars input vars
   in
   Debug.input input;
