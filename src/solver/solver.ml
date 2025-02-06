@@ -97,7 +97,7 @@ let init
   Logger_state.init ();
   solver
 
-let set_heap_sort solver heap_sort =
+let set_heap_sort heap_sort solver =
   {solver with heap_sort = heap_sort}
 
 let _solve solver phi =

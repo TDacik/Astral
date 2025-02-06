@@ -75,8 +75,7 @@ let memory_model_test () =
   let phi = SL.mk_pto_struct x tree_struct [x; x] in
 
   let heap_sort = HeapSort.of_list [(tree_sort, tree_struct)] in
-  let solver = Solver.init () in
-  let solver = Solver.set_heap_sort solver heap_sort in
+  let solver = Solver.init () |> Solver.set_heap_sort heap_sort in
   assert (Solver.check_sat solver phi)
 
 let combined_memory_model_test () =
@@ -93,8 +92,7 @@ let combined_memory_model_test () =
   in
 
   let heap_sort = HeapSort.of_list [(tree_sort, tree_struct)] in
-  let solver = Solver.init () in
-  let solver = Solver.set_heap_sort solver heap_sort in
+  let solver = Solver.init () |> Solver.set_heap_sort heap_sort in
   assert (Solver.check_sat solver phi)
 
 (** Timeout *)
