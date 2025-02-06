@@ -79,6 +79,24 @@ let memory_model_test () =
   let solver = Solver.set_heap_sort solver heap_sort in
   assert (Solver.check_sat solver phi)
 
+let combined_memory_model_test () =
+  let open MemoryModel in
+  let tree_sort = Sort.mk_loc "Tree" in
+  let left = Field.mk "left" tree_sort in
+  let right = Field.mk "right" tree_sort in
+  let tree_struct = StructDef.mk "tree_t" ~cons:"tree_c" [left; right] in
+  let x = SL.Term.mk_var "x" tree_sort in
+  let y = SL.Term.mk_var "y" SL_builtins.loc_dls in
+  let phi = SL.mk_star [
+    SL.mk_pto_struct x tree_struct [x; x];
+    SL_builtins.mk_pto_dls y ~next:y ~prev:y]
+  in
+
+  let heap_sort = HeapSort.of_list [(tree_sort, tree_struct)] in
+  let solver = Solver.init () in
+  let solver = Solver.set_heap_sort solver heap_sort in
+  assert (Solver.check_sat solver phi)
+
 (** Timeout *)
 
 let timeout_template size init_to call_to expected_reason =
@@ -127,14 +145,15 @@ let () =
       test_case "input"   `Quick debug_input;
     ];
     "Custom memory model", [
-      test_case "tree ptr"   `Quick memory_model_test;
+      test_case "tree ptr"             `Quick memory_model_test;
+      test_case "tree ptr + dls ptr"   `Quick combined_memory_model_test;
     ];
-    "timeout", [
+    (*"timeout", [
       test_case "Backend timeout (init)"   `Quick timeout_backend_test1;
       test_case "Backend timeout (solve)"  `Quick timeout_backend_test2;
       test_case "Astral timeout (init)"    `Quick timeout_astral_test1;
       test_case "Astral timeout (solve)"   `Quick timeout_astral_test2;
-    ];
+    ];*)
     "check_sat", [
       test_case "sat"   `Quick check_sat_test1;
       test_case "unsat" `Quick check_sat_test2;

@@ -108,8 +108,9 @@ let _solve solver phi =
   let vars = SL.free_vars ~with_nil:false phi in
   let input =
     let input = if solver.use_builtin_defs then SID.builtin_context () else Input.empty () in
+    let heap_sort = HeapSort.to_list input.heap_sort @ HeapSort.to_list solver.heap_sort in
     let input = Input.add_assertion input phi in
-    let input = Input.declare_heap_sort input @@ HeapSort.to_list solver.heap_sort in
+    let input = Input.declare_heap_sort input heap_sort in
     Input.add_vars input vars
   in
   Debug.input input;
