@@ -12,6 +12,8 @@
 
 open SL
 
+module Logger = Logger.Make(struct let name = "Precise <-> Imprecise" let level = 3 end)
+
 (** Precise -> Imprecise *)
 
 let to_imprecise_sh psis =
@@ -63,13 +65,12 @@ let rec is_spatial_part phi = match SL.view phi with
 
 let is_imprecise_sh phi = match SL.view phi with
   | Eq _ | Distinct _ | PointsTo _ | Predicate _ | Emp -> true
+  | Star psis -> List.for_all SL.is_atom psis
   | And psis ->
     let _, spatial = List.partition SL.is_pure psis in
-    begin match List.map SL.view spatial with
+    begin match spatial with
     | [] -> true
-    | [_] when SL.is_atom @@ List.hd spatial -> true
-    | [Star atoms] -> List.for_all SL.is_atom atoms
-    | _ -> false
+    | xs -> List.for_all SL.is_symbolic_heap xs
     end
 
   | _ -> is_spatial_part phi
@@ -81,11 +82,9 @@ let is_existential_sh phi = match SL.view phi with
 (** TODO: existential symbolic heaps *)
 let to_precise phi = match SL.view phi with
   | _ when is_existential_sh phi -> to_precise_sh phi
-
   | GuardedNeg (lhs, rhs) when is_existential_sh lhs && is_existential_sh rhs ->
+    Logger.debug "Processing as entailment of symbolic heaps\n";
     SL.mk_gneg (to_precise_sh lhs) (to_precise_sh rhs)
-  (*
-  | GuardedNeg (lhs, Exists (xs, rhs)) when is_imprecise_sh lhs && is_existential_sh rhs ->
-    SL.mk_gneg (to_precise_sh lhs) (SL.mk_exists xs @@ to_precise_sh rhs)
-  *)
-  | _ -> to_precise_arbitrary phi
+  | _ ->
+    Logger.debug "Processing as arbitrary formula\n";
+    to_precise_arbitrary phi

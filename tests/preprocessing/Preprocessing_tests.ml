@@ -5,6 +5,14 @@
 module SL = SL_testable
 open SL
 
+let is_imprecise_sh_test1 () =
+  let phi = SL.mk_star [SL.mk_pto x y; SL_builtins.mk_ls x ~sink:y] in
+  SL.check PreciseToImprecise.is_imprecise_sh phi
+
+let is_imprecise_sh_test2 () =
+  let phi = SL.mk_and [SL.emp; SL.mk_star [SL.mk_pto x y; SL_builtins.mk_ls x ~sink:y]] in
+  SL.check PreciseToImprecise.is_imprecise_sh phi
+
 (** Precise -> imprecise *)
 
 let to_imprecise = PreciseToImprecise.to_imprecise
@@ -77,6 +85,10 @@ let pure_test2 () =
 
 let () =
   run "Preprocessors" [
+    "is_imprecise_sh", [
+      test_case "Test" `Quick is_imprecise_sh_test1;
+      test_case "Test" `Quick is_imprecise_sh_test2;
+    ];
     "Precise -> Imprecise", [
       test_case "Test" `Quick to_imprecise_test1;
       test_case "Test" `Quick to_imprecise_test2;

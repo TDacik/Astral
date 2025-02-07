@@ -2,6 +2,8 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
+val is_imprecise_sh : SL.t -> bool
+
 val to_precise : SL.t -> SL.t
 (** Converts input in precise semantics to equivalent formula in imprecise semantics.
 
