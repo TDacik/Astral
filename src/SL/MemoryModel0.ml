@@ -13,6 +13,8 @@ module Field = struct
 
   let show (id, _) = Identifier.show id
 
+  let has_sort sort1 (_, sort2) = Sort.equal sort1 sort2
+
   let show_with_sort (id, sort) =
     Format.asprintf "%s : %s"
       (Identifier.show id)
