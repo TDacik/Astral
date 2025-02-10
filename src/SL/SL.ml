@@ -182,10 +182,13 @@ let mk_eq xs =
   else mk_eq xs
 
 let mk_ite cond b_then b_else =
-  if equal cond tt then b_then
-  else if equal cond ff then b_else
-  else if equal b_then ff then mk_star [mk_not cond; b_else]
-  else if equal b_else ff then mk_star [cond; b_then]
+  if !BaseLogic.do_simplification then begin
+    if equal cond tt || equal cond emp then b_then
+    else if equal cond ff then b_else
+    else if equal b_then ff then mk_star [mk_not cond; b_else]
+    else if equal b_else ff then mk_star [cond; b_then]
+    else BaseLogic.Boolean.mk_ite cond b_then b_else
+  end
   else BaseLogic.Boolean.mk_ite cond b_then b_else
 
 (** Redefine to do not continue under atoms *)
