@@ -907,9 +907,7 @@ let rec fold_select arr ?(n=1) = function
 (** TODO:
     - make the construction bottom-up for even prettier printing
     - constant sets *)
-let pretty_node_name =
-  let show = show_with_sort in
-  function
+let pretty_node_name = function
   (* Introduce syntax sugar *)
   | Application (HeapTerm f, [x]) -> fold_heap_term f x
   | Application (Select, [arr; index]) -> fold_select arr index
@@ -919,6 +917,10 @@ let pretty_node_name =
 
   | Application (Distinct, [x; y]) when is_var x && is_var y ->
     Stop (Format.asprintf "%s %s %s" (show x) !U.neq (show y))
+
+  | Application (Constructor def, _)  ->
+    Continue (StructDef.show_cons def)
+    (*Stop (Format.asprintf "%s(%s)" (StructDef.show_cons def) (show_list xs))*)
 
   | Application (Predicate (name, _), xs) when List.for_all is_var xs ->
     Stop (Format.asprintf "%s(%s)" (Identifier.show name) (show_list xs))
@@ -933,6 +935,7 @@ let pretty_node_name =
   | Application (Or, _) -> Continue !U.or_
   | Application (Not, _) -> Continue !U.not
   | Application (GuardedNot, _) -> Continue (!U.and_ ^ !U.not)
+  | Application (PointsTo, _) -> Continue !U.maps_to
   | Application (Star, _) -> Continue !U.star
   | Application (Septraction, _) -> Continue !U.septraction
 
@@ -951,7 +954,7 @@ let to_ast ?(dagify=false) term =
   (* Recursively builds sub-trees *)
   let rec builder tag = function
     | Variable v ->
-      let node = mk_node (Variable.show_with_sort v) tag in
+      let node = mk_node (Variable.show v) tag in
       let g = G.add_vertex G.empty node in
       (g, node, tag + 1)
     | node ->
