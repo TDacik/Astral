@@ -19,6 +19,7 @@
     ;; Preprocessing tests
     IntroduceITE_tests
     QuantifierElimination_tests
+    NegationNormalisation_tests
 
     ;Simplifier_tests
     RemoveVariadic_tests
