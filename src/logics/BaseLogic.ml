@@ -9,7 +9,9 @@
 open MemoryModel
 
 (** Enable/disable simplification for debugging *)
-let use_simplification = ref true
+let do_simplification = ref true
+
+let use_simplification flag = do_simplification := flag
 
 module Variable = Variable.Make()
 module Sort = Sort
@@ -393,7 +395,7 @@ let mk_smart_app app ?neutral ?anihilator
   (*?(commutativy=false)
     ?(associative=false)*)
   operands =
-    if not @@ !use_simplification then Application (app, operands)
+    if not @@ !do_simplification then Application (app, operands)
     else mk_smart_app_aux app neutral anihilator operands
 
 

@@ -176,7 +176,7 @@ let mk_not phi = BaseLogic.mk_app Not [phi]
 
 (** Simplify to emp, instead of true *)
 let mk_eq xs =
-  if !BaseLogic._use_simplification then match mk_eq xs with
+  if !BaseLogic.do_simplification then match mk_eq xs with
     | res when BaseLogic.equal res tt -> emp
     | res -> res
   else mk_eq xs
