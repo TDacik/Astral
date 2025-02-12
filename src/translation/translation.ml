@@ -43,7 +43,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     Obj.magic (match SL.Term.view t with
       | SL.Term.Var x -> SMT.of_var @@ Locations.translate_var ctx.locs x
       | SL.Term.HeapTerm (f, x) -> translate_heap_term ctx f (translate_term ctx x)
-      | SL.Term.SmtTerm _ -> Locations.translate_term ctx.locs t
+      | SL.Term.SmtTerm x -> x
       | SL.Term.BlockBegin x -> translate_block_begin ctx (translate_term ctx x)
       | SL.Term.BlockEnd x -> translate_block_end ctx (translate_term ctx x)
     )
@@ -540,7 +540,7 @@ let translate_phi (ctx : Context.t) ssl_phi =
   let next_intro = SMT.mk_eq [nil; HeapEncoding.mk_succ ctx.heap next nil] in
   *)
 
-  let location_axioms = Locations.axioms ctx.locs ctx.phi in
+  let location_axioms = Locations.axioms ctx.locs ctx.phi (translate_term ctx) in
   let heap_axioms = HeapEncoding.axioms ctx.heap in
   let location_lemmas = Locations.lemmas ctx.locs in
 

@@ -68,20 +68,6 @@ module Make (Locations : LOCATIONS_BASE) = struct
 
   let translate_var locs var = SMT.Variable.mk (SL.Variable.show var) locs.sort
 
-  let rec translate_term locs term = match SL.Term.view term with
-    | SL.Term.Var var -> SMT.mk_var (SL.Variable.show var) locs.sort
-    | SL.Term.SmtTerm t ->
-      let sort = SMT.get_sort t in
-      let mapper = get_to_loc locs sort in
-      SMT.Array.mk_select mapper t
-    | SL.Term.BlockBegin t ->
-      let sort = Sort.mk_bitvector 2 in
-      let arr = SMT.Array.mk_var "block_begin" @@ Sort.mk_array locs.sort locs.sort in
-      let to_loc = get_to_loc locs sort in
-      let from_loc = get_of_loc locs sort in
-      SMT.Array.mk_select arr
-      @@ translate_term locs t
-
   (** Typing *)
 
   let mk_of_type locs var sl_sort = SMT.Sets.mk_mem var (sort_encoding locs sl_sort)
@@ -148,15 +134,14 @@ module Make (Locations : LOCATIONS_BASE) = struct
 
   (** Axioms *)
 
-  let term_axiom locs term =
-    if SL.Term.is_heap_term term then SMT.Boolean.tt
-    else if SL.Term.is_nil term then
-      let term' = translate_term locs term in
+  let term_axiom locs translate_term term =
+    if SL.Term.is_nil term then
+      let term' = translate_term term in
       SMT.mk_eq [locs.null; term']
     else
       let sort = SL.Term.get_sort term in
       let sort_set = sort_encoding locs sort in
-      let term' = translate_term locs term in
+      let term' = translate_term term in
       mk_of_type locs term' sort
 
   let sort_axiom locs sort =
@@ -191,10 +176,10 @@ module Make (Locations : LOCATIONS_BASE) = struct
     in
     SMT.Boolean.mk_and [axiom1; axiom2]
 
-  let axioms locs phi =
+  let axioms locs phi translate_term =
     let terms = SL.Term.nil :: SL.get_loc_terms phi locs.heap_sort in
     let sorts = HeapSort.get_loc_sorts locs.heap_sort in
-    let term_axioms = SMT.Boolean.mk_and @@ List.map (term_axiom locs) terms in
+    let term_axioms = SMT.Boolean.mk_and @@ List.map (term_axiom locs translate_term) terms in
     let sort_axioms = SMT.Boolean.mk_and @@ List.map (sort_axiom locs) sorts in
     let mapping_axioms = loc_mapping_axioms locs phi in
     SMT.Boolean.mk_and [term_axioms; sort_axioms; mapping_axioms]
