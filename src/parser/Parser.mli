@@ -3,6 +3,8 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
+val pretty_error : ParserException.t -> unit
+
 val parse_string : ?filename:string -> string -> ParserContext.t
 
 val parse_file :  string -> ParserContext.t

@@ -3,7 +3,7 @@
  * author: tomas dacik (idacik@fit.vut.cz), 2022 *)
 
 open MemoryModel
-open ParserUtils
+open ParserException
 open ParserContext_type
 
 module S = Set.Make(String)
@@ -29,27 +29,27 @@ let empty ?(sorts=M.empty) ?(struct_defs=M.empty) ?(heap_sort=HeapSort.empty) ?(
 
 (** Declarations *)
 
-let declare_sort ctx sort =
+let declare_sort ?loc ctx sort =
   let name = Sort.name sort in
-  if M.mem name ctx.sorts then raise @@ SortRedefined sort
+  if M.mem name ctx.sorts then ParserException.raise_redefined loc ctx Sort name
   else {ctx with sorts = M.add name sort ctx.sorts}
 
-let declare_var ctx var sort =
-  if var = "nil" then raise @@ SyntaxError "The name 'nil' is reserved for separation logic constant"
-  else if M.mem var ctx.vars then raise @@ VariableRedefined var
+let declare_var ?loc ctx var sort =
+  if var = "nil" then ParserException.raise_syntax_error loc "The name 'nil' is reserved for separation logic constant"
+  else if M.mem var ctx.vars then ParserException.raise_redefined loc ctx Variable var
   else {ctx with vars = M.add var sort ctx.vars}
 
-let find_var ctx var =
+let find_var ?loc ctx var =
   try (SL.Variable.mk var @@ M.find var ctx.vars)
-  with Not_found -> raise @@ VariableNotDeclared var
+  with Not_found -> ParserException.raise_not_declared loc ctx Variable var
 
-let type_of_var ctx var =
+let type_of_var ?loc ctx var =
   try M.find var ctx.vars
-  with Not_found -> raise @@ VariableNotDeclared var
+  with Not_found -> ParserException.raise_not_declared loc ctx Variable var
 
-let find_sort ctx name =
+let find_sort ?loc ctx name =
   try M.find name ctx.sorts
-  with Not_found -> raise @@ SortNotDeclared name
+  with Not_found -> ParserException.raise_not_declared loc ctx Sort name
 
 let declare_struct ctx name cons fields =
   let def = StructDef.mk name ~cons fields in
@@ -57,16 +57,16 @@ let declare_struct ctx name cons fields =
 
 let is_declared_struct ctx name = M.mem name ctx.struct_defs
 
-let find_struct_def_by_cons ctx cs_name =
+let find_struct_def_by_cons ?loc ctx cs_name =
   try M.find cs_name ctx.struct_defs
-  with Not_found -> raise @@ ConstructorNotDeclared cs_name
+  with Not_found -> ParserException.raise_not_declared loc ctx Constructor cs_name
 
-let find_struct_def_by_name ctx name =
+let find_struct_def_by_name ?loc ctx name =
   try
     M.bindings ctx.struct_defs
     |> List.find (fun (_, s) -> String.equal (StructDef.get_name s) name)
     |> snd
-  with Not_found -> raise @@ StructNotDeclared name
+  with Not_found -> ParserException.raise_not_declared loc ctx Structure name
 
 let declare_heap_sort ctx mapping =
   {ctx with heap_sort = HeapSort.of_list mapping}
@@ -80,7 +80,7 @@ let set_expected_status ctx = function
   | "sat" -> {ctx with expected_status = `Sat}
   | "unsat" -> {ctx with expected_status = `Unsat}
   | "unknown" -> {ctx with expected_status = `Unknown "not provided"}
-  | other -> raise @@ ParserError ("Unknown status '" ^ other ^ "'")
+  | other -> ParserException.raise_syntax_error None ("Unknown status '" ^ other ^ "'")
 
 let set_attribute ctx name value = {ctx with attributes = M.add name value ctx.attributes}
 

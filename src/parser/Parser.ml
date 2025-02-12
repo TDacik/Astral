@@ -3,8 +3,8 @@
  *
  * Author: Tomas Dacik (idacik00@fit.vut.cz), 2021 *)
 
-open ParserUtils
 open MemoryModel
+open ParserException
 
 module Context = ParserContext
 
@@ -12,6 +12,46 @@ open Dolmen_std
 open Dolmen_smtlib2.Script.Latest
 open Term
 open Statement
+
+let show_what = function
+  | Variable -> "variable"
+  | Sort -> "sort"
+  | Structure -> "structure"
+  | Constructor -> "constructor"
+
+let pretty_parser_error = function
+  | NotSupported msg-> msg
+  | SortError (actual, _, expected) -> "TODO: sort error"
+  | NotDeclared (what, name) -> Format.asprintf "%s %s is not declared" (show_what what) name
+  | Redefined (what, name) -> Format.asprintf "%s %s redefined" (show_what what) name
+
+let parser_error ?hint ctx loc msg : _ =
+  Format.fprintf Format.err_formatter "%sParser error:%s %s"
+    Colors.red Colors.white msg;
+  begin match loc with
+    | None -> Format.fprintf Format.err_formatter "\n"
+    | Some l ->
+      let loc = Dolmen.Std.Loc.(loc (mk_file "") l) in
+      Format.fprintf Format.err_formatter ":\nLoc:%a\n" Dolmen.Std.Loc.fmt_pos loc
+  end;
+  begin match ctx with (* TODO: only in debug mode *)
+    | Some ctx when Options.debug () ->
+      Format.fprintf Format.err_formatter "\nParser context:\n%s\n" (ParserContext.show ctx);
+    | _ -> ()
+  end;
+  begin match hint with
+    | None -> ()
+    | Some text -> Format.fprintf Format.err_formatter "\nHint: %s\n" text;
+  end;
+  Stdlib.exit 3
+
+let pretty_error (loc, ctx, error) = match error with
+  | SyntaxError msg -> parser_error ctx loc msg
+  | NotSupported msg -> parser_error ctx loc msg
+  | NotDeclared (what, name) -> parser_error ctx loc (show_what what ^ " '" ^ name ^ "' not declared")
+  | Redefined (what, name) -> parser_error ctx loc (show_what what ^ " '" ^ name ^ "' redefined")
+  | SortError _ -> parser_error ctx loc "Error: TODO"
+
 
 module Extension = struct
   (* TODO: fail for non declare-heap command *)
@@ -49,20 +89,20 @@ let show_list asts = String.concat "\n  " @@ List.map show asts
 
 (** AST coercisions *)
 
-let get_smt ?(loc=Loc.no_loc) name = function
+let get_smt ?loc name = function
   | SMT term -> term
   (*| Term t when SL.Term.is_nil t -> Obj.magic t (* TODO *)*)
-  | other -> raise @@ SortError (loc, name, "SMT term", show other)
+  | other -> ParserException.raise_sort_error loc ~name ~expected:"SMT term" (show other)
 
-let get_term ?(loc=Loc.no_loc) name = function
+let get_term ?loc name = function
   | SMT smt -> SL.Term.mk_smt smt
   | Term term -> term
-  | other -> raise @@ SortError (loc, name, "SL term", show other)
+  | other -> ParserException.raise_sort_error loc ~name ~expected:"SL term" (show other)
 
-let get_formula ?(loc=Loc.no_loc) ?(name="TODO") = function
+let get_formula ?loc ?(name="TODO") = function
   | SMT smt when SMT.has_sort Sort.bool smt -> SL.mk_pure smt
   | Formula phi -> phi
-  | other -> raise @@ SortError (loc, name, "SL formula", show other)
+  | other -> ParserException.raise_sort_error loc ~name ~expected:"SL formula" (show other)
 
 let mk_formula fn args = Formula (fn @@ List.map get_formula args)
 let mk_atom name fn args = Formula (fn @@ List.map (get_term name) args)
@@ -98,7 +138,7 @@ let parse_sort ctx sort = match sort.term with
   | Symbol id ->
     Logger.debug "  Parsing sort %a\n" Term.print sort;
     parse_sort_id ctx id
-  | _ -> raise @@ NotSupported (sort.loc, Format.asprintf "sort: %a" Term.print sort)
+  | _ -> ParserException.raise_not_supported (Some sort.loc) (Format.asprintf "sort: %a" Term.print sort)
 
 (*** ===== SL formula parsing ===== *)
 
@@ -106,7 +146,7 @@ let rec parse_formula ctx (phi : Term.t) = match parse_term ctx phi with
   | Formula phi -> phi
   | SMT pure -> SL.mk_pure pure
   | Term term ->
-    raise @@ SortError (phi.loc, "Assertion", "Bool", Sort.show @@ SL.Term.get_sort term)
+    ParserException.raise_sort_error (Some phi.loc) ~name:"Assertion" ~expected:"Bool" (Sort.show @@ SL.Term.get_sort term)
 
 and parse_term ctx (term : Term.t) =
   Logger.debug "  Parsing term %a\n" Term.print term;
@@ -129,7 +169,7 @@ and parse_constant_term ctx term id =
   | bv_hex when Str.string_match (Str.regexp "0x([0-9]|[A-F])+") bv_hex 0 ->
     SMT (SMT.Bitvector.mk_const_of_string bv_hex)
   | var ->
-    let sort = Context.type_of_var ctx var in
+    let sort = Context.type_of_var ~loc:term.loc ctx var in
     if Sort.is_loc sort (* TODO *)
     then Term (SL.Term.mk_var var sort)
     else SMT (SMT.mk_var var sort)
@@ -141,7 +181,7 @@ and parse_binder ctx term binder vars body =
   match binder with
     | Ex -> Formula (SL.mk_exists vars body)
     | All -> Formula (SL.mk_forall vars body)
-    | _ -> raise @@ NotSupported (term.loc, "binder different than forall/exists")
+    | _ -> ParserException.raise_not_supported (Some term.loc) "binder different from forall/exists"
 
 and parse_local_vars ctx xs =
   List.fold_left
@@ -155,7 +195,7 @@ and parse_local_var ctx var = match var.term with
   | Colon (var, sort) ->
     let name = Format.asprintf "%a" Term.print var in
     let sort = parse_sort ctx sort in
-    let local_ctx = Context.declare_var ctx name sort in
+    let local_ctx = Context.declare_var ~loc:(var.loc) ctx name sort in
     let var = match sort with
       | Loc _ -> SL.Variable.mk name sort
       | smt_sort -> SL.Variable.mk name smt_sort
@@ -297,8 +337,7 @@ and parse_non_pointer_application ctx term app operands =
     | "bvadd" -> lift_bitvector_list "bvadd" SMT.Bitvector.mk_plus args
     *)
     | other ->
-      Logger.debug "%s\n" (Context.show ctx);
-      raise @@ ParserError ("Unknown application '" ^ other ^ "'")
+      ParserException.raise_syntax_error (Some term.loc) ("Unknown application '" ^ other ^ "'")
 
     end
 
@@ -430,7 +469,7 @@ let parse_heap_sort ctx sexp =
     match unpack_sexp @@ List.nth body 1 with
     | Atom name ->
       begin try Context.find_struct_def_by_name ctx name
-      with ParserUtils.StructNotDeclared _ ->
+      with ParserError (_, _, NotDeclared (Structure, _)) ->
         MemoryModel.StructDef.lift_sort (parse_sort_name ctx name)
       end
     | List terms ->
@@ -475,8 +514,11 @@ let parse ctx content =
 
 let parse_string ?(filename="") content =
   let ctx = Context.empty () in
+  parse ctx content
+  (*
   try parse ctx content
-  with ParserError msg -> failwith msg
+  with ParserError (msg, ctx) -> failwith (msg ^ ParserContext.show ctx)
+  *)
 
 let parse_file path =
   let channel = In_channel.open_text path in
