@@ -24,7 +24,6 @@ let debug_info input = match SL.classify_fragment input.phi with
   | Arbitrary -> Print.debug "Solving as arbitrary formula\n"
 
 let solve (raw_input : ParserContext.t) =
-  BaseLogic.use_simplification false;
   SID.init ();
   let input = Context.init raw_input in
   let input = Preprocessor.first_phase input in

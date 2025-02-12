@@ -395,7 +395,10 @@ let mk_smart_app app ?neutral ?anihilator
   (*?(commutativy=false)
     ?(associative=false)*)
   operands =
-    if not @@ !do_simplification then Application (app, operands)
+    (* We can still do some basic simplification *)
+    if not @@ !do_simplification then match operands with
+      | [x] -> x
+      | _ -> Application (app, operands)
     else mk_smart_app_aux app neutral anihilator operands
 
 
@@ -412,9 +415,11 @@ end
 
 module Equality = struct
 
-  let mk_eq = function
-    | xs when List_utils.all_equal equal xs -> Boolean0.tt
-    | xs -> mk_app Equal xs
+  let mk_eq xs =
+    if !do_simplification then match xs with
+      | xs when List_utils.all_equal equal xs -> Boolean0.tt
+      | xs -> mk_app Equal xs
+    else mk_app Equal xs
 
   let mk_distinct = mk_app Distinct
 
@@ -431,7 +436,9 @@ module Boolean = struct
   let mk_fresh_var name = mk_fresh_var name Sort.bool
 
   (** We can never simplify pure(phi) /\ emp ~> pure(phi) to be able
-      to represent formulae in imprecise semantics. *)
+      to represent formulae in imprecise semantics.
+
+      TODO: is this still true?*)
   let mk_and = mk_smart_app And ~neutral:tt ~anihilator:ff
 
   let mk_or = mk_smart_app Or ~neutral:ff ~anihilator:tt

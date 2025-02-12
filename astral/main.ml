@@ -9,6 +9,11 @@ let () =
   Astral.Logger_state.init ();
   Printexc.record_backtrace (Astral.Options.debug ());
 
+  (* In case we are working with imprecise semantics of SL, we need to turn off
+     simplification before parsing to do not apply simplification rules such as
+     nil = nil ~> emp. *)
+  (if Astral.Options.semantics () != `Precise then Astral.BaseLogic.use_simplification false);
+
   let input = Parser.parse input_file in
   let result = Astral.Engine.solve input in
   Astral.Profiler.add "Solver";
