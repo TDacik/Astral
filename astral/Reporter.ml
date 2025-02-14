@@ -4,6 +4,10 @@
 
 open Astral
 
+let register_at_exit () =
+  if Options.profile () then
+    Stdlib.at_exit (fun () -> Profiler.finish (); Profiler.report ())
+
 let print_result result =
   Format.printf "%s\n" (Context.show_status result);
 
@@ -19,5 +23,4 @@ let report result =
            then Json_output.output result (Options.json_output_file ())
            else ()
   in
-  let () = Profiler.finish (); if Options.profile () then Profiler.report () else () in
   ()
