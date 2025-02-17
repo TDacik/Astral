@@ -5,6 +5,13 @@ module Make ( ) : sig
   include VARIABLE with module Sort = Sort
                     and type t = Identifier.t * Sort.t
 
+
+(** TODO: why is this necessary? *)
+
+  val debug : unit -> string
+
+  val show_debug : t -> string
+
   val nil : t
 
   val is_nil : t -> bool

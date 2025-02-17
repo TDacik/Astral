@@ -16,6 +16,8 @@ module Make () = struct
   module ID = Identifier.Make()
   module Sort = Sort
 
+  let debug = ID.debug_repr
+
   type nonrec t = t
 
   let hash (id, _) = ID.tag id
@@ -23,8 +25,6 @@ module Make () = struct
   let get_name var = ID.show @@ fst var
 
   let get_sort = snd
-
-  let describe (name, sort) = (ID.show name, sort)
 
   let has_sort sort var = Sort.equal sort @@ get_sort var
 
@@ -36,9 +36,15 @@ module Make () = struct
 
   let mk_fresh name sort = (ID.mk_fresh @@ escape name, sort)
 
+  let describe (name, sort) = (ID.show name, sort)
+
+  let of_description (name, sort) = mk name sort
+
   let refresh (name, sort) = mk_fresh (ID.show name) sort
 
   let show var = get_name var
+
+  let show_debug (name, _) = ID.show_debug @@ name
 
   let show_with_sort var = Format.asprintf "%s : %s" (show var) (Sort.show @@ get_sort var)
 

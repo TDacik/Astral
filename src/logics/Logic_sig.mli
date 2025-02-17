@@ -58,7 +58,11 @@ module type VARIABLE = sig
 
   val describe : t -> string * Sort.t
 
+  val of_description : string * Sort.t -> t
+
   val show : t -> string
+
+  val show_debug : t -> string
 
   val equal : t -> t -> bool
 

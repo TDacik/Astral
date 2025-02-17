@@ -15,8 +15,13 @@ module Make (T : TESTABLE_BASE) = struct
     let pp fmt x = Format.fprintf fmt "%s" (T.show x)
   end
 
-  let check_equal actual expected =
-    Alcotest.check' (module T' : TESTABLE with type t = t) ~msg:"" ~actual ~expected
+  let check_equal ?msg actual expected =
+    let msg = Option.value msg ~default:"" in
+    Alcotest.check' (module T' : TESTABLE with type t = t) ~msg ~actual ~expected
+
+  let check_distinct lhs rhs =
+    let msg = Format.asprintf "Objects %s and %s are equal (expected to be distinct)" (T.show lhs) (T.show rhs) in
+    Alcotest.check' Alcotest.bool ~msg ~actual:(T.equal lhs rhs) ~expected:false
 
   let check_apply ~input ~expected fn =
     let msg = Format.asprintf "Input: %s" (T.show input) in

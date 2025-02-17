@@ -2,16 +2,16 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
-let debug = ref false
+let do_debug = ref false
+let debug = Format.kasprintf (fun msg -> if !do_debug then Format.printf "%s%!" msg)
 
 type t = Int.t * String.t
 (** Identifier is represented by integer tag used for comparison and name used for printing. *)
 
 let compare (tag1, _) (tag2, _) = Int.compare tag1 tag2
-let equal (tag1, _) (tag2, _) = Int.equal tag1 tag2
-let show (tag, name) =
-  if !debug then Format.sprintf "%d:%s" tag name
-  else name
+let equal id1 id2 = compare id1 id2 = 0
+let show (tag, name) = name
+let show_debug (tag, name) = Format.sprintf "%d:%s" tag name
 let tag (id, _) = id
 let pp fmt (_, name) = Format.fprintf fmt "%s" name
 
@@ -28,44 +28,66 @@ include Datatype.Collections(Self)
 
 (** Identifier managment *)
 
-module HT = struct
-
-  include Hashtbl.Make(String)
-
-  let find_tag table name = fst @@ find table name
-
-  let find_index table name = snd @@ find table name
-
-end
+module HT = Hashtbl.Make(String)
 
 module Make () = struct
-
   let counter = ref 0
-  let hash_table = ref (HT.create 97)
+
+  let tag_table = ref (HT.create 97)
+  let index_table = ref (HT.create 97)
+
+  let add_tag = HT.add !tag_table
+  let update_index = HT.replace !index_table
+
+  let find_tag = HT.find !tag_table
+  let find_index = HT.find !index_table
+
+  let debug_repr () =
+    let debug name n acc = Format.asprintf "%s\n  %s -> %d" acc name n in
+    let t1 = HT.fold debug !tag_table "Tag table" in
+    let t2 = HT.fold debug !index_table "Index table" in
+    t1 ^ "\n" ^ t2
 
   type nonrec t = t
 
-  let next_id () =
-    counter := !counter + 1;
-    !counter
+  let next_id () = incr counter; !counter
 
   let mk name =
-    let tag, index =
-      try HT.find !hash_table name
-      with Not_found -> next_id (), 0
+    debug "Creating identifier %s\n" name;
+    let res =
+      try (find_tag name, name)
+      with Not_found ->
+        let tag = next_id () in
+        add_tag name tag;
+        (tag, name)
     in
-    HT.add !hash_table name (tag, index);
-    (tag, name)
+    debug "%s\n" (debug_repr ());
+    res
 
   let mk_fresh name =
-    let tag, index =
-      try HT.find !hash_table name
-      with Not_found -> next_id (), 0
+    debug "Creating fresh identifier %s\n" name;
+    let base_name = match String.split_on_char '!' name with
+      | [s] -> s
+      | [s; _] -> s
+      | _ -> assert false
     in
-    HT.add !hash_table name (tag, index + 1);
-    (next_id (), Format.asprintf "%s!%d" name index)
+    let index =
+      try find_index base_name + 1
+      with Not_found -> 1
+    in
+
+    let fresh_name = Format.asprintf "%s!%d" base_name index in
+    assert (not @@ HT.mem !tag_table fresh_name);
+
+    let tag = next_id () in
+    add_tag fresh_name tag;
+    update_index base_name index;
+
+    debug "%s\n" (debug_repr ());
+    (tag, fresh_name)
 
   let show = show
+  let show_debug = show_debug
   let tag = tag
   let compare = compare
   let equal = equal
