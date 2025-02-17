@@ -137,7 +137,7 @@ let rec compute stars phi =
   | SL.Not _ -> G.empty
 
   (** TODO: more precise? *)
-  | SL.Ite (_, psi_then, psi_else) -> G.union (compute psi_then) (compute psi_else)
+  | SL.Ite (_, psi_then, psi_else) -> G.intersect (compute psi_then) (compute psi_else)
 
 
   (** TODO *)
