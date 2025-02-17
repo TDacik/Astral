@@ -19,6 +19,8 @@ type t = {
   phi : SL.t;                     (* SL formula after preprocessing *)
   vars : SL.Variable.t list;      (* Location variables after preprocessing *)
 
+  model_adapter : ModelAdapter.t;
+
   expected_status : status;        (* This may differ from raw_input.status *)
 
   (* Bounds *)
@@ -41,6 +43,8 @@ let init input = {
   phi = ParserContext.get_phi input;
   vars = ParserContext.get_sl_vars input;
 
+  model_adapter = ModelAdapter.empty;
+
   expected_status = input.expected_status;
 
   sl_graph = SL_graph0.empty;
@@ -61,6 +65,13 @@ let (let*) f ctx = match ctx.status with
 let add_metadata input sl_graph bounds =
   {input with sl_graph = sl_graph;
               location_bounds = bounds}
+
+(** Model adapter *)
+
+let add_skolem_var ctx var = {ctx with model_adapter = ModelAdapter.add_skolem_var ctx.model_adapter var}
+let apply_model_adapter ctx = {ctx with model = Option.map (ModelAdapter.apply ctx.model_adapter) ctx.model}
+
+
 
 (** {2 Setters} *)
 

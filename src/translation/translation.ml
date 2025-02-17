@@ -619,18 +619,22 @@ let translate_phi (ctx : Context.t) ssl_phi =
     (* Translation *)
     let translated1 = translate_phi ctx input.phi in
     Debug.translated ~suffix:"1" translated1;
+    Profiler.add "Translation-1";
 
     (* Set rewritting *)
     let translated2 = SetEncoding.rewrite translated1 in
     Debug.translated ~suffix:"2_set_encoding" translated2;
+    Profiler.add "Translation-2";
 
     (* Quantifier rewritting *)
     let translated3 = QuantifierEncoding.rewrite ctx.locs translated2 in
     Debug.translated ~suffix:"3_qf_rewriting" translated3;
+    Profiler.add "Translation-3";
 
     (* Backend preprocessor *)
     let translated = Backend_preprocessor.apply translated3 in
     Debug.translated ~suffix:"4_backend_preprocessing" translated;
+    Profiler.add "Translation-4";
 
     let size = SMT.size translated in
     let input = Input.set_size input size in
@@ -663,7 +667,6 @@ let translate_phi (ctx : Context.t) ssl_phi =
       let smt_model = SetEncoding.rewrite_back translated1 smt_model in
       let _ = Debug.smt_model smt_model in
       let sh = translate_model ctx smt_model in
-      let _ = Debug.model sh in
       Input.set_result `Sat ~model:(Some sh) input
 
     (* TODO: unsat cores *)

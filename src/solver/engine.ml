@@ -8,7 +8,7 @@ open Context
 open Backend_sig
 open Translation_sig
 
-module Print = Logger.Make(struct let name = "Solver" let level = 1 end)
+module Logger = Logger.Make(struct let name = "Solver" let level = 1 end)
 
 (** Verify result against status specified in the input *)
 let verify_status input =
@@ -17,11 +17,11 @@ let verify_status input =
   status = expected || status_is_unknown status || status_is_unknown expected
 
 let debug_info input = match SL.classify_fragment input.phi with
-  | Atomic -> Print.debug "Solving as atomic formula\n"
-  | SymbolicHeap_SAT -> Print.debug "Solving as satisfiability in SH-fragment\n"
-  | SymbolicHeap_ENTL -> Print.debug "Solving as entailment in SH-fragment\n"
-  | Positive -> Print.debug "Solving as positive formula\n"
-  | Arbitrary -> Print.debug "Solving as arbitrary formula\n"
+  | Atomic -> Logger.debug "Solving as atomic formula\n"
+  | SymbolicHeap_SAT -> Logger.debug "Solving as satisfiability in SH-fragment\n"
+  | SymbolicHeap_ENTL -> Logger.debug "Solving as entailment in SH-fragment\n"
+  | Positive -> Logger.debug "Solving as positive formula\n"
+  | Arbitrary -> Logger.debug "Solving as arbitrary formula\n"
 
 let solve (raw_input : ParserContext.t) =
   SID.init ();
@@ -46,6 +46,9 @@ let solve (raw_input : ParserContext.t) =
     BaseLogic.use_simplification true;
 
     let input = Preprocessor.second_phase input in
+    Profiler.add "Preprocessor";
+    Logger.debug "%s" (ModelAdapter.show input.model_adapter);
+
     let bounds2 = LocationBounds.compute input.phi input.raw_input.heap_sort sl_graph in
 
     (* TODO: Unfolding may increase the bound, thus we take the minimum *)
@@ -59,5 +62,9 @@ let solve (raw_input : ParserContext.t) =
     let module Translation = Translation.Make(Encoding)(Backend) in
 
     debug_info input;
-    if not @@ Options_base.dry_run () then Translation.solve input
+    if not @@ Options_base.dry_run () then
+      let res = Translation.solve input in
+      let res' = Context.apply_model_adapter res in
+      (match res'.model with None -> () | Some sh -> Debug.model sh);
+      res'
     else Context.set_result (`Unknown "dry run") ~reason:(Some "dry run") input
