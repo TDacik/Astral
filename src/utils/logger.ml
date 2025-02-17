@@ -4,6 +4,18 @@
 
 open Logger_sig
 
+let log channel ~color ~tag fmt =
+  let prefix = match tag with
+    | "" -> ""
+    | _ -> "[" ^ tag ^ "] "
+  in
+  Format.kasprintf (fun msg ->
+    if Unix.isatty channel
+    then Format.eprintf "%s%s%s%s\n%!" color prefix msg Colors.white
+    else Format.eprintf "%s%s%s\n%!" color msg Colors.white
+  ) fmt
+
+
 module Make (C : CONFIG) = struct
 
   let match_key () =
@@ -28,15 +40,9 @@ module Make (C : CONFIG) = struct
       | 0 -> ()
       | _ -> failwith ("Cannot create directory " ^ path)
 
-  let warning fmt =
-    Format.kasprintf (fun msg ->
-      if Unix.isatty Unix.stderr
-      then Format.eprintf "\x1b[33m[%s] %s\x1b[0m\n%!" C.name msg
-      else Format.eprintf "[%s] %s\n%!" C.name msg
-    ) fmt
+  let warning fmt = log Unix.stderr ~color:Colors.yellow ~tag:C.name fmt
 
-  (* TODO *)
-  let error = warning
+  let error fmt = log Unix.stderr ~color:Colors.red ~tag:C.name fmt
 
   let dump dump_fn filename obj =
     if Options_base.debug () then

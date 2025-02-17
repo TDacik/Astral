@@ -115,9 +115,10 @@ module Make (Backend : SMTLIB_BACKEND) = struct
         | "sat" ->
           if produce_models && Backend.parser_implemented
           then
-            (*try SMT_Sat (Some (ModelParser.parse context.loc_sort model, model))
-            with _ ->*)
+            try SMT_Sat (Some (ModelParser.parse_string model, model))
+            with e ->
               let _ = Logger.warning "Internal error when parsing backend response. Model is not available." in
+              let _ = Logger.debug "  %s\n" (Printexc.to_string e) in
               SMT_Sat None
           else SMT_Sat None
         | "unsat" -> SMT_Unsat [] (* TODO: unsat core *)

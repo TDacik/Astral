@@ -1,125 +1,86 @@
 (* Parser of SMTlib models
  *
- * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
-(*
-open Dolmen
-open Dolmen_smtlib2.Response.Latest
+ * Author: Tomas Dacik (idacik@fit.vut.cz), 2022 *)
 
-module Parser = Make(Std.Loc)(Std.Id)(Std.Term)(Std.Statement)
-*)
-let parse_model model = failwith ""
+open Dolmen_std
+open Term
+open Statement
+open Dolmen_smtlib2.Script.Latest
 
+module Extension = struct
+  let statement _ = None
+end
 
-(*
+module Parser = Make(Loc)(Id)(Term)(Statement)(Extension)
 
-open Dolmen
-open Dolmen_smtlib2.Latest
+module Logger = Logger.Make(struct let name = "ModelParser" let level = 1 end)
 
-module Parser = Make
-  (Std.Loc)
-  (Std.Id)
-  (Std.Term)
-  (Std.Statement)
-
-open Std.Id
-open Std.Term
-open Std.Statement
-
-type ctx = {
-  loc_sort : Sort.t;
-}
+let parse_id id = Format.asprintf "%a" Id.print id
+let parse_sort_name = function
+  | "Int" -> Sort.int
+  | "Bool" -> Sort.bool
+  | bv when Str.string_match (Str.regexp {|(_ BitVec \([0-9]+\))|}) bv 0 ->
+    Sort.mk_bitvector @@ int_of_string @@ Str.matched_group 1 bv
+  | name -> Sort.mk_uninterpreted name
 
 let rec parse_sort sort = match sort.term with
-  | Builtin Bool -> Sort.Bool
-  | Builtin Int -> Sort.Int
-  | App (t1, [t2]) -> Sort.Set (parse_sort t2)
-  | App (t1, [t2; t3]) -> Sort.Array (parse_sort t2, parse_sort t3)
-  | Symbol id ->
-    begin match Format.asprintf "%a" Std.Id.print id with
-    | "Locations" -> Sort.mk_finite "Locations" [] (* TODO: this is very fragile *)
-    | other ->
-      (* TODO: properly! *)
-      let n = int_of_string @@ BatString.chop ~l:10 ~r:1 other in
-      Sort.Bitvector n
+  | Binder (Arrow, [], sort) ->
+    begin match sort.term with
+      (* Sort of all sorts *)
+      | Builtin Ttype ->
+        raise Exit
+      | Symbol id -> parse_sort_name @@ parse_id id
     end
-  | Binder (Arrow, [], t) -> parse_sort t
-  | _ -> failwith (Format.asprintf "Unknown sort: %a" Std.Term.print sort)
+  | Symbol id -> parse_sort_name @@ parse_id id
+  | App (_, [set]) -> Sort.mk_set (parse_sort set)
+  | App (_, [dom; range]) -> Sort.mk_array (parse_sort dom) (parse_sort range)
 
-let parse_symbol symbol sort =
-  let name = Format.asprintf "%a" Dolmen_std.Id.print symbol in
-  match symbol.ns with
-  | Value v -> begin match v with
-    | Integer -> SMT.Arithmetic.mk_const @@ int_of_string name
-    | Binary -> SMT.Bitvector.mk_const_of_string name
-    | _ -> failwith "Unsoppurted value"
+let rec parse_interp term sort = match term.term with
+  | Symbol id -> begin match parse_id id with
+    | numeral when Str.string_match (Str.regexp "[0-9]+") numeral 0 ->
+      Constant.mk_int (int_of_string numeral)
+    | bv when Str.string_match (Str.regexp {|#b\([0-9]\|[A-F]\)+|}) bv 0 ->
+      Constant.mk_bitvector_of_string bv
+    | other -> failwith ("Not implemented symbol: '" ^ other ^ "'")
   end
-  | Term -> begin match name with
-    | "set.empty" -> SMT.Sets.mk_empty sort
-    | name -> SMT.Enumeration.mk_const sort name
+  | Colon (term, sort) -> parse_interp term (parse_sort sort)
+  | App (fn, ts) -> begin match Format.asprintf "%a" Dolmen_std.Term.print fn with
+    | "set.singleton" ->
+      let elem = parse_interp (List.hd ts) sort in
+      Constant.mk_set [elem]
+    | "set.empty" -> Constant.mk_set []
+    | "set.union" ->
+      let set1 = Constant.get_elems @@ parse_interp (List.nth ts 0) sort in
+      let set2 = Constant.get_elems @@ parse_interp (List.nth ts 1) sort in
+      Constant.mk_set (set1 @ set2)
+    | "store" ->
+      let arr = parse_interp (List.nth ts 0) sort in
+      let i = parse_interp (List.nth ts 1) sort in
+      let v = parse_interp (List.nth ts 2) sort in
+      Constant.array_add_binding arr i v
+    | "const" ->
+      let default = parse_interp (List.hd ts) sort in
+      Constant.mk_array ~default [] (* TODO: is the sort correct? *)
+    | other -> failwith (Format.asprintf "Unknown application: '%s'" other)
   end
-
-let rec parse_term term sort = match term.term with
-  | Symbol id -> parse_symbol id sort
-  | Colon (t, _) -> parse_term t sort
-
-  (* Set singleton *)
-  | App (fn, ts) ->
-      begin match Format.asprintf "%a" Dolmen_std.Term.print fn with
-      | "set.singleton" ->
-        let elem = parse_term (List.hd ts) sort in
-        SMT.Sets.mk_singleton elem
-      | "set.empty" -> SMT.Sets.mk_empty sort
-      | "set.union" ->
-        let set1 = SMT.Sets.get_elems @@ parse_term (List.nth ts 0) sort in
-        let set2 = SMT.Sets.get_elems @@ parse_term (List.nth ts 1) sort in
-        SMT.Sets.mk_constant sort (set1 @ set2)
-      | "store" ->
-        let arr = parse_term (List.nth ts 0) sort in
-        let i = parse_term (List.nth ts 1) sort in
-        let v = parse_term (List.nth ts 2) sort in
-        SMT.Array.mk_store arr i v
-      | "const" ->
-        let const = parse_term (List.hd ts) sort in
-        SMT.Array.mk_const const sort (* TODO: is the sort correct? *)
-      | other -> failwith (Format.asprintf "Unknown application: '%s'" other)
-      end
-
-  (* Variables are given as x = \lambda (). var *)
-  | Binder (Fun, [], t) -> parse_term t sort
-  | _ -> failwith (Format.asprintf "Unknown term: %a" Std.Term.print term)
+  | _ -> failwith (Format.asprintf "Not implemented term: %a" Term.print term)
 
 
-let parse_def (def : Std.Statement.def) =
-  let name = Format.asprintf "%a" Dolmen_std.Id.print def.id in
-  let name =
-    if String.contains name ' '
-    then "|" ^ name ^ "|"
-    else name
-  in
-  let sort = parse_sort def.ty in
-  let interp = parse_term def.body sort in
-  ((name, sort), interp)
+let parse_def model (def : Statement.def) =
+    let name = parse_id def.id in
+    let sort = parse_sort def.ret_ty in
+    let interp = parse_interp def.body sort in
+    SMT.Model.add (SMT.Variable.mk name sort) interp model
 
-let parse_stmt stmt = match stmt.descr with
-  | Defs defs -> List.map parse_def defs.contents
-  | _ -> failwith "Unexpected statement"
+let parse_definitions model defs =
+  if defs.recursive then failwith "Recursive definition in model"
+  else
+    assert (List.length defs.contents == 1);
+    parse_def model (List.hd defs.contents)
 
-let parse loc_sort str =
-  let ctx = {loc_sort = loc_sort} in
-  let _, fn, _ = Parser.parse_input (`Contents ("model.smt2", str)) in
-  let rec unpack generator acc =
-    match generator () with
-    | None -> acc
-    | Some x -> unpack generator (x :: acc)
-  in
-  let stmts = unpack fn [] in
-  let defs = List.concat_map parse_stmt stmts in
-  failwith ""
-  (*List.fold_left
-    (fun model ((name, sort), interp) ->
-      let var = SMT.Variable.mk name sort in
-      SMT.Model.add var interp model
-    ) SMT.Model.empty defs
-  *)
-
-*)
+let parse_string path =
+  let stmts = Lazy.force @@ snd @@ Parser.parse_all (`Contents ("", path)) in
+  List.fold_left (fun model stmt -> match stmt.descr with
+    | Defs defs -> parse_definitions model defs
+    | _ -> failwith "Unexpected statement in response"
+  ) SMT.Model.empty stmts
