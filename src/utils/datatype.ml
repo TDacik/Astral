@@ -19,7 +19,9 @@ module Printable (M : SHOW) = struct
     Printf.fprintf channel "%s\n" (M.show x);
     close_out channel
 
-  let show_list ?(separator=", ") xs = String.concat separator @@ List.map M.show xs
+  let show_list ?(separator=", ") = function
+    | [] -> "[]"
+    | xs -> "[" ^ (String.concat separator @@ List.map M.show xs) ^ "]"
 
   let pp_list (*(separator=", ")*) fmt xs = Format.fprintf fmt "%s" (show_list ~separator:"," xs)
 
