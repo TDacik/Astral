@@ -12,3 +12,7 @@ let inline phi =
   let phi' = inline phi in
   if SL.equal phi phi' then phi
   else inline phi'
+
+let inline_ctx ctx =
+  let open Context in
+  {ctx with phi = inline ctx.phi}

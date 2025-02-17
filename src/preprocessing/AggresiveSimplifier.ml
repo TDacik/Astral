@@ -14,7 +14,6 @@ let check g lhs_vars phi = failwith "TODO: Asimplifier: check"
 
 let simplify g phi = failwith "TODO: Asimplifier: simplify"
 
-
 (*match SL.view phi with
   | GuardedNeg (lhs, rhs) ->
     let lhs_vars = SL.get_vars lhs in

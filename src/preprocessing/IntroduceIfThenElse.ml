@@ -28,3 +28,7 @@ let apply =
         SL.mk_ite c1 lhs' rhs'
       with Not_found -> SL.mk_or [lhs; rhs]
   )
+
+let apply_ctx ctx =
+  let open Context in
+  {ctx with phi = apply ctx.phi}

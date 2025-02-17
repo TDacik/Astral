@@ -25,16 +25,6 @@ let remove_useless phi =
     | Forall (xs, psi) -> SL.mk_exists (List.filter (filter_fn psi) xs) psi
   ) phi
 
-let remove_binder sl_graph phi psi x =
-  let local_sl_graph = SL_graph.compute psi in
-  let sl_graph = SL_graph.normalise @@ SL_graph.union sl_graph local_sl_graph in
-  let eq_vars = SL_graph.equivalence_class sl_graph (SL.Term.of_var x) in
-  let free_vars = List.map SL.Term.of_var @@ SL.free_vars phi in
-  let inter = list_inter eq_vars free_vars in
-  match inter with
-    | [] -> psi, [x]
-    | x' :: _ -> SL.substitute psi ~var:x ~by:x', []
-
 let remove_binder2 sl_graph phi psi (x : SL.Variable.t) =
   let local_g = SL_graph.compute psi in
   Logger.dump SL_graph.G.output_file (SL.Variable.show x ^ ".xdot") local_g;
@@ -58,17 +48,6 @@ let remove_binder2 sl_graph phi psi (x : SL.Variable.t) =
     Logger.debug "Eliminated %s using substitution: %s\n" (SL.Variable.show x) (SL.Term.show heap_term);
     SL.substitute psi ~var:x ~by:heap_term, []
 
-let remove_determined sl_graph phi =
-  SL.map_view (function
-    | Exists (vars, psi) ->
-      let psi, xs = List.fold_left (fun (psi, xs) x ->
-        let psi', xs' = remove_binder sl_graph phi psi x in
-        psi', xs @ xs'
-      ) (psi, []) vars
-      in
-      SL.mk_exists xs psi
-  ) phi
-
 let remove_determined2 sl_graph phi =
   SL.map_view (function
     | Exists (vars, psi) ->
@@ -80,9 +59,12 @@ let remove_determined2 sl_graph phi =
       SL.mk_exists xs psi
   ) phi
 
-
 let apply sl_graph phi =
-  (*remove_determined sl_graph phi
-  |>*)
   remove_useless phi
   |> remove_determined2 sl_graph
+
+let apply_ctx ctx =
+  let open Context in
+  skolemisation ctx
+  |> (fun ctx -> {ctx with phi = remove_useless ctx.phi})
+  |> (fun ctx -> {ctx with phi = remove_determined2 ctx.sl_graph ctx.phi})

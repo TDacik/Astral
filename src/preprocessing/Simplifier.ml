@@ -15,3 +15,7 @@ let simplify ?(dont_care=[]) phi = SL.map_view (function
   | SL.Ite (c, t, e) -> SL.mk_ite c t e
   | SL.Exists (xs, psi) -> SL.mk_exists xs psi
 ) phi
+
+let simplify_ctx ctx =
+  let open Context in
+  {ctx with phi = simplify ctx.phi}

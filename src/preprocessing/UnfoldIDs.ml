@@ -34,3 +34,7 @@ let apply location_bound phi =
     let rhs = unfold_rhs location_bound sl_graph phi rhs in
     SL.mk_gneg lhs rhs
   | _ -> phi
+
+let apply_ctx ctx =
+  let open Context in
+  {ctx with phi = apply ctx.location_bounds ctx.phi}

@@ -50,3 +50,7 @@ let rec apply phi =
   let phi' = normalise phi in
   if equal phi' phi then phi'
   else apply phi'
+
+let apply_ctx ctx =
+  let open Context in
+  {ctx with phi = apply ctx.phi}

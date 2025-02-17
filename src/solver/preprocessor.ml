@@ -3,18 +3,18 @@
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
 open SL
+open Context
 
 let counter = ref 0
 
-type pass = (SL.t -> SL.t) * string
+type pass = (Context.t -> Context.t) * string
 
-let apply phi (pass : pass) =
-  let fn, name = pass in
-  let phi' = fn phi in
+let apply ctx ((fn, name) : pass) =
+  let ctx' = fn ctx in
   counter := !counter + 1;
   let suffix = Format.asprintf "%d-%s" !counter name in
-  Debug.formula ~suffix phi';
-  phi'
+  Debug.formula ~suffix ctx'.phi;
+  ctx'
 
 let apply_list = List.fold_left apply
 
@@ -23,28 +23,23 @@ let apply_list = List.fold_left apply
 
 (** It is crucial that this pass is run in the first phase because if affects fragment
     classification which is needed to compute bounds. *)
-let rewrite_semantics phi = match Options_base.semantics () with
-  | `NotSpecified -> phi
-  | `Precise -> phi
+let rewrite_semantics ctx = match Options_base.semantics () with
+  | `NotSpecified -> ctx
+  | `Precise -> ctx
   | `Imprecise ->
-    let phi = PreciseToImprecise.to_precise phi in
+    let phi = PreciseToImprecise.to_precise ctx.phi in
     let _ = Debug.formula ~suffix:"1.0-to_precise" phi in
-    phi
+    {ctx with phi = phi}
 
 let first_phase context =
   counter := 0;
-  let phi, vars = Context.get_input context in
-
-  let phi' = apply_list phi [
-    NegationNormalisation.apply, "normalisation";
-    Inlining.inline, "inlining";
-    rewrite_semantics, "semantics_rewriting";
-  ]
-  in
-
   SID.normalise ();
 
-  Context.set_preprocessed context phi' vars
+  apply_list context [
+    NegationNormalisation.apply_ctx, "normalisation";
+    Inlining.inline_ctx, "inlining";
+    rewrite_semantics, "semantics_rewriting";
+  ]
 
 (** ==== 2nd phase ==== *)
 
@@ -58,21 +53,20 @@ let remove_useless_vars phi vars =
   else vars
 
 let second_phase_aux aggresive context =
- let phi, vars = Context.get_input context in
+  let vars = remove_useless_vars context.phi context.vars in
+  let ctx' = Context.set_preprocessed context context.phi vars in
 
-  let phi' = apply_list phi [
-    UnfoldIDs.apply context.location_bounds, "predicate_unfolding";
+  apply_list ctx' [
+    Simplifier.simplify_ctx, "simplification";
+    UnfoldIDs.apply_ctx, "predicate_unfolding";
     (*Antiprenexing.apply, "antiprenexing";*)
-    QuantifierElimination.apply context.sl_graph, "quantifier_elimination";
-    IntroduceIfThenElse.apply, "ite_introduction";
-    Simplifier.simplify ~dont_care:[], "simplification";
-    (fun phi -> if aggresive then AggresiveSimplifier.simplify context.sl_graph phi else phi),
+    IntroduceIfThenElse.apply_ctx, "ite_introduction";
+    QuantifierElimination.apply_ctx, "quantifier_elimination";
+    Simplifier.simplify_ctx, "simplification";
+    (*fun phi -> if aggresive then AggresiveSimplifier.simplify context.sl_graph phi else phi),
       "aggresive-simp";
+    *)
   ]
-  in
-
-  let vars = remove_useless_vars phi' vars in
-  Context.set_preprocessed context phi' vars
 
 let second_phase context = match Options_base.preprocessing () with
   | `None -> context
