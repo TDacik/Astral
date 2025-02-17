@@ -98,6 +98,8 @@ val init :
 
 val eval : t -> SL.Term.t -> Location.t
 
+val filter_vars : (SL.Variable.t -> bool) -> t -> t
+
 val succ_field : t -> Field.t -> Location.t -> Location.t
 
 val domain : t -> Footprint.t

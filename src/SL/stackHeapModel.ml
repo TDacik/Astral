@@ -101,6 +101,15 @@ module Stack = struct
 
   let add x y s = {s with stack = M.add x y s.stack}
 
+  let filter fn s =
+    let stack =
+      M.filter (fun term _ -> match SL.Term.view term with
+        | Var v -> fn v
+        | _ -> true
+      ) s.stack
+    in
+    {s with stack = stack}
+
   let base self =
     M.filter (fun t _ -> match SL.Term.view t with Var _ -> true | _ -> false) self.stack
 
@@ -166,6 +175,8 @@ let init ?(footprints=SL.Map.empty) ?(heaps=SL.Map.empty) s h = {
 }
 
 let eval sh l = Stack.eval sh.stack l
+
+let filter_vars fn self = {self with stack = Stack.filter fn self.stack}
 
 let get_stack sh = sh.stack
 
