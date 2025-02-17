@@ -11,35 +11,61 @@ open MemoryModel
 include SL_graph0
 open SL_edge
 
+(** ==== Edge contraction ==== *)
+
+(** Reimplementation of the algorithm from Ocamlgraph which does not allow
+    to provide vertex selection function. *)
+
+let contract g (is_existential : SL.Term.t -> bool) =
+  let module S = SL.Term.Set in
+  let module M = SL.Term.MonoMap(S) in
+  let eqs = projection_eq g in
+  let vertex_map =
+    G.fold_vertex (fun v acc -> M.add v (S.singleton v) acc) g M.empty
+    |> G.fold_edges (fun src dst acc ->
+        if is_existential src || is_existential dst then
+          let src_set, dst_set = M.find src acc, M.find dst acc in
+          let set = S.union src_set dst_set in
+          S.fold (fun v acc -> M.add v set acc) set acc
+        else acc
+      ) eqs
+  in
+  G.fold_edges_e (fun e acc ->
+    let src, label, dst = E.src e, E.label e, E.dst e in
+    if label = Equality && (is_existential src || is_existential dst) then acc
+    else
+      let lookup v =
+        try S.min_elt @@ S.filter (fun x -> not @@ is_existential x) @@ M.find v vertex_map
+        with Not_found -> v
+      in
+      G.add_edge_e acc (lookup src, label, lookup dst)
+  ) g G.empty
+
 (** ==== Vertex substitution ==== *)
 
-  module GM = Graph.Gmap.Vertex(G)(struct include G let empty () = G.empty end)
+module GM = Graph.Gmap.Vertex(G)(struct include G let empty () = G.empty end)
 
-  let substitute g ~vertex ~by =
-    if SL.Term.equal vertex by then g
-    else
-      let g0 = G.add_vertex g by in
-      let g1 =
-        try
-          G.fold_succ_e (fun (_, label, dst) acc ->
-            G.add_edge_e acc (by, label, dst)) g0 vertex g0
-        with Invalid_argument _ -> g0
-      in
-      let g2 =
-        try
-          G.fold_pred_e (fun (src, label, _) acc ->
-            G.add_edge_e acc (src, label, by)) g1 vertex g1
-        with Invalid_argument _ -> g1
-      in
-      let g3 = G.remove_vertex g2 vertex in
-      g3
+let substitute g ~vertex ~by =
+  if SL.Term.equal vertex by then g
+  else
+    let g0 = G.add_vertex g by in
+    let g1 =
+      try
+        G.fold_succ_e (fun (_, label, dst) acc ->
+          G.add_edge_e acc (by, label, dst)) g0 vertex g0
+      with Invalid_argument _ -> g0
+    in
+    let g2 =
+      try
+        G.fold_pred_e (fun (src, label, _) acc ->
+          G.add_edge_e acc (src, label, by)) g1 vertex g1
+      with Invalid_argument _ -> g1
+    in
+    let g3 = G.remove_vertex g2 vertex in
+    g3
 
-  (*
-  GM.map (fun v -> if G.V.equal v vertex then by else v) g
-  *)
-
-  let substitute_list g ~vertices ~by =
-    BatList.fold_left2 (fun g vertex by -> substitute g ~vertex ~by) g vertices by
+let substitute_list g ~vertices ~by =
+  BatList.fold_left2 (fun g vertex by -> substitute g ~vertex ~by) g vertices by
 
 (** ==== SL-graph construction ==== *)
 

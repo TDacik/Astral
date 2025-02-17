@@ -107,6 +107,12 @@ let compare g1 g2 = List.compare G.E.compare (get_edges g1) (get_edges g2)
 
 let equal g1 g2 = compare g1 g2 = 0
 
+include Datatype.Collections(struct
+  type nonrec t = G.t
+  let compare = compare
+  let show _ = "<SL-graph>"
+end)
+
 (** Projections *)
 
 let filter g pred =

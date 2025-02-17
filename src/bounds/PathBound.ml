@@ -12,7 +12,7 @@ module Logger = Logger.Make(struct let name = "Path bound" let level = 2 end)
 
 exception NoPath
 
-module M = Map.Make(struct
+module M = Stdlib.Map.Make(struct
 
   type t = SL.Term.t * SL.Term.t * MemoryModel.Field.t [@@deriving compare]
 
