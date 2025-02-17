@@ -27,14 +27,17 @@ let solve (raw_input : ParserContext.t) =
   SID.init ();
   let input = Context.init raw_input in
   let input = Preprocessor.first_phase input in
-  SID.preprocess_user_definitions PredicatePreprocessing.preprocess;
+  SID.preprocess_user_definitions PredicatePreprocessing.normalise;
+
   let sl_graph = SL_graph.compute input.phi in
   if SL_graph.has_contradiction sl_graph then
     Context.set_result `Unsat ~unsat_core:(Some []) input
   else match FragmentChecker.check input with
   | Error reason -> Context.set_result (`Unknown reason) input
   | Ok () ->
-    let sm = SmallModels.compute !SID.dg in
+    Profiler.add "Normalisation";
+    let sm = SmallModels.compute !SID.dg input.phi in
+    Profiler.add "Small-models";
     SID.cache := sm;
 
     Debug.out_input input;
@@ -45,6 +48,7 @@ let solve (raw_input : ParserContext.t) =
 
     BaseLogic.use_simplification true;
 
+    SID.preprocess_user_definitions PredicatePreprocessing.preprocess;
     let input = Preprocessor.second_phase input in
     Profiler.add "Preprocessor";
     Logger.debug "%s" (ModelAdapter.show input.model_adapter);
