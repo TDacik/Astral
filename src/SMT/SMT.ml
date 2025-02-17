@@ -221,7 +221,6 @@ module Model = struct
     |> String.concat "\n"
 
   let show_with_sorts model =
-    Identifier.debug := true;
     bindings model
     |> List.map
         (fun (v, i) -> Format.asprintf "%s %s %s" (Variable.show_with_sort v) !U.defined (Constant.show i))
