@@ -54,6 +54,13 @@ module Term = struct
   let is_heap_term t = match view t with HeapTerm _ -> true | _ -> false
   let is_smt_term t = match view t with SmtTerm _ -> true | _ -> false
 
+  let get_vars t = match view t with
+    | Var v -> [v]
+    | SmtTerm t -> List.map (fun v -> Variable.of_description @@ SMT.Variable.describe v) (SMT.free_vars t)
+    | HeapTerm (_, t) | BlockBegin t | BlockEnd t -> get_vars t
+
+  let mem_var (v : Variable.t) (t : t) = BatList.mem_cmp Variable.compare v (get_vars t)
+
   let get_subterm t = match view t with
     | HeapTerm (_, t) | BlockBegin t | BlockEnd t -> t
     | _ -> raise @@ Invalid_argument ("SL.Term.get_subterm: " ^ show t)

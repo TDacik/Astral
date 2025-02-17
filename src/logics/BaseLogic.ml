@@ -231,6 +231,35 @@ let rec map_app fn = function
     end
   | Binder (binder, vs, x) -> Binder (binder, vs, map_app fn x)
 
+(** TODO: works only for SL (not implication etc.) *)
+let skolemisation term =
+  let rec perform is_positive term = match term with
+    | Variable _ -> term, []
+    | Application (Not, [x]) ->
+      let x', xs = perform (not is_positive) x
+      in Application (Not, [x']), xs
+    | Application (GuardedNot, [lhs; rhs]) ->
+      let lhs', xs1 = perform is_positive lhs in
+      let rhs', xs2 = perform (not is_positive) rhs in
+      Application (GuardedNot, [lhs'; rhs']), xs1 @ xs2
+    | Application (app, ts) ->
+      let ts', xs =
+        List.fold_left (fun (t_acc, xs_acc) t ->
+          let t', xs = perform is_positive t in (t_acc @ [t'], xs @ xs_acc)
+        ) ([], []) ts
+      in
+      Application (app, ts'), xs
+    | Binder (Exists _, xs, t) when is_positive ->
+      let t', skolems = perform is_positive t in
+      t', xs @ skolems
+    | Binder (Forall r, xs, t) ->
+      let t', skolems = perform (not is_positive) t in
+      Binder (Forall r, xs, t'), skolems
+    | Binder (binder, xs, t) ->
+      let t', skolems = perform is_positive t in
+      Binder (binder, xs, t'), skolems
+  in
+  perform true term
 
 (** Predicates *)
 

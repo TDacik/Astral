@@ -258,6 +258,8 @@ val get_fields : t -> Field.t list
 
 (** {2 Syntactic manipulation} *)
 
+val skolemisation : t -> t * Variable.t list
+
 val free_vars : ?with_nil:bool -> ?with_pure:bool -> t -> Variable.t list
 
 val free_vars_of_sort : Sort.t -> t -> Variable.t list

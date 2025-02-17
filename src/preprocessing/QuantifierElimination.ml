@@ -18,6 +18,12 @@ let list_disjoint xs ys =
   let ys = SL.Variable.Set.of_list ys in
   SL.Variable.Set.is_empty @@ SL.Variable.Set.inter xs ys
 
+let skolemisation ctx =
+  let open Context in
+  let phi', skolems = SL.skolemisation ctx.phi in
+  let ctx' = {ctx with phi = phi'} in
+  List.fold_left (Context.add_skolem_var) ctx' skolems
+
 let remove_useless phi =
   let filter_fn = fun psi x -> BatList.mem_cmp SL.Variable.compare x (SL.free_vars psi) in
   SL.map_view (function
