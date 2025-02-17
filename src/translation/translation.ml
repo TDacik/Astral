@@ -39,26 +39,28 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
   (** We can use Obj.magic here because we know that SL.t and SMT.t are
       internaly the same type. TODO: but is weird... *)
-  let rec translate_term ctx t : SMT.t =
+  let rec translate_term ctx t = match SL.Term.view t with
+    | SL.Term.Var x -> SMT.of_var @@ Locations.translate_var ctx.locs x
+    | SL.Term.HeapTerm (f, x) -> translate_heap_term ctx f (translate_term ctx x)
+    | SL.Term.SmtTerm x -> x
+    (*
     Obj.magic (match SL.Term.view t with
       | SL.Term.Var x -> SMT.of_var @@ Locations.translate_var ctx.locs x
-      | SL.Term.HeapTerm (f, x) -> translate_heap_term ctx f (translate_term ctx x)
-      | SL.Term.SmtTerm x -> x
       | SL.Term.BlockBegin x -> translate_block_begin ctx (translate_term ctx x)
       | SL.Term.BlockEnd x -> translate_block_end ctx (translate_term ctx x)
-    )
+    *)
 
   (** Translate "almost-pure" formula by replacing heap terms by select from
       corresponding arrays. *)
-  let translate_pure_with_heap_terms ctx phi =
-    SMT.of_base_logic @@ BaseLogic.map (function
-      | BaseLogic.Application (HeapTerm f, [x]) ->
-        SMT.to_base_logic @@ translate_heap_term ctx f (SMT.of_base_logic x)
-      | BaseLogic.Variable var -> BaseLogic.Variable (Obj.magic @@ translate_var ctx (Obj.magic var))
-      | x -> x
-    ) (SL.to_base_logic phi)
-
-
+  let rec translate_pure_with_heap_terms ctx phi =
+    let rec translate_aux term = match SL.Term.view term with
+      | Var x -> SMT.of_var @@ translate_var ctx x
+      | HeapTerm (f, x) -> translate_heap_term ctx f @@ translate_aux x
+    in
+    match SL.view phi with
+    | And xs -> SMT.Boolean.mk_and @@ List.map (translate_pure_with_heap_terms ctx) xs
+    | Eq xs -> SMT.mk_eq @@ List.map (translate_aux) xs
+    | Distinct xs -> SMT.mk_distinct @@ List.map (translate_aux) xs
 
   let id = ref 0
 
