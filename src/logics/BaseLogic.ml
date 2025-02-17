@@ -297,6 +297,11 @@ let free_vars phi =
   collect_vars [] phi
   |> BatList.unique ~eq:Variable.equal
 
+let rec bound_vars = function
+  | Variable var -> []
+  | Application (_, xs) -> List.concat_map bound_vars xs
+  | Binder (_, vs, x) -> vs @ bound_vars x
+
 let free_vars_of_sort sort phi =
   List.filter (Variable.has_sort sort) (free_vars phi)
 

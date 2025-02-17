@@ -125,6 +125,8 @@ module type LOGIC = sig
 
   val free_vars : t -> Variable.t list
 
+  val bound_vars : t -> Variable.t list
+
   val rename_var : string -> string -> t -> t
 
   val select_subformulae : (t -> bool) -> t -> t list

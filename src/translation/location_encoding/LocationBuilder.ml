@@ -177,7 +177,7 @@ module Make (Locations : LOCATIONS_BASE) = struct
     SMT.Boolean.mk_and [axiom1; axiom2]
 
   let axioms locs phi translate_term =
-    let terms = SL.Term.nil :: SL.get_loc_terms phi locs.heap_sort in
+    let terms = SL.Term.nil :: SL.get_loc_terms ~with_free_vars:false phi locs.heap_sort in
     let sorts = HeapSort.get_loc_sorts locs.heap_sort in
     let term_axioms = SMT.Boolean.mk_and @@ List.map (term_axiom locs translate_term) terms in
     let sort_axioms = SMT.Boolean.mk_and @@ List.map (sort_axiom locs) sorts in

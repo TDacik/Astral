@@ -277,10 +277,16 @@ let get_terms phi =
   let terms = List.concat_map get_terms_aux subformulae in
   BatList.unique ~eq:equal terms
 
-let get_loc_terms phi heap_sort =
+let get_loc_terms ?(with_free_vars=true) phi heap_sort =
   let loc_sorts = HeapSort.get_loc_sorts heap_sort in
-  get_terms phi
-  |> List.filter (fun term -> BatList.mem_cmp Sort.compare (Term.get_sort term) loc_sorts)
+  let res =
+    get_terms phi
+    |> List.filter (fun term -> BatList.mem_cmp Sort.compare (Term.get_sort term) loc_sorts)
+  in
+  if with_free_vars then res
+  else
+    let bound_vars = bound_vars phi in
+    List.filter (fun term -> List.for_all (fun v -> not @@ Term.mem_var v term) bound_vars) res
 
 let get_terms_of_sort sort phi =
   get_terms phi
