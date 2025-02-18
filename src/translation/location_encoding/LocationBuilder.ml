@@ -27,9 +27,9 @@ module Make (Locations : LOCATIONS_BASE) = struct
     | Some (_, mapper) -> SMT.Array.mk_select mapper locs.null
     | None ->*) locs.null
 
-  let internal_error self msg_prefix =
-    let msg = Format.asprintf "%s in location encoding:\n%s" msg_prefix (show self)
-    in Utils.internal_error msg
+  let internal_error self reason =
+    let details = Format.asprintf "Location encoding:\n%s" (show self) in
+    Exceptions.internal_error ~reason ~details
 
   let get_encoding locs sort =
     try Sort.Map.find sort locs.sort_encoding

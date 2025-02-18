@@ -34,7 +34,6 @@ type t = {
   status : status option;
   model : StackHeapModel.t option;
   unsat_core : SL.t list option;
-  reason_unknown : string option;
 }
 
 let init input = {
@@ -55,7 +54,6 @@ let init input = {
   status = None;
   model = None;
   unsat_core = None;
-  reason_unknown = None;
 }
 
 let (let*) f ctx = match ctx.status with
@@ -80,12 +78,11 @@ let set_preprocessed input phi vars = {input with phi = phi; vars = vars}
 
 let set_size input size = {input with size = Some size}
 
-let set_result status ?(model=None) ?(unsat_core=None) ?(reason=None) input =
+let set_result status ?model ?unsat_core input =
   {input with
     status = Some status;
     model = model;
     unsat_core = unsat_core;
-    reason_unknown = reason;
   }
 
 

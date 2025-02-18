@@ -23,15 +23,14 @@ let debug_info input = match SL.classify_fragment input.phi with
   | Positive -> Logger.debug "Solving as positive formula\n"
   | Arbitrary -> Logger.debug "Solving as arbitrary formula\n"
 
-let solve (raw_input : ParserContext.t) =
+let solve (input : Context.t) =
   SID.init ();
-  let input = Context.init raw_input in
   let input = Preprocessor.first_phase input in
   SID.preprocess_user_definitions PredicatePreprocessing.normalise;
 
   let sl_graph = SL_graph.compute input.phi in
   if SL_graph.has_contradiction sl_graph then
-    Context.set_result `Unsat ~unsat_core:(Some []) input
+    Context.set_result `Unsat ~unsat_core:[] input
   else match FragmentChecker.check input with
   | Error reason -> Context.set_result (`Unknown reason) input
   | Ok () ->
@@ -71,4 +70,13 @@ let solve (raw_input : ParserContext.t) =
       let res' = Context.apply_model_adapter res in
       (match res'.model with None -> () | Some sh -> Debug.model sh);
       res'
-    else Context.set_result (`Unknown "dry run") ~reason:(Some "dry run") input
+    else Context.set_result (`Unknown "dry run") input
+
+(* TODO: Do not return just input in case of exception. *)
+let solve input =
+  let ctx = Context.init input in
+  try solve ctx with
+  | Exceptions.UnknownResult (reason, _) ->
+    Context.set_result (`Unknown reason) ctx
+  | Exceptions.UnsupportedFragment (reason, _) ->
+    Context.set_result (`Unknown ("Unsupported fragment" ^ reason)) ctx

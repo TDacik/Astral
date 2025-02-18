@@ -353,7 +353,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     if ctx.can_skolemise
     then translate_septraction_skolemised ctx domain witness_heap phi psi1 psi2
-    else raise @@ SolverUtils.UnsupportedFragment "magic wand/negative septraction"
+    else Exceptions.unsupported_fragment ~reason:"magic wand/negative septraction" ~details:""
 
   and translate_septraction_skolemised ctx domain witness_heap phi psi1 psi2 =
     let fp1 = formula_footprint ctx psi1 in
@@ -668,18 +668,19 @@ let translate_phi (ctx : Context.t) ssl_phi =
     | SMT_Sat (Some (smt_model, backend_model)) ->
       let smt_model = SetEncoding.rewrite_back translated1 smt_model in
       let _ = Debug.smt_model smt_model in
-      let sh = translate_model ctx smt_model in
-      Input.set_result `Sat ~model:(Some sh) input
+      let model = translate_model ctx smt_model in
+      Input.set_result `Sat ~model input
 
     (* TODO: unsat cores *)
-    | SMT_Unsat unsat_core -> Input.set_result `Unsat ~unsat_core:(Some []) input
+    | SMT_Unsat unsat_core -> Input.set_result `Unsat ~unsat_core:[] input
 
     (* TODO: remove duplicit reason *)
-    | SMT_Unknown reason -> Input.set_result (`Unknown reason) ~reason:(Some reason) input
+    | SMT_Unknown reason -> Input.set_result (`Unknown reason) input
 
-  let solve input =
+  (*let solve input =
     try solve input
     with SolverUtils.UnsupportedFragment str ->
       let reason = "unsupported SL fragment: " ^ str in
       Input.set_result (`Unknown reason) ~reason:(Some reason) input
+  *)
 end

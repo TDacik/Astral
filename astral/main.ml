@@ -2,7 +2,7 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2021 *)
 
-let () =
+let run () =
   Astral.Profiler.add "Start";
   let input_file = Astral.Options.parse () in
   Astral.Debug.init (); (* Debug initialisation needs to be called after options' parsing *)
@@ -21,3 +21,10 @@ let () =
 
   Reporter.report result;
   Checker.check result
+
+let () =
+  try run ()
+  with
+    | Astral.Exceptions.InternalError (reason, details) ->
+      Astral.Exceptions.pretty_internal_error reason details
+    | Astral.Exceptions.CmdOptionError _ -> ()
