@@ -218,7 +218,7 @@ module Init () = struct
   let translate_model_var astral_context z3_model var =
     let term = SMT.of_var var in
     let sort = SMT.get_sort term in
-    let interp = Option.get @@ Z3.Model.eval z3_model (translate term) false in
+    let interp = Option.get @@ Z3.Model.eval z3_model (translate term) true in
     Logger.debug "Translating variale %s = %s\n"
       (SMT.Variable.show_with_sort var) (Z3.Expr.to_string interp);
     match sort with
@@ -229,7 +229,7 @@ module Init () = struct
       BatList.filter
         (fun c ->
           let z3_query = Z3.Set.mk_membership !context (translate @@ SMT.of_const c) (translate term) in
-          let res = Option.get @@ Z3.Model.eval z3_model z3_query false in
+          let res = Option.get @@ Z3.Model.eval z3_model z3_query true in
           Z3.Boolean.is_true res
         ) consts
       |> Constant.mk_set

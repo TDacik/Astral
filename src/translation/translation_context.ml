@@ -39,7 +39,7 @@ module Make
     {
       phi = context.phi;
       vars = context.vars;
-      location_terms = SL.get_terms context.phi;
+      location_terms = SL.get_loc_terms ~with_free_vars:false context.phi context.raw_input.heap_sort;
       heap_sort = context.raw_input.heap_sort;
 
       smt_vars = List.map (translate_var loc_sort) context.vars;
