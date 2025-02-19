@@ -116,16 +116,16 @@ let timeout_template size init_to call_to expected_reason =
     | _ -> false
   )
 
-let timeout_backend_test1 () =
+let _timeout_backend_test1 () =
   timeout_template 40 (Some 1) None "canceled"
 
-let timeout_backend_test2 () =
+let _timeout_backend_test2 () =
   timeout_template 40 None (Some 1) "canceled"
 
-let timeout_astral_test1 () =
+let _timeout_astral_test1 () =
   timeout_template 100 (Some 1) None "astral timeout"
 
-let timeout_astral_test2 () =
+let _timeout_astral_test2 () =
   timeout_template 100 None (Some 1) "astral timeout"
 
 (** Output *)

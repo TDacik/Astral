@@ -32,7 +32,7 @@ let test3 () =
   let expected = x |-> y in
   SL.check_apply apply ~input ~expected
 
-let test4 () =
+let _test4 () =
   let input = SL.mk_exists' [Sort.loc_ls] (fun [e] -> (x |-> y) * (x != e)) in
   let expected = x |-> y in
   SL.check_apply apply ~input ~expected

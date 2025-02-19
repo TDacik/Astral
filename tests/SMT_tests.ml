@@ -4,9 +4,6 @@
 
 (** Auxiliary functions *)
 
-let (==) = SMT.equal
-let (!=) x y = not @@ SMT.equal x y
-
 module SMT = SMT_testable
 open SMT
 
