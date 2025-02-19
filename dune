@@ -1,5 +1,5 @@
 (data_only_dirs
-  benchmarks
+  ;benchmarks
   scripts
 )
 
@@ -9,6 +9,7 @@
                           -w -32   ; Unused value declaration
                           -w -26   ; Unused var
                           -w -27   ; Unused var strict
+                          -w -67   ; Unused functor parameter
                           -g
                 )
         )

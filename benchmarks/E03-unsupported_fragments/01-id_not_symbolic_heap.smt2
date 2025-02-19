@@ -10,7 +10,7 @@
 (define-fun-rec pred ((x Loc) (y Loc)) Bool
   (or
     (and (pto x (c y)) emp)
-    emp
+    (pred x y)
   )
 )
 
