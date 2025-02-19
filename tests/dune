@@ -1,7 +1,6 @@
 (tests
   (names
     SMT_tests
-    SL_tests
     topped_set_tests
     list_utils_tests
     simplification_tests
@@ -15,6 +14,10 @@
     Variable_tests
     BaseLogic_tests
     API_tests
+
+    ;; Separation logic
+    SL_tests
+    InductiveDefinition_tests
 
     ;; Preprocessing tests
     IntroduceITE_tests

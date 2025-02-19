@@ -2,11 +2,11 @@ open ID_sig
 
 type t =
   | Builtin of (module BUILTIN)
-  | UserDefined of InductivePredicate.t
+  | UserDefined of InductiveDefinition.t
 
 let name = function
   | Builtin (module B : BUILTIN) -> B.name
-  | UserDefined id -> InductivePredicate.show id
+  | UserDefined id -> InductiveDefinition.show id
 
 let show pred =
   let kind = match pred with

@@ -2,9 +2,9 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
-open InductivePredicate
+open InductiveDefinition
 
-module G = Graph.Persistent.Digraph.ConcreteBidirectional(InductivePredicate)
+module G = Graph.Persistent.Digraph.ConcreteBidirectional(InductiveDefinition)
 include G
 include Graph.Oper.P(G)
 

@@ -1,7 +1,7 @@
 open MemoryModel
 open ID
 open ID_sig
-open InductivePredicate
+open InductiveDefinition
 
 
 module Logger = Logger.Make (struct let name = "SID" let level = 2 end)
@@ -59,7 +59,7 @@ let update_pred id =
   sid := add id.name (UserDefined id) !sid
 
 let add name header body =
-  let def = InductivePredicate.mk name header body in
+  let def = InductiveDefinition.mk name header body in
   Logger.debug "Registering user-defined ID %s\n" name;
   if mem name !sid then Logger.debug "Skipping already registered ID %s\n" name
   else sid := add name (UserDefined def) !sid
@@ -103,12 +103,12 @@ let has_unique_footprint name = match find name with
 
 let fields name = match find name with
   | Builtin (module B : BUILTIN) -> List.concat_map StructDef.get_fields B.struct_defs
-  | UserDefined id -> InductivePredicate.fields id
+  | UserDefined id -> InductiveDefinition.fields id
 
 (** User-defined *)
 
 let dependencies id = match find id.name with
   | Builtin _ -> []
   | UserDefined id ->
-    InductivePredicate.dependencies id
+    InductiveDefinition.dependencies id
     |> List.map find_user_defined

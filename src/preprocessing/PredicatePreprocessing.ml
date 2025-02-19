@@ -1,10 +1,10 @@
 (** Preprocessing *)
 
-open InductivePredicate
+open InductiveDefinition
 
 module type LOGGER = sig
   include Logger_sig.LOGGER
-  val dump : InductivePredicate.t -> string -> unit
+  val dump : InductiveDefinition.t -> string -> unit
 end
 
 (** Create Logger module *)
@@ -17,7 +17,7 @@ let make_logger pred =
       let level = 2
     end)
     let dump pred name =
-      let name = InductivePredicate.name pred ^ name in
+      let name = InductiveDefinition.name pred ^ name in
       let psi = instantiate_formals pred in
       dump SL.dump (name ^ ".smt2") psi;
       let ast = SL.to_ast psi in
@@ -27,7 +27,7 @@ let make_logger pred =
   (module Logger : LOGGER)
 
 
-let preprocess_cases fn pred = InductivePredicate.map_cases fn pred
+let preprocess_cases fn pred = InductiveDefinition.map_cases fn pred
 
 let rewrite_semantics phi = match Options_base.semantics () with
   | `NotSpecified -> phi
@@ -48,6 +48,6 @@ let preprocess (pred : t) =
   let pred = preprocess_cases qelim pred in
   Logger.dump pred "_3-quntifier-elim";
 
-  let pred = InductivePredicate.map IntroduceIfThenElse.apply pred in
+  let pred = InductiveDefinition.map IntroduceIfThenElse.apply pred in
   Logger.dump pred "_4-introduce-ite";
   pred

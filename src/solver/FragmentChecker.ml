@@ -4,7 +4,7 @@
 
 open Context
 open Result_syntax
-open InductivePredicate
+open InductiveDefinition
 
 let check_low_level_sl ctx =
   if SL.is_low_level ctx.phi && not @@ HeapSort.is_bitvector_model ctx.raw_input.heap_sort then

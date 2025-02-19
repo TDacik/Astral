@@ -32,8 +32,8 @@ let normalise () =
 let inline name xs = match find name with
   | UserDefined id when not @@ is_self_recursive id.name ->
     (* TODO: move to preprocessor
-    let id = InductivePredicate.map_cases PreciseToImprecise.to_precise id in*)
-    Some (InductivePredicate.instantiate ~refresh:true id xs)
+    let id = InductiveDefinition.map_cases PreciseToImprecise.to_precise id in*)
+    Some (InductiveDefinition.instantiate ~refresh:true id xs)
   | _ -> None
 
 let preprocess name sl_graph instance = match find name with
@@ -55,7 +55,7 @@ let instantiate heap_sort name operands = match find name with
 
 (** {2 Bounds} *)
 
-module MM = InductivePredicate.Map
+module MM = InductiveDefinition.Map
 
 (*let graph = ref *)
 let cache = ref (MM.empty : Int.t MM.t)
@@ -97,21 +97,21 @@ let rule_size phi = match SL.view phi with
 (** TODO: compute how many locations the unfolding consumes *)
 let rec unfold name xs n =
   let id = find_user_defined name in
-  if n = 0 then InductivePredicate.unfold_finite id xs
+  if n = 0 then InductiveDefinition.unfold_finite id xs
   else SL.map_view (function
     | Predicate (name', ys, _) ->
-      Logger.debug "Unfolding %s (remaining %d)\n" name' (n-1);
+      Logger.debug "Unfolding LHS %s (remaining %d)\n" name' (n-1);
       unfold name' ys (n-1)
-  ) (InductivePredicate.instantiate ~refresh:true id xs)
+  ) (InductiveDefinition.instantiate ~refresh:true id xs)
 
 let rec unfold_synchronised g name xs n =
   let id = find_user_defined name in
-  if n = 0 then InductivePredicate.unfold_finite id xs
+  if n = 0 then InductiveDefinition.unfold_finite id xs
   else SL.map_view (function
     | Predicate (name', ys, _) ->
-      Logger.debug "Unfolding %s (remaining %d)\n" name' (n-1);
+      Logger.debug "Unfolding RHS %s (remaining %d)\n" name' (n-1);
       unfold_synchronised g name' ys (n-1)
-  ) (InductivePredicate.instantiate ~refresh:true id xs)
+  ) (InductiveDefinition.instantiate ~refresh:true id xs)
 
 (** {2 Model checking} *)
 

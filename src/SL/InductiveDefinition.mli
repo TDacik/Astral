@@ -18,7 +18,11 @@ val name : t -> string
 
 val header : t -> SL.Variable.t list
 
-val cases : t -> SL.t list
+val cases : ?refresh:bool -> ?params:SL.Term.t list -> t -> SL.t list
+(** Return a list of formula used in definition.
+
+    @param refresh Refresh name of existential variables inside each
+                   definition (default true) *)
 
 val show : t -> string
 
@@ -31,11 +35,15 @@ val fields : t -> Field.t list
 val dependencies : t -> string list
 (** Return names of predicates used in inductive cases. *)
 
-val refresh : t -> t
-
 val map : (SL.t -> SL.t) -> t -> t
 
 val map_cases : (SL.t -> SL.t) -> t -> t
+
+val to_formula : ?params:SL.Term.t list -> t -> SL.t
+(** Create a call of the given inductive definitions.
+
+    If not parameters are provided, formal parameters will be used *)
+
 
 val instantiate : refresh:bool -> t -> SL.Term.t list -> SL.t
 

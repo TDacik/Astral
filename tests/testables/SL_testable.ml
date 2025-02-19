@@ -26,10 +26,10 @@ module Var = struct
 
   (** Values *)
   let nil = SL.Term.nil
-  let u = SL.Term.mk_var "x" Sort.loc_ls
-  let v = SL.Term.mk_var "y" Sort.loc_ls
-  let w = SL.Term.mk_var "z" Sort.loc_ls
-  let x = SL.Term.mk_var "x" Sort.loc_ls
-  let y = SL.Term.mk_var "y" Sort.loc_ls
-  let z = SL.Term.mk_var "z" Sort.loc_ls
+  let u = SL.Variable.mk "x" Sort.loc_ls
+  let v = SL.Variable.mk "y" Sort.loc_ls
+  let w = SL.Variable.mk "z" Sort.loc_ls
+  let x = SL.Variable.mk "x" Sort.loc_ls
+  let y = SL.Variable.mk "y" Sort.loc_ls
+  let z = SL.Variable.mk "z" Sort.loc_ls
 end
