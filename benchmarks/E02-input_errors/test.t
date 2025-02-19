@@ -3,9 +3,10 @@
   Loc:line 1, character 171-179
   [3]
 
-TODO:
-$ astral 02-constructor_redefined.smt2
-sat
+  $ astral 02-constructor_redefined.smt2
+  Parser error: constructor 'c' redefined:
+  Loc:line 1, character 206-263
+  [3]
 
   $ astral 03-wrong_expected_status.smt2
   unsat

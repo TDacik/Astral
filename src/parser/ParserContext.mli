@@ -27,7 +27,7 @@ val declare_heap_sort : t -> (Sort.t * StructDef.t) list -> t
 
 val find_sort : ?loc:loc -> t -> string -> Sort.t
 
-val declare_struct : t -> string -> string -> Field.t list -> t
+val declare_struct : ?loc:loc -> t -> string -> string -> Field.t list -> t
 
 val is_declared_struct : t -> string -> bool
 

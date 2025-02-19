@@ -8,8 +8,8 @@
 (declare-sort Ref_LS 0)
 (declare-sort Ref_NLS 0)
 
-(declare-datatype LS ((c_LS (next Ref_LS))))
-(declare-datatype NLS ((c_LS (next Ref_NLS) (down Ref_LS))))
+(declare-datatype LS ((c (next Ref_LS))))
+(declare-datatype NLS ((c (next Ref_NLS) (down Ref_LS))))
 
 
 (assert emp)

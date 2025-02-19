@@ -383,7 +383,7 @@ let parse_datatype ctx = function
     let cons, terms = List.hd decl.cstrs in (* Structures always have single constructor *)
     let cons = parse_id cons in
     let fields = List.map (parse_field ctx) terms in
-    Context.declare_struct ctx name cons fields
+    Context.declare_struct ~loc:decl.loc ctx name cons fields
 
 (** Parse group of declarations *)
 let parse_declarations ctx decls =

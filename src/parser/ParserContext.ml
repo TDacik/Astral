@@ -51,11 +51,13 @@ let find_sort ?loc ctx name =
   try M.find name ctx.sorts
   with Not_found -> ParserException.raise_not_declared loc ctx Sort name
 
-let declare_struct ctx name cons fields =
-  let def = StructDef.mk name ~cons fields in
-  {ctx with struct_defs = M.add cons def ctx.struct_defs}
-
 let is_declared_struct ctx name = M.mem name ctx.struct_defs
+
+let declare_struct ?loc ctx name cons fields =
+  if is_declared_struct ctx cons then ParserException.raise_redefined loc ctx Constructor cons
+  else
+    let def = StructDef.mk name ~cons fields in
+    {ctx with struct_defs = M.add cons def ctx.struct_defs}
 
 let find_struct_def_by_cons ?loc ctx cs_name =
   try M.find cs_name ctx.struct_defs
