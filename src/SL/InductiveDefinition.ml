@@ -114,8 +114,13 @@ let map_cases fn id =
 let is_finite id = List.is_empty id.inductive_cases
 
 let unfold_finite id xs : SL.t =
-  let phi = SL.mk_or id.base_cases in
-  SL.substitute_list phi ~vars:id.header ~by:xs
+  let unfolding = match id.base_cases with
+    | [] ->
+      let aux = SL.mk_or id.inductive_cases in
+      SL.map_view (fun (Predicate _) -> SL.ff) aux (* Needed for rules with if-then-else *)
+    | bs -> SL.mk_or bs
+  in
+  SL.substitute_list unfolding ~vars:id.header ~by:xs
 
 module ID_map = Stdlib.Map.Make(String)
 
@@ -136,16 +141,3 @@ let rec unfold_guided id_map id g xs n =
       let id' = ID_map.find name' id_map in
       unfold_guided id_map id' g ys (n-1)
   ) (instantiate ~refresh:true id xs)
-
-
-
-
-
-
-
-
-
-
-
-
-

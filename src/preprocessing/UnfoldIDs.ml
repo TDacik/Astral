@@ -1,7 +1,7 @@
 module Logger = Logger.Make(struct let name = "unfolder" let level = 1 end)
 
 let unfold_predicate_lhs name xs =
-  let bound = 1 + SID.unfolding_depth name in (* TODO: fix in predicate! *)
+  let bound = SID.unfolding_depth name in
   Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
     name (SL.Term.show_list xs) bound;
   SID.unfold name xs bound
