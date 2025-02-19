@@ -25,11 +25,11 @@
 (define-fun-rec nls ((x Ref_NLS) (y Ref_NLS) (z Ref_LS)) Bool
   (or
     (= x y)
-    (exists ((n Ref_NLS) (d Ref_LS))
+    (exists ((t Ref_NLS) (d Ref_LS))
       (sep
         (distinct x y)
-	(pto x (c_NLS n d))
-	(nls n y z)
+	(pto x (c_NLS t d))
+	(nls t y z)
 	(ls d z)
       )
     )
