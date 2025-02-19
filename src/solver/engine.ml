@@ -35,7 +35,7 @@ let solve (input : Context.t) =
   | Error reason -> Context.set_result (`Unknown reason) input
   | Ok () ->
     Profiler.add "Normalisation";
-    let sm = SmallModels.compute !SID.dg input.phi in
+    let sm = SmallModels.compute !SID.dg (*input.phi*) in
     Profiler.add "Small-models";
     SID.cache := sm;
 
