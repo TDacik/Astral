@@ -680,7 +680,11 @@ module Quantifiers = struct
     mk_binder (Forall ranges) vars t
 
   let mk_exists vars ?ranges t =
-    mk_binder (Exists ranges) vars t
+    if !do_simplification then match t with
+      | c when equal c Boolean.ff -> Boolean.ff
+      | c when equal c Boolean.tt -> Boolean.tt
+      | _ -> mk_binder (Exists ranges) vars t
+    else mk_binder (Exists ranges) vars t
 
   let mk_exists' sorts constructor =
     let binders = List.map (Variable.mk_fresh "e") sorts in
