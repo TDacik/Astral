@@ -51,8 +51,8 @@ val instantiate_formals : ?refresh:bool -> t -> SL.t
 
 val unfold_finite : t -> SL.Term.t list -> SL.t
 
-(*
-val unfold : t -> SL.Term.t list -> int -> SL.t
+module ID_map : (module type of Stdlib.Map.Make(String))
 
-val unfold_synchronised : SL_graph0.t -> t -> SL.Term.t list -> int -> SL.t
-*)
+val unfold : t ID_map.t -> t -> SL.Term.t list -> int -> SL.t
+
+val unfold_guided : t ID_map.t -> t -> SL_graph0.t -> SL.Term.t list -> int -> SL.t

@@ -12,7 +12,7 @@ let unfold_predicate_rhs phi loc_bound g name xs =
   (*let max_bound = 1 + (List.length @@ SL.free_vars phi) in*)
   Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
     name (SL.Term.show_list xs) max_bound;
-  SID.unfold_synchronised g name xs max_bound
+  SID.unfold_guided name g xs max_bound
 
 let unfold_lhs = SL.map_view (function
   | Predicate (name, xs, _) when not @@ SID.is_builtin name ->

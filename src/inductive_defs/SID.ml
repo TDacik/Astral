@@ -91,27 +91,20 @@ module Translation (E : Translation_sig.ENCODING) = struct
 
 end
 
+(*
 let rule_size phi = match SL.view phi with
  | Star (xs) -> List.length @@ List.filter SL.is_pointer xs
+*)
 
-(** TODO: compute how many locations the unfolding consumes *)
-let rec unfold name xs n =
-  let id = find_user_defined name in
-  if n = 0 then InductiveDefinition.unfold_finite id xs
-  else SL.map_view (function
-    | Predicate (name', ys, _) ->
-      Logger.debug "Unfolding LHS %s (remaining %d)\n" name' (n-1);
-      unfold name' ys (n-1)
-  ) (InductiveDefinition.instantiate ~refresh:true id xs)
+let id_map () =
+  M.fold (fun name pred acc -> match pred with
+    | Builtin _ -> acc
+    | UserDefined id -> M.add name id acc
+  ) !sid M.empty
 
-let rec unfold_synchronised g name xs n =
-  let id = find_user_defined name in
-  if n = 0 then InductiveDefinition.unfold_finite id xs
-  else SL.map_view (function
-    | Predicate (name', ys, _) ->
-      Logger.debug "Unfolding RHS %s (remaining %d)\n" name' (n-1);
-      unfold_synchronised g name' ys (n-1)
-  ) (InductiveDefinition.instantiate ~refresh:true id xs)
+let unfold name = InductiveDefinition.unfold (id_map ()) (find_user_defined name)
+let unfold_guided name = InductiveDefinition.unfold_guided (id_map ()) (find_user_defined name)
+
 
 (** {2 Model checking} *)
 
