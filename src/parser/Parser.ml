@@ -236,12 +236,13 @@ and parse_pointer_aux ctx source target source_loc target_loc =
         ~actual:(Sort.show @@ SL.Term.get_sort source)
         ~expected:"a location sort"
   in
-  if Sort.equal expected_sort (SL.Term.get_sort target) then
+  let target_sort = SL.Term.get_sort target in
+  if Sort.equal expected_sort target_sort || Sort.is_nil target_sort then
     SL.mk_pto source target
   else ParserException.raise_sort_error
          (Some target_loc)
          ~name:"pointer target"
-         ~actual:(Sort.show @@ SL.Term.get_sort source)
+         ~actual:(Sort.show @@ SL.Term.get_sort target)
          ~expected:(Sort.show expected_sort)
 
 and parse_pointer ctx [source_t; target_t] =
