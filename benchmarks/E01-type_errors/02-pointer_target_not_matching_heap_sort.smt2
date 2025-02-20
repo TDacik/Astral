@@ -3,7 +3,7 @@
 
 (declare-sort Loc 0)
 
-(declare-heap (Int Int))
+(declare-heap (Loc Int))
 
 (declare-const x Loc)
 (declare-const y Loc)

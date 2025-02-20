@@ -9,7 +9,7 @@ type what = Variable | Sort | Structure | Constructor
 type parser_error =
   | SyntaxError of string
   | NotSupported of string
-  | SortError of actual * expected * string
+  | SortError of string * actual * expected
   | NotDeclared of what * string
   | Redefined of what * string
 
@@ -27,4 +27,4 @@ let raise_not_declared loc ctx what name = _raise loc (Some ctx) @@ NotDeclared 
 
 let raise_redefined loc ctx what name = _raise loc (Some ctx) @@ Redefined (what, name)
 
-let raise_sort_error loc ~name ~expected descr = _raise loc None @@ SortError (name, expected, descr)
+let raise_sort_error loc ~name ~actual ~expected = _raise loc None @@ SortError (name, actual, expected)

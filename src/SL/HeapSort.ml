@@ -21,10 +21,7 @@ let show self =
 let union =
   List.fold_left (M.union (fun _ _ _ -> failwith "Heap sorts are not disjoint")) empty
 
-let find_target sort self =
-  try M.find sort self
-  with Not_found -> Utils.internal_error @@ Format.asprintf
-    "No target for %s in heap sort:\n\t%s" (Sort.show sort) (show self)
+let find_target sort self = M.find sort self
 
 let find_target_unwrapped sort self =
   let target = find_target sort self in

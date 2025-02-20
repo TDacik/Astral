@@ -19,12 +19,6 @@ let show_what = function
   | Structure -> "structure"
   | Constructor -> "constructor"
 
-let pretty_parser_error = function
-  | NotSupported msg-> msg
-  | SortError (actual, _, expected) -> "TODO: sort error"
-  | NotDeclared (what, name) -> Format.asprintf "%s %s is not declared" (show_what what) name
-  | Redefined (what, name) -> Format.asprintf "%s %s redefined" (show_what what) name
-
 let parser_error ?hint ctx loc msg : _ =
   Format.fprintf Format.err_formatter "%sParser error:%s %s"
     Colors.red Colors.white msg;
@@ -50,7 +44,7 @@ let pretty_error (loc, ctx, error) = match error with
   | NotSupported msg -> parser_error ctx loc msg
   | NotDeclared (what, name) -> parser_error ctx loc (show_what what ^ " '" ^ name ^ "' not declared")
   | Redefined (what, name) -> parser_error ctx loc (show_what what ^ " '" ^ name ^ "' redefined")
-  | SortError _ -> parser_error ctx loc "Error: TODO"
+  | SortError (name, actual, expected) -> parser_error ctx loc @@ Format.asprintf "%s has sort %s (expected %s)" name actual expected
 
 
 module Extension = struct
@@ -92,17 +86,17 @@ let show_list asts = String.concat "\n  " @@ List.map show asts
 let get_smt ?loc name = function
   | SMT term -> term
   (*| Term t when SL.Term.is_nil t -> Obj.magic t (* TODO *)*)
-  | other -> ParserException.raise_sort_error loc ~name ~expected:"SMT term" (show other)
+  | other -> ParserException.raise_sort_error loc ~name ~actual:(show other) ~expected:"SMT term"
 
 let get_term ?loc name = function
   | SMT smt -> SL.Term.mk_smt smt
   | Term term -> term
-  | other -> ParserException.raise_sort_error loc ~name ~expected:"SL term" (show other)
+  | other -> ParserException.raise_sort_error loc ~name ~actual:(show other) ~expected:"SL term"
 
 let get_formula ?loc ?(name="TODO") = function
   | SMT smt when SMT.has_sort Sort.bool smt -> SL.mk_pure smt
   | Formula phi -> phi
-  | other -> ParserException.raise_sort_error loc ~name ~expected:"SL formula" (show other)
+  | other -> ParserException.raise_sort_error loc ~name ~actual:(show other) ~expected:"SL formula"
 
 let mk_formula fn args = Formula (fn @@ List.map get_formula args)
 let mk_atom name fn args = Formula (fn @@ List.map (get_term name) args)
@@ -146,7 +140,7 @@ let rec parse_formula ctx (phi : Term.t) = match parse_term ctx phi with
   | Formula phi -> phi
   | SMT pure -> SL.mk_pure pure
   | Term term ->
-    ParserException.raise_sort_error (Some phi.loc) ~name:"Assertion" ~expected:"Bool" (Sort.show @@ SL.Term.get_sort term)
+    ParserException.raise_sort_error (Some phi.loc) ~name:"Assertion" ~expected:"Bool" ~actual:(Sort.show @@ SL.Term.get_sort term)
 
 and parse_term ctx (term : Term.t) =
   Logger.debug "  Parsing term %a\n" Term.print term;
@@ -230,27 +224,56 @@ and parse_distinct ctx args = match sort_of_list args with
 
     The cases of smt-pointer and pointer to structure currently cannot be
     easily distuingished. *)
-and parse_pointer ctx [source; target] =
-  Logger.debug "  Parsing pointer %a -> %a \n" Term.print source Term.print target;
-  let source = parse_term ctx source in
-  let res = match target.term with
+and parse_pointer_aux ctx source target source_loc target_loc =
+  let source = get_term "pointer source" source in
+  let target = get_term "pointer target" @@ parse_term ctx target in
+  let expected_sort =
+    try HeapSort.find_target_unwrapped (SL.Term.get_sort source) ctx.heap_sort
+    with Not_found ->
+      ParserException.raise_sort_error
+        (Some source_loc)
+        ~name:"pointer target"
+        ~actual:(Sort.show @@ SL.Term.get_sort source)
+        ~expected:"a location sort"
+  in
+  if Sort.equal expected_sort (SL.Term.get_sort target) then
+    SL.mk_pto source target
+  else ParserException.raise_sort_error
+         (Some target_loc)
+         ~name:"pointer target"
+         ~actual:(Sort.show @@ SL.Term.get_sort source)
+         ~expected:(Sort.show expected_sort)
+
+and parse_pointer ctx [source_t; target_t] =
+  Logger.debug "  Parsing pointer %a -> %a \n" Term.print source_t Term.print target_t;
+  let source = parse_term ctx source_t in
+  let res = match target_t.term with
   (* Pointer to a structure or smt term *)
   | App (app, operands) ->
     let app_name = Format.asprintf "%a" Term.print app in
     if Context.is_declared_struct ctx app_name then
-      let operands = List.map (parse_term ctx) operands in
       let def = Context.find_struct_def_by_cons ctx app_name in
-      SL.mk_pto_struct (get_term "pto" source) def (List.map (get_term "struct") operands)
-    else
-      let source = get_term "pointer source" source in
-      let target = get_term "pointer target" @@ parse_term ctx target in
-      SL.mk_pto source target
-
-  (* Simple pointer *)
-  | _ ->
-    let source = get_term "pointer source" source in
-    let target = get_term "pointer target" @@ parse_term ctx target in
-    SL.mk_pto source target
+      let source = get_term "pto" source in
+      (* Check if source -> C (...) respects declared heap sort *)
+      let expected_sort =
+        try HeapSort.find_target (SL.Term.get_sort source) ctx.heap_sort
+        with Not_found ->
+          ParserException.raise_sort_error
+            (Some source_t.loc)
+            ~name:"pointer target"
+            ~actual:(Sort.show @@ SL.Term.get_sort source)
+            ~expected:"a location sort"
+      in
+      if StructDef.equal expected_sort def then
+        let operands = List.map (parse_term ctx) operands in
+        SL.mk_pto_struct source def (List.map (get_term "struct") operands)
+      else ParserException.raise_sort_error
+             (Some app.loc)
+             ~name:"pointer target"
+             ~actual:(Sort.show @@ SL.Term.get_sort source)
+             ~expected:(StructDef.show expected_sort)
+    else parse_pointer_aux ctx source target_t source_t.loc target_t.loc
+  | _ -> parse_pointer_aux ctx source target_t source_t.loc target_t.loc
   in
   Formula res
 
