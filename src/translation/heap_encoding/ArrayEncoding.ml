@@ -56,7 +56,10 @@ module Make (Locations : LOCATIONS) = struct
 
   let field_encoding self field =
     try Field.Map.find field self.field_map
-    with Not_found -> failwith @@ Field.show_with_sort field
+    with Not_found ->
+      Exceptions.internal_error
+        ~reason:("Cannot find encoding of field " ^ Field.show_with_sort field)
+        ~details:("Heap encoding: " ^ show self)
 
   let get_fields self : Field.t list = Field.Map.keys self.field_map
 
