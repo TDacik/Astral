@@ -67,7 +67,9 @@ let add name header body =
 let find name =
   try find name !sid
   with Not_found ->
-    failwith @@ Format.asprintf "No definition for predicate %s (registered: %s)" name (show ())
+    Exceptions.internal_error
+      ~reason:("No definition for predicate " ^ name)
+      ~details:("Registered predicates:\n" ^ show ())
 
 let find_user_defined name = match find name with
   | UserDefined id -> id

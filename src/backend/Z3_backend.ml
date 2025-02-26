@@ -151,10 +151,14 @@ module Init () = struct
       |> Z3.Quantifier.expr_of_quantifier
 
     | SMT.Forall2 _ | SMT.Exists2 _ ->
-      Utils.internal_error
-        "second order quantification should be removed before translating to backend solver"
+      Exceptions.internal_error
+        ~reason:"Second order quantifier was not removed before backend translation"
+        ~details:(SMT.show t)
 
-    | _ -> failwith (Format.asprintf "Z3 wrapper error at: %s" (SMT.show t))
+    | _ ->
+      Exceptions.internal_error
+        ~reason:"[Z3 wrapper] unknown term"
+        ~details:(SMT.show t)
 
   and translate_sort = function
     | Sort.Bool -> Z3.Boolean.mk_sort !context
@@ -171,7 +175,10 @@ module Init () = struct
           enum_sort := Some sort;
           sort
       end
-    | sort -> Utils.internal_error ("Cannot translate sort " ^ Sort.show sort)
+    | sort ->
+      Exceptions.internal_error
+        ~reason:"[Z3 wrapper] unknown sort"
+        ~details:(SMT.Sort.show sort)
 
   and find_const const sort =
     let sort = translate_sort sort in
@@ -194,7 +201,10 @@ module Init () = struct
     | INT_SORT -> Constant.mk_int @@ int_of_string @@ Z3.Expr.to_string z3_expr
     | BV_SORT -> Constant.mk_bitvector_of_string @@ Z3.Expr.to_string z3_expr
     | DATATYPE_SORT -> Constant.mk_const astral_sort @@ Z3.Expr.to_string z3_expr
-    | _ -> failwith @@ Format.asprintf "Unknown Z3 sort: %s\n" (Z3.Sort.to_string sort)
+    | _ ->
+      Exceptions.internal_error
+        ~reason:"[Z3 wrapper] unknown Z3 sort in model"
+        ~details:(Z3.Sort.to_string sort)
 
   let rec translate_m astral_ctx z3_model z3_array =
     try
@@ -212,7 +222,10 @@ module Init () = struct
     with Z3.Error _ ->
       let str = Z3.Expr.to_string z3_array in
       if String.equal str "(lambda ((x!1 Locations)) x!1)" then Constant.Array Constant.Identity
-      else failwith str
+      else
+        Exceptions.internal_error
+          ~reason:"[Z3 wrapper] unknown Z3 term in model"
+          ~details:str
 
 
   let translate_model_var astral_context z3_model var =

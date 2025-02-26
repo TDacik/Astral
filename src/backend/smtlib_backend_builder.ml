@@ -123,7 +123,10 @@ module Make (Backend : SMTLIB_BACKEND) = struct
           else SMT_Sat None
         | "unsat" -> SMT_Unsat [] (* TODO: unsat core *)
         | "unknown" -> SMT_Unknown reason_unknown
-        | error -> failwith ("[ERROR " ^ Backend.name ^ "] " ^ error)
+        | error ->
+          Exceptions.internal_error
+            ~reason:(Format.asprintf "%s backend error" Backend.name)
+            ~details:error
 
 
   let solve context phi produce_models options =

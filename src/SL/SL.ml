@@ -326,7 +326,7 @@ let as_symbolic_heap' phi =
 
 let as_entailment phi = match view phi with
   | GuardedNeg (lhs, rhs) -> (lhs, rhs)
-  | _ -> failwith "Not an entailment"
+  | _ -> raise @@ Invalid_argument "Not an entailment"
 
 type fragment =
   | SymbolicHeap_SAT
