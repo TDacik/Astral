@@ -151,7 +151,7 @@ and parse_term ctx (term : Term.t) =
   | App (app, operands) -> parse_application ctx term app operands
 
 and parse_constant_term ctx term id =
-  Logger.debug "  Parsing constant %a " Id.print id;
+  Logger.debug "  Parsing constant %a \n" Id.print id;
   match parse_id id with
   | "true" -> Formula SL.tt
   | "false" -> Formula SL.ff
@@ -538,11 +538,12 @@ let parse ctx content =
 
 let parse_string ?(filename="") content =
   let ctx = Context.empty () in
-  parse ctx content
-  (*
   try parse ctx content
-  with ParserError (msg, ctx) -> failwith (msg ^ ParserContext.show ctx)
-  *)
+  with
+    | Dolmen_std.Loc.Syntax_error (loc, `Regular msg) ->
+      let msg = Format.asprintf "%t" msg in
+      ParserException.raise_syntax_error (Some loc) msg
+    | Dolmen_std.Loc.Syntax_error (loc, `Advanced (msg, _, _, _)) -> ParserException.raise_syntax_error (Some loc) msg
 
 let parse_file path =
   let channel = In_channel.open_text path in

@@ -7,7 +7,7 @@ exception UnsupportedFragment of string * string
 
 exception UnknownResult of string * string
 
-exception InternalError of string * string
+exception InternalError of Printexc.raw_backtrace * string * string
 (** This exception represents an internal error. It should not
     be catched inside Astral library. *)
 
@@ -19,4 +19,4 @@ val unsupported_fragment : reason:string -> ?details:string -> _
 
 val internal_error : reason:string -> ?details:string -> _
 
-val pretty_internal_error : string -> string -> unit
+val pretty_internal_error : ?trace:Printexc.raw_backtrace -> string -> details:string -> unit
