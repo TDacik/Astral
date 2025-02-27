@@ -25,6 +25,6 @@ let run () =
 let () =
   try run ()
   with
-    | Astral.Exceptions.InternalError (reason, details) ->
-      Astral.Exceptions.pretty_internal_error reason details
+    | Astral.Exceptions.InternalError (trace, reason, details) ->
+      Astral.Exceptions.pretty_internal_error reason ~trace ~details
     | Astral.Exceptions.CmdOptionError _ -> ()
