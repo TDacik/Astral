@@ -2,8 +2,10 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
+(*
 let do_debug = ref false
-let debug = Format.kasprintf (fun msg -> if !do_debug then Format.printf "%s%!" msg)
+let debug = Format.kasprintf (fun (msg : string) -> if !do_debug then Format.printf "%s%!" msg)
+*)
 
 type t = Int.t * String.t
 (** Identifier is represented by integer tag used for comparison and name used for printing. *)
@@ -53,7 +55,7 @@ module Make () = struct
   let next_id () = incr counter; !counter
 
   let mk name =
-    debug "Creating identifier %s\n" name;
+    (*debug "Creating identifier %s\n" name;*)
     let res =
       try (find_tag name, name)
       with Not_found ->
@@ -61,11 +63,11 @@ module Make () = struct
         add_tag name tag;
         (tag, name)
     in
-    debug "%s\n" (debug_repr ());
+    (*debug "%s\n" (debug_repr ());*)
     res
 
   let mk_fresh name =
-    debug "Creating fresh identifier %s\n" name;
+    (*debug "Creating fresh identifier %s\n" name;*)
     let base_name = match String.split_on_char '!' name with
       | [s] -> s
       | [s; _] -> s
@@ -83,7 +85,7 @@ module Make () = struct
     add_tag fresh_name tag;
     update_index base_name index;
 
-    debug "%s\n" (debug_repr ());
+    (*debug "%s\n" (debug_repr ());*)
     (tag, fresh_name)
 
   let show = show
