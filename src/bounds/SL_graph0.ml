@@ -99,7 +99,6 @@ module G = struct
 
 end
 
-
 let get_vertices g = G.fold_vertex List.cons g []
 let get_edges g = G.fold_edges_e List.cons g []
 
@@ -107,11 +106,19 @@ let compare g1 g2 = List.compare G.E.compare (get_edges g1) (get_edges g2)
 
 let equal g1 g2 = compare g1 g2 = 0
 
-include Datatype.Collections(struct
+let show g =
+    G.fold_edges_e (fun (x, label, y) acc ->
+      Format.asprintf "%s  %s (%s) %s\n" acc (SL.Term.show x) (SL_edge.show label) (SL.Term.show y)
+    ) g "Graph:\n"
+
+module S = struct
   type nonrec t = G.t
   let compare = compare
-  let show _ = "<SL-graph>"
-end)
+  let show = show
+end
+
+include Datatype.Printable(S)
+include Datatype.Collections(S)
 
 (** Projections *)
 
