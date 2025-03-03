@@ -36,13 +36,19 @@ module Make (Locations : LOCATIONS) = struct
   let mk_field suffix field locs =
     let name = Format.asprintf "%s%s" (Field.show field) suffix in
     let sort = Field.get_sort field in
-    let heap_sort = SMT.Array.mk_sort locs.sort locs.sort in
-    SMT.Array.mk_var name heap_sort
+    let encoding_sort =
+      if Field.is_pointer field
+      then SMT.Array.mk_sort locs.sort locs.sort
+      else SMT.Array.mk_sort locs.sort sort
+    in
+    SMT.Array.mk_var name encoding_sort
 
   (** Construct the encoding of a heap.
 
-      For each field, we create an array with sort Loc -> Loc, i.e., original sorts of fields
-      are ignored. *)
+      * For each field representing a pointer (i.e., its source is in domain of heap sort), we
+        create an array with sort Loc -> Loc, i.e., original sorts of fields are ignored.
+
+      * For non-pointer fields, we respect the sorts. *)
   let mk ?(suffix="") phi heap_sort locs =
     let fields = HeapSort.get_fields heap_sort in
     let field_map = List.fold_left (fun acc f ->

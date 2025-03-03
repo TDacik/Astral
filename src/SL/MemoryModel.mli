@@ -10,6 +10,8 @@ module Field : sig
   val next : t
   (** Built-in next field of sort Loc. *)
 
+  val is_pointer : t -> bool
+
   val smt2_decl : t -> string
 
   include SORTED with type t := t and module Sort := Sort

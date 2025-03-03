@@ -55,12 +55,15 @@ module Self = struct
   (** === Axioms === *)
 
   let heap_axioms self heap =
-    let max_bv = Bitvector.mk_const_of_int (self.internal.nb_locs - 1) self.internal.bv_width in
-    BatList.range 0 `To (self.internal.nb_locs - 1)
-    |> List.map (fun i -> Bitvector.mk_const_of_int i self.internal.bv_width)
-    |> List.map (fun bv -> Array.mk_select heap bv)
-    |> List.map (fun term -> Bitvector.mk_lesser_eq term max_bv)
-    |> Boolean.mk_and
+    let sort = Sort.get_range_sort @@ SMT.get_sort heap in
+    if Sort.is_loc sort then
+      let max_bv = Bitvector.mk_const_of_int (self.internal.nb_locs - 1) self.internal.bv_width in
+      BatList.range 0 `To (self.internal.nb_locs - 1)
+      |> List.map (fun i -> Bitvector.mk_const_of_int i self.internal.bv_width)
+      |> List.map (fun bv -> Array.mk_select heap bv)
+      |> List.map (fun term -> Bitvector.mk_lesser_eq term max_bv)
+      |> Boolean.mk_and
+    else SMT.Boolean.tt
 
   (** === Lemmas === *)
 

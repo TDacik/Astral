@@ -113,10 +113,13 @@ let disjoint_union ?(stars=true) graphs =
       ) union disequalities
     ) G.empty graphs
 
+(** Construct node with all *location*-fields. *)
 let of_pointer x struct_def ys =
   let fields = StructDef.get_fields struct_def in
   List.fold_left2 (fun g field y ->
-    G.add_edge_e g (x, Pointer field, y)
+    if Sort.is_loc @@ Field.get_sort field
+    then G.add_edge_e g (x, Pointer field, y)
+    else g
   ) G.empty fields ys
 
 let rec compute stars phi =

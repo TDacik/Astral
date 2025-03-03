@@ -15,6 +15,8 @@ module Field = struct
 
   let has_sort sort1 (_, sort2) = Sort.equal sort1 sort2
 
+  let is_pointer (_, sort) = Sort.is_loc sort
+
   let show_with_sort (id, sort) =
     Format.asprintf "%s : %s"
       (Identifier.show id)

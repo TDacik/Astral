@@ -1,5 +1,7 @@
 (* Stack-heap models of separation logic.
  *
+ * TODO: simplify values
+ *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2021 *)
 
 
@@ -249,11 +251,13 @@ let model = ref None
 module Vertex = struct
   type t =
     | Loc of Location.t
+    | Data of Constant.t
     | Nil of Int.t
   [@@deriving equal, compare]
 
   let name = function
     | Loc loc -> Format.asprintf "\"%s\"" (Location.show loc)
+    | Data c -> Format.asprintf "\"data_%s\"" (Constant.show c)
     | Nil n -> Format.asprintf "\"nil_%d\"" n
 
   let show = function
@@ -261,6 +265,7 @@ module Vertex = struct
       Format.asprintf "%s : %s"
         (Location.show loc)
         (String.concat "," (stack_inverse (Option.get !model) loc))
+    | Data c -> Constant.show c
     | Nil n -> !UnicodeSymbols.bottom
 
   let hash = Hashtbl.hash
@@ -311,7 +316,7 @@ module HeapGraph = struct
       let vertex_name = Vertex.name
       let vertex_attributes v = [
         `Label (Vertex.show v);
-        `Shape (match v with Loc _ -> `Box | Nil _ -> `Plaintext);
+        `Shape (match v with Loc _ -> `Box | Data _ -> `Circle | Nil _ -> `Plaintext);
       ]
       let get_subgraph _ = None
       let edge_attributes e = [
@@ -345,8 +350,12 @@ module HeapGraph = struct
   let get sh =
     let update x y g = match y with
       | Value.Struct (def, ys) ->
-      let fields = StructDef.get_fields def in
-      List.fold_left2 (fun acc field y -> add_edge_e acc (Loc x, field, Loc y)) g fields ys
+        let fields = StructDef.get_fields def in
+        List.fold_left2 (fun acc field y ->
+          if Field.is_pointer field then
+            add_edge_e acc (Loc x, field, Loc y)
+          else match fst y with Location.SMT c -> add_edge_e acc (Loc x, field, Data c)
+        ) g fields ys
     in
     empty
     |> Stack.M.fold (fun _ loc g -> add_vertex g (Loc loc)) sh.stack.stack
@@ -367,9 +376,12 @@ module HeapGraph = struct
         else acc
       ) g empty
     in
-    fold_edges_e (fun (src, label, Loc dst) acc ->
-      if is_nil dst then add_edge_e acc (src, label, fresh_nil ())
-      else add_edge_e acc (src, label, Loc dst)
+    fold_edges_e (fun (src, label, dst) acc ->
+      match dst with
+      | Loc dst ->
+        if is_nil dst then add_edge_e acc (src, label, fresh_nil ())
+        else add_edge_e acc (src, label, Loc dst)
+      | Data c -> add_edge_e acc (src, label, Data c)
     ) g isolated_vertices
 
   let output channel sh =

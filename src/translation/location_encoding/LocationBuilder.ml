@@ -114,10 +114,12 @@ module Make (Locations : LOCATIONS_BASE) = struct
 
   let inverse_translate self model loc_const =
     let sort = Constant.get_sort loc_const in
-    assert (Sort.equal sort self.sort);
     let res =
+      (* Translate non-pointer value *)
+      if not @@ Sort.equal sort self.sort then
+        StackHeapModel.Location.mk_smt loc_const
       (* Translate using index in sort encoding *)
-      if Sort.Map.is_empty self.mapping then
+      else if Sort.Map.is_empty self.mapping then
         inverse_translate_aux self model (SMT.of_const loc_const)
       (* Translate using interpretation of mapper *)
       else
