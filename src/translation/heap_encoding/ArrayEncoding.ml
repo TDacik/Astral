@@ -161,8 +161,9 @@ module Make (Locations : LOCATIONS) = struct
   let field_intros self =
     let null = Locations.null self.locs in
     Field.Map.fold (fun field _ acc ->
-      Boolean.mk_eq [null; mk_succ self field null] :: acc
-      ) self.field_map []
+      if Field.is_pointer field then Boolean.mk_eq [null; mk_succ self field null] :: acc
+      else acc
+    ) self.field_map []
     |> Boolean.mk_and
 
   (* Axioms enforced by location encoding *)
