@@ -99,9 +99,11 @@ module Make (Locations : LOCATIONS_BASE) = struct
     | None -> internal_error self (Format.sprintf "Index of location %s" (SMT.show loc))
 
   let inverse_translate_sort self loc =
-    Sort.Map.bindings self.sort_encoding
-    |> List.find (fun (_, (_, locs)) -> BatList.mem_cmp SMT.compare loc locs)
-    |> fst
+    try
+      Sort.Map.bindings self.sort_encoding
+      |> List.find (fun (_, (_, locs)) -> BatList.mem_cmp SMT.compare loc locs)
+      |> fst
+    with Not_found -> internal_error self ("No sort of location " ^ SMT.show loc)
 
 
   let inverse_translate_aux self model loc =

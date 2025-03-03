@@ -22,23 +22,11 @@ let one width = (1, width)
 let full_zeros width = (0, width)
 let full_ones width = ((BatInt.pow 2 width) - 1, width)
 
-(*let%test _ = full_zeros 1 = (0, 1)
-let%test _ = full_zeros 4 = (0, 4)
-
-let%test _ = full_ones 1 = (1, 1)
-let%test _ = full_ones 4 = (15, 4)*)
-
 (* ==== Operations over bitvectors ==== *)
 
 let nth (bv, width) index =
   if index >= width then raise OutOfBounds
   else Int.logand 1 @@ Int.shift_right bv index = 1
-
-(*let%test _ = nth (0, 1) 0 = false
-let%test _ = nth (1, 1) 0 = true
-
-let%test _ = nth (2, 2) 0 = false
-let%test _ = nth (2, 2) 1 = true*)
 
 (* ==== Conversion from SMT string representation ==== *)
 
@@ -51,12 +39,6 @@ let of_string str =
   in
   (int_of_string str, width_factor * (String.length str - 2))
 
-(*let%test _ = of_string "#B000" = (0, 3)
-let%test _ = of_string "#X000" = (0, 12)
-
-let%test _ = of_string "#b11" = (3, 2)
-let%test _ = of_string "#x2a" = (42, 8) *)
-
 (* ==== Conversion to bitstring ==== *)
 
 let nth_bit x n =
@@ -64,12 +46,9 @@ let nth_bit x n =
   then '1'
   else '0'
 
-let to_bits (x, width) = String.init width (nth_bit x)
+let to_bits (x, width) = BatString.rev @@ String.init width (nth_bit x)
 
 let to_string bv = "#b" ^ to_bits bv
-
-(*let%test _ = to_string (0, 3) = "#b000"
-let%test _ = to_string (3, 2) = "#b11"*)
 
 (* ==== Conversion to set ==== *)
 
@@ -80,11 +59,7 @@ let to_set bv =
     (fun i c acc -> match c with
       | '1' -> (i, width) :: acc
       | '0' -> acc
-    ) (to_bits bv) []
-
-(*let%test _ = to_set (0, 3) = []
-let%test _ = to_set (3, 2) = [(0, 2); (1, 2)]
-let%test _ = to_set (5, 4) = [(0, 4); (2, 4)]*)
+    ) (BatString.rev @@ to_bits bv) []
 
 let show = to_string
 

@@ -17,6 +17,9 @@
     BaseLogic_tests
     API_tests
 
+    ;; SMT
+    Bitvector_tests
+
     ;; Separation logic
     SL_tests
     InductiveDefinition_tests
