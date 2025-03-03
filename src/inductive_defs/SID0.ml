@@ -55,6 +55,9 @@ let register (module B : BUILTIN) =
   sid := add B.name (Builtin (module B : BUILTIN)) !sid;
   struct_defs := StructDef.Set.union !struct_defs (StructDef.Set.of_list B.struct_defs)
 
+let register_user_defined id =
+  sid := add id.name (UserDefined id) !sid
+
 let update_pred id =
   sid := add id.name (UserDefined id) !sid
 

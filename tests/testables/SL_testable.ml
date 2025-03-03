@@ -33,3 +33,8 @@ module Var = struct
   let y = SL.Variable.mk "y" Sort.loc_ls
   let z = SL.Variable.mk "z" Sort.loc_ls
 end
+
+module Term = struct
+  include SL.Term
+  include Builder.Make(SL.Term)
+end

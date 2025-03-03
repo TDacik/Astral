@@ -76,9 +76,9 @@ let path_upper_bound g field x y max =
 let partial_path g field x y =
   let rec take current n =
     if n = 0 then []
-    else
-      try current :: take (must_successor_ptr g field current) (n - 1)
-      with Invalid_argument _ | Failure _ -> []
+    else match must_successor_ptr g field current with
+      | None -> []
+      | Some s -> current :: take s (n - 1)
   in
   let prefix_len = path_lower_bound g field x y in
   take x (prefix_len + 1)

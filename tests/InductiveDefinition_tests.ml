@@ -98,6 +98,31 @@ let unfold_test5 () =
   in
   SL.check_equal actual expected
 
+(** Guided unfolding tests *)
+
+let guided_unfold_test1 () =
+  let id = InductiveDefinition.map IntroduceIfThenElse.apply ls in
+  let sid = InductiveDefinition.ID_map.of_list [("ls", id)] in
+  let g = SL_graph.compute (SL.mk_eq [x; y]) in
+  let actual = InductiveDefinition.unfold_guided sid id g [x; y] 10 in
+  let expected = SL.emp in
+  SL.check_equal actual expected
+
+let guided_unfold_test2 () =
+  SID.register_user_defined ls; (* TODO: why? *)
+  let id =
+    InductiveDefinition.map IntroduceIfThenElse.apply ls
+    |> InductiveDefinition.map (QuantifierElimination.apply SL_graph.empty)
+  in
+  let sid = InductiveDefinition.ID_map.of_list [("ls", id)] in
+  let nx = SL.Term.mk_heap_term MemoryModel.Field.next x in
+  let g = SL_graph.compute (SL_builtins.mk_pto_ls x ~next:y) in
+  let actual = Simplifier.simplify @@ InductiveDefinition.unfold_guided sid id g [x; y] 10 in
+  let expected =
+    SL.mk_ite (SL.mk_eq [x; y]) SL.emp (SL_builtins.mk_pto_ls x ~next:nx)
+  in
+  SL.check_equal actual expected
+
 let () =
   run "Inductive definitions" [
     "instantiate", [
@@ -110,6 +135,10 @@ let () =
       test_case "unfold ls, depth: 2"     `Quick unfold_test3;
       test_case "unfold ls-ite, depth: 0" `Quick unfold_test4;
       test_case "unfold ls-ite, depth: 1" `Quick unfold_test5;
+    ];
+    "unfold (guided)", [
+      test_case "unfold ls (x=y)" `Quick guided_unfold_test1;
+      test_case "unfold ls (x |-> y)" `Quick guided_unfold_test2;
     ];
   ]
 

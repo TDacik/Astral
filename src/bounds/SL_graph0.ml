@@ -218,8 +218,10 @@ let nb_roots g =
 
 (** TODO: SL-graph normalisation *)
 let must_successor_ptr g field source =
-  let g = projection g [Pointer field] in
-  List.hd @@ G.succ g source
+  try
+    let g = projection g [Pointer field] in
+    Option.some @@ List.hd @@ G.succ g source
+  with Invalid_argument _ | Failure _ -> None
 
 let must_successor_any g field source =
   let g = projection g [Pointer field; Path field] in
@@ -255,3 +257,23 @@ let must_pred_field g x =
     let field = SL_edge.get_field @@ G.E.label e in
     Some (src, field)
   with _ -> None
+
+(** ==== Evaluation ==== *)
+
+let rec eval_term g t =
+  if mem_vertex g t then t
+  else match SL.Term.view t with
+    | Var _ -> t
+    | HeapTerm (f, s) ->
+      Option.value ~default:t @@ must_successor_ptr g f (eval_term g s)
+
+let lift g eval_true eval_false x y =
+  let x, y = eval_term g x, eval_term g y in
+  if eval_true g x y then Some true
+  else if eval_false g x y then Some false
+  else None
+
+let eval_predicate g c = match SL.view c with
+  | SL.Eq [x; y] -> lift g must_eq must_neq x y
+  | SL.Distinct [x; y] -> lift g must_neq must_eq x y
+  | _ -> failwith "TODO"

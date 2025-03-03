@@ -128,16 +128,41 @@ let rec unfold id_map id xs n =
   if n = 0 then unfold_finite id xs
   else SL.map_view (function
     | Predicate (name', ys, _) ->
-      (*Logger.debug "Unfolding LHS %s (remaining %d)\n" name' (n-1);*)
       let id' = ID_map.find name' id_map in
       unfold id_map id' ys (n-1)
   ) (instantiate ~refresh:true id xs)
 
+let instantiate_guided ~refresh g id xs =
+  let process_case g c =
+    SL.print ~prefix:"Case" c;
+    match SL.view (SL.substitute_list c ~vars:id.header ~by:xs) with
+    | Ite (cond, t, e) ->
+        SL.print cond;
+        begin match SL_graph0.eval_predicate g cond with
+          | Some true -> Format.printf "-> true"; Some t
+          | Some false -> Format.printf "-> false"; Some e
+          | None -> Format.printf "-> ??"; Some c
+      end
+    | _ -> Some c
+  in
+  let id'= {id with inductive_cases = List.filter_map (process_case g) id.inductive_cases} in
+  instantiate ~refresh id' xs
+
 let rec unfold_guided id_map id g xs n =
   if n = 0 then unfold_finite id xs
+  else
+    SL.map_view (function
+      | Predicate (name', ys, _) ->
+        let id' = ID_map.find name' id_map in
+        unfold_guided id_map id' g ys (n-1)
+     ) (instantiate_guided ~refresh:true g id xs)
+(*
+let rec unfold_guided id_map id g xs n =
   else SL.map_view (function
     | Predicate (name', ys, _) ->
       (*Logger.debug "Unfolding RHS %s (remaining %d)\n" name' (n-1);*)
       let id' = ID_map.find name' id_map in
       unfold_guided id_map id' g ys (n-1)
   ) (instantiate ~refresh:true id xs)
+
+*)

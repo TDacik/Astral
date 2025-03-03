@@ -2,6 +2,8 @@ open Testable_sig
 
 module Make (T : TESTABLE_BASE) = struct
 
+  include T
+
   type t = T.t
 
   module T = struct
