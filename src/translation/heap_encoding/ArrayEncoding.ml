@@ -158,13 +158,24 @@ module Make (Locations : LOCATIONS) = struct
 
   (** === Axioms === *)
 
+  let field_intros self =
+    let null = Locations.null self.locs in
+    Field.Map.fold (fun field _ acc ->
+      Boolean.mk_eq [null; mk_succ self field null] :: acc
+      ) self.field_map []
+    |> Boolean.mk_and
+
   (* Axioms enforced by location encoding *)
   let heap_axioms self =
     get_arrays self
     |> List.map (Locations.heap_axioms self.locs)
     |> Boolean.mk_and
 
-  (* Axioms enforced by heap encoding, currently none *)
-  let axioms self = heap_axioms self
+  (* Axioms enforced by heap encoding, currently just field introduction. *)
+  let axioms self =
+    Boolean.mk_and [
+      heap_axioms self;
+      field_intros self
+    ]
 
 end
