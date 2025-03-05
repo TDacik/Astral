@@ -129,6 +129,10 @@ module type LOGIC = sig
 
   val rename_var : string -> string -> t -> t
 
+  val exists : (t -> bool) -> t -> bool
+
+  val for_all : (t -> bool) -> t -> bool
+
   val select_subformulae : (t -> bool) -> t -> t list
 
   val substitute : t -> var:Variable.t -> by:term -> t

@@ -270,7 +270,7 @@ let rec for_all pred phi = match phi with
 
 let rec exists pred phi = match phi with
   | Variable _ -> pred phi
-  | Application (_, xs) -> pred phi && List.exists (exists pred) xs
+  | Application (_, xs) -> pred phi || List.exists (exists pred) xs
   | Binder (_, _, x) -> pred phi || for_all pred x
 
 let for_all_apps pred =
