@@ -66,11 +66,12 @@ let remove_determined2 sl_graph phi =
   ) phi
 
 let apply sl_graph phi =
-  remove_useless phi
-  |> remove_determined2 sl_graph
+  if SL.is_quantifier_free phi then phi
+  else
+    remove_useless phi
+    |> remove_determined2 sl_graph
 
 let apply_ctx ctx =
   let open Context in
   skolemisation ctx
-  |> (fun ctx -> {ctx with phi = remove_useless ctx.phi})
-  |> (fun ctx -> {ctx with phi = remove_determined2 ctx.sl_graph ctx.phi})
+  |> (fun ctx -> {ctx with phi = apply ctx.sl_graph ctx.phi})
