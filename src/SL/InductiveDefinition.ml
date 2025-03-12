@@ -32,7 +32,7 @@ let equal id1 id2 = String.equal id1.name id2.name
 
 let hash id = String.hash id.name
 
-let mk_call id = SL.mk_predicate (name id) (List.map SL.Term.of_var id.header)
+let mk_call id xs = SL.mk_predicate (name id) xs
 
 let mk name header def =
   let base, inductive = match SL.view def with
@@ -114,10 +114,12 @@ let map_cases fn id =
 let is_finite id = List.is_empty id.inductive_cases
 
 let unfold_finite id xs : SL.t =
+  let id = refresh_header @@ refresh_existentials id in
   let unfolding = match id.base_cases with
     | [] ->
       let aux = SL.mk_or id.inductive_cases in
-      SL.map_view (fun (Predicate _) -> SL.ff) aux (* Needed for rules with if-then-else *)
+      let res = Simplifier.simplify @@ SL.map_view (fun (Predicate _) -> SL.ff) aux in (* Needed for rules with if-then-else *)
+      res
     | bs -> SL.mk_or bs
   in
   SL.substitute_list unfolding ~vars:id.header ~by:xs
@@ -134,14 +136,12 @@ let rec unfold id_map id xs n =
 
 let instantiate_guided ~refresh g id xs =
   let process_case g c =
-    SL.print ~prefix:"Case" c;
     match SL.view (SL.substitute_list c ~vars:id.header ~by:xs) with
     | Ite (cond, t, e) ->
-        SL.print cond;
         begin match SL_graph0.eval_predicate g cond with
-          | Some true -> Format.printf "-> true"; Some t
-          | Some false -> Format.printf "-> false"; Some e
-          | None -> Format.printf "-> ??"; Some c
+          | Some true -> Some t
+          | Some false -> Some e
+          | None -> Some c
       end
     | _ -> Some c
   in
@@ -156,13 +156,3 @@ let rec unfold_guided id_map id g xs n =
         let id' = ID_map.find name' id_map in
         unfold_guided id_map id' g ys (n-1)
      ) (instantiate_guided ~refresh:true g id xs)
-(*
-let rec unfold_guided id_map id g xs n =
-  else SL.map_view (function
-    | Predicate (name', ys, _) ->
-      (*Logger.debug "Unfolding RHS %s (remaining %d)\n" name' (n-1);*)
-      let id' = ID_map.find name' id_map in
-      unfold_guided id_map id' g ys (n-1)
-  ) (instantiate ~refresh:true id xs)
-
-*)
