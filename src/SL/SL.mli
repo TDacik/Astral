@@ -311,3 +311,5 @@ end
 (** {2 Misc} *)
 
 val as_symbolic_heap : t -> t list * t list
+
+val as_quantified_symbolic_heap : t -> Variable.t list * t list
