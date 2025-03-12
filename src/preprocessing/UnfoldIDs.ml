@@ -3,13 +3,24 @@ module Logger = Logger.Make(struct let name = "unfolder" let level = 1 end)
 let unfold_predicate_lhs name xs =
   let bound = SID.unfolding_depth name in
   Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
-    name (SL.Term.show_list xs) bound;
-  SID.unfold name xs bound
+    name (SL.Term.show_list xs) (Int.of_float bound);
+  SID.unfold name xs (Int.of_float bound)
+
+let unfolding_depth phi = match SL.view phi with
+  | GuardedNeg (lhs, _) ->
+    let _, atoms = SL.as_symbolic_heap lhs in
+    BatList.kahan_sum @@ BatList.map (fun atom -> match SL.view atom with
+      | PointsTo _ -> 1.0
+      | Predicate (name, _, _) -> (SID.unfolding_depth name)
+      | _ -> 0.0
+    ) atoms
+  |> Float.to_int
 
 let unfold_predicate_rhs phi loc_bound g name xs =
   let def = SID.get_definition name in
-  let max_bound = LocationBounds.sum loc_bound in
-  (*let max_bound = 1 + (List.length @@ SL.free_vars phi) in*)
+  (*let max_bound = LocationBounds.sum loc_bound in
+  let max_bound = List.length @@ SL.free_vars phi in*)
+  let max_bound = unfolding_depth phi in
   Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
     name (SL.Term.show_list xs) max_bound;
   SID.unfold_guided name g xs max_bound
