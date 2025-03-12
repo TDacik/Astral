@@ -52,6 +52,8 @@ module type VARIABLE = sig
 
   val mk_fresh : string -> Sort.t -> t
 
+  val mk_list : Sort.t -> string list -> t list
+
   val refresh : t -> t
 
   val get_name : t -> string

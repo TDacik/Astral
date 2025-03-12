@@ -2,20 +2,10 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2025 *)
 
+open InductiveDefinition_testable
+
 module SL = SL_testable
 open SL
-
-let ls_def x y =
-  SL.mk_or [
-    SL.mk_eq [x; y];
-    SL.mk_exists' [SL_builtins.loc_ls] (fun [n] ->
-      SL.mk_star [
-        SL.mk_distinct [x; y];
-        SL.mk_pto x n;
-        SL.mk_predicate "ls" [n; y]
-  ])]
-
-let ls = InductiveDefinition.mk "ls" [Var.x; Var.y] @@ ls_def x y
 
 let sid_ls = InductiveDefinition.ID_map.of_list [("ls", ls)]
 
@@ -78,14 +68,14 @@ let unfold_test3 () =
 let unfold_test4 () =
   let id = InductiveDefinition.map IntroduceIfThenElse.apply ls in
   let sid = InductiveDefinition.ID_map.of_list [("ls", id)] in
-  let actual = Simplifier.simplify @@ InductiveDefinition.unfold sid id [x; y] 0 in
+  let actual = InductiveDefinition.unfold sid id [x; y] 0 in
   let expected = SL.mk_eq [x; y] in
   SL.check_equal actual expected
 
 let unfold_test5 () =
   let id = InductiveDefinition.map IntroduceIfThenElse.apply ls in
   let sid = InductiveDefinition.ID_map.of_list [("ls", id)] in
-  let actual = Simplifier.simplify @@ InductiveDefinition.unfold sid id [x; y] 1 in
+  let actual = InductiveDefinition.unfold sid id [x; y] 1 in
   let expected =
     SL.mk_ite
       (SL.mk_eq [x; y])
@@ -117,6 +107,7 @@ let guided_unfold_test2 () =
   let sid = InductiveDefinition.ID_map.of_list [("ls", id)] in
   let nx = SL.Term.mk_heap_term MemoryModel.Field.next x in
   let g = SL_graph.compute (SL_builtins.mk_pto_ls x ~next:y) in
+  (* TODO: can we avoid simplification here? *)
   let actual = Simplifier.simplify @@ InductiveDefinition.unfold_guided sid id g [x; y] 10 in
   let expected =
     SL.mk_ite (SL.mk_eq [x; y]) SL.emp (SL_builtins.mk_pto_ls x ~next:nx)

@@ -34,6 +34,8 @@ module Make () = struct
 
   let mk name sort = (ID.mk @@ escape name, sort)
 
+  let mk_list sort names = List.map (fun name -> mk name sort) names
+
   let mk_fresh name sort = (ID.mk_fresh @@ escape name, sort)
 
   let describe (name, sort) = (ID.show name, sort)
