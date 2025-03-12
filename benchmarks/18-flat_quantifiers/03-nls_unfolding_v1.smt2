@@ -5,7 +5,7 @@
 
 (declare-const x NLS_t)
 (declare-const y NLS_t)
-(declare-const z NLS_t)
+(declare-const z LS_t)
 
 (assert
   (and
