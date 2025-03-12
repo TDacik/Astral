@@ -50,6 +50,10 @@ let show () =
   |> List.map (fun (_, pred) -> ID.show pred)
   |> String.concat ", "
 
+let reset () =
+  sid := empty;
+  struct_defs := StructDef.Set.empty
+
 let register (module B : BUILTIN) =
   Logger.debug "Registering ID %s\n" (B.name);
   sid := add B.name (Builtin (module B : BUILTIN)) !sid;
