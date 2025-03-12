@@ -185,6 +185,7 @@ module Derivation = struct
   let negated phi id =
     let name = InductiveDefinition.name id in
     match SL.view phi with
+    | _ when SL.is_negation_free phi -> []
     | GuardedNeg (_, rhs) when SL.is_symbolic_heap rhs ->
       let _, atoms = SL.as_quantified_symbolic_heap rhs in
       List.filter_map (fun atom -> match SL.view atom with
