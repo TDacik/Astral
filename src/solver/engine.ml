@@ -40,10 +40,11 @@ let solve (input : Context.t) =
     SID.cache := sm;
 
     Debug.out_input input;
-    Debug.context input;
 
-    let bounds1 = LocationBounds.compute input.phi input.raw_input.heap_sort sl_graph in
-    let input = Context.add_metadata input sl_graph bounds1 in
+    let bounds = LocationBounds.compute input.phi input.raw_input.heap_sort sl_graph in
+    let input = Context.add_metadata input sl_graph bounds in
+
+    Debug.context input;
 
     BaseLogic.use_simplification true;
 
@@ -51,12 +52,6 @@ let solve (input : Context.t) =
     let input = Preprocessor.second_phase input in
     Profiler.add "Preprocessor";
     Logger.debug "%s" (ModelAdapter.show input.model_adapter);
-
-    let bounds2 = LocationBounds.compute input.phi input.raw_input.heap_sort sl_graph in
-
-    (* TODO: Unfolding may increase the bound, thus we take the minimum *)
-    let bounds = bounds1 in
-    let sl_graph = SL_graph.compute input.phi in
 
     let input = Context.add_metadata input sl_graph bounds in
 
@@ -79,4 +74,4 @@ let solve input =
   | Exceptions.UnknownResult (reason, _) ->
     Context.set_result (`Unknown reason) ctx
   | Exceptions.UnsupportedFragment (reason, _) ->
-    Context.set_result (`Unknown ("Unsupported fragment" ^ reason)) ctx
+    Context.set_result (`Unknown ("Unsupported fragment (" ^ reason ^ ")")) ctx
