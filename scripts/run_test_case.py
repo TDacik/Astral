@@ -75,34 +75,35 @@ class Result:
         stdout = process.stdout.decode().strip()
         stderr = process.stderr.decode().strip()
 
-        #print(process.returncode)
-        #print(stdout)
-        #print(stderr)
-        msg = "Model verified" if "Model verified" in stdout else ""
+        is_wrong = "Expected status is" in stderr
+
+        # Neither can be true if model verification is off
+        is_wrong_model = "Model is not correct" in stderr
+        is_correct_model = "Model verified" in stdout
+
+        msg = "Model verified" if is_correct_model else ""
 
         if process.returncode == 0 and stdout.startswith("unknown"):
             status = Status.UNKNOWN
         elif process.returncode == 0:
             status = Status.CORRECT
         elif process.returncode == 1 and stderr.startswith("Killed"):
-            status = Status.MEMOU
+            status = Status.MEMOUT
         elif "exception" in stderr:
             status = Status.ERROR
             msg = stderr
-        elif process.returncode == 1:
+        elif is_wrong and is_correct_model:
+            status = Status.ERROR # TODO: something like suspicious
+            msg = "status is incorrect, but model is correct"
+        elif is_wrong:
             status = Status.INCORRECT
             msg = "status is not correct"
-        elif process.returncode == 3:
-            status = Status.UNKNOWN
-            msg = "status is incorrect, but model was not verified"
-        elif process.returncode == 4:
+        elif is_wrong_model:
             status = Status.WRONG_MODEL
             msg = "status is correct, but model is wrong"
-        elif (process.returncode == 2) or (process.returncode > 4):
+        else:
             status = Status.ERROR
             msg = stderr
-        else:
-            assert False
 
         return Result(name, status, return_code=process.returncode, msg=msg)
 
