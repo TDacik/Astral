@@ -223,6 +223,10 @@ let is_atom phi = match view phi with
   | Eq _ | Distinct _ | PointsTo _ | Predicate _ | Emp -> true
   | _ -> false
 
+let is_pure_atom phi = match view phi with
+  | Eq _ | Distinct _ -> true
+  | _ -> false
+
 let is_pointer phi = match view phi with
   | PointsTo _ -> true
   | _ -> false
@@ -295,6 +299,7 @@ let get_terms_of_sort sort phi =
 let rec is_symbolic_heap phi = match phi with
   | Variable _ -> true
   | Application _ when is_atom phi -> true
+  | Application (And, psis) -> List.for_all is_pure_atom psis
   | Application (Star, psis) -> List.for_all is_symbolic_heap psis
   | Binder (Exists _, _, psi) -> is_symbolic_heap psi
   | _ -> false
@@ -317,6 +322,7 @@ let is_negation_free =
 
 let as_symbolic_heap phi = match view phi with
   | Star psis -> List.partition is_pure psis
+  | And psis -> psis, []
   | _ when is_pure phi -> [phi], []
   | _ -> [], [phi]
 

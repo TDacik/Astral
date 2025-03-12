@@ -67,6 +67,10 @@ let to_precise_test4 () =
   let phi' = SL.mk_star [x |-> y; y |-> x; x == y; y == nil] in
   SL.check_equal (to_precise phi) phi'
 
+let to_precise_test5 () =
+  let phi = SL.mk_and [x == y; y == nil] in
+  let expected = SL.mk_star [x == y; y == nil] in
+  SL.check_equal (to_precise phi) expected
 
 (** Pure terms
 let apply = PurePreprocessing.apply
@@ -100,6 +104,7 @@ let () =
       test_case "Test" `Quick to_precise_test2;
       test_case "Test" `Quick to_precise_test3;
       test_case "Test" `Quick to_precise_test4;
+      test_case "Test" `Quick to_precise_test5;
     ];
     (*"TODO: Pure preprocessing", [
       test_case "Test" `Quick pure_test1;
