@@ -24,8 +24,10 @@ let init () =
 let normalise () =
   let g = DependencyGraph.normalise !dg in
   Logger.dump DependencyGraph.output "predicate_graph_normalised.dot" g;
-  dg := g;
-  sid := M.filter (fun name _ -> is_self_recursive name) !sid
+  dg := g
+  (* TODO: keep or not?
+     sid := M.filter (fun name _ -> is_self_recursive name) !sid
+  *)
 
 (** {2 Preprocessing *)
 
@@ -57,8 +59,7 @@ let instantiate heap_sort name operands = match find name with
 
 module MM = InductiveDefinition.Map
 
-(*let graph = ref *)
-let cache = ref (MM.empty : Int.t MM.t)
+let cache = ref (MM.empty : Float.t MM.t)
 
 let sl_graph name instance = match find name with
   | Builtin (module B : BUILTIN) -> B.sl_graph instance
@@ -67,7 +68,7 @@ let sl_graph name instance = match find name with
 let term_bound phi heap_sort x = fold (fun name pred acc ->
    let bound = match pred with
     | Builtin (module B : BUILTIN) -> B.term_bound phi heap_sort x
-    | UserDefined id -> Float.of_int @@ MM.find id !cache
+    | UserDefined id -> MM.find id !cache
    in
    max acc bound
 ) !sid Float.one

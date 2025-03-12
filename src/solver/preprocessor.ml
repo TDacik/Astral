@@ -37,7 +37,7 @@ let first_phase context =
 
   apply_list context [
     NegationNormalisation.apply_ctx, "normalisation";
-    Inlining.inline_ctx, "inlining";
+    (*Inlining.inline_ctx, "inlining";*)
     rewrite_semantics, "semantics_rewriting";
   ]
 

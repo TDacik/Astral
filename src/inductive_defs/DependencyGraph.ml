@@ -32,11 +32,13 @@ let is_self_recursive g pred =
     ) succs
   with Invalid_argument _ -> false
 
-let normalise g =
-  G.fold_vertex (fun v acc ->
+let normalise g = g
+  (* TODO: keep?
+   G.fold_vertex (fun v acc ->
     if is_self_recursive g v then acc
     else G.remove_vertex acc v
   ) g g
+  *)
 
 let compute () =
   SID0.fold_on_user_defined (fun pred acc ->
