@@ -22,7 +22,6 @@ let normalise =
       begin match negated with
       | [negation] ->
         let phi = SL.mk_gneg (SL.mk_and others) (get_negation negation) in
-        SL.print phi;
         phi
       end
     | Or [f1; f2] -> begin match SL.view f1, SL.view f2 with
