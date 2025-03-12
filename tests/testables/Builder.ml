@@ -59,4 +59,9 @@ module Make (T : TESTABLE_BASE) = struct
     let msg = Format.asprintf "Result for %s is %d (expected %d)" (T.show x) actual expected in
     Alcotest.check' Alcotest.int ~msg ~actual ~expected
 
+  let check_apply_list (compute : t -> t list) input expected =
+    let actual = compute input in
+    let msg = Format.asprintf "Result for %s is %s (expected %s)" (T.show input) (T.show_list actual) (T.show_list expected) in
+    Alcotest.check' (Alcotest.list (module T' : TESTABLE with type t = t)) ~msg ~actual ~expected
+
 end

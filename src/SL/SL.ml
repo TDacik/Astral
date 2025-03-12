@@ -330,6 +330,19 @@ let as_symbolic_heap' phi =
   let pure, spatial = as_symbolic_heap phi in
   pure @ spatial
 
+let rec as_quantified_symbolic_heap phi = match view phi with
+  | _ when is_atom phi -> [], [phi]
+  | And atoms when List.for_all is_pure_atom atoms -> [], atoms
+  | Star atoms ->
+    List.fold_left (fun acc atom ->
+      let qs, atoms = as_quantified_symbolic_heap atom in
+      qs @ fst acc, atoms @ snd acc
+    ) ([], []) atoms
+  | Exists (xs, body) ->
+    let qs, atoms = as_quantified_symbolic_heap body in
+    xs @ qs, atoms
+  | _ -> raise @@ Invalid_argument "Not a symbolic heap"
+
 let as_entailment phi = match view phi with
   | GuardedNeg (lhs, rhs) -> (lhs, rhs)
   | _ -> raise @@ Invalid_argument "Not an entailment"

@@ -8,6 +8,8 @@ module type TESTABLE_FULL = sig
   type t
   val check_apply : input:t -> expected:t -> (t -> t) -> unit
 
+  val check_apply_list : (t -> t list) -> t -> t list -> unit
+
   val check_equal : ?msg:string -> t -> t -> unit
   val check_distinct : t -> t -> unit
 

@@ -38,6 +38,32 @@ let is_symbolic_heap_test7 () =
 
 (** **)
 
+let check input expected =
+  let actual = SL.as_quantified_symbolic_heap input in
+  let module T =
+    struct
+      type t = SL.Variable.t list * SL.t list
+      let equal (xs1, ys1) (xs2, ys2) =
+        let open Stdlib in
+        List.equal SL.Variable.equal xs1 xs2
+        && List.equal SL.equal ys1 ys2
+      let pp fmt (xs, ys) =
+        Format.fprintf fmt "%s, %s"
+          (SL.Variable.show_list xs)
+          (SL.show_list ys)
+    end
+  in
+  Alcotest.check' (module T) ~msg:"" ~actual ~expected
+
+let as_symbolic_heap_test1 () =
+  let phi = x |-> y in
+  check phi ([], [phi])
+
+let as_symbolic_heap_test2 () =
+  let e = SL.Variable.mk "e" Sort.loc_ls in
+  let psi = x |-> (SL.Term.of_var e) in
+  let phi = SL.mk_exists [e] psi in
+  check phi ([e], [psi])
 
 let () =
   run "SL" [
