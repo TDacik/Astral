@@ -27,21 +27,19 @@
 )
 
 (declare-const x Ref_DLS)
-(declare-const y Ref_DLS)
 (declare-const xp Ref_DLS)
-(declare-const yp Ref_DLS)
 
 (assert
   (sep
-    (distinct x y xp)
-    (dls x y xp yp)
+    (distinct x xp nil)
+    (dls x nil xp nil)
   )
 )
 
 (assert (not
   (sep
-    (pto x  (c_DLS xp yp))
-    (pto xp (c_DLS y  x ))
+    (pto x  (c_DLS xp nil))
+    (pto xp (c_DLS nil x))
   )
 ))
 

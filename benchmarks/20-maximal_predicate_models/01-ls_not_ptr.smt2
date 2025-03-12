@@ -13,7 +13,7 @@
     (exists ((n Ref_LS))
       (sep
         (distinct x y)
-	(pto x (c_LS n))
+        (pto x (c_LS n))
 	(ls n y)
       )
     )
@@ -21,15 +21,14 @@
 )
 
 (declare-const x Ref_LS)
-(declare-const y Ref_LS)
 
 (assert
   (sep
-    (distinct x y)
-    (ls x y)
+    (distinct x nil)
+    (ls x nil)
   )
 )
 
-(assert (not (pto x (c_LS y))))
+(assert (not (pto x (c_LS nil))))
 
 (check-sat)

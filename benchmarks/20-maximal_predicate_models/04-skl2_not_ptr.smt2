@@ -35,15 +35,14 @@
 )
 
 (declare-const x Ref_SKL)
-(declare-const y Ref_SKL)
 
 (assert
   (sep
-    (distinct x y)
-    (skl2 x y)
+    (distinct x nil)
+    (skl2 x nil)
   )
 )
 
-(assert (not (pto x (c_SKL y y))))
+(assert (not (pto x (c_SKL nil nil))))
 
 (check-sat)
