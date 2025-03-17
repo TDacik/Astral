@@ -69,7 +69,10 @@ module Make (Locations : LOCATIONS) = struct
 
   let get_fields self : Field.t list = Field.Map.keys self.field_map
 
-  let get_arrays self : SMT.t list = Field.Map.values self.field_map
+  (** Return arrays representing pointer fields *)
+  let get_pointer_arrays self : SMT.t list =
+    Field.Map.filter (fun f _ -> Field.is_pointer f) self.field_map
+    |> Field.Map.values
 
   (** Auxiliary functions *)
 
@@ -168,7 +171,7 @@ module Make (Locations : LOCATIONS) = struct
 
   (* Axioms enforced by location encoding *)
   let heap_axioms self =
-    get_arrays self
+    get_pointer_arrays self
     |> List.map (Locations.heap_axioms self.locs)
     |> Boolean.mk_and
 
