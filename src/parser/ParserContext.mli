@@ -19,6 +19,9 @@ val empty :
   -> unit
   -> t
 
+val add_defs : t -> t -> t
+(** Combine two compatible contexts *)
+
 val declare_var : ?loc:loc -> t -> string -> Sort.t -> t
 
 val declare_sort : ?loc:loc -> t -> Sort.t -> t

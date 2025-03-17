@@ -4,7 +4,9 @@
 
 type actual = string
 type expected = string
-type what = Variable | Sort | Structure | Constructor
+type what =
+  | Builtin of what
+  | Variable | Sort | Structure | Constructor
 
 type parser_error =
   | SyntaxError of string

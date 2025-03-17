@@ -13,7 +13,8 @@ open Dolmen_smtlib2.Script.Latest
 open Term
 open Statement
 
-let show_what = function
+let rec show_what = function
+  | ParserException.Builtin b -> "builtin " ^ (show_what b)
   | Variable -> "variable"
   | Sort -> "sort"
   | Structure -> "structure"
@@ -457,7 +458,7 @@ let parse_option ctx opt = match opt.term with
       LS.register ();
       DLS.register ();
       NLS.register ();
-      SID.builtin_context () (* TODO: preserve already loaded ctx! *)
+      Context.add_defs ctx (SID.builtin_context ())
     | _ -> ctx
     end
   | _ -> ctx

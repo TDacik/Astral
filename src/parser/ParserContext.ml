@@ -27,6 +27,28 @@ let empty ?(sorts=M.empty) ?(struct_defs=M.empty) ?(heap_sort=HeapSort.empty) ?(
     assertions = [];
   }
 
+
+let add_defs ctx1 ctx2 =
+  let open ParserException in
+  let disjoint_map_union eq what =
+    M.union (fun key x y ->
+      if eq x y then Some x
+      else raise_redefined None ctx1 (Builtin what) key
+    )
+  in
+  {
+    sorts = disjoint_map_union Sort.equal Sort ctx1.sorts ctx2.sorts;
+    struct_defs = disjoint_map_union StructDef.equal Structure ctx1.struct_defs ctx2.struct_defs;
+    vars = disjoint_map_union Sort.equal Variable ctx1.vars ctx2.vars;
+    heap_sort = HeapSort.union [ctx1.heap_sort; ctx2.heap_sort];
+    declared_preds = S.union ctx1.declared_preds ctx2.declared_preds;
+    expected_status = ctx1.expected_status;
+    attributes = ctx1.attributes;
+    produce_models = ctx1.produce_models;
+    assertions = ctx1.assertions @ ctx2.assertions;
+  }
+
+
 (** Declarations *)
 
 let declare_sort ?loc ctx sort =
