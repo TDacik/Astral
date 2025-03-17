@@ -14,7 +14,9 @@ open SL_edge
 (** ==== Edge contraction ==== *)
 
 (** Reimplementation of the algorithm from Ocamlgraph which does not allow
-    to provide vertex selection function. *)
+    to provide vertex selection function.
+
+    TODO: tests *)
 
 let contract g (is_existential : SL.Term.t -> bool) =
   let module S = SL.Term.Set in
@@ -32,7 +34,7 @@ let contract g (is_existential : SL.Term.t -> bool) =
   in
   G.fold_edges_e (fun e acc ->
     let src, label, dst = E.src e, E.label e, E.dst e in
-    if label = Equality && (is_existential src || is_existential dst) then acc
+    if label = Equality && (is_existential src <> is_existential dst) then acc
     else
       let lookup v =
         try S.min_elt @@ S.filter (fun x -> not @@ is_existential x) @@ M.find v vertex_map
