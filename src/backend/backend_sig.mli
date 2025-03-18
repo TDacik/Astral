@@ -53,6 +53,7 @@ module type BACKEND = sig
 
       *)
 
+
   val simplify : formula -> formula
 
   val show_formula : formula -> string
@@ -60,6 +61,14 @@ module type BACKEND = sig
   val to_smtlib : SMT.t -> bool -> string list -> string
 
   val show_model : model -> string
+
+  (** {2 Incremental solving} *)
+
+  val push : SMT.t -> unit
+
+  val pop : int -> unit
+
+  val check_sat : SMT.t -> (formula, model) status
 
 end
 
