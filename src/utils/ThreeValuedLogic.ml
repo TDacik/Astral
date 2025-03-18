@@ -2,7 +2,9 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
-type t = True | False | Unknown [@@deving compare, equal]
+type t = True | False | Unknown [@@deriving compare, equal]
+
+let show = function True -> "true" | False -> "false" | Unknown -> "unknown"
 
 let of_bool b = if b then True else False
 
@@ -34,3 +36,10 @@ let or3 lhs rhs = match lhs, rhs with
 
 let exists (f : 'a -> t) (xs : 'a list) : t =
   List.fold_left (fun acc x -> or3 acc @@ f x) False xs
+
+module Self = struct
+  type nonrec t = t
+  let show = show
+end
+
+include Datatype.Printable(Self)
