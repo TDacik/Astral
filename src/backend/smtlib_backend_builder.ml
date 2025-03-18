@@ -191,6 +191,11 @@ module Make (Backend : SMTLIB_BACKEND) = struct
 
   let eval = SMT.Model.eval
 
+  (* === Incremental solving === *)
+
+  let push _ = failwith "Not avaialable"
+  let pop _ = failwith "Not avaialable"
+  let check_sat _ = failwith "Not avaialable"
 
   (* === Debugging === *)
 
