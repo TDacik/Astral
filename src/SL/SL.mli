@@ -313,3 +313,5 @@ end
 val as_symbolic_heap : t -> t list * t list
 
 val as_quantified_symbolic_heap : t -> Variable.t list * t list
+
+val translate_pure_with_heap_term : (Term.t -> SMT.t) -> t -> SMT.t
