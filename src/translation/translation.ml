@@ -612,6 +612,15 @@ let translate_phi (ctx : Context.t) ssl_phi =
      QuantifierEncoding.name
      Backend.name
 
+  (** TODO: avoid duplication *)
+  let translate input =
+    let ctx = Context.init input in
+    let translated1 = translate_phi ctx input.phi in
+    let translated2 = SetEncoding.rewrite translated1 in
+    let translated3 = QuantifierEncoding.rewrite ctx.locs translated2 in
+    let translated = Backend_preprocessor.apply translated3 in
+    translated
+
   (* ==== Solver ==== *)
   let solve input =
     let ctx = Context.init input in
