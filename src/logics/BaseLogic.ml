@@ -329,17 +329,17 @@ let rec select_subformulae pred phi =
   if pred phi then phi :: acc else acc
 
 let positive_polarity phi psi =
-  let open ThreeValuedLogic in
+  let module TL = ThreeValuedLogic in
   let rec aux chi =
-    if equal psi chi then True
+    if equal psi chi then TL.True
     else match chi with
-      | Variable _ -> Unknown
-      | Application ((GuardedNot | Not), xs) -> not3 @@ exists aux xs
-      | Application (_, xs) -> exists aux xs
-      | Binder ((Forall _ | Forall2 _), _, x) -> not3 @@ aux x
+      | Variable _ -> TL.Unknown
+      | Application ((GuardedNot | Not), xs) -> TL.not3 @@ TL.exists aux xs
+      | Application (_, xs) -> TL.exists aux xs
+      | Binder ((Forall _ | Forall2 _), _, x) -> TL.not3 @@ aux x
       | Binder ((Exists _ | Exists2 _), _, x) -> aux x
    in
-   to_bool false @@ aux psi
+   TL.to_bool false @@ aux psi
 
 
 (** Substitutions *)
