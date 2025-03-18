@@ -630,21 +630,25 @@ let translate_phi (ctx : Context.t) ssl_phi =
     (* Translation *)
     let translated1 = translate_phi ctx input.phi in
     Debug.translated ~suffix:"1" translated1;
+    Logger.debug "Translation (size: %d)\n" (SMT.size translated1);
     Profiler.add "Translation-1";
 
     (* Set rewritting *)
     let translated2 = SetEncoding.rewrite translated1 in
     Debug.translated ~suffix:"2_set_encoding" translated2;
+    Logger.debug "Set encoding (size: %d)\n" (SMT.size translated2);
     Profiler.add "Translation-2";
 
     (* Quantifier rewritting *)
     let translated3 = QuantifierEncoding.rewrite ctx.locs translated2 in
     Debug.translated ~suffix:"3_qf_rewriting" translated3;
+    Logger.debug "Quantifier encoding (size: %d)\n" (SMT.size translated3);
     Profiler.add "Translation-3";
 
     (* Backend preprocessor *)
     let translated = Backend_preprocessor.apply translated3 in
     Debug.translated ~suffix:"4_backend_preprocessing" translated;
+    Logger.debug "Backend preprocessing (size: %d)\n" (SMT.size translated);
     Profiler.add "Translation-4";
 
     let size = SMT.size translated in
