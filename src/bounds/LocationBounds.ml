@@ -39,8 +39,12 @@ let sort_terms sort g phi =
 (** Compute contribution of a single variable *)
 let term_bound heap_sort g phi x =
   let sort = SL.Term.get_sort x in
-  if SL_graph0.must_pointer_any g x then 1.0
-  else SID.term_bound phi heap_sort x
+  let res =
+    if SL_graph0.must_pointer_any g x then 1.0
+    else SID.term_bound phi heap_sort x
+  in
+  Logger.debug "[| %s |] = %f\n" (Term.show x) res;
+  res
 
 let compute_allocated heap_sort sort g (phi : SL.t) =
   sort_terms sort g phi
@@ -58,6 +62,7 @@ let compute_positive heap_sort sort g phi =
   if Sort.is_nil sort then SortBound.init 0 1
   else
   let bonus = match SL.classify_fragment phi with
+    | _ when SID.has_user_defined_ids () -> 0
     | Atomic | SymbolicHeap_SAT -> 0
     | SymbolicHeap_ENTL -> 1
     | Positive | Arbitrary -> 0
