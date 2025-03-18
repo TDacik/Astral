@@ -50,7 +50,7 @@ module Self = struct
   let init_sort_encoding loc_sort =
     Sort.Map.mapi (fun sl_sort consts -> sort_encoding loc_sort sl_sort consts)
 
-  let init heap_sort bounds =
+  let init _ heap_sort bounds =
     (* First, build list of constants that are needed to initialise location sort *)
     let consts = init_constants bounds in
     let constant_names = location_encoding consts in

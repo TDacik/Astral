@@ -28,7 +28,7 @@ module Make
   let add_heap ctx heap = ctx.heaps <- heap :: ctx.heaps
 
   let init (context : Context.t) =
-    let locs = Locations.init context.raw_input.heap_sort context.location_bounds in
+    let locs = Locations.init context.phi context.raw_input.heap_sort context.location_bounds in
     let loc_sort = locs.sort in
 
     let fp_sort = SMT.Sets.mk_sort loc_sort in

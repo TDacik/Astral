@@ -25,7 +25,7 @@ module type LOCATIONS_BASE = sig
 
   type t = internal locs
 
-  val init : HeapSort.t -> LocationBounds0.t -> t
+  val init : SL.t -> HeapSort.t -> LocationBounds0.t -> t
 
   val heap_axioms : t -> SMT.t -> SMT.t
 

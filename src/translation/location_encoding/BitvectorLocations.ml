@@ -12,6 +12,7 @@ module Self = struct
   let name = "bitvectors"
 
   type internal = {
+    phi : SL.t;
     nb_locs : int;
     bv_width : int;
   }
@@ -39,10 +40,11 @@ module Self = struct
         Sort.Map.add sort (encoded_sort, null :: consts) res, rest
     ) bounds (Sort.Map.empty, constants)
 
-  let init heap_sort bounds =
+  let init phi heap_sort bounds =
     let width = compute_width bounds in
     let sort = Bitvector.mk_sort width in
     let internal = {
+        phi = phi;
         nb_locs = LocationBounds.sum bounds;
         bv_width = width;
       }
@@ -55,12 +57,14 @@ module Self = struct
   (** === Axioms === *)
 
   let heap_axioms self heap =
-    let max_bv = Bitvector.mk_const_of_int (self.internal.nb_locs - 1) self.internal.bv_width in
-    BatList.range 0 `To (self.internal.nb_locs - 1)
-    |> List.map (fun i -> Bitvector.mk_const_of_int i self.internal.bv_width)
-    |> List.map (fun bv -> Array.mk_select heap bv)
-    |> List.map (fun term -> Bitvector.mk_lesser_eq term max_bv)
-    |> Boolean.mk_and
+    if SL.is_atom self.internal.phi then Boolean.tt
+    else
+      let max_bv = Bitvector.mk_const_of_int (self.internal.nb_locs - 1) self.internal.bv_width in
+      BatList.range 0 `To (self.internal.nb_locs - 1)
+      |> List.map (fun i -> Bitvector.mk_const_of_int i self.internal.bv_width)
+      |> List.map (fun bv -> Array.mk_select heap bv)
+      |> List.map (fun term -> Bitvector.mk_lesser_eq term max_bv)
+      |> Boolean.mk_and
 
   (** === Lemmas === *)
 
