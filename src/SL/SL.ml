@@ -181,6 +181,10 @@ let mk_pure smt =
 
 let mk_not phi = BaseLogic.mk_app Not [phi]
 
+let negate phi = match view phi with
+  | Distinct xs -> mk_eq xs
+  | Eq xs -> mk_distinct xs
+
 (** Simplify to emp, instead of true *)
 let mk_eq xs =
   if !BaseLogic.do_simplification then match mk_eq xs with
@@ -192,7 +196,7 @@ let mk_ite cond b_then b_else =
   if !BaseLogic.do_simplification then begin
     if equal cond tt || equal cond emp then b_then
     else if equal cond ff then b_else
-    else if equal b_then ff then mk_star [mk_not cond; b_else]
+    else if equal b_then ff then mk_star [negate cond; b_else]
     else if equal b_else ff then mk_star [cond; b_then]
     else BaseLogic.Boolean.mk_ite cond b_then b_else
   end
@@ -382,6 +386,16 @@ let as_query phi =
     SymbolicHeap_ENTL (lhs, rhs)
   else
     Arbitrary phi
+
+let translate_pure_with_heap_term (fn : Term.t -> SMT.t) phi =
+  to_base_logic phi
+  |> BaseLogic.map
+      (fun t -> match t with
+        | Variable _ -> of_smt @@ fn t
+        | Application (A.HeapTerm _, _) -> of_smt (fn t)
+        | x -> x
+      )
+  |> SMT.of_base_logic
 
 module Infix = struct
 
