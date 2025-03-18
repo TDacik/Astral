@@ -71,6 +71,8 @@ let add name header body =
   if mem name !sid then Logger.debug "Skipping already registered ID %s\n" name
   else sid := add name (UserDefined def) !sid
 
+let has_user_defined_ids () = not @@ is_empty !sid
+
 let find name =
   try find name !sid
   with Not_found ->
