@@ -207,9 +207,17 @@ let must_alloc g =
 
 let must_allocated v g = BatList.mem_cmp G.V.compare v (must_alloc g)
 
-let nb_allocated g =
-  let alloc = must_alloc g in
-  List.length alloc
+let nb_allocated ?(distinct=false) g =
+  let must_eq_cmp v1 v2 =
+    if must_eq g v1 v2 then 0
+    else G.V.compare v1 v2
+  in
+  let allocated = must_alloc g in
+  let filtered =
+    if distinct then BatList.unique_cmp ~cmp:must_eq_cmp allocated
+    else allocated
+  in
+  List.length filtered
 
 let nb_roots g =
   G.fold_vertex List.cons g []
