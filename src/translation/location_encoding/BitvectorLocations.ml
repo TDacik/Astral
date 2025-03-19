@@ -57,7 +57,7 @@ module Self = struct
   (** === Axioms === *)
 
   let heap_axioms self heap =
-    if SL.is_atom self.internal.phi then Boolean.tt
+    if SL.is_atomic self.internal.phi then Boolean.tt
     else
       let max_bv = Bitvector.mk_const_of_int (self.internal.nb_locs - 1) self.internal.bv_width in
       BatList.range 0 `To (self.internal.nb_locs - 1)
