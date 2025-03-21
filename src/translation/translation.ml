@@ -37,42 +37,20 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
   let translate_block_end ctx x = SMT.Array.mk_select ctx.block_end x
 
-  (** We can use Obj.magic here because we know that SL.t and SMT.t are
-      internaly the same type. TODO: but is weird... *)
   let rec translate_term ctx t = match SL.Term.view t with
     | SL.Term.Var x -> SMT.of_var @@ Locations.translate_var ctx.locs x
     | SL.Term.HeapTerm (f, x) -> translate_heap_term ctx f (translate_term ctx x)
     | SL.Term.SmtTerm x -> x
-    (*
-    Obj.magic (match SL.Term.view t with
-      | SL.Term.Var x -> SMT.of_var @@ Locations.translate_var ctx.locs x
-      | SL.Term.BlockBegin x -> translate_block_begin ctx (translate_term ctx x)
-      | SL.Term.BlockEnd x -> translate_block_end ctx (translate_term ctx x)
-    *)
-
-  (** Translate "almost-pure" formula by replacing heap terms by select from
-      corresponding arrays. *)
-  let rec translate_pure_with_heap_terms ctx phi =
-    let rec translate_aux term = match SL.Term.view term with
-      | Var x -> SMT.of_var @@ translate_var ctx x
-      | HeapTerm (f, x) -> translate_heap_term ctx f @@ translate_aux x
-    in
-    match SL.view phi with
-    | And xs -> SMT.Boolean.mk_and @@ List.map (translate_pure_with_heap_terms ctx) xs
-    | Eq xs -> SMT.mk_eq @@ List.map (translate_aux) xs
-    | Distinct xs -> SMT.mk_distinct @@ List.map (translate_aux) xs
 
   let id = ref 0
 
   (** Currently footprint ID does not match ID in printed AST *)
   let formula_footprint ctx phi =
     id := !id + 1;
-    let name = Format.asprintf "footprint%d" !id (*SL.subformula_id ctx.phi phi*) in
+    let name = Format.asprintf "footprint%d" !id in
     Sets.mk_var name ctx.fp_sort
 
   (* ==== Recursive translation of SL formulae ==== *)
-
-  let lift (semantics, axioms, footprints) = (semantics, axioms, Footprints.of_list footprints)
 
   let rec translate ctx domain phi = match SL.view phi with
     | SL.Emp -> translate_emp ctx domain
@@ -214,7 +192,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   and translate_ite ctx domain cond then_ else_ =
     let semantics1, axioms1, footprints1 = translate ctx domain then_ in
     let semantics2, axioms2, footprints2 = translate ctx domain else_ in
-    let cond = translate_pure_with_heap_terms ctx cond in
+    let cond = SL.translate_pure_with_heap_term (translate_term ctx) cond in
 
     let semantics = Boolean.mk_ite cond semantics1 semantics2 in
     let axioms = Boolean.mk_and [axioms1; axioms2] in
@@ -535,13 +513,6 @@ let translate_phi (ctx : Context.t) ssl_phi =
   let nil = SMT.mk_var "nil" ctx.loc_sort in
   let nil_not_in_fp = Boolean.mk_not (Sets.mk_mem nil ctx.global_footprint) in
 
-  (**
-      TODO: need to be reworked...
-   Introduction of `next` array. May be ignored for positive formulae.
-  let next = Field.next in
-  let next_intro = SMT.mk_eq [nil; HeapEncoding.mk_succ ctx.heap next nil] in
-  *)
-
   let location_axioms = Locations.axioms ctx.locs ctx.phi (translate_term ctx) in
   let heap_axioms = HeapEncoding.axioms ctx.heap in
   let location_lemmas = Locations.lemmas ctx.locs in
@@ -555,7 +526,6 @@ let translate_phi (ctx : Context.t) ssl_phi =
   Boolean.mk_and
     [
       phi; axioms; nil_not_in_fp; location_lemmas;
-      (*next_intro;*)
       low_level_axioms;
       location_axioms; heap_axioms
     ]
@@ -664,13 +634,11 @@ let translate_phi (ctx : Context.t) ssl_phi =
     in
     let backend_translated = Backend.translate translated in
 
-    (*Debug.context input;*)
     Debug.backend_translated (Backend.show_formula backend_translated);
     Debug.backend_simplified (Backend.show_formula @@ Backend.simplify backend_translated);
     Debug.backend_input (Backend.to_smtlib translated produce_models user_options);
 
     Logger.debug "Running backend SMT solver\n";
-    Profiler.add "Translation";
 
     (* Solve *)
     let result = Backend.solve ctx translated produce_models user_options in
