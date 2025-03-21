@@ -117,4 +117,4 @@ let show_status input = match input.status with
 let show_expected_status input = match input.expected_status with
   | `Sat -> "sat"
   | `Unsat -> "unsat"
-  | `Unknown _ -> "unknown"
+  | `Unknown reason -> Format.asprintf "unknown (%s)" reason
