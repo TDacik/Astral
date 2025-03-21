@@ -292,17 +292,22 @@ let must_pred_field g x =
 (** ==== Evaluation ==== *)
 
 let rec eval_term g t =
-  if mem_vertex g t then t
-  else match SL.Term.view t with
-    | Var _ -> t
+  match SL.Term.view t with
+    | Var _ -> Some t
     | HeapTerm (f, s) ->
-      Option.value ~default:t @@ must_successor_ptr g f (eval_term g s)
+      match eval_term g s with
+      | None -> None
+      | Some s -> must_successor_ptr g f s
 
 let lift g eval_true eval_false x y =
+  let open ThreeValuedLogic in
   let x, y = eval_term g x, eval_term g y in
-  if eval_true g x y then Some true
-  else if eval_false g x y then Some false
-  else None
+  if Option.is_none x || Option.is_none y then Unknown
+  else
+    let x, y = Option.get x, Option.get y in
+    if eval_true g x y then True
+    else if eval_false g x y then False
+    else Unknown
 
 let eval_predicate g c = match SL.view c with
   | SL.Eq [x; y] -> lift g must_eq must_neq x y
