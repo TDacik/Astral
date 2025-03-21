@@ -46,5 +46,6 @@ let dnls =
           SL.mk_distinct2 x y;
           SL.mk_distinct2 x' y';
           mk_pto_struct x def [n; y'; d];
-          SL.mk_predicate "dnls" [n; y; x'; x; z]
+          SL.mk_predicate "dnls" [n; y; x'; x; z];
+          SL.mk_predicate "ls" [d; z]
     ])]

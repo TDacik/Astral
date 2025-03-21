@@ -7,9 +7,19 @@ open MemoryModel
 module SL = SL_testable
 open SL
 
+let nb_allocated_test1 () =
+  let g = SL_graph.compute @@ (x |-> y) * (x' |-> z) * ( x == x') in
+  let actual = SL_graph.nb_allocated ~distinct:false g in
+  Alcotest.check' Alcotest.int ~msg:"" ~actual ~expected:2
+
+let nb_allocated_test2 () =
+  let g = SL_graph.compute @@ (x |-> y) * (x' |-> z) * ( x == x') in
+  let actual = SL_graph.nb_allocated ~distinct:true g in
+  Alcotest.check' Alcotest.int ~msg:"" ~actual ~expected:1
+
 let eval_term_test1 () =
   let g = SL_graph.compute @@ (x |-> y) * (y |-> z) in
-  let actual = SL_graph.eval_term g y in
+  let actual = Option.get @@ SL_graph.eval_term g y in
   SL_testable.Term.check_equal actual y
 
 let eval_term_test2 () =

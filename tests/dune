@@ -22,7 +22,6 @@
 
     ;; Separation logic
     SL_tests
-    InductiveDefinition_tests
 
     ;; Preprocessing tests
     IntroduceITE_tests
@@ -31,6 +30,10 @@
 
     ;Simplifier_tests
     RemoveVariadic_tests
+
+    ;; Inductive definitions
+    InductiveDefinition_tests
+    SmallModels_tests
 
     ;Property_tests
   )

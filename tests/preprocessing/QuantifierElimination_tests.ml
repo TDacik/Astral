@@ -37,7 +37,6 @@ let _test4 () =
   let expected = x |-> y in
   SL.check_apply apply ~input ~expected
 
-
 let () =
   run "Quantifier elimination" [
     "apply", [

@@ -12,6 +12,7 @@ module type TESTABLE_FULL = sig
 
   val check_equal : ?msg:string -> t -> t -> unit
   val check_distinct : t -> t -> unit
+  val check_equal_list : ?msg:string -> expected:t list -> t list -> unit
 
   val check : (t -> bool) -> t -> unit
   val check2 : (t -> t -> bool) -> t -> t -> unit
