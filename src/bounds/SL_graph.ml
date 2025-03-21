@@ -34,13 +34,11 @@ let contract g (is_existential : SL.Term.t -> bool) =
   in
   G.fold_edges_e (fun e acc ->
     let src, label, dst = E.src e, E.label e, E.dst e in
-    if label = Equality && (is_existential src <> is_existential dst) then acc
-    else
-      let lookup v =
+      let lookup v v'=
         try S.min_elt @@ S.filter (fun x -> not @@ is_existential x) @@ M.find v vertex_map
-        with Not_found -> v
+        with Not_found -> S.min_elt @@ M.find v vertex_map
       in
-      G.add_edge_e acc (lookup src, label, lookup dst)
+      G.add_edge_e acc (lookup src dst, label, lookup dst src)
   ) g G.empty
 
 (** ==== Vertex substitution ==== *)

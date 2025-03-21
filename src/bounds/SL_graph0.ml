@@ -73,6 +73,14 @@ module G = struct
   include Self
   include Graph.Oper.P(Self)
 
+  (* Redefine add_edge to do not include equality self-loops.
+
+     Be very careful, this could break small model computation! *)
+
+  let add_edge_e g (src, label, dst) =
+    if SL.Term.equal src dst && SL_edge.equal label SL_edge.Equality then g
+    else add_edge_e g (src, label, dst)
+
   include Graph.Graphviz.Dot
     (struct
       include Self
@@ -99,17 +107,32 @@ module G = struct
 
 end
 
+let compare_edge_e e1 e2 =
+  let src1, label1, dst1 = e1 in
+  let src2, label2, dst2 = e2 in
+  let aux = SL_edge.compare label1 label2 in
+  if aux <> 0 then aux
+  else match label1 with
+    | Equality | Disequality ->
+      let aux1 = SL.Term.equal src1 dst1 && SL.Term.equal src2 dst2 in
+      let aux2 = SL.Term.equal src2 dst1 && SL.Term.equal src1 dst2 in
+      if aux1 || aux2 then 0 else G.E.compare e1 e2
+    | Pointer _ -> G.E.compare e1 e2
+    | _ -> assert false (* Used only for SL-graphs *)
+
 let get_vertices g = G.fold_vertex List.cons g []
 let get_edges g = G.fold_edges_e List.cons g []
 
-let compare g1 g2 = List.compare G.E.compare (get_edges g1) (get_edges g2)
+let compare g1 g2 = List.compare compare_edge_e (get_edges g1) (get_edges g2)
 
 let equal g1 g2 = compare g1 g2 = 0
 
 let show g =
+    if G.is_empty g then "empty"
+    else
     G.fold_edges_e (fun (x, label, y) acc ->
-      Format.asprintf "%s  %s (%s) %s\n" acc (SL.Term.show x) (SL_edge.show label) (SL.Term.show y)
-    ) g "Graph:\n"
+      Format.asprintf " %s  - %s (%s) %s\n" acc (SL.Term.show x) (SL_edge.show label) (SL.Term.show y)
+    ) g ""
 
 module S = struct
   type nonrec t = G.t
