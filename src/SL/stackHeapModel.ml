@@ -404,11 +404,11 @@ let get_path ?field sh ~src ~dst =
   |> List.map (fun (Vertex.Loc l) -> l)
 
 let get_nested_path sh ~src ~dst ~sink ~field1 ~field2 =
-  HeapGraph.get_nested_path (HeapGraph.get sh) ~src:(Loc src) ~dst:(Loc dst) ~sink:(Loc dst) ~field1 ~field2
+  HeapGraph.get_nested_path (HeapGraph.get sh) ~src:(Loc src) ~dst:(Loc dst) ~sink:(Loc sink) ~field1 ~field2
   |> List.map (fun xs -> List.map (fun (Vertex.Loc l) -> l) xs)
 
 let has_nested_path sh ~src ~dst ~sink ~field1 ~field2 =
-  HeapGraph.has_nested_path (HeapGraph.get sh) ~src:(Loc src) ~dst:(Loc dst) ~sink:(Loc dst) ~field1 ~field2
+  HeapGraph.has_nested_path (HeapGraph.get sh) ~src:(Loc src) ~dst:(Loc dst) ~sink:(Loc sink) ~field1 ~field2
 
 let output_graph filename sh =
   let channel = open_out filename in
