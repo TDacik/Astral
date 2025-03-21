@@ -62,7 +62,8 @@ let compute_positive heap_sort sort g phi =
   if Sort.is_nil sort then SortBound.init 0 1
   else
   let bonus = match SL.classify_fragment phi with
-    | _ when SID.has_user_defined_ids () -> 0
+    (* Bounds are compute before unfolding *)
+    | _ when SLID.has_user_defined_predicates phi -> 0
     | Atomic | SymbolicHeap_SAT -> 0
     | SymbolicHeap_ENTL -> 1
     | Positive | Arbitrary -> 0
