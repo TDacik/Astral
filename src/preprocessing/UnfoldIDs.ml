@@ -49,23 +49,25 @@ let unfold_rhs ctx bound lhs rhs =
   let module Backend = (val Options.backend () : BACKEND) in
   let module Encoding = (val Options.encoding () : ENCODING) in
   let module Translation = Translation.Make(Encoding)(Backend) in
-  let module Unfolder = IncrementalUnfolding.Make(Encoding)(Z3_backend.Init()) in
+  let module Unfolder = IncrementalUnfolding.Make(Encoding)(Backend) in
   let lhs = Translation.translate {ctx with phi = lhs} in (* TODO: check*)
   Unfolder.unfold bound lhs rhs
 
 
 let apply ctx phi =
-  let open Context in
-  let location_bound = ctx.location_bounds in
-  Logger.debug "Unfolding %s\n" (SL.show phi);
-  match SL.view phi with
-  | _ when SL.is_symbolic_heap phi -> unfold_lhs location_bound phi
-  | GuardedNeg (lhs, rhs) ->
-    let lhs = unfold_lhs location_bound lhs in
-    let sl_graph = SL_graph.compute lhs in
-    let rhs = unfold_rhs ctx ctx lhs rhs in
-    SL.mk_gneg lhs rhs
-  | _ -> phi
+  if not @@ SLID.has_user_defined_predicates phi then phi
+  else
+    let open Context in
+    let location_bound = ctx.location_bounds in
+    Logger.debug "Unfolding %s\n" (SL.show phi);
+    match SL.view phi with
+      | _ when SL.is_symbolic_heap phi -> unfold_lhs location_bound phi
+      | GuardedNeg (lhs, rhs) ->
+        let lhs = unfold_lhs location_bound lhs in
+        let sl_graph = SL_graph.compute lhs in
+        let rhs = unfold_rhs ctx ctx lhs rhs in
+        SL.mk_gneg lhs rhs
+    | _ -> phi
 
 let apply_ctx ctx =
   let open Context in

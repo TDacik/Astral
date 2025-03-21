@@ -17,3 +17,12 @@ let rec has_unique_footprint phi = match view phi with
   | _ -> failwith @@ ("Unique footprint of: " ^ show phi)
 
 let has_unique_shape _ = failwith "has_unique_shape"
+
+let has_user_defined_predicates phi =
+  let uids =
+    SL.select_subformulae (fun phi -> match SL.view phi with
+      | Predicate (name, _, _) -> SID.is_user_defined name
+      | _ -> false
+    ) phi
+  in
+  not @@ List.is_empty uids
