@@ -6,13 +6,15 @@ open Context
 open Result_syntax
 open InductiveDefinition
 
+module Logger = Logger.Make(struct let name = "FragmentChecker" let level = 2 end)
+
 let check_low_level_sl ctx =
   if SL.is_low_level ctx.phi && not @@ HeapSort.is_bitvector_model ctx.raw_input.heap_sort then
     Result.error
       "Low-level SL (with begin/end operations) defined over sort different than bitvectors"
   else Result.ok ()
 
-(** Checks for inductive definitions *)
+(** Checks for individual inductive definitions *)
 
 let rec check_progress psi = SL.is_atomic psi || (match SL.view psi with
     | Exists (_, psi) -> check_progress psi

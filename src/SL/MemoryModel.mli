@@ -61,6 +61,7 @@ module StructDef : sig
   val field_index : t -> Field.t -> int
   (** Return index of the field in the structure. *)
 
+  val field_value : t -> Field.t -> 'a list -> 'a
 
 
   val show_cons : t -> string

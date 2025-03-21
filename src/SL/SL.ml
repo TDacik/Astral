@@ -54,7 +54,9 @@ module Term = struct
   let is_heap_term t = match view t with HeapTerm _ -> true | _ -> false
   let is_smt_term t = match view t with SmtTerm _ -> true | _ -> false
 
-  let get_vars t = match view t with
+  let as_var t = match view t with Var v -> v
+
+  let rec get_vars t = match view t with
     | Var v -> [v]
     | SmtTerm t -> List.map (fun v -> Variable.of_description @@ SMT.Variable.describe v) (SMT.free_vars t)
     | HeapTerm (_, t) | BlockBegin t | BlockEnd t -> get_vars t
@@ -75,7 +77,6 @@ let of_smt : SMT.t -> t = SMT.to_base_logic
 
 let of_term = Fun.id
 let to_term = Fun.id
-
 
 type view =
   (* Atoms *)
@@ -323,6 +324,10 @@ let is_negation_free =
     | Application (Not, _) | Application (GuardedNot, _) -> false
     | _ -> true
   )
+
+let as_pointer phi = match view phi with
+  | PointsTo (x, def, ys) -> (x, def, ys)
+  | _ -> raise @@ Invalid_argument "Not a pointer"
 
 let as_symbolic_heap phi = match view phi with
   | Star psis -> List.partition is_pure psis

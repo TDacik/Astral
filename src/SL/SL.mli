@@ -6,15 +6,6 @@ open Logic_sig
 open Datatype_sig
 open MemoryModel
 
-type t
-
-(**/**)
-
-val of_base_logic : BaseLogic.t -> t
-val to_base_logic : t -> BaseLogic.t
-
-(**/**)
-
 module Variable : sig
   include VARIABLE with module Sort = Sort
 
@@ -74,18 +65,23 @@ module Term : sig
 
   val view : t -> view
 
+  val as_var : t -> Variable.t
+
 end
+
+type t
 
 (**/**)
 
 (** Some unsafe casting functions *)
 
+val of_base_logic : BaseLogic.t -> t
+val to_base_logic : t -> BaseLogic.t
 val to_smt : t -> SMT.t
 val of_term : Term.t -> t
 val to_term : t -> Term.t
 
 (**/**)
-
 
 include LOGIC
   with type t := t
@@ -184,6 +180,8 @@ val mk_iff : t list -> t
 
 val mk_ite : t -> t -> t -> t
 
+val mk_multiple_ite : (t * t) list -> t -> t
+
 val mk_gneg : t -> t -> t
 
 val mk_septraction : t -> t -> t
@@ -247,6 +245,8 @@ type query =
   | SymbolicHeap_SAT of t list
   | SymbolicHeap_ENTL of t list * t list
   | Arbitrary of t
+
+val as_pointer : t -> Term.t * StructDef.t * Term.t list
 
 val as_query : t -> query
 

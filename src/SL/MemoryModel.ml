@@ -46,6 +46,10 @@ module StructDef = struct
   let field_index def field =
     Option.get @@ List.find_index (Field.equal field) def.fields
 
+  let field_value def field ys =
+    let index = field_index def field in
+    List.nth ys index
+
   let get_sorts def =
     List.map Field.get_sort def.fields
     |> BatList.unique ~eq:Sort.equal
