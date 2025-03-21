@@ -44,7 +44,7 @@ let auto_selection_of_backend () =
 
 let backend () = match Options.backend () with
   | "bitwuzla" -> (module BitwuzlaNative.Init() : BACKEND)
-  | "bitwuzla-cmd" -> (module Bitwuzla : BACKEND)
+  | "bitwuzla-cmd" -> (module Bitwuzla_backend : BACKEND)
   | "boolector" -> (module Boolector_backend : BACKEND)
   | "cvc5" -> (module CVC5_backend : BACKEND)
   | "z3" -> (module Z3_backend.Init() : BACKEND)
