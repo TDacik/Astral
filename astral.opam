@@ -18,6 +18,7 @@ depends: [
   "ocaml" {>= "5.1.0"}
   "dune"
   "batteries"
+  "bitwuzla"
   "z3"
   "dolmen" {= "0.10"}
   "ocamlgraph"
