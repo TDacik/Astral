@@ -93,7 +93,7 @@ let alloc_bound g phi heap_sort field x y max =
         (*Sort.equal (SL.get_sort x) Sort.loc_nls (* TODO *)
         ||*) Sort.equal (SL.Term.get_sort x) (SL.Term.get_sort x')
       )
-  |> List.filter (fun x' -> not @@ SL.Term.equal x x')
+  |> List.filter (fun x' -> not @@ SL_graph.must_eq g x x')
   |> List.map (fun x -> root_weight g phi heap_sort x)
   |> BatList.sum
   |> (fun x -> max - x)
