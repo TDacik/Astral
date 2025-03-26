@@ -1,4 +1,7 @@
-(set-info :status unknown)
+; Bug in path bound computation (syntactical instead of semantical equality)
+
+(set-info :source slplugin)
+(set-info :status sat)
 
 (set-option :use-builtin-definitions)
 
