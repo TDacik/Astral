@@ -73,6 +73,13 @@ let term_bound phi heap_sort x = fold (fun name pred acc ->
    max acc bound
 ) !sid Float.one
 
+let additional_bounds () =
+  M.fold (fun name pred acc -> match pred with
+    | Builtin (module B : BUILTIN) -> acc + B.additional_bound
+    | UserDefined id -> 0
+  ) !sid 0
+
+
 let unfolding_depth name = match find name with
   | UserDefined id -> MM.find id !cache
 

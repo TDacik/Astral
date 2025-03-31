@@ -17,6 +17,7 @@ val mk_pto_dls : SL.Term.t -> next:SL.Term.t -> prev:SL.Term.t -> SL.t
 
 val mk_pto_nls : SL.Term.t -> top:SL.Term.t -> next:SL.Term.t -> SL.t
 
+val mk_freed : SL.Term.t -> SL.t
 
 (** {1 Built-in predicates} *)
 

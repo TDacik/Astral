@@ -35,7 +35,7 @@ let activate solver =
 
   (* TODO: maybe elsewhere? *)
   (if solver.use_builtin_defs then begin
-    LS.register (); DLS.register (); NLS.register ()
+      Freed.register (); LS.register (); DLS.register (); NLS.register ()
   end);
 
   Options.set_backend_timeout solver.timeout;

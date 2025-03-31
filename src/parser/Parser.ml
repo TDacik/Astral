@@ -455,6 +455,7 @@ let parse_option ctx opt = match opt.term with
   | Symbol id -> begin match Format.asprintf "%a" Id.print id with
     | ":use-builtin-definitions" ->
       (* TODO: should be done by the predicates' modules *)
+      Freed.register ();
       LS.register ();
       DLS.register ();
       NLS.register ();
