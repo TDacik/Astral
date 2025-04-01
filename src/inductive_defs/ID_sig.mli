@@ -27,7 +27,7 @@ module type BUILTIN_BASE = sig
 
   val term_bound : SL.t -> HeapSort.t -> SL.Term.t -> float
 
-  val additional_bound : int
+  val additional_bound : SL.t -> int
 
   val sl_graph : instance -> SL_graph0.t
 

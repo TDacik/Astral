@@ -133,7 +133,16 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       ) fields ys
       |> Boolean.mk_and
     in
-    let semantics = Boolean.mk_and [domain_def; pointer] in
+
+    let target_not_freed =
+      if Freed.is_present ctx.phi then
+        Boolean.mk_and @@ List.map (fun field ->
+          Boolean.mk_distinct [HeapEncoding.mk_succ ctx.heap field x; Locations.mk_var ctx.locs "freed"]
+          ) fields
+      else Boolean.tt
+    in
+
+    let semantics = Boolean.mk_and [domain_def; pointer; target_not_freed] in
     (semantics, axioms, footprints)
 
   and translate_predicate ctx domain id xs defs =

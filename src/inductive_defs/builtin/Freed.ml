@@ -17,7 +17,15 @@ module Self =  struct
 
   let term_bound _ _ _ = Float.one
 
-  let additional_bound = 1 (* Location representing freed memory *)
+  let is_present phi =
+    SL.exists (fun psi -> match SL.view psi with
+      | Predicate (name, _, _) when String.equal name "freed" -> true
+      | _ -> false
+    ) phi
+
+  let additional_bound phi =
+    if is_present phi then 1 (* Location representing freed memory *)
+    else 0
 
   let sl_graph _ = SL_graph.empty (* TODO *)
   let rules _ = []

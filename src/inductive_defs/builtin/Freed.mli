@@ -6,4 +6,6 @@ include ID_sig.BUILTIN
 
 val register : unit -> unit
 
+val is_present : SL.t -> bool
+
 val mk : SL.Term.t -> SL.t
