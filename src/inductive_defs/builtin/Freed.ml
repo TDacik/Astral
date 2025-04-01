@@ -69,6 +69,6 @@ end
 
 include Self
 
-let mk x = SL.mk_predicate "free" [x]
+let mk x = SL.mk_predicate "freed" [x]
 
 let register () = SID.register (module Self : ID_sig.BUILTIN)
