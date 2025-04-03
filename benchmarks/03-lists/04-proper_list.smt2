@@ -4,15 +4,14 @@
 (set-option :use-builtin-definitions)
 
 (declare-const x Loc)
-(declare-const y Loc)
 
 (assert
   (sep
-    (distinct x y)
-    (ls x y)
+    (distinct x nil)
+    (ls x nil)
   )
 )
 
-(assert (not (pto x y)))
+(assert (not (pto x nil)))
 
 (check-sat)
