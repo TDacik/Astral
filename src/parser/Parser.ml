@@ -279,13 +279,20 @@ and parse_pointer ctx [source_t; target_t] =
   in
   Formula res
 
-and parse_predicate (ctx : Context.t) pred operands =
+and parse_predicate loc (ctx : Context.t) pred operands =
   let operands = List.map (get_term pred) operands in
   if Context.is_declared_pred ctx pred && not @@ SID.is_builtin pred then
+    let id = SID.find_user_defined pred in
+    if List.length id.header != List.length operands then
+      ParserException.raise_syntax_error (Some loc)
+        (Format.asprintf "Incorrect arity of predicate %s: expected %d arguments, got %d"
+          pred (List.length id.header) (List.length operands)
+        )
+    else (* TODO: type check *)
     Formula (SL.mk_predicate pred operands)
   else match SID.instantiate ctx.heap_sort pred operands with
     | Ok phi -> Formula phi
-    | Error msg -> failwith msg
+    | Error msg -> ParserException.raise_syntax_error (Some loc) msg
 
 (* TODO: arity *)
 and parse_connective1 name ctx sl_cons smt_cons = function
@@ -334,7 +341,7 @@ and parse_non_pointer_application ctx term app operands =
     | "distinct" -> parse_distinct ctx args
 
     (* Separation logic atoms *)
-    | pred when Context.is_declared_pred ctx pred -> parse_predicate ctx pred args
+    | pred when Context.is_declared_pred ctx pred -> parse_predicate loc ctx pred args
 
     (* Ambigous connectives *)
     | "and" -> parse_connective_list "and" ctx SL.mk_and SMT.Boolean.mk_and args
@@ -429,6 +436,9 @@ let parse_predicate ctx (def : def) =
   let name = parse_id def.id in
   let local_ctx, header = parse_predicate_type ctx def.params in
 
+  (* To access predicate header, we register a dummy definition that is later overwritten. *)
+  SID.add name header SL.emp;
+
   Logger.debug "Header: %s\n" (SL.Variable.show_list header);
   let body = parse_formula local_ctx def.body in
   SID.add name header body;
@@ -510,17 +520,9 @@ let parse_extension ctx extension = match parse_id extension.name with
     Logger.debug "Heap sort: %s\n" (HeapSort.show @@ HeapSort.of_list mapping);
     Context.declare_heap_sort ctx mapping
 
-let parse_statements content =
-  let _, fn, _ = Parser.parse_input (`Contents ("", content)) in
-  let rec unpack generator acc =
-    match generator () with
-    | None -> acc
-    | Some x -> unpack generator (x :: acc)
-  in
-  List.rev @@ unpack fn []
-
-let parse ctx content =
-  let statements = parse_statements content in
+let parse ctx path =
+  let _, stmts = Parser.parse_all (`File path) in
+  let stmts = Lazy.force stmts in
   List.fold_left
     (fun ctx stmt ->
       Logger.debug "Parsing statement %a\n" Statement.print stmt;
@@ -535,19 +537,13 @@ let parse ctx content =
       | _ ->
         Logger.debug "Ignoring statement %a\n" Statement.print stmt;
         ctx
-    ) ctx statements
+    ) ctx stmts
 
-let parse_string ?(filename="") content =
+let parse_file path =
   let ctx = Context.empty () in
-  try parse ctx content
+  try parse ctx path
   with
     | Dolmen_std.Loc.Syntax_error (loc, `Regular msg) ->
       let msg = Format.asprintf "%t" msg in
       ParserException.raise_syntax_error (Some loc) msg
     | Dolmen_std.Loc.Syntax_error (loc, `Advanced (msg, _, _, _)) -> ParserException.raise_syntax_error (Some loc) msg
-
-let parse_file path =
-  let channel = In_channel.open_text path in
-  let content = In_channel.input_all channel in
-  In_channel.close channel;
-  parse_string ~filename:path content

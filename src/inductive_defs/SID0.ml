@@ -68,8 +68,7 @@ let update_pred id =
 let add name header body =
   let def = InductiveDefinition.mk name header body in
   Logger.debug "Registering user-defined ID %s\n" name;
-  if mem name !sid then Logger.debug "Skipping already registered ID %s\n" name
-  else sid := add name (UserDefined def) !sid
+  sid := add name (UserDefined def) !sid
 
 let find name =
   try find name !sid
