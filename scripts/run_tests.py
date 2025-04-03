@@ -60,7 +60,7 @@ class Runner:
             if f.endswith(".smt2"):
                 path = os.path.join(directory, f)
                 result = self.run_test_case(path, config)
-                self.results[result.name] = result
+                self.results[result.path] = result
 
     def run_all(self):
         for root, dirs, files in sorted(os.walk("benchmarks/")):
@@ -87,6 +87,10 @@ class Runner:
             print_err(f" - incorrect: {incorrect}")
         if error > 0:
             print_err(f" - errors: {error}")
+        if timeout > 0:
+            print_unknown(f" - timeout: {timeout}")
+        if unknown > 0:
+            print_unknown(f" - unknown: {unknown}")
 
         if incorrect + error > 0:
             return 1

@@ -66,12 +66,13 @@ class Status(Enum):
 @dataclass
 class Result:
     name: str
+    path : str
     status: Status
     return_code: int = 0
     msg: str = ""
 
     @classmethod
-    def of_run(cls, name, process):
+    def of_run(cls, name, path, process):
         stdout = process.stdout.decode().strip()
         stderr = process.stderr.decode().strip()
 
@@ -99,17 +100,18 @@ class Result:
             status = Status.INCORRECT
             msg = "status is not correct"
         elif is_wrong_model:
+            print(stderr)
             status = Status.WRONG_MODEL
             msg = "status is correct, but model is wrong"
         else:
             status = Status.ERROR
             msg = stderr
 
-        return Result(name, status, return_code=process.returncode, msg=msg)
+        return Result(name, path, status, return_code=process.returncode, msg=msg)
 
     @classmethod
-    def timeout(cls, name, to):
-        return Result(name, Status.TIMEOUT)
+    def timeout(cls, name, path, to):
+        return Result(name, path, Status.TIMEOUT)
 
     @property
     def is_correct(self):
@@ -159,9 +161,9 @@ class TestRunner:
             process = run(
                 command, timeout=self.config.timeout, stdout=PIPE, stderr=PIPE
             )
-            result = Result.of_run(self.name, process)
+            result = Result.of_run(self.name, self.path, process)
         except TimeoutExpired as to:
-            result = Result.timeout(self.name, to)
+            result = Result.timeout(self.name, self.path, to)
 
         result.print()
         return result
