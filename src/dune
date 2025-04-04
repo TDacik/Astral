@@ -11,14 +11,10 @@
     yojson
     ppx_deriving
     sexplib
-
-    bitwuzla ; TODO: make optional
   )
 
   (preprocess
-    (pps
-      ppx_compare
-    )
+    (pps ppx_compare)
   )
 
   (modules_without_implementation

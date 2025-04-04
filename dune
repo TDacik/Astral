@@ -1,5 +1,6 @@
 (data_only_dirs
   ;benchmarks
+  unused
   scripts
 )
 
