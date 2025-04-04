@@ -29,6 +29,7 @@ let normalise () =
      sid := M.filter (fun name _ -> is_self_recursive name) !sid
   *)
 
+
 (** {2 Preprocessing *)
 
 let inline name xs = match find name with
@@ -92,10 +93,9 @@ module Translation (E : Translation_sig.ENCODING) = struct
 
 end
 
-(*
-let rule_size phi = match SL.view phi with
- | Star (xs) -> List.length @@ List.filter SL.is_pointer xs
-*)
+let get_structs name = match find name with
+  | Builtin (module B : BUILTIN) -> B.struct_defs
+  | UserDefined _ -> failwith "TODO: get_structs"
 
 let id_map () =
   M.fold (fun name pred acc -> match pred with

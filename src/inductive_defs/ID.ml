@@ -14,3 +14,9 @@ let show pred =
     | UserDefined _ -> "user defined"
   in
   Format.asprintf "%s (%s)" (name pred) kind
+
+let to_id = function
+  | Builtin (module B : BUILTIN) ->
+    let xs = List.map (fun sort -> SL.Variable.mk_fresh "x" sort) B.signature in
+    InductiveDefinition.mk B.name xs @@ SL.mk_or @@ B.rules (xs, B.default_instantiation)
+  | UserDefined id -> id

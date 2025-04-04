@@ -7,9 +7,11 @@ module Make (B : BUILTIN_BASE) = struct
 
   include B
 
+  let arity = List.length B.signature
+
   let instantiate heap_sort arguments =
-    if List.length arguments != B.arity then
-      Result.Error (F.sprintf "incorrect arity (expected %d)" B.arity)
+    if List.length arguments != arity then
+      Result.Error (F.sprintf "incorrect arity (expected %d)" arity)
 
     else if SL.Term.is_nil @@ List.hd arguments then
       let nil_case = Option.get @@ B.preprocess SL_graph.empty arguments in

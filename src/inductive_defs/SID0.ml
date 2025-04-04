@@ -103,9 +103,7 @@ let is_user_defined name =
     | Builtin _ -> false
     | UserDefined _ -> true
 
-let get_definition name = match find name with
-  | Builtin _ -> failwith "TODO"
-  | UserDefined id -> id
+let get_definition name = ID.to_id @@ find name
 
 let has_unique_footprint name = match find name with
   | Builtin (module B : BUILTIN) -> B.unique_footprint

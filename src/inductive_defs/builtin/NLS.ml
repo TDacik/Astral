@@ -42,7 +42,7 @@ module Self0 = struct
 
   let name = "nls"
 
-  let arity = 3
+  let signature = [loc_nls; loc_nls; loc_ls]
 
   let default_instantiation = [struct_nls; LS.struct_ls]
 

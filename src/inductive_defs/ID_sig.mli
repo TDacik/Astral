@@ -7,8 +7,7 @@ module type BUILTIN_BASE = sig
   val name : string
   (** Name of the inductive predicate. *)
 
-  val arity : int
-  (** TODO: generalize *)
+  val signature : Sort.t list
 
   val default_instantiation : StructDef.t list
 

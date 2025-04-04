@@ -40,8 +40,6 @@ let name = "ls"
 
 let signature = [loc_ls; loc_ls]
 
-let arity = 2
-
 let default_instantiation = [struct_ls]
 
 let struct_defs = [struct_ls]
