@@ -2,14 +2,9 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-(** Rewrite variables using indices. *)
-let to_index_vars ?(prefix = "") ?(start = 0) phi =
-  let vars = SL.free_vars ~with_nil:false phi in
-  let worklist =
-    List.mapi (fun i var ->
-      (SL.Variable.show var, Format.asprintf "%s%d" prefix (i + start))
-    ) vars
-  in
-  List.fold_left (fun phi (var, new_name) ->
-    SL.rename_var var new_name phi
-  ) phi worklist
+let status_to_string = function
+  | `Sat -> "sat"
+  | `Unsat -> "unsat"
+  | `Unknown -> "unknown"
+
+exception NotSupported of string
