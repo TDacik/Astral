@@ -1,51 +1,56 @@
 (* Signature of a convertor to other tool format.
  *
- * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
+ * Author: Tomas Dacik (idacik@fit.vut.cz), 2022 *)
 
-module type CONVERTOR_BASE = sig
+exception UnsupportedFragment of string
+(** Exception to signalise unsupported feature. *)
 
-  val name : string
-  (** Name of the target tool. *)
+type parameters = {
+  name : string;            (** Name of the target tool. *)
+  suffix: string;           (** Suffix of input files used by the target tool. *)
 
-  val suffix : string
-  (** Suffix of input files used by the target tool. *)
-
-
-  (** {2 Solver's parameters} *)
-
-  val supports_sat : bool
+  supports_sat : bool;
   (** True if the tool supports satisfiability checking. If not, satisfiability of formula
       phi is translated as phi |= false. *)
 
-  val supports_variadic_operators : bool
+  supports_variadic_ops : bool;
   (** True if the tool supports variadic versions of stars, conjunctions, etc. If not, variadic
-      operators are replaced by their binary versions. *)
+      operators are replaced by their binary versions.
 
-  val precise_semantics : bool
+      TODO: needed? *)
+
+  precise_semantics : bool;
   (** True if the tool uses precise semantics of (dis)equalities (they can be satisfied in empty
       heaps only). *)
+}
+
+module type CONVERTOR_BASE = sig
+
+  val params : parameters
+
+  val init : Context.t -> unit
+
+  val comment : string -> string
+  (** Generate comment using provided string. *)
+
+  val set_status : [ `Sat | `Unsat | `Unknown] -> string
+  (** Generate line setting expected status, may be empty string. *)
 
   (** {2 Declarations} *)
 
-  val global_decls : Context.t -> string
+  val declare_sort : Sort.t -> string
 
   val declare_var : SL.Variable.t -> string
 
-  val declare_sort : Sort.t -> string
+  val declare_struct : MemoryModel.StructDef.t -> string
 
-  (** {2 Metadata} *)
+  val declare_heap_sort : HeapSort.t -> string
 
-  val comment_prefix : string
+  val declare_predicate : InductiveDefinition.t -> string
 
-  val set_status : Context.t -> string
+  (** {2 Commands} *)
 
-  (** {2 Conversion functions} *)
-
-  val convert_var : SL.Variable.t -> string
-
-  val convert : SL.t -> string
-
-  val convert_benchmark : SL.t -> string
+  val add_check_sat : SL.t -> string
 
 end
 
@@ -55,6 +60,6 @@ module type CONVERTOR = sig
 
   val convert : Context.t -> string
 
-  val dump : string -> Context.t -> unit
+  val convert_and_store : Context.t -> string -> unit
 
 end
