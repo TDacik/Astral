@@ -2,7 +2,9 @@
  *
  * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
 
-type status = [ `Sat | `Unsat | `Unknown of string ]
+type expected_status = [ `Sat | `Unsat | `Unknown]
+
+type status = [`Sat | `Unsat | `Unknown of string]
 
 let negate_status = function
   | `Sat -> `Unsat
@@ -14,14 +16,19 @@ let status_is_unknown = function
   | `Unknown _ -> true
 
 type t = {
-  raw_input : ParserContext.t;     (* Raw parsed input *)
+  raw_input : ParserContext.t;    (* Raw parsed input *)
+
+  sorts : Sort.t list;
+  heap_sort : HeapSort.t;
+  defs : MemoryModel.StructDef.t list;
+  inductive_preds : String.t list;
 
   phi : SL.t;                     (* SL formula after preprocessing *)
   vars : SL.Variable.t list;      (* Location variables after preprocessing *)
 
   model_adapter : ModelAdapter.t;
 
-  expected_status : status;        (* This may differ from raw_input.status *)
+  expected_status : expected_status;        (* This may differ from raw_input.status *)
 
   (* Bounds *)
   sl_graph : SL_graph0.t;
@@ -42,6 +49,11 @@ let init input = {
   phi = ParserContext.get_phi input;
   vars = ParserContext.get_sl_vars input;
 
+  sorts = ParserContext.get_sorts input;
+  heap_sort = input.heap_sort;
+  defs = ParserContext.get_struct_defs input;
+  inductive_preds = ParserContext.get_predicates input;
+
   model_adapter = ModelAdapter.empty;
 
   expected_status = input.expected_status;
@@ -55,6 +67,8 @@ let init input = {
   model = None;
   unsat_core = None;
 }
+
+let empty = init @@ ParserContext.empty ()
 
 let (let*) f ctx = match ctx.status with
   | None -> f ctx
@@ -117,4 +131,4 @@ let show_status input = match input.status with
 let show_expected_status input = match input.expected_status with
   | `Sat -> "sat"
   | `Unsat -> "unsat"
-  | `Unknown reason -> Format.asprintf "unknown (%s)" reason
+  | `Unknown-> "unknown"

@@ -129,6 +129,16 @@ let get_sl_vars ctx = List.filter SL.Variable.is_loc (get_vars ctx)
 
 let get_phi ctx = SL.mk_and ctx.assertions
 
+let get_sorts ctx =
+  M.bindings ctx.sorts
+  |> List.map snd
+
+let get_struct_defs ctx =
+  M.bindings ctx.struct_defs
+  |> List.map snd
+
+let get_predicates ctx = S.elements ctx.declared_preds
+
 (*** ==== Pretty-printing ==== *)
 
 let show_sorts ctx =

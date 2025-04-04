@@ -241,7 +241,7 @@ let is_predicate phi = match view phi with
   | _ -> false
 
 let is_spatial_atom phi = match view phi with
-  | Predicate _ | PointsTo _ -> true
+  | Predicate _ | PointsTo _ | Emp -> true
   | _ -> false
 
 let is_atomic =
@@ -255,7 +255,7 @@ let is_pure psi = match psi with
   | Variable v -> Variable.is_pure v
   | _ ->
     for_all_apps (function
-      | Predicate _ | PointsTo | Emp | Star | Septraction -> false
+      | Predicate _ | PointsTo | Star | Septraction -> false
       | _ -> true
     ) psi
 
@@ -329,6 +329,10 @@ let as_pointer phi = match view phi with
   | PointsTo (x, def, ys) -> (x, def, ys)
   | _ -> raise @@ Invalid_argument "Not a pointer"
 
+let as_predicate phi = match view phi with
+  | Predicate (name, ys, _) -> (name, ys)
+  | _ -> raise @@ Invalid_argument "Not a predicate"
+
 let as_symbolic_heap phi = match view phi with
   | Star psis -> List.partition is_pure psis
   | And psis -> psis, []
@@ -350,7 +354,7 @@ let rec as_quantified_symbolic_heap phi = match view phi with
   | Exists (xs, body) ->
     let qs, atoms = as_quantified_symbolic_heap body in
     xs @ qs, atoms
-  | _ -> raise @@ Invalid_argument "Not a symbolic heap"
+  | _ -> raise @@ Invalid_argument ("Not a symbolic heap: " ^ (show phi))
 
 let as_entailment phi = match view phi with
   | GuardedNeg (lhs, rhs) -> (lhs, rhs)
@@ -378,16 +382,15 @@ let classify_fragment phi =
   else Arbitrary
 
 type query =
-  | SymbolicHeap_SAT of t list
-  | SymbolicHeap_ENTL of t list * t list
+  | SymbolicHeap_SAT of t
+  | SymbolicHeap_ENTL of t * t
   | Arbitrary of t
 
 let as_query phi =
-  let open BatTuple in
   if is_symbolic_heap phi then
-    SymbolicHeap_SAT (as_symbolic_heap' phi)
+    SymbolicHeap_SAT phi (*as_symbolic_heap' phi*)
   else if is_symbolic_heap_entl phi then
-    let lhs, rhs = Tuple2.mapn as_symbolic_heap' @@ as_entailment phi in
+    let lhs, rhs = as_entailment phi in
     SymbolicHeap_ENTL (lhs, rhs)
   else
     Arbitrary phi

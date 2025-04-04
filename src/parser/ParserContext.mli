@@ -57,10 +57,19 @@ val add_assertion : t -> SL.t -> t
 
 val add_vars : t -> SL.Variable.t list -> t
 
+(** {2 Accessors} *)
+
 val get_vars : t -> SL.Variable.t list
 
 val get_sl_vars : t -> SL.Variable.t list
 
 val get_phi : t -> SL.t
+
+val get_sorts : t -> Sort.t list
+
+val get_struct_defs : t -> StructDef.t list
+
+val get_predicates : t -> String.t list
+
 
 val show : t -> string

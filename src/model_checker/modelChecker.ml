@@ -13,8 +13,8 @@ open SH
 module Print = Logger.Make(struct let name = "Model checker" let level = 2 end)
 
 type error =
-  | Unsupported of string     (* Formula is in unsupported fragment *)
-  | Failure of string *string (* Internal failure: exception, backtrace *)
+  | Unsupported of string      (* Formula is in unsupported fragment *)
+  | Failure of string * string (* Internal failure: exception, backtrace *)
 
 (** Compute footprints according the unique footprint property *)
 let rec compute_footprint sh phi = match SL.view phi with
@@ -48,7 +48,8 @@ let rec check sh phi = match SL.view phi with
 
   | Star psis -> List.for_all (check sh) psis
 
-let check_star sh psis =
+let check_star sh phi =
+  let psis = match SL.view phi with Star psis -> psis | _ -> [phi] in
   let fps = List.map (compute_footprint sh) psis in
   let fp = List.fold_left Footprint.union Footprint.empty fps in
   let domain = SH.domain sh in
@@ -68,7 +69,7 @@ let check sh phi =
   if not @@ SLID.has_unique_footprint phi then
     Result.error (Unsupported "Model checker expects formula with unique footprint")
   else try begin match SL.as_query phi with
-    | SymbolicHeap_SAT psis -> Result.ok @@ check_star sh psis
+    | SymbolicHeap_SAT psi -> Result.ok @@ check_star sh psi
     | SymbolicHeap_ENTL (lhs, rhs) -> Result.ok @@ check_symbolic_heap_entailment sh lhs rhs
     | _ -> Result.error @@ (Unsupported "Model checker expects symbolic heap")
   end

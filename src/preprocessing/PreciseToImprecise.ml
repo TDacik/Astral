@@ -16,8 +16,8 @@ module Logger = Logger.Make(struct let name = "Precise <-> Imprecise" let level 
 
 (** Precise -> Imprecise *)
 
-let to_imprecise_sh psis =
-  let pure, spatial = List.partition SL.is_pure psis in
+let to_imprecise_sh psi =
+  let pure, spatial = SL.as_symbolic_heap psi in
   match pure, spatial with
   | [], spatial -> SL.mk_star spatial
   | _ -> SL.mk_and [SL.mk_and pure; SL.mk_star spatial]
@@ -28,7 +28,7 @@ let to_imprecise_arbitrary phi =
   ) phi
 
 let to_imprecise phi = match SL.as_query phi with
-  | SymbolicHeap_SAT psis -> to_imprecise_sh psis
+  | SymbolicHeap_SAT psi -> to_imprecise_sh psi
   | SymbolicHeap_ENTL (lhs, rhs) -> SL.mk_gneg (to_imprecise_sh lhs) (to_imprecise_sh rhs)
   | _ -> to_imprecise_arbitrary phi
 
@@ -40,7 +40,7 @@ let rec to_precise_sh phi = match SL.view phi with
   | _ ->
     SL.map_view
       (fun psi -> match psi with
-        | And psis -> SL.mk_star psis
+        | And psis -> SL.mk_star @@ BatList.remove_if SL.is_emp psis
       ) phi
 
 let to_precise_arbitrary phi =
@@ -74,6 +74,19 @@ let is_imprecise_sh phi = match SL.view phi with
     end
 
   | _ -> is_spatial_part phi
+
+let as_imprecise_sh phi =
+  assert (is_imprecise_sh phi);
+  let atoms = SL.select_subformulae SL.is_atom phi in
+  let es = SL.bound_vars phi in
+  let spatial, pure = List.partition SL.is_spatial_atom atoms in
+  es, spatial, pure
+
+let as_imprecise_query phi = match SL.view phi with
+  | _ when is_imprecise_sh phi -> SL.SymbolicHeap_SAT phi
+  | GuardedNeg (lhs, rhs) when List.for_all is_imprecise_sh [lhs; rhs] ->
+    SL.SymbolicHeap_ENTL (lhs, rhs)
+  | _ -> SL.Arbitrary phi
 
 let is_existential_sh phi = match SL.view phi with
   | Exists (xs, psi) -> is_imprecise_sh psi

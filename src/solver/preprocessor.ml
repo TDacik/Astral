@@ -18,6 +18,32 @@ let apply ctx ((fn, name) : pass) =
 
 let apply_list = List.fold_left apply
 
+(** Remove unused definitions (sorts, defs, predicates). Variables are handled separately
+    because of additions constraints of strong-separation logic. *)
+let remove_unused_elements ?(with_vars=false) ctx =
+  let is_used_var v = BatList.mem_cmp SL.Variable.compare v (SL.get_vars ctx.phi) in
+  let is_used_sort s = BatList.mem_cmp Sort.compare s (SL.get_all_sorts ctx.phi) in
+  let is_used_def d = BatList.mem_cmp MemoryModel.StructDef.compare d (SLID.get_structs ctx.phi) in
+  let is_used_pred p =
+    SL.exists (fun phi -> match SL.view phi with
+      | Predicate (name, _, _) -> String.equal name p
+      | _ -> false
+    ) ctx.phi
+  in
+
+  let filter_heap_sort heap_sort sorts =
+    HeapSort.to_list heap_sort
+    |> List.filter (fun (dom, _) -> BatList.mem_cmp Sort.compare dom sorts)
+    |> HeapSort.of_list
+  in
+
+  let vars = List.filter is_used_var ctx.vars in
+  let sorts = List.filter is_used_sort ctx.sorts in
+  let defs = List.filter is_used_def ctx.defs in
+  let heap_sort = filter_heap_sort ctx.heap_sort sorts in
+  let inductive_preds = List.filter is_used_pred ctx.inductive_preds in
+  {ctx with sorts; heap_sort; defs; inductive_preds}
+
 
 (** ==== 1st phase ==== *)
 
@@ -56,17 +82,18 @@ let second_phase_aux aggresive context =
   let vars = remove_useless_vars context.phi context.vars in
   let ctx' = Context.set_preprocessed context context.phi vars in
 
-  apply_list ctx' [
+  let ctx'' = apply_list ctx' [
     Simplifier.simplify_ctx, "simplification";
     UnfoldIDs.apply_ctx, "predicate_unfolding";
     (*Antiprenexing.apply, "antiprenexing";*)
-    IntroduceIfThenElse.apply_ctx, "ite_introduction";
     QuantifierElimination.apply_ctx, "quantifier_elimination";
     Simplifier.simplify_ctx, "simplification";
     (*fun phi -> if aggresive then AggresiveSimplifier.simplify context.sl_graph phi else phi),
       "aggresive-simp";
     *)
   ]
+  in
+  remove_unused_elements ctx''
 
 let second_phase context = match Options_base.preprocessing () with
   | `None -> context

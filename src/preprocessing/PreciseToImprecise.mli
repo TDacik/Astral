@@ -4,6 +4,10 @@
 
 val is_imprecise_sh : SL.t -> bool
 
+val as_imprecise_sh : SL.t -> SL.Variable.t list * SL.t list * SL.t list
+
+val as_imprecise_query : SL.t -> SL.query
+
 val to_precise : SL.t -> SL.t
 (** Converts input in precise semantics to equivalent formula in imprecise semantics.
 
