@@ -21,7 +21,7 @@ type t = {
   (** Context needs only names, actual definitions are registered in SID. *)
 
   (* Attributes *)
-  expected_status : [ `Sat | `Unsat | `Unknown of string ];
+  expected_status : [ `Sat | `Unsat | `Unknown];
   attributes : String.t M.t;
 
   (* Options *)

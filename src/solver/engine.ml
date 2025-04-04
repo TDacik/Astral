@@ -10,12 +10,6 @@ open Translation_sig
 
 module Logger = Logger.Make(struct let name = "Solver" let level = 1 end)
 
-(** Verify result against status specified in the input *)
-let verify_status input =
-  let status = Option.get input.status in
-  let expected = input.raw_input.expected_status in
-  status = expected || status_is_unknown status || status_is_unknown expected
-
 let debug_info input = match SL.classify_fragment input.phi with
   | Atomic -> Logger.debug "Solving as atomic formula\n"
   | SymbolicHeap_SAT -> Logger.debug "Solving as satisfiability in SH-fragment\n"

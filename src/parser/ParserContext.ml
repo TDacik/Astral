@@ -20,7 +20,7 @@ let empty ?(sorts=M.empty) ?(struct_defs=M.empty) ?(heap_sort=HeapSort.empty) ?(
 
     declared_preds = ids;
 
-    expected_status = `Unknown "not provided";
+    expected_status = `Unknown;
     attributes = M.empty;
 
     produce_models = false;
@@ -103,7 +103,7 @@ let is_declared_pred ctx name = S.mem name ctx.declared_preds
 let set_expected_status ctx = function
   | "sat" -> {ctx with expected_status = `Sat}
   | "unsat" -> {ctx with expected_status = `Unsat}
-  | "unknown" -> {ctx with expected_status = `Unknown "not provided"}
+  | "unknown" -> {ctx with expected_status = `Unknown}
   | other -> ParserException.raise_syntax_error None ("Unknown status '" ^ other ^ "'")
 
 let set_attribute ctx name value = {ctx with attributes = M.add name value ctx.attributes}

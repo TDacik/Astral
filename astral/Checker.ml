@@ -10,9 +10,10 @@ open ThreeValuedLogic
 let check_status result =
   let actual = Option.get result.status in
   let expected = result.raw_input.expected_status in
-  if status_is_unknown actual || status_is_unknown expected then Unknown
-  else if actual = expected then True
-  else False
+  if status_is_unknown actual || (expected = `Unknown) then Unknown
+  else match actual, expected with
+    | `Sat, `Sat | `Unsat, `Unsat -> True
+    | _ -> False
 
 (** Check model using model checker.*)
 let check_model result =
