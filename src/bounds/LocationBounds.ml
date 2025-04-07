@@ -41,9 +41,9 @@ let term_bound heap_sort g phi x =
   let sort = SL.Term.get_sort x in
   let res =
     if SL_graph0.must_pointer_any g x then 1.0
-    else SID.term_bound phi heap_sort x
+    else SID.term_bound phi g heap_sort x
   in
-  Logger.debug "[| %s |] = %f\n" (Term.show x) res;
+  Logger.debug "[| %s |] = %f\n" (Term.show_with_sort x) res;
   res
 
 let compute_allocated heap_sort sort g (phi : SL.t) =

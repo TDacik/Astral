@@ -85,7 +85,7 @@ let partial_path g field x y =
 
 let root_weight g phi heap_sort x =
   if must_pointer_any g x then 1
-  else Float.to_int @@ Float.floor @@ SID.term_bound phi heap_sort x
+  else Float.to_int @@ Float.floor @@ SID.term_bound phi g heap_sort x
 
 let alloc_bound g phi heap_sort field x y max =
   must_disjoint_with g x field y
@@ -93,7 +93,7 @@ let alloc_bound g phi heap_sort field x y max =
         (*Sort.equal (SL.get_sort x) Sort.loc_nls (* TODO *)
         ||*) Sort.equal (SL.Term.get_sort x) (SL.Term.get_sort x')
       )
-  |> List.filter (fun x' -> not @@ SL.Term.equal x x')
+  |> List.filter (fun x' -> not @@ SL_graph.must_eq g x x')
   |> List.map (fun x -> root_weight g phi heap_sort x)
   |> BatList.sum
   |> (fun x -> max - x)
@@ -108,7 +108,8 @@ let compute g phi heap_sort field x y max =
     else begin
       let lower = path_lower_bound g field x y in
       let upper = path_upper_bound g field x y max in
-      if lower > upper then (0, 0) (* TODO: raise contradiction? *)
+      Logger.debug "Path bound: %s ~> %s: (%d, %d)\n" (SL.Term.show x) (SL.Term.show y) lower upper;
+      if lower > upper then (0, 0)
       else
         let _ = cache_add (x, y, field) (lower, upper) in
         (lower, upper)
