@@ -169,6 +169,14 @@ let projection_field field g = projection g [Equality; Disequality; Pointer fiel
 let projection_path g = filter g (fun (_, label, _) -> SL_edge.is_path label)
 let projection_path_field field g = projection g [Equality; Pointer field; Path field]
 
+let neighbours g x =
+  let preds = try G.pred g x with Invalid_argument _ -> [] in
+  let succs = try G.succ g x with Invalid_argument _ -> [] in
+  preds @ succs
+
+let equivalence_class g x =
+  let g = projection g [Equality] in
+  BatList.unique ~eq:G.V.equal (x :: neighbours g x)
 
 let must_disjoint_with g x field y =
   G.fold_edges_e (fun e acc -> match e with
@@ -224,11 +232,16 @@ let nb_must_pointers g sort =
   let vertices = G.fold_edges (fun x y acc -> x :: acc) g [] in
   List.length @@ List.sort_uniq G.V.compare vertices
 
+let rec must_allocated ?(visited=[]) v g =
+  if BatList.mem_cmp SL.Term.compare v visited then false
+  else
+    must_pointer_any g v
+    || must_proper_path_any g v
+    || (List.exists (fun x -> must_allocated x g ~visited:(v::visited)) @@ equivalence_class g v)
+
 let must_alloc g =
   let vs = G.fold_vertex List.cons g [] in
-  List.filter (fun x -> must_pointer_any g x || must_proper_path_any g x) vs
-
-let must_allocated v g = BatList.mem_cmp G.V.compare v (must_alloc g)
+  List.filter (fun v -> must_allocated v g) vs
 
 let nb_allocated ?(distinct=false) g =
   let must_eq_cmp v1 v2 =
@@ -267,15 +280,6 @@ let nb_joins g field =
   G.fold_vertex List.cons g []
   |> List.map (fun v -> if G.in_degree g v > 1 then G.in_degree g v - 1 else 0)
   |> BatList.sum
-
-let neighbours g x =
-  let preds = try G.pred g x with Invalid_argument _ -> [] in
-  let succs = try G.succ g x with Invalid_argument _ -> [] in
-  preds @ succs
-
-let equivalence_class g x =
-  let g = projection g [Equality] in
-  BatList.unique ~eq:G.V.equal (x :: neighbours g x)
 
 include G
 
