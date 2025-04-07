@@ -1,6 +1,6 @@
-(* Conversion to the input format of the S2S solver
- * (https://loc.bitbucket.io/s2s/).
+(* Conversion to the input format of the S2S solver:
+ *  - https://loc.bitbucket.io/s2s/
  *
- * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
+ * Author: Tomas Dacik (idacik@fit.vut.cz), 2025 *)
 
 include Convertor_sig.CONVERTOR

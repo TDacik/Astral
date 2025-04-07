@@ -1,5 +1,6 @@
-(* Conversion to the input format of the S2S solver:
- *  - https://loc.bitbucket.io/s2s/
+(* Conversion to the input format of the Songbird/SLS solver:
+ *  - https://songbird-prover.github.io/mutual-induction/index.html
+ *  - https://songbird-prover.github.io/lemma-synthesis/index.html
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2025 *)
 
@@ -11,9 +12,9 @@ open Utils
 module Self = struct
 
   let params = {
-    name = "s2s";
-    suffix = ".ss";
-    supports_sat = true;
+    name = "songbird";
+    suffix = ".sb";
+    supports_sat = false;
     supports_variadic_ops = false;
     precise_semantics = false;
   }
@@ -31,7 +32,7 @@ module Self = struct
     let p = {
       eq = "=";
       neq = "!=";
-      pto = "::";
+      pto = "->";
       star = "*";
       and_ = "&";
       emp = "emp";
@@ -41,10 +42,10 @@ module Self = struct
 
       existential = "exists";
       qf_separator = ", ";
-      qf_dot = ":";
+      qf_dot = ".";
 
-      struct_begin = "<";
-      struct_end = ">";
+      struct_begin = "{";
+      struct_end = "}";
       struct_separator = ", ";
 
       print_var = convert_var;
@@ -71,20 +72,20 @@ module Self = struct
       List.map (fun f -> Format.asprintf "  %s %s;\n" (convert_sort @@ Field.get_sort f) (Field.show f)) def.fields
       |> String.concat ""
     in
-    Format.asprintf "ddata %s {\n%s}."
+    Format.asprintf "data %s {\n%s};"
       (StructDef.get_name def)
       fields
 
   let declare_predicate (def : InductiveDefinition.t) =
     let header =
-      List.map (fun v -> Format.asprintf "%s:%s" (convert_var v) (convert_sort @@ SL.Variable.get_sort v)) def.header
+      List.map (fun v -> Format.asprintf "%s" (convert_var v)) def.header
       |> String.concat ","
     in
     let cases =
       List.map convert (InductiveDefinition.cases def)
-      |> String.concat "\n  or "
+      |> String.concat "\n  \\/ "
     in
-    Format.asprintf "pred %s< %s > ==\n  %s."
+    Format.asprintf "pred %s(%s) :=\n  %s;"
       def.name
       header
       cases
@@ -92,9 +93,8 @@ module Self = struct
   let set_status status = comment ("expected status: " ^ status_to_string status)
 
   let add_check_sat phi = match PreciseToImprecise.as_imprecise_query phi with
-    | SymbolicHeap_SAT psi -> ("checksat " ^ convert psi ^ ".")
-    | SymbolicHeap_ENTL (lhs, rhs) -> ("checkent " ^ convert lhs ^ " |- " ^ convert rhs ^ ".")
-    | _ -> raise @@ NotSupported ("not sat/entailment" ^ SL.show phi)
+    | SymbolicHeap_ENTL (lhs, rhs) -> ("checkentail " ^ convert lhs ^ " |- " ^ convert rhs ^ ";")
+    | _ -> raise @@ NotSupported ("not entailment" ^ SL.show phi)
 end
 
 include ConvertorBuilder.Make(Self)

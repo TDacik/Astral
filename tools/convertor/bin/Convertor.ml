@@ -26,6 +26,7 @@ let () =
   let input = process input in
 
   if Options.debug () then SL.print input.phi;
+  Printexc.record_backtrace (Options.debug ());
 
   let module Convertor = (val Options.convertor () : CONVERTOR) in
   match Options.output_path () with

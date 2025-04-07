@@ -22,8 +22,9 @@ let input_name () =
   |> BatList.last
 
 let _convertor = ref ""
-let convertor () = match !_convertor with
+let convertor () = match String.lowercase_ascii !_convertor with
   | "s2s" -> (module Convertors.S2S : CONVERTOR)
+  | "songbird" | "sls" -> (module Convertors.Songbird : CONVERTOR)
   (*
   | "astral" -> (module AstralConvertor : CONVERTOR)
   | "cvc5" -> (module CVC5Convertor : CONVERTOR)
