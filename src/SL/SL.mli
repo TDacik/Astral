@@ -46,6 +46,10 @@ module Term : sig
   val get_subterm : t -> t
   (** Assumes that the term is not a variable. *)
 
+  val mem_var : Variable.t -> t -> bool
+
+  val free_vars : t -> Variable.t list
+
   (** TODO: logic_sig? *)
 
   include Logic_sig.SORTED with type t := t and module Sort = Sort
@@ -166,6 +170,8 @@ val mk_pure : SMT.t -> t
     Note that pure formula are satisfiable only on empty footprints. Thus, (pure true) is
     equivalent to emp. *)
 
+val negate_pure : t -> t
+
 val mk_not : t -> t
 
 val mk_star : t list -> t
@@ -197,6 +203,8 @@ val mk_exists' : Sort.t list -> (Term.t list -> t) -> t
 val mk_forall' : Sort.t list -> (Term.t list -> t) -> t
 
 (** {2 Properties} *)
+
+val is_emp : t -> bool
 
 val is_pointer : t -> bool
 
@@ -242,11 +250,13 @@ val show_fragment : fragment -> string
 val classify_fragment : t -> fragment
 
 type query =
-  | SymbolicHeap_SAT of t list
-  | SymbolicHeap_ENTL of t list * t list
+  | SymbolicHeap_SAT of t
+  | SymbolicHeap_ENTL of t * t
   | Arbitrary of t
 
 val as_pointer : t -> Term.t * StructDef.t * Term.t list
+
+val as_predicate : t -> string * Term.t list
 
 val as_query : t -> query
 

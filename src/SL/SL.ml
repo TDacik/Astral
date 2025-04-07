@@ -182,7 +182,7 @@ let mk_pure smt =
 
 let mk_not phi = BaseLogic.mk_app Not [phi]
 
-let negate phi = match view phi with
+let negate_pure phi = match view phi with
   | Distinct xs -> mk_eq xs
   | Eq xs -> mk_distinct xs
 
@@ -197,7 +197,7 @@ let mk_ite cond b_then b_else =
   if !BaseLogic.do_simplification then begin
     if equal cond tt || equal cond emp then b_then
     else if equal cond ff then b_else
-    else if equal b_then ff then mk_star [negate cond; b_else]
+    else if equal b_then ff then mk_star [negate_pure cond; b_else]
     else if equal b_else ff then mk_star [cond; b_then]
     else BaseLogic.Boolean.mk_ite cond b_then b_else
   end
@@ -230,6 +230,10 @@ let is_atom phi = match view phi with
 
 let is_pure_atom phi = match view phi with
   | Eq _ | Distinct _ -> true
+  | _ -> false
+
+let is_emp phi = match view phi with
+  | Emp -> true
   | _ -> false
 
 let is_pointer phi = match view phi with

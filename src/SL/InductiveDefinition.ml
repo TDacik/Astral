@@ -44,6 +44,8 @@ let mk name header def =
 
 let arity self = List.length self.header
 
+let cases id = id.base_cases @ id.inductive_cases
+
 (** Replace input variables by fresh ones. This needs to be done to prevent variable capture
     as in the following case:  def = ls(x, y)    and    phi = ls(y, nil) ~~> ls(nil, nil) *)
 let refresh_header id =
@@ -80,6 +82,10 @@ let instantiate ~refresh id xs =
   let phi = SL.mk_or (id.base_cases @ id.inductive_cases) in
   SL.substitute_list phi ~vars:id.header ~by:xs
 
+let instantiate_rules id xs =
+  let id' = refresh_header @@ refresh_existentials id in
+  List.map (SL.substitute_list ~vars:id'.header ~by:xs) (id'.base_cases @ id'.inductive_cases)
+
 let instantiate_formals ?(refresh=false) id =
   let id = if refresh then refresh_existentials id else id in
   instantiate ~refresh id @@ List.map SL.Term.of_var id.header
@@ -109,7 +115,17 @@ let map_cases fn id =
     inductive_cases = List.map fn id.inductive_cases
   }
 
-(** {2 Unfolding of inductive definitions} *)
+let map_cases_ite fn id =
+  let fn_ite case = match SL.view case with
+    | Ite (cond, t, e) -> SL.mk_ite cond (fn t) (fn e)
+    | _ -> fn case
+  in
+  {id with
+    base_cases = List.map fn id.base_cases;
+    inductive_cases = List.map fn_ite id.inductive_cases
+  }
+
+(** {2 Finite definitions} *)
 
 let is_finite id = List.is_empty id.inductive_cases
 
@@ -120,28 +136,63 @@ let unfold_finite id xs : SL.t =
       let aux = SL.mk_or id.inductive_cases in
       let res = Simplifier.simplify @@ SL.map_view (fun (Predicate _) -> SL.ff) aux in (* Needed for rules with if-then-else *)
       res
-    | bs -> SL.mk_or bs
+    | bs when List.for_all SL.is_pure bs -> SL.mk_or bs
+    | _ -> SL.ff
   in
   SL.substitute_list unfolding ~vars:id.header ~by:xs
 
+(** {2 Unfolding of inductive definitions} *)
+
 module ID_map = Stdlib.Map.Make(String)
 
-let rec unfold id_map id xs n =
+(** Compute how many locations will the rule allocate. *)
+let case_size rule =
+  let _, atoms = SL.as_quantified_symbolic_heap rule in
+  List.length @@ List.filter SL.is_pointer atoms
+
+(*let rec unfold id_map id xs n =
   if n = 0 then unfold_finite id xs
   else SL.map_view (function
     | Predicate (name', ys, _) ->
       let id' = ID_map.find name' id_map in
-      unfold id_map id' ys (n-1)
+      unfold id_map id' ys (n - rule_alloc )
   ) (instantiate ~refresh:true id xs)
+*)
+
+let rec unfold_case id_map n case =
+  let rest = n - case_size case in
+  Format.printf "Rest: %d\n" rest;
+  if rest < 0 then SL.ff
+  else SL.map_view (function
+    | Predicate (name, ys, _) ->
+      let id = ID_map.find name id_map in
+      unfold_id id_map id ys rest
+  ) case
+
+and unfold_id id_map id xs n =
+  let cases = instantiate_rules id xs in
+  SL.print_list ~prefix:"cases" cases;
+  let fn = unfold_case id_map n in
+  let cases' =
+    List.map (fun case -> match SL.view case with
+      | Ite (cond, t, e) -> SL.mk_ite cond (fn t) (fn e)
+      | _ -> fn case
+    ) cases
+  in
+  SL.mk_or @@ cases'
+
+let unfold = unfold_id
+
 
 let instantiate_guided ~refresh g id xs =
   let process_case g c =
     match SL.view (SL.substitute_list c ~vars:id.header ~by:xs) with
     | Ite (cond, t, e) ->
-        begin match SL_graph0.eval_predicate g cond with
-          | Some true -> Some t
-          | Some false -> Some e
-          | None -> Some c
+      let open ThreeValuedLogic in
+      begin match SL_graph0.eval_predicate g cond with
+        | True -> Some t
+        | False -> Some e
+        | Unknown -> Some c
       end
     | _ -> Some c
   in
