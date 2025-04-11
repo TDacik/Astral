@@ -2,7 +2,7 @@
  *
  * TODO: pass user defined options
  *
- * Author: Tomas Dacik (xdacik00@fit.vutbr.cz), 2022 *)
+ * Author: Tomas Dacik (idacik00@fit.vut.cz), 2022 *)
 
 open Backend_sig
 open Encoding_context_sig

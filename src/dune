@@ -2,15 +2,23 @@
   (name astral)
   (public_name astral)
 
-
   (libraries
-    z3
     dolmen
     batteries
     ocamlgraph
     yojson
     ppx_deriving
     sexplib
+
+    (select Z3_backend.ml from
+       (z3 -> Z3_backend.real.ml)
+       (-> Z3_backend.dummy.ml)
+    )
+
+    (select BitwuzlaNative.ml from
+       (bitwuzla -> BitwuzlaNative.real.ml)
+       (-> BitwuzlaNative.dummy.ml)
+    )
   )
 
   (preprocess

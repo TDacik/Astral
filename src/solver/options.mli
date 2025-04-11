@@ -18,6 +18,8 @@ val parse : unit -> string
 val backend : unit -> (module BACKEND)
 val set_backend : backend -> unit
 
+val incremental_backend : unit -> (module BACKEND)
+
 val encoding : unit -> (module ENCODING)
 val set_encoding : encoding -> unit
 

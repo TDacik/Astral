@@ -42,7 +42,7 @@ let auto_selection_of_backend () =
   else
     (module Z3_backend.Init( ) : BACKEND)
 
-let backend () = match Options.backend () with
+let backend_aux (getter : unit -> string) = match getter () with
   | "bitwuzla" -> (module BitwuzlaNative.Init() : BACKEND)
   | "bitwuzla-cmd" -> (module Bitwuzla_backend : BACKEND)
   | "boolector" -> (module Boolector_backend : BACKEND)
@@ -52,6 +52,9 @@ let backend () = match Options.backend () with
   | "auto" -> auto_selection_of_backend ()
   (*| "parallel" -> (module Parallel : BACKEND)*)
   | other -> Utils.cmd_option_error "backend" other
+
+let backend () = backend_aux Options.backend
+let incremental_backend () = backend_aux Options.incremental_backend
 
 let encoding () =
   let module L = (val location_encoding () : LOCATIONS) in
@@ -149,9 +152,32 @@ let _set_debug () =
     Options.set_produce_models true
   else ()
 
+let print_backend_help () =
+  let text available = if available then "available" else "-" in
+  let backend_detail (module B : Backend_sig.BACKEND) =
+    Format.printf "  - %s: %s\n"
+      B.name
+      (text @@ B.is_available ())
+  in
+  Format.printf "Native:\n";
+  backend_detail (module Z3_backend.Init() : Backend_sig.BACKEND);
+  backend_detail (module BitwuzlaNative.Init() : BACKEND);
+  Format.printf "External:\n";
+  backend_detail (module Bitwuzla_backend : BACKEND);
+  backend_detail (module CVC5_backend : BACKEND);
+  backend_detail (module Yices_backend : BACKEND);
+  backend_detail (module Boolector_backend : BACKEND)
+
+let call_helps () =
+  if Options_base.backend_help () then (
+    print_backend_help ();
+    exit 0
+  )
+  else ()
 
 let parse () =
   Options.parse ();
+  call_helps ();
   check ();
   _set_debug ();
   UnicodeSymbols.easter_eggs (Options.easter_eggs () || Options.debug ());

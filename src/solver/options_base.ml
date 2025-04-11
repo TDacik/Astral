@@ -134,8 +134,17 @@ let sl_quantifiers () = !_sl_quant
 
 (* ==== SMT Backend ==== *)
 
+let _backend_help = ref false
+let backend_help () = !_backend_help
+
 let _backend = ref "auto"
 let backend () = !_backend
+
+let _incremental_backend = ref "z3"
+let incremental_backend () = !_incremental_backend
+
+let _incremental_timeout = ref 5
+let incremental_timeout () = !_incremental_timeout
 
 let _backend_timeout = ref None
 let set_backend_timeout t = _backend_timeout := t
@@ -182,9 +191,20 @@ let speclist =
     ("--unsat-core", Arg.Set _unsat_core, "Print unsat core");
     ("--no-builtins", Arg.Clear _use_builtins, "Use built-in inductive definitions");
     ("--json-output", Arg.Set_string _json_output_file, "Store solver's result as json");
-    ("--backend", Arg.Set_string _backend, "Backend SMT solver (default auto)");
+
+    (* Backends *)
+    ("--backend-help", Arg.Set _backend_help,
+     "Show available backend SMT solvers");
+    ("--backend", Arg.Set_string _backend,
+     "Backend SMT solver (default auto)");
+    ("--incr-backend", Arg.Set_string _incremental_backend,
+     "Backend SMT solver used for incremental queries (default z3)");
+    ("--incr-timeout", Arg.Set_int _incremental_timeout,
+     "Timeout (in seconds) for incremental unfolding queries (default 5)");
     ("--backend-options",
       Arg.Set_string _backend_options, "Pass options to backend SMT solver");
+
+
     ("--compute-sl-graph", Arg.Clear _compute_sl_graph, "Force location bound");
     ("--loc-bound", Arg.Int set_location_bound, "Force location bound");
     ("--separation", Arg.Set_string _separation, "Separation (weak | strong");
