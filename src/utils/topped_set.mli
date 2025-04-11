@@ -60,6 +60,8 @@ module Lift (Set : SET) : sig
 
   val is_empty : t -> bool
 
+  val cardinal_geq : int -> t -> bool
+
   val equal : t -> t -> bool
 
 end

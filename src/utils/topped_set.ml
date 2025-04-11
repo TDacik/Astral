@@ -132,6 +132,10 @@ module Lift (Set : SET) = struct
       |> of_list
     else Top
 
+  let cardinal_geq n = function
+    | Lifted x -> Set.cardinal x <= n
+    | Top -> false
+
   let cardinal = lift_or_fail Set.cardinal
 
   let cardinal_opt = function
