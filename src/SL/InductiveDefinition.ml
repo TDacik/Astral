@@ -99,13 +99,12 @@ let fields id = SL.get_fields @@ instantiate_formals id
 
 let has_base_cases id = not @@ List.is_empty id.base_cases
 
-let cases ?(refresh=true) ?params id =
+let cases ?(refresh=true) ?(base_only=false) ?params id =
   let id = if refresh then refresh_existentials id else id in
+  let cases = if base_only then id.base_cases else cases id in
   match params with
-  | None -> id.base_cases @ id.inductive_cases
-  | Some params ->
-    id.base_cases @ id.inductive_cases
-    |> List.map (SL.substitute_list ~vars:id.header ~by:params)
+  | None -> cases
+  | Some params -> List.map (SL.substitute_list ~vars:id.header ~by:params) cases
 
 let map fn id = mk id.name id.header (fn @@ instantiate_formals id)
 
@@ -161,7 +160,6 @@ let case_size rule =
 
 let rec unfold_case id_map n case =
   let rest = n - case_size case in
-  Format.printf "Rest: %d\n" rest;
   if rest < 0 then SL.ff
   else SL.map_view (function
     | Predicate (name, ys, _) ->
@@ -171,7 +169,6 @@ let rec unfold_case id_map n case =
 
 and unfold_id id_map id xs n =
   let cases = instantiate_rules id xs in
-  SL.print_list ~prefix:"cases" cases;
   let fn = unfold_case id_map n in
   let cases' =
     List.map (fun case -> match SL.view case with

@@ -84,13 +84,10 @@ let second_phase_aux aggresive context =
 
   let ctx'' = apply_list ctx' [
     Simplifier.simplify_ctx, "simplification";
+
+    (* TODO: Currently, unfolding needs to be the last preprocessing to not
+             break the footprint mapping. *)
     UnfoldIDs.apply_ctx, "predicate_unfolding";
-    (*Antiprenexing.apply, "antiprenexing";*)
-    QuantifierElimination.apply_ctx, "quantifier_elimination";
-    Simplifier.simplify_ctx, "simplification";
-    (*fun phi -> if aggresive then AggresiveSimplifier.simplify context.sl_graph phi else phi),
-      "aggresive-simp";
-    *)
   ]
   in
   remove_unused_elements ctx''

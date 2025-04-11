@@ -18,11 +18,13 @@ val name : t -> string
 
 val header : t -> SL.Variable.t list
 
-val cases : ?refresh:bool -> ?params:SL.Term.t list -> t -> SL.t list
+val cases : ?refresh:bool -> ?base_only:bool -> ?params:SL.Term.t list -> t -> SL.t list
 (** Return a list of formula used in definition.
 
-    @param refresh Refresh name of existential variables inside each
-                   definition (default true) *)
+    @param refresh    Refresh name of existential variables inside each
+                      definition (default true)
+    @param base_only  Only base cases (default false)
+*)
 
 val show : t -> string
 

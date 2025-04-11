@@ -186,7 +186,14 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     let semantics = Boolean.mk_or semantics in
     let axioms = Boolean.mk_and axioms in
-    let footprints = List.fold_left Footprints.union Footprints.empty footprints in
+
+    (* Check whether there exists some precomputed footprint. If yes, use it. *)
+    let footprints =
+      try Footprints.of_list @@ SL.Map.find (SL.mk_or psis) ctx.precomputed_footprints
+      with Not_found ->
+        let _ = assert ctx.can_skolemise in
+        List.fold_left Footprints.union Footprints.empty footprints
+    in
     (semantics, axioms, footprints)
 
   and translate_ite ctx domain cond then_ else_ =
@@ -253,8 +260,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let axioms = Boolean.mk_and axioms in
 
     (* Unique footprints *)
-    if List.for_all SLID.has_unique_footprint psis then begin
-      assert (List.for_all (fun fp -> Footprints.cardinal fp <= 1) footprints);
+    if List.for_all (Footprints.cardinal_geq 1) footprints then
+    begin
       if List.exists Footprints.is_empty footprints then
         (Boolean.ff, Boolean.tt, Footprints.empty)
       else

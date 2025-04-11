@@ -30,6 +30,8 @@ type t = {
 
   expected_status : expected_status;        (* This may differ from raw_input.status *)
 
+  precomputed_footprints : (SMT.t list) SL.Map.t;
+
   (* Bounds *)
   sl_graph : SL_graph0.t;
   location_bounds : LocationBounds0.t;
@@ -57,6 +59,8 @@ let init input = {
   model_adapter = ModelAdapter.empty;
 
   expected_status = input.expected_status;
+
+  precomputed_footprints = SL.Map.empty;
 
   sl_graph = SL_graph0.empty;
   location_bounds = LocationBounds0.empty;
