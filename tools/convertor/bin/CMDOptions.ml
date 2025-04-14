@@ -37,6 +37,10 @@ let convertor () = match String.lowercase_ascii !_convertor with
   | "" -> failwith "TODO: smt2"
   | other -> Astral.Utils.cmd_option_error "convertor" other
 
+let options () =
+  let module Options = (struct let precise = not !_imprecise end) in
+  (module Options : OPTIONS)
+
 let _debug = ref false
 let debug () = !_debug
 

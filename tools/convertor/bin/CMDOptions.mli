@@ -4,6 +4,8 @@
 
 open Convertor_sig
 
+val options : unit -> (module OPTIONS)
+
 val convertor : unit -> (module CONVERTOR)
 
 val imprecise : unit -> bool

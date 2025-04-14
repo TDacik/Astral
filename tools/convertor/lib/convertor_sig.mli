@@ -24,6 +24,12 @@ type parameters = {
       heaps only). *)
 }
 
+module type OPTIONS = sig
+
+  val precise : bool
+
+end
+
 module type CONVERTOR_BASE = sig
 
   val params : parameters
@@ -54,12 +60,18 @@ module type CONVERTOR_BASE = sig
 
 end
 
+module type CONVERTOR_INSTANCE = sig
+
+    include CONVERTOR_BASE
+
+    val convert : Context.t -> string
+
+    val convert_and_store : Context.t -> string -> unit
+
+end
+
 module type CONVERTOR = sig
 
-  include CONVERTOR_BASE
-
-  val convert : Context.t -> string
-
-  val convert_and_store : Context.t -> string -> unit
+  module Instantiate (Options : OPTIONS) : CONVERTOR_INSTANCE
 
 end

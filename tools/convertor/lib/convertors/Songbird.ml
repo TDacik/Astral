@@ -48,6 +48,8 @@ module Self = struct
       struct_end = "}";
       struct_separator = ", ";
 
+      nil = "null";
+
       print_var = convert_var;
       print_struct = StructDef.get_name;
     }
