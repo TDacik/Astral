@@ -10,6 +10,7 @@
                           -w -32   ; Unused value declaration
                           -w -26   ; Unused var
                           -w -27   ; Unused var strict
+                          -w -48   ; implicit elimination of optional argument
                           -w -67   ; Unused functor parameter
                           -g
                 )

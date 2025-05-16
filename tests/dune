@@ -41,16 +41,16 @@
   (modules_without_implementation testable_sig)
   (libraries
     astral
-    astral_generator
+    ;astral_generator
     alcotest
     qcheck
   )
   (flags
     :standard
-    -w "+a-8-40-42-44-70"
+    -w "+a-8-40-42-44-48-70"
     -open Alcotest
     -open Astral
-    -open Astral_generator
+    ;-open Astral_generator
   )
 )
 
