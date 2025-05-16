@@ -21,6 +21,8 @@ module type PRINTABLE = sig
   val print : ?prefix:string -> t -> unit
   (** Output to stdout. *)
 
+  val print_option : ?prefix:string -> t option -> unit
+
   val dump : string -> t -> unit
   (** Dump to file given by filename *)
 

@@ -14,6 +14,10 @@ module Printable (M : SHOW) = struct
     let prefix = if prefix = "" then prefix else prefix ^ " " in
     Format.printf "%s%s\n" prefix (M.show x)
 
+  let print_option ?(prefix="") = function
+    | None -> Format.printf "%sNone\n" prefix
+    | Some x -> print ~prefix:prefix x
+
   let dump filename x =
     let channel = open_out_gen [Open_creat; Open_wronly] 0o666 filename in
     Printf.fprintf channel "%s\n" (M.show x);
