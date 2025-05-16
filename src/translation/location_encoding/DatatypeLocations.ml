@@ -62,6 +62,8 @@ module Self = struct
 
   (** {2 Location signature} *)
 
+  let var_axiom self var = SMT.Boolean.tt
+
   let heap_axioms self term = SMT.Boolean.tt
 
   let lemmas _ = Boolean.tt

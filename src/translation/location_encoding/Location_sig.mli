@@ -27,6 +27,8 @@ module type LOCATIONS_BASE = sig
 
   val init : SL.t -> HeapSort.t -> LocationBounds0.t -> t
 
+  val var_axiom : t -> SMT.Variable.t -> SMT.t
+
   val heap_axioms : t -> SMT.t -> SMT.t
 
   val lemmas : t -> SMT.t

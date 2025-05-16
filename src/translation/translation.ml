@@ -41,6 +41,11 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     | SL.Term.Var x -> SMT.of_var @@ Locations.translate_var ctx.locs x
     | SL.Term.HeapTerm (f, x) -> translate_heap_term ctx f (translate_term ctx x)
     | SL.Term.SmtTerm x -> x
+    | SL.Term.IfEqual (xs, t, e) ->
+      Boolean.mk_ite
+        (Boolean.mk_eq @@ List.map (translate_term ctx) xs)
+        (translate_term ctx t)
+        (translate_term ctx e)
 
   let id = ref 0
 
@@ -191,8 +196,9 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let footprints =
       try Footprints.of_list @@ SL.Map.find (SL.mk_or psis) ctx.precomputed_footprints
       with Not_found ->
-        let _ = assert ctx.can_skolemise in
-        List.fold_left Footprints.union Footprints.empty footprints
+        if not @@ ctx.can_skolemise then
+          failwith @@ SL.show (SL.mk_or psis)
+        else List.fold_left Footprints.union Footprints.empty footprints
     in
     (semantics, axioms, footprints)
 
@@ -448,33 +454,18 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
   and translate_exists_loc ctx domain x psi = *)
 
+  (** TODO: this only works for existential from inside of predicates! *)
   and translate_exists ctx domain x psi =
     let x = Locations.translate_var ctx.locs x in
     let semantics, axioms, footprints = translate ctx domain psi in
 
-    let semantics = Quantifier.mk_exists [x] semantics in
-    (*
-      ctx.locs
-      |> List.map (SMT.substitute semantics x)
-      |> Boolean.mk_or
-    in
-    *)
-
-    let footprints = Footprints.top
-    (*
-      ctx.locs
-      |> List.map
-          (fun loc ->
-            Footprints.map
-              (fun fp ->
-                SMT.substitute fp x loc
-              ) footprints
-          )
-      |> List.fold_left Footprints.union Footprints.empty
-    *)
+    let axioms = Locations.var_axiom ctx.locs x in
+    let semantics =
+      Boolean.mk_implies
+        axioms
+        (Quantifier.mk_exists [x] semantics)
     in
 
-    (* TODO: check footprint *)
     (semantics, axioms, footprints)
 
 (** Axioms for formulae containing begin/end terms. *)
@@ -555,7 +546,7 @@ let translate_phi (ctx : Context.t) ssl_phi =
           | SL.Term.Var var ->
             Some (Locations.inverse_translate ctx.locs model
             @@ Model.eval model @@ Locations.mk_var ctx.locs (SL.Variable.show var))
-          | SL.Term.HeapTerm _ -> None
+          | SL.Term.HeapTerm _ | SL.Term.IfEqual _ -> None
 
         in match const with
         | None -> stack
