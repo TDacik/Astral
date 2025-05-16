@@ -2,25 +2,33 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-let check g lhs_vars phi = failwith "TODO: Asimplifier: check"
-(*  let root = SL.get_root phi in
-  | LS (Var x, Var y) ->
-    not @@ BatList.mem_cmp SL.Variable.compare x lhs_vars
-    && SL_graph.must_neq g y (SL.Variable.nil)
-  | PointsTo (Var x, _) ->
-    not @@ BatList.mem_cmp SL.Variable.compare x lhs_vars
-*)
+module Logger = Logger.Make (struct
+    let name = "Simplifier 2"
+    let level = 2
+  end)
 
 
-let simplify g phi = failwith "TODO: Asimplifier: simplify"
+(** TODO: implement general way to check wether predicate is guaranteed
+          to be non-empty. *)
+let get_roots phi =
+  let get_root psi = match SL.view psi with
+    | PointsTo (x, _, _) -> Some x
+    | Predicate ("ls", [x; y], _) when not @@ SL.Term.equal x y -> Some x
+    | _ -> None
+  in
+  SL.select_subformulae SL.is_spatial_atom phi
+  |> List.filter_map get_root
 
-(*match SL.view phi with
-  | GuardedNeg (lhs, rhs) ->
-    let lhs_vars = SL.get_vars lhs in
-    let lists = SL.filter (function SL.LS _ | SL.PointsTo _ -> true | _ -> false) rhs in
-    if List.exists (check g lhs_vars) lists
-    then (lhs, SL.get_vars lhs)
-    else (phi, SL.get_vars phi)
-  | _ -> (phi, SL.get_vars phi)
+let apply phi = match SL.as_query phi with
+  | SL.SymbolicHeap_ENTL (lhs, rhs) ->
+    let module S = SL.Term.Set in
+    let lhs_vars = List.map SL.Term.of_var @@ SL.free_vars lhs in
+    let rhs_vars = get_roots rhs in
+    if S.subset (S.of_list rhs_vars) (S.of_list lhs_vars) then phi
+    else
+      let _ = Logger.debug "Reducing ENTL to SAT of lhs\n" in
+      lhs
+  | _ -> phi
 
-*)
+let apply_ctx ctx =
+  Context.{ctx with phi = apply ctx.phi}
