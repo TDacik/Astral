@@ -35,6 +35,7 @@ module Term = struct
     | Var of Variable.t
     | HeapTerm of Field.t * t
     | SmtTerm of SMT.t
+    | IfEqual of t list * t * t (* Simplified version of IfThenElse*)
     | BlockBegin of t
     | BlockEnd of t
 
@@ -42,10 +43,16 @@ module Term = struct
     | B.Variable var when Variable.is_loc var ->
       Var (Variable.mk (Variable.show var) (Variable.get_sort var))
     | B.Variable var -> SmtTerm (SMT.mk_var (Variable.show var) (Variable.get_sort var))
+    | B.Application (IfThenElse, [c; t; e]) -> begin match c with
+      | B.Application (Equal, xs) -> IfEqual (xs, t, e)
+      | _ -> failwith "TODO: SL.Term.ite (general)"
+      end
     | B.Application (BlockBegin, [x]) -> BlockBegin x
     | B.Application (BlockEnd, [x]) -> BlockEnd x
     | B.Application (HeapTerm field, [x]) -> HeapTerm (field, x)
     | x -> SmtTerm (SMT.of_base_logic x) (* TODO: checks *)
+
+  let mk_if_equal xs t e = B.Boolean.mk_ite (B.Boolean.mk_eq xs) t e
 
   let is_nil term = match view term with
     | Var var -> Variable.is_nil var
@@ -60,6 +67,7 @@ module Term = struct
     | Var v -> [v]
     | SmtTerm t -> List.map (fun v -> Variable.of_description @@ SMT.Variable.describe v) (SMT.free_vars t)
     | HeapTerm (_, t) | BlockBegin t | BlockEnd t -> get_vars t
+    | IfEqual (xs, t, e) -> List.concat_map get_vars (t :: e :: xs)
 
   let mem_var (v : Variable.t) (t : t) = BatList.mem_cmp Variable.compare v (get_vars t)
 

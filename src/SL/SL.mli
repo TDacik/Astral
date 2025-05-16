@@ -37,6 +37,8 @@ module Term : sig
 
   val mk_smt : SMT.t -> t
 
+  val mk_if_equal : t list -> t -> t -> t
+
   val mk_block_begin : t -> t
 
   val mk_block_end : t -> t
@@ -64,6 +66,7 @@ module Term : sig
     | Var of Variable.t
     | HeapTerm of Field.t * t
     | SmtTerm of SMT.t
+    | IfEqual of t list * t * t (* Simplified version of IfThenElse*)
     | BlockBegin of t
     | BlockEnd of t
 
