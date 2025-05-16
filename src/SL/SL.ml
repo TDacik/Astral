@@ -370,7 +370,7 @@ let rec as_quantified_symbolic_heap phi = match view phi with
 
 let as_entailment phi = match view phi with
   | GuardedNeg (lhs, rhs) -> (lhs, rhs)
-  | _ -> raise @@ Invalid_argument "Not an entailment"
+  | _ -> raise @@ Invalid_argument ("Not an entailment " ^ show phi)
 
 type fragment =
   | SymbolicHeap_SAT
@@ -400,10 +400,13 @@ type query =
 
 let as_query phi =
   if is_symbolic_heap phi then
-    SymbolicHeap_SAT phi (*as_symbolic_heap' phi*)
+    SymbolicHeap_SAT phi
   else if is_symbolic_heap_entl phi then
     let lhs, rhs = as_entailment phi in
-    SymbolicHeap_ENTL (lhs, rhs)
+    if is_symbolic_heap lhs && is_symbolic_heap rhs then
+      SymbolicHeap_ENTL (lhs, rhs)
+    else
+      Arbitrary phi
   else
     Arbitrary phi
 
