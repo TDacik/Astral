@@ -112,6 +112,9 @@ module type LOGIC = sig
 
   val is_quantifier_free : t -> bool
 
+  val is_ground : Variable.t list -> t -> bool
+  (** True if the term does not contatin any of provided variables. *)
+
   val show : t -> string
 
   val equal : t -> t -> bool

@@ -305,6 +305,11 @@ let rec bound_vars = function
 let free_vars_of_sort sort phi =
   List.filter (Variable.has_sort sort) (free_vars phi)
 
+let is_ground forbidden_vars phi =
+  let module S = Variable.Set in
+  let vars = get_vars phi in
+  S.disjoint (S.of_list vars) (S.of_list forbidden_vars)
+
 let get_all_sorts phi =
   free_vars phi
   |> List.map Variable.get_sort
