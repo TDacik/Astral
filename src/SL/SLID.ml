@@ -27,11 +27,13 @@ let has_user_defined_predicates phi =
   in
   not @@ List.is_empty uids
 
-let get_structs phi =
+let rec get_structs ?(visited=[]) (phi : SL.t) =
   SL.select_subformulae SL.is_spatial_atom phi
   |> List.concat_map (fun psi -> match SL.view psi with
        | PointsTo (_, s, _) -> [s]
-       | Predicate (pred, _, _) -> SID.get_structs pred
+       | Predicate (pred, _, _) -> SID.get_structs visited (fun visited -> get_structs ~visited) pred
        | _ -> []
      )
   |> BatList.unique_cmp ~cmp:MemoryModel.StructDef.compare
+
+let get_structs phi = get_structs phi
