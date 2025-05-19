@@ -193,6 +193,7 @@ let must_eq g x y =
   let g = projection_eq g in
   G.mem_edge g x y || SL.Term.equal x y
 
+(* TODO: improve using eq_classes? *)
 let must_neq g x y =
   let g = projection_neq g in
   G.mem_edge g x y || G.mem_edge g y x

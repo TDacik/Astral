@@ -174,7 +174,7 @@ let heap () = !_heap
 let _sets = ref "bitvectors"
 let sets () = !_sets
 
-let _quantifiers = ref "direct"
+let _quantifiers = ref "enum"
 let quantifiers () = !_quantifiers
 let set_quantifiers opt = _quantifiers := opt
 

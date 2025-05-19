@@ -84,10 +84,12 @@ let second_phase_aux aggresive context =
 
   let ctx'' = apply_list ctx' [
     Simplifier.simplify_ctx, "simplification";
+    AggresiveSimplifier.apply_ctx, "simplification 2";
 
     (* TODO: Currently, unfolding needs to be the last preprocessing to not
              break the footprint mapping. *)
     UnfoldIDs.apply_ctx, "predicate_unfolding";
+    QuantifierElimination.apply_ctx, "quantifier_eliminitation";
   ]
   in
   remove_unused_elements ctx''

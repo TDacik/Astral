@@ -18,9 +18,9 @@ let debug_info input = match SL.classify_fragment input.phi with
   | Arbitrary -> Logger.debug "Solving as arbitrary formula\n"
 
 let solve (input : Context.t) =
-  SID.init ();
   let input = Preprocessor.first_phase input in
   SID.preprocess_user_definitions PredicatePreprocessing.normalise;
+  SID.init ();
 
   let sl_graph = SL_graph.compute input.phi in
   if SL_graph.has_contradiction sl_graph then
@@ -29,11 +29,17 @@ let solve (input : Context.t) =
   | Error reason -> Context.set_result (`Unknown reason) input
   | Ok () ->
     Profiler.add "Normalisation";
-    let sm = SmallModels.compute !SID.dg input.phi in
+
+    (** Small model should be computed on normalised, but non-preprocessed definition *)
+    let distinguishers = SID_checks.compute_distinguishers () in
+    let sm = SmallModels.compute input.phi distinguishers in
     Profiler.add "Small-models";
     SID.cache := sm;
+    SID.distinguishers := distinguishers;
 
     Debug.out_input input;
+
+    SID.preprocess_user_definitions PredicatePreprocessing.preprocess;
 
     let bounds = LocationBounds.compute input.phi input.raw_input.heap_sort sl_graph in
     let input = Context.add_metadata input sl_graph bounds in
@@ -42,7 +48,6 @@ let solve (input : Context.t) =
 
     BaseLogic.use_simplification true;
 
-    SID.preprocess_user_definitions PredicatePreprocessing.preprocess;
     let input = Preprocessor.second_phase input in
     Profiler.add "Preprocessor";
     Logger.debug "%s" (ModelAdapter.show input.model_adapter);

@@ -196,9 +196,9 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let footprints =
       try Footprints.of_list @@ SL.Map.find (SL.mk_or psis) ctx.precomputed_footprints
       with Not_found ->
-        if not @@ ctx.can_skolemise then
+        (*if not @@ ctx.can_skolemise then
           failwith @@ SL.show (SL.mk_or psis)
-        else List.fold_left Footprints.union Footprints.empty footprints
+        else*) List.fold_left Footprints.union Footprints.empty footprints
     in
     (semantics, axioms, footprints)
 
