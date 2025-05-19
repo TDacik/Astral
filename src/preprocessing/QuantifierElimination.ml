@@ -1,29 +1,23 @@
-(* Elimination of quantifiers in SL formulae. *)
+(* Elimination of quantifiers in SL formulae.
+ *
+ * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
 open SL
 
 module Logger = Logger.MakeWithDir (struct
-    let name = "Quantifier elimination"
-    let level = 2
-    let dirname = "qelim"
+  let name = "Quantifier elimination"
+  let level = 2
+  let dirname = "qelim"
 end)
 
-let list_inter xs ys =
-  let xs = SL.Term.Set.of_list xs in
-  let ys = SL.Term.Set.of_list ys in
-  SL.Term.Set.elements @@ SL.Term.Set.inter xs ys
-
-let list_disjoint xs ys =
-  let xs = SL.Variable.Set.of_list xs in
-  let ys = SL.Variable.Set.of_list ys in
-  SL.Variable.Set.is_empty @@ SL.Variable.Set.inter xs ys
-
+(** Run skolemisation and add skolem variables into model adapter. *)
 let skolemisation ctx =
   let open Context in
   let phi', skolems = SL.skolemisation ctx.phi in
   let ctx' = {ctx with phi = phi'} in
   List.fold_left (Context.add_skolem_var) ctx' skolems
 
+(** Remove binders not contained in quantifier bodies. *)
 let remove_useless phi =
   let filter_fn = fun psi x -> BatList.mem_cmp SL.Variable.compare x (SL.free_vars psi) in
   SL.map_view (function
@@ -31,34 +25,70 @@ let remove_useless phi =
     | Forall (xs, psi) -> SL.mk_exists (List.filter (filter_fn psi) xs) psi
   ) phi
 
-let remove_binder2 sl_graph phi psi (x : SL.Variable.t) =
-  let local_g = SL_graph.compute psi in
-  Logger.dump SL_graph.G.output_file (SL.Variable.show x ^ ".xdot") local_g;
-  let tx = SL.Term.of_var x in
-  match SL_graph.must_pred_field local_g tx with
-  | None ->
-    let eq_vars = SL_graph.equivalence_class local_g (SL.Term.of_var x) in
-    let free_vars = List.map SL.Term.of_var @@ SL.free_vars phi in
-    let inter = list_inter eq_vars free_vars in
-    begin match inter with
-      | x' :: _ ->
-        Logger.debug "Eliminated %s using substitution: %s\n"
-          (SL.Variable.show x) (SL.Term.show x');
-        SL.substitute psi ~var:x ~by:x', []
-      | [] ->
-        let _ = Logger.debug "Cannot eliminate quantifier var: %s\n" (SL.Variable.show x) in
-        psi, [x]
-    end
-  | Some (src, field) ->
-    let heap_term = SL.Term.mk_heap_term field src in
-    Logger.debug "Eliminated %s using substitution: %s\n" (SL.Variable.show x) (SL.Term.show heap_term);
-    SL.substitute psi ~var:x ~by:heap_term, []
+module Instance = struct
 
-let remove_determined2 sl_graph phi =
+  type t = SL.Term.t Option.t [@@deriving compare]
+
+  let show = function
+    | None -> "nothing"
+    | Some t -> SL.Term.show t
+
+  let join_list xs : t = match List.filter Option.is_some xs with
+    | [] -> None
+    | xs -> List.hd xs
+
+  include Datatype.Printable(struct
+    type nonrec t = t
+    let show = show
+  end)
+
+  let rec compute_determined_value x (ground : SL.Variable.t list) psi =
+    let continue = compute_determined_value x ground in
+    match SL.view psi with
+      | PointsTo (s, def, ys) ->
+        let open MemoryModel.StructDef in
+        let index = List.find_index (fun t -> SL.Term.equal t @@ SL.Term.of_var x) ys in
+        Option.map (fun i -> SL.Term.mk_heap_term (List.nth def.fields i) s) index
+      | Eq es ->
+        if BatList.mem_cmp SL.Term.compare (SL.Term.of_var x) es then
+          let global = List.filter (fun e -> BatList.mem_cmp SL.Term.compare e (List.map SL.Term.of_var ground)) es in
+          match global with [] -> None | g :: _ -> Some g (* TODO: why just g? *)
+        else None
+      | Distinct _ | Predicate _ -> None
+      | Star psis -> join_list @@ List.map continue psis
+      | Or psis -> None
+      | Ite (c, t, e) ->
+        (* If condition c is build of only ground terms, we can use it in the instance *)
+        if SL.Variable.Set.subset (SL.Variable.Set.of_list @@ SL.get_vars c) (SL.Variable.Set.of_list ground) then
+          let eq_xs = match SL.view c with Eq xs -> xs | _ -> failwith (SL.show c) in (* TODO: Change Ite -> IfEqual? *)
+          let t_res = continue t in
+          let e_res = continue e in
+          begin match t_res, e_res with
+          | Some t, Some e -> Option.some @@ SL.Term.mk_if_equal eq_xs t e
+          | _, _ -> None
+        end
+        else None
+      | Exists (xs, psi) -> continue psi
+
+end
+
+let remove_binder sl_graph phi psi (x : SL.Variable.t) =
+  let _ = Logger.debug "Eliminating quantifier var %s\n" (SL.Variable.show x) in
+  let vals = Instance.compute_determined_value x (SL.free_vars phi) psi in
+  match vals with
+    | Some v ->
+      let _ = Logger.debug "Eliminated %s using substitution: %s\n" (SL.Variable.show x) (SL.Term.show v) in
+      SL.substitute psi ~var:x ~by:v, []
+    | None ->
+      let _ = Logger.debug "Cannot eliminate quantifier var: %s\n" (SL.Variable.show x) in
+      psi, [x]
+
+(** Remove quantifed variables with determined values *)
+let remove_determined sl_graph phi =
   SL.map_view (function
     | Exists (vars, psi) ->
       let psi, xs = List.fold_left (fun (psi, xs) x ->
-        let psi', xs' = remove_binder2 sl_graph phi psi x in
+        let psi', xs' = remove_binder sl_graph phi psi x in
         psi', xs @ xs'
       ) (psi, []) vars
       in
@@ -69,7 +99,8 @@ let apply sl_graph phi =
   if SL.is_quantifier_free phi then phi
   else
     remove_useless phi
-    |> remove_determined2 sl_graph
+    |> RemoveVariadic.apply
+    |> remove_determined sl_graph
 
 let apply_ctx ctx =
   let open Context in
