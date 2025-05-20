@@ -49,6 +49,24 @@ let compute () =
     ) g children
   ) empty
 
+let has_nontrivial_cycle g =
+  let module W = struct
+    include G
+    include Int
+    let weight _ = -1
+    let add = (+)
+    let zero = 0 end
+  in
+  let module BF = Graph.Path.BellmanFord(G)(W) in
+  try
+    let _ =
+      transitive_reduction ~reflexive:true g
+      |> BF.find_negative_cycle
+    in
+    true
+  with Not_found -> false
+
+
 let output filename g =
   let channel = open_out filename in
   Dot.output_graph channel g;

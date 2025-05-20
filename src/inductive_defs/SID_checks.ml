@@ -98,7 +98,16 @@ let check_id_pair res (id1, id2) =
         (InductiveDefinition.name id2)
       *)
 
-let compute_distinguishers () = M.empty
+let check_partial_order pred_graph =
+  if DependencyGraph.has_nontrivial_cycle pred_graph then
+    Exceptions.unsupported_fragment
+      ~reason:"SID is not partially ordered"
+      ~details:"TODO: report the cycle" (* TODO *)
+  else ()
+
+let compute_distinguishers pred_graph =
+  check_partial_order pred_graph;
+  M.empty
 (*
   SID0.get_user_defined ()
   |> List_utils.diagonal_product

@@ -31,7 +31,7 @@ let solve (input : Context.t) =
     Profiler.add "Normalisation";
 
     (** Small model should be computed on normalised, but non-preprocessed definition *)
-    let distinguishers = SID_checks.compute_distinguishers () in
+    let distinguishers = SID_checks.compute_distinguishers !SID.dg in
     let sm = SmallModels.compute input.phi distinguishers in
     Profiler.add "Small-models";
     SID.cache := sm;
