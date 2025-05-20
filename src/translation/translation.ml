@@ -460,11 +460,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let semantics, axioms, footprints = translate ctx domain psi in
 
     let axioms = Locations.var_axiom ctx.locs x in
-    let semantics =
-      Boolean.mk_implies
-        axioms
-        (Quantifier.mk_exists [x] semantics)
-    in
+    let semantics = Quantifier.mk_exists [x] (Boolean.mk_implies axioms semantics) in
 
     (semantics, axioms, footprints)
 
