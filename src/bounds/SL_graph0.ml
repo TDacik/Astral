@@ -123,6 +123,12 @@ let compare_edge_e e1 e2 =
 let get_vertices g = G.fold_vertex List.cons g []
 let get_edges g = G.fold_edges_e List.cons g []
 
+let get_fields g =
+  get_edges g
+  |> List.map G.E.label
+  |> List.filter SL_edge.is_spatial_any
+  |> List.map SL_edge.get_field
+
 let compare g1 g2 = List.compare compare_edge_e (get_edges g1) (get_edges g2)
 
 let equal g1 g2 = compare g1 g2 = 0
@@ -293,6 +299,26 @@ let must_pred_field g x =
     let field = SL_edge.get_field @@ G.E.label e in
     Some (src, field)
   with _ -> None
+
+module CC = Graph.Components.Undirected(G)
+
+let is_connected g =
+  let spatial_g = spatial_projection g in
+  print spatial_g;
+  let components = CC.components_list spatial_g in
+  List.iter SL.Term.print_list components;
+  List.length components == 1
+
+let are_skeleton_fields g fields =
+  assert (is_connected g);
+  let projection =
+    filter g (fun (_, label, _) ->
+      SL_edge.is_spatial_any label && BatList.mem_cmp Field.compare (SL_edge.get_field label) fields
+    )
+  in
+  is_connected projection
+
+
 
 (** ==== Evaluation ==== *)
 
