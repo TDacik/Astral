@@ -25,7 +25,6 @@ let distinguisher name =
 
 let dg = ref DependencyGraph.empty
 
-
 let is_self_recursive name = match find name with
   | Builtin _ -> true (* Conservatively assume true *)
   | UserDefined id -> DependencyGraph.is_self_recursive !dg id
@@ -42,6 +41,18 @@ let normalise () =
   (* TODO: keep or not?
      sid := M.filter (fun name _ -> is_self_recursive name) !sid
   *)
+
+(* TODO: check whether we really compute what we want! *)
+let rec existentials ?(visited=[]) id =
+  if BatList.mem_cmp InductiveDefinition.compare id visited then []
+  else
+    let unfolding = InductiveDefinition.instantiate_formals ~refresh:false id in
+    let rec_calls =
+      SL.select_subformulae SL.is_predicate unfolding
+      |> List.map SL.as_predicate
+      |> List.map fst
+    in
+    SL.bound_vars unfolding @ List.concat_map (existentials ~visited:(id::visited)) (List.map find_user_defined rec_calls)
 
 
 (** {2 Preprocessing *)

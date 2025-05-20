@@ -48,8 +48,7 @@ let preprocess (pred : t) =
   let pred = preprocess_cases qelim pred in
   Logger.dump pred "_3-quntifier-elim";
 
-  (* TODO: really compute forbidden vars *)
-  let forbidden_vars = List.tl pred.header in
+  let forbidden_vars = SID.existentials pred in
   let pred = InductiveDefinition.map (IntroduceIfThenElse.apply ~forbidden_vars) pred in
   Logger.dump pred "_4-introduce-ite";
   pred
