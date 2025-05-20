@@ -112,7 +112,11 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
               in
               SL.mk_or [acc; (Backend.push c; let res = unfold_predicate (n-1) ~allocated ctx id_map case in Backend.pop 1; res)]
           in
-          cache := SL.Map.add res (Footprints.mk_footprint ctx ~allocated !lhs_t id xs) !cache;
+          (if Options_base.fp_construction ()
+           then
+             cache := SL.Map.add res (Footprints.mk_footprint ctx ~allocated !lhs_t id xs) !cache
+           else ()
+          );
           res
           ) SL.ff cases
 

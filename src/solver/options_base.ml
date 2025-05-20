@@ -94,6 +94,9 @@ let semantics () = match !_semantics with
   | "imprecise" -> `Imprecise
   | other -> failwith ("Unknown semanics '" ^ other ^ "'")
 
+let _fp_construction = ref false
+let fp_construction () = !_fp_construction
+
 let _max_footprints = ref 100
 let max_footprints () = match !_max_footprints with
   | 0 -> None
@@ -229,6 +232,7 @@ let speclist =
      "Encoding of SMT quantifiers (direct | enum)");
     ("--encoding", Arg.String set_encoding,
      "Predefined encoding of locations and sets (enum | bitvectors)");
+    ("--fp-construction",   Arg.Set _fp_construction, "Construct fooptrints instead of computing them");
 
     ("--max-footprints", Arg.Set_int _max_footprints, "");
     ("--max-pred-enum", Arg.Set_int _max_pred_enum, "");

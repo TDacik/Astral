@@ -87,6 +87,8 @@ val incremental_timeout : unit -> int
 
 val backend_options : unit -> string list
 
+val fp_construction : unit -> bool
+
 val max_footprints : unit -> int option
 
 val max_pred_enum : unit -> int option
