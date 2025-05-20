@@ -28,6 +28,7 @@ let apply_exists xs phi = match SL.view phi with
 
 let apply =
   SL.map_view (function
-    | SL.Forall (xs, psi) -> apply_forall xs psi
-    | SL.Exists (xs, psi) -> apply_exists xs psi
+    | SL.Forall (xs, psi) -> `Modify (apply_forall xs psi)
+    | SL.Exists (xs, psi) -> `Modify (apply_exists xs psi)
+    | _ -> `Skip
   )

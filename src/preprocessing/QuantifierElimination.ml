@@ -21,8 +21,9 @@ let skolemisation ctx =
 let remove_useless phi =
   let filter_fn = fun psi x -> BatList.mem_cmp SL.Variable.compare x (SL.free_vars psi) in
   SL.map_view (function
-    | Exists (xs, psi) -> SL.mk_exists (List.filter (filter_fn psi) xs) psi
-    | Forall (xs, psi) -> SL.mk_exists (List.filter (filter_fn psi) xs) psi
+    | Exists (xs, psi) -> `Modify (SL.mk_exists (List.filter (filter_fn psi) xs) psi)
+    | Forall (xs, psi) -> `Modify (SL.mk_forall (List.filter (filter_fn psi) xs) psi)
+    | _ -> `Skip
   ) phi
 
 module Instance = struct
@@ -92,7 +93,8 @@ let remove_determined sl_graph phi =
         psi', xs @ xs'
       ) (psi, []) vars
       in
-      SL.mk_exists xs psi
+      `Modify (SL.mk_exists xs psi)
+    | _ -> `Skip
   ) phi
 
 let apply sl_graph phi =

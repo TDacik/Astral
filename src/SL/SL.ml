@@ -152,24 +152,18 @@ let view phi =
   |  _ -> Utils.internal_error ("Not an SL formula: " ^ show phi)
 
 let rec map_view fn phi =
-  let fn phi =
-    try fn phi
-    with Match_failure _ -> raise Exit
+  let apply phi = match fn @@ view phi with
+    | `Modify res -> res
+    | `Skip -> phi
   in
   match phi with
-  | B.Variable _ -> begin
-    try fn @@ view phi
-    with Exit -> phi
-  end
-  | B.Application (app, psis) -> begin
+  | B.Variable _ -> apply phi
+  | B.Application (app, psis) ->
     let args = List.map (map_view fn) psis in
-    try fn @@ view @@ Application (app, args)
-    with Exit -> Application (app, args)
-  end
+    apply @@ Application (app, args)
   | B.Binder (binder, vs, psi) ->
     let body = map_view fn psi in
-    try fn @@ view @@ Binder (binder, vs, body)
-    with Exit -> Binder (binder, vs, body)
+    apply @@ Binder (binder, vs, body)
 
 include BaseLogic.Boolean
 include BaseLogic.SeparationLogic

@@ -73,7 +73,8 @@ let refresh_existentials id =
   | Exists (vs, body) ->
     let vs' = List.map (fun x -> SL.Variable.refresh x) vs in
     let body' = SL.substitute_list body ~vars:vs ~by:(List.map SL.Term.of_var vs') in
-    SL.mk_exists vs' body'
+    `Modify (SL.mk_exists vs' body')
+  | _ -> `Skip
   )
   in
   {id with base_cases = List.map aux id.base_cases; inductive_cases = List.map aux id.inductive_cases}
@@ -143,7 +144,8 @@ let unfold_finite id xs : SL.t =
   let unfolding = match id.base_cases with
     | [] ->
       let aux = SL.mk_or id.inductive_cases in
-      let res = Simplifier.simplify @@ SL.map_view (fun (Predicate _) -> SL.ff) aux in (* Needed for rules with if-then-else *)
+      let res = Simplifier.simplify
+                @@ SL.map_view (function Predicate _ -> `Modify SL.ff | _ -> `Skip) aux in (* Needed for rules with if-then-else *)
       res
     | bs when List.for_all SL.is_pure bs -> SL.mk_or bs
     | _ -> SL.ff
@@ -178,7 +180,8 @@ let rec unfold_case id_map n case =
   else SL.map_view (function
     | Predicate (name, ys, _) ->
       let id = ID_map.find name id_map in
-      unfold_id id_map id ys rest
+      `Modify (unfold_id id_map id ys rest)
+    | _ -> `Skip
   ) case
 
 and unfold_id id_map id xs n =
@@ -226,5 +229,6 @@ let rec unfold_guided id_map id g xs n =
     SL.map_view (function
       | Predicate (name', ys, _) ->
         let id' = ID_map.find name' id_map in
-        unfold_guided id_map id' g ys (n-1)
+        `Modify (unfold_guided id_map id' g ys (n-1))
+      | _ -> `Skip
      ) (instantiate_guided ~refresh:true g id xs)

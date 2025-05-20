@@ -46,7 +46,8 @@ let rec to_precise_sh phi = match SL.view phi with
   | _ ->
     SL.map_view
       (fun psi -> match psi with
-        | And psis -> SL.mk_star @@ BatList.remove_if SL.is_emp psis
+        | And psis -> `Modify (SL.mk_star @@ BatList.remove_if SL.is_emp psis)
+        | _ -> `Skip
       ) phi
 
 let to_precise_arbitrary phi =

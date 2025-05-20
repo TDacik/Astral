@@ -35,8 +35,9 @@ module Direct (L : LOCATIONS) = struct
   let rewrite _ phi =
     SMT.map_view
       (function
-        | Exists (xs, _, psi) | Exists2 (xs, _, psi) -> Quantifier.mk_exists xs psi
-        | Forall (xs, _, psi) | Forall2 (xs, _, psi) -> Quantifier.mk_forall xs psi
+        | Exists (xs, _, psi) | Exists2 (xs, _, psi) -> `Modify (Quantifier.mk_exists xs psi)
+        | Forall (xs, _, psi) | Forall2 (xs, _, psi) -> `Modify (Quantifier.mk_forall xs psi)
+        | _ -> `Skip
       ) phi
 end
 
@@ -52,14 +53,14 @@ module Enumeration (L : LOCATIONS) = struct
     SMT.map_view
       (function
         | Exists (xs, None, phi) ->
-          BatList.fold_left2 (enumerate Boolean.mk_or) phi xs (enumerate_locs xs context)
+          `Modify (BatList.fold_left2 (enumerate Boolean.mk_or) phi xs (enumerate_locs xs context))
         | Forall (xs, None, phi) ->
-          BatList.fold_left2 (enumerate Boolean.mk_and) phi xs (enumerate_locs xs context)
+          `Modify (BatList.fold_left2 (enumerate Boolean.mk_and) phi xs (enumerate_locs xs context))
 
         | Exists (xs, Some ranges, phi) ->
-          BatList.fold_left2 (enumerate Boolean.mk_or) phi xs (List.map Lazy.force ranges)
+          `Modify (BatList.fold_left2 (enumerate Boolean.mk_or) phi xs (List.map Lazy.force ranges))
         | Forall (xs, Some ranges, phi) ->
-          BatList.fold_left2 (enumerate Boolean.mk_and) phi xs (List.map Lazy.force ranges)
+          `Modify (BatList.fold_left2 (enumerate Boolean.mk_and) phi xs (List.map Lazy.force ranges))
 
        (* Others all not implemented in SMT
         | Forall ([x1; x2], Pair ranges, phi) ->
@@ -68,13 +69,25 @@ module Enumeration (L : LOCATIONS) = struct
           BatList.fold_left2 (enumerate Boolean.mk_and) phi [x1; x2] [fst; snd]
         *)
         | Exists2 (xs, None, phi) ->
-          BatList.fold_left2 (enumerate Boolean.mk_or) phi xs (enumerate_footprints xs context)
+          `Modify (BatList.fold_left2 (enumerate Boolean.mk_or) phi xs (enumerate_footprints xs context))
         | Forall2 (xs, None, phi) ->
-          BatList.fold_left2 (enumerate Boolean.mk_and) phi xs (enumerate_footprints xs context)
+          `Modify (BatList.fold_left2 (enumerate Boolean.mk_and) phi xs (enumerate_footprints xs context))
         | Exists2 (xs, Some ranges, phi) ->
-          BatList.fold_left2 (enumerate Boolean.mk_or) phi xs (List.map Lazy.force ranges)
+          (*
+          let ranges = List.map Lazy.force ranges in
+          let precond = BatList.fold_lefti (fun acc i x ->
+            let range = List.nth ranges i in
+            let precond = SMT.Boolean.mk_or @@ List.map (fun r -> SMT.mk_eq [x; r]) range in
+            SMT.Boolean.mk_and [acc; precond]
+          ) SMT.Boolean.tt (List.map SMT.of_var xs)
+          in
+          SMT.Quantifier.mk_exists xs (SMT.Boolean.mk_and [precond; phi])
+          *)
+          `Modify (BatList.fold_left2 (enumerate Boolean.mk_or) phi xs (List.map Lazy.force ranges))
         | Forall2 (xs, Some ranges, phi) ->
-          BatList.fold_left2 (enumerate Boolean.mk_and) phi xs (List.map Lazy.force ranges)
+          assert false
+          (*BatList.fold_left2 (enumerate Boolean.mk_and) phi xs (List.map Lazy.force ranges)*)
+        | _ -> `Skip
 
       ) phi
 
@@ -93,14 +106,14 @@ module SmartEnumeration (L : LOCATIONS) = struct
     SMT.map_view
       (function
         | Exists (xs, None, phi) ->
-          BatList.fold_left2 (enumerate Boolean.mk_or) phi xs (enumerate_locs xs context)
+          `Modify (BatList.fold_left2 (enumerate Boolean.mk_or) phi xs (enumerate_locs xs context))
         | Forall (xs, None, phi) ->
-          BatList.fold_left2 (enumerate Boolean.mk_and) phi xs (enumerate_locs xs context)
+          `Modify (BatList.fold_left2 (enumerate Boolean.mk_and) phi xs (enumerate_locs xs context))
 
         | Exists (xs, Some ranges, phi) ->
-          BatList.fold_left2 (enumerate Boolean.mk_or) phi xs (List.map Lazy.force ranges)
+          `Modify (BatList.fold_left2 (enumerate Boolean.mk_or) phi xs (List.map Lazy.force ranges))
         | Forall (xs, Some ranges, phi) ->
-          BatList.fold_left2 (enumerate Boolean.mk_and) phi xs (List.map Lazy.force ranges)
+          `Modify (BatList.fold_left2 (enumerate Boolean.mk_and) phi xs (List.map Lazy.force ranges))
 
         (* Others all not implemented in SMT
         | Forall ([x1; x2], Pair ranges, phi) ->
@@ -120,6 +133,7 @@ module SmartEnumeration (L : LOCATIONS) = struct
         | Forall2 (xs, Range ranges, phi) ->
           BatList.fold_left2 (enumerate Boolean.mk_and) phi xs ranges
         *)
+        | _ -> `Skip
       ) phi
 
 end

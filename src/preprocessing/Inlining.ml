@@ -4,8 +4,8 @@
 
 let inline phi = SL.map_view (function
   | Predicate (name, xs, structs) -> match SID.inline name xs with
-    | None -> SL.mk_predicate name xs ~structs
-    | Some res -> res
+    | Some res -> `Modify res
+    | None -> `Skip
 ) phi
 
 let inline phi =

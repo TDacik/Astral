@@ -12,34 +12,36 @@ let get_negation phi = match SL.view phi with Not psi -> psi | _ -> assert false
 let normalise =
   SL.map_view (function
     | And [f1; f2] -> begin match SL.view f1, SL.view f2 with
-      | Not g1, Not g2   -> SL.mk_not @@ SL.mk_or [g1; g2]
-      | Not g1, _       -> SL.mk_gneg f2 g1
-      | _, Not g2       -> SL.mk_gneg f1 g2
-      | _, _           -> SL.mk_and @@ [f1; f2]
+      | Not g1, Not g2   -> `Modify (SL.mk_not @@ SL.mk_or [g1; g2])
+      | Not g1, _       -> `Modify (SL.mk_gneg f2 g1)
+      | _, Not g2       -> `Modify (SL.mk_gneg f1 g2)
+      | _, _           -> `Skip
     end
     | And psis ->
       let negated, others = List.partition is_negation psis in
       begin match negated with
       | [negation] ->
         let phi = SL.mk_gneg (SL.mk_and others) (get_negation negation) in
-        phi
+        `Modify phi
+      | _ -> `Skip (* TODO *)
       end
     | Or [f1; f2] -> begin match SL.view f1, SL.view f2 with
-      | Not g1, Not g2 -> SL.mk_not @@ SL.mk_and [g1; g2]
-      | Not g1, _      -> SL.mk_not @@ SL.mk_gneg g1 f2
-      | _, Not g2      -> SL.mk_not @@ SL.mk_gneg g2 f1
-      | _, _           -> SL.mk_or [f1; f2]
+      | Not g1, Not g2 -> `Modify (SL.mk_not @@ SL.mk_and [g1; g2])
+      | Not g1, _      -> `Modify (SL.mk_not @@ SL.mk_gneg g1 f2)
+      | _, Not g2      -> `Modify (SL.mk_not @@ SL.mk_gneg g2 f1)
+      | _, _           -> `Skip
     end
     | GuardedNeg (f1, f2) -> begin match SL.view f1, SL.view f2 with
-      | Not g1, Not g2 -> SL.mk_gneg g2 g1
-      | Not g1, _      -> SL.mk_not @@ SL.mk_or [g1; f2]
-      | _, Not g2      -> SL.mk_and [f1; g2]
-      | _, _           -> SL.mk_gneg f1 f2
+      | Not g1, Not g2 -> `Modify (SL.mk_gneg g2 g1)
+      | Not g1, _      -> `Modify (SL.mk_not @@ SL.mk_or [g1; f2])
+      | _, Not g2      -> `Modify (SL.mk_and [f1; g2])
+      | _, _           -> `Skip
     end
     | Not phi -> begin match SL.view phi with
-      | Not psi -> psi (* Double negation elimination *)
-      | _ -> SL.mk_not phi
+      | Not psi -> `Modify psi (* Double negation elimination *)
+      | _ -> `Skip
     end
+    | _ -> `Skip
   )
 
 (** Perform normalisation until fixpoint is reached

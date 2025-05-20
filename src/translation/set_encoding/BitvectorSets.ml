@@ -134,21 +134,22 @@ let rec rewrite (t : SMT.t) =
   in
   SMT.map_view
     (function
-      | Membership (x, set) -> mk_mem x set
-      | Subset (set1, set2) -> mk_subset set1 set2
-      | Disjoint sets -> mk_disjoint_list sets
-      | Union (sets, Set sort) -> mk_union sets sort
-      | Inter (sets, Set sort) -> mk_inter sets sort
-      | Diff (set1, set2) -> mk_diff set1 set2
-      | Compl set -> mk_compl set
+      | Membership (x, set) -> `Modify (mk_mem x set)
+      | Subset (set1, set2) -> `Modify (mk_subset set1 set2)
+      | Disjoint sets -> `Modify (mk_disjoint_list sets)
+      | Union (sets, Set sort) -> `Modify (mk_union sets sort)
+      | Inter (sets, Set sort) -> `Modify (mk_inter sets sort)
+      | Diff (set1, set2) -> `Modify (mk_diff set1 set2)
+      | Compl set -> `Modify (mk_compl set)
       | Enumeration (elems, Set sort) ->
         let width = Sort.get_width sort in
-        mk_enumeration (Sort.mk_bitvector width) elems
-      | Variable var -> SMT.of_var @@ rewrite_var var
+        `Modify (mk_enumeration (Sort.mk_bitvector width) elems)
+      | Variable var -> `Modify (SMT.of_var @@ rewrite_var var)
       | Exists2 (xs, ranges, phi) ->
-        SMT.Quantifier.mk_exists2_range (List.map rewrite_var xs) (Range.map rewrite ranges) phi
+        `Modify (SMT.Quantifier.mk_exists2_range (List.map rewrite_var xs) (Range.map rewrite ranges) phi)
       | Forall2 (xs, ranges, phi) ->
-        SMT.Quantifier.mk_forall2_range (List.map rewrite_var xs) (Range.map rewrite ranges) phi
+        `Modify (SMT.Quantifier.mk_forall2_range (List.map rewrite_var xs) (Range.map rewrite ranges) phi)
+      | _ -> `Skip
     ) t
 
 (** Rewritting of models. *)
@@ -158,7 +159,7 @@ let rewrite_back phi_orig (model : SMT.Model.t) =
       | Bitvector bv ->
         let bvs = BV.to_set bv in
         let bvs = List.map (fun bv -> Constant.mk_bitvector bv) bvs in
-        Constant.mk_set (*Sort.mk_bitvector width*) bvs
+        Constant.mk_set bvs
     )
   in
   SMT.Model.fold

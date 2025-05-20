@@ -14,6 +14,7 @@ let unfold_disjoint (s :: sets) =
 
 let apply term =
   SMT.map_view (function
-    | Disjoint sets -> unfold_disjoint sets
+    | Disjoint sets -> `Modify (unfold_disjoint sets)
+    | _ -> `Skip
   ) term
 

@@ -49,9 +49,11 @@ let apply ?(forbidden_vars=[]) phi =
   SL.map_view (function
     | Or [lhs; rhs] when List.for_all SL.is_symbolic_heap [lhs; rhs] ->
       let res = find_ite_condition forbidden_vars lhs rhs in
-      match res with
-        | Some (c, lhs', rhs') -> SL.mk_ite c lhs' rhs'
-        | None -> SL.mk_or [lhs; rhs]
+      begin match res with
+        | Some (c, lhs', rhs') -> `Modify (SL.mk_ite c lhs' rhs')
+        | None -> `Skip
+      end
+    | _ -> `Skip
   ) phi
 
 let apply_ctx ?(forbidden_vars=[]) ctx =

@@ -122,7 +122,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     SL.map_view (function
       | Predicate (name, xs, _) when not @@ SID.is_builtin name ->
         let id = SID.get_definition name in
-        unfold_step ctx n ~allocated ~existential id id_map name xs
+        `Modify (unfold_step ctx n ~allocated ~existential id id_map name xs)
+      | _ -> `Skip
     ) phi
 
 

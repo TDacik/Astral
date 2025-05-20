@@ -53,12 +53,14 @@ let unfold_predicate_rhs phi loc_bound g name xs =
 
 let unfold_lhs bound phi lhs = SL.map_view (function
   | Predicate (name, xs, _) when not @@ SID.is_builtin name ->
-    unfold_predicate_lhs phi lhs bound name xs
+    `Modify (unfold_predicate_lhs phi lhs bound name xs)
+  | _ -> `Skip
 ) lhs
 
 let unfold_sat lhs = SL.map_view (function
   | Predicate (name, xs, _) when not @@ SID.is_builtin name ->
-    unfold_sat lhs name xs
+    `Modify (unfold_sat lhs name xs)
+  | _ -> `Skip
 ) lhs
 
 let unfold_rhs ctx bound lhs rhs =
