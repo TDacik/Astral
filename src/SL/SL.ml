@@ -262,12 +262,12 @@ let is_atomic =
     | _ -> true
   )
 
-(* TODO: is emp pure or not? *)
+(** Note: emp is not pure as it restricts the heap *)
 let is_pure psi = match psi with
   | Variable v -> Variable.is_pure v
   | _ ->
     for_all_apps (function
-      | Predicate _ | PointsTo | Star | Septraction -> false
+      | Predicate _ | PointsTo | Star | Septraction | Emp -> false
       | _ -> true
     ) psi
 
