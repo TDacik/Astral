@@ -52,7 +52,7 @@ module Instance = struct
         Option.map (fun i -> SL.Term.mk_heap_term (List.nth def.fields i) s) index
       | Eq es ->
         if BatList.mem_cmp SL.Term.compare (SL.Term.of_var x) es then
-          let global = List.filter (fun e -> BatList.mem_cmp SL.Term.compare e (List.map SL.Term.of_var ground)) es in
+          let global = List.filter (fun e -> SL.Term.is_ground ~ground e) es in
           match global with [] -> None | g :: _ -> Some g (* TODO: why just g? *)
         else None
       | Distinct _ | Predicate _ -> None
