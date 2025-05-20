@@ -32,10 +32,12 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   let cache = ref SL.Map.empty
 
   let get_root atom = match SL.view atom with
+    | SL.Emp -> []
     | SL.PointsTo (x, _, _) -> [x]
     | SL.Predicate (name, params, _) ->
       let abstraction = SID.abstraction name in
       [PredicateAbstraction.get_root abstraction ~params]
+    | _ -> failwith @@ SL.show atom
 
   let pure_abstraction ctx phi =
     assert (SL.is_symbolic_heap phi);
@@ -120,7 +122,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
           res
           ) SL.ff cases
 
-      | _ -> failwith @@ SL.show def (* unfold_predicate (n - 1) ctx id_map def*)
+      (* Non-disjunctive definition *)
+      | _ -> unfold_predicate n ~allocated ctx id_map def
 
   and unfold_predicate n ?(allocated=[]) ?(existential=[]) ctx id_map phi =
     SL.map_view (function
