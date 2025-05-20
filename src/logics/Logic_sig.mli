@@ -112,7 +112,9 @@ module type LOGIC = sig
 
   val is_quantifier_free : t -> bool
 
-  val is_ground : Variable.t list -> t -> bool
+  val is_ground : ground:Variable.t list -> t -> bool
+
+  val is_ground' : forbidden:Variable.t list -> t -> bool
   (** True if the term does not contatin any of provided variables. *)
 
   val show : t -> string
@@ -169,6 +171,8 @@ module type WITH_VIEW = sig
 
   val view : t -> view
 
-  val map_view : (view -> t) -> t -> t
+  val map_view : (view -> [< `Modify of t | `Skip]) -> t -> t
+  (** Apply an action at each node of AST:
+      TODO: add description of actions *)
 
 end

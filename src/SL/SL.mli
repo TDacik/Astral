@@ -52,6 +52,11 @@ module Term : sig
 
   val free_vars : t -> Variable.t list
 
+  val is_ground : ground:Variable.t list -> t -> bool
+
+  val is_ground' : forbidden:Variable.t list -> t -> bool
+  (** True if the term does not contatin any of provided variables. *)
+
   (** TODO: logic_sig? *)
 
   include Logic_sig.SORTED with type t := t and module Sort = Sort

@@ -21,7 +21,7 @@ let rec candidate_conditions phi = match SL.view phi with
     |> (fun tl -> SL.mk_distinct [x; SL.Term.nil] :: tl)
   | Star psis -> List.concat_map candidate_conditions psis
   | Exists (xs, psi) ->
-    List.filter (SL.is_ground xs) @@ candidate_conditions psi
+    List.filter (SL.is_ground' ~forbidden:xs) @@ candidate_conditions psi
   | Predicate (pred, xs, []) -> SID.param_conditions pred xs
   | _ -> failwith @@ SL.show phi
 
@@ -30,9 +30,9 @@ let is_contradiction atom1 atom2 = match SL.view atom1, SL.view atom2 with
   | Distinct xs, Eq ys -> List.equal SL.Term.equal xs ys
   | _ -> false
 
-let find_ite_condition forbidden_vars lhs rhs =
-  let conds1 = List.filter (SL.is_ground forbidden_vars) @@ candidate_conditions lhs in
-  let conds2 = List.filter (SL.is_ground forbidden_vars) @@ candidate_conditions rhs in
+let find_ite_condition forbidden lhs rhs =
+  let conds1 = List.filter (SL.is_ground' ~forbidden) @@ candidate_conditions lhs in
+  let conds2 = List.filter (SL.is_ground' ~forbidden) @@ candidate_conditions rhs in
   try
     let c1, c2 =
       BatList.cartesian_product conds1 conds2
