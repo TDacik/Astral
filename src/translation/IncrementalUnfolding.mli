@@ -7,6 +7,8 @@ open Translation_sig
 
 module Make (Encoding : ENCODING) (Solver : BACKEND) : sig
 
-  val unfold : Context.t -> SMT.t -> SL.t -> SL.t
+  type footprint_map := (SMT.t list) SL.Map.t
+
+  val unfold : Context.t -> SMT.t -> SL.t -> SL.t * footprint_map
 
 end

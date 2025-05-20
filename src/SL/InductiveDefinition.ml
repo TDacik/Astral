@@ -46,6 +46,16 @@ let arity self = List.length self.header
 
 let cases id = id.base_cases @ id.inductive_cases
 
+let get_base_cases id =
+  let aux case = match SL.view case with
+    | Ite (c, t, e) ->
+      if SL.is_atomic t then Some (SL.mk_star [c; t])
+      else if SL.is_atomic e then Some (SL.mk_star [SL.negate_pure c; e])
+      else None
+    | _ -> None
+  in
+  id.base_cases @ List.filter_map aux id.inductive_cases
+
 (** Replace input variables by fresh ones. This needs to be done to prevent variable capture
     as in the following case:  def = ls(x, y)    and    phi = ls(y, nil) ~~> ls(nil, nil) *)
 let refresh_header id =
@@ -149,6 +159,10 @@ let case_size rule =
   let _, atoms = SL.as_quantified_symbolic_heap rule in
   List.length @@ List.filter SL.is_pointer atoms
 
+let base_size id = match get_base_cases id with
+  | [] -> 0 (* TODO: check *)
+  | bs -> BatList.min @@ List.map case_size bs
+
 (*let rec unfold id_map id xs n =
   if n = 0 then unfold_finite id xs
   else SL.map_view (function
@@ -169,7 +183,18 @@ let rec unfold_case id_map n case =
 
 and unfold_id id_map id xs n =
   let cases = instantiate_rules id xs in
-  let fn = unfold_case id_map n in
+  let fn case =
+    let _, atoms = SL.as_quantified_symbolic_heap case in
+    let malus =
+      List.filter SL.is_predicate atoms
+      |> List.map SL.as_predicate
+      |> List.map (fun (name, _) -> ID_map.find name id_map)
+      |> List.map base_size
+      |> (fun xs -> try List.tl xs with _ -> xs) (* TODO: remove systematically *)
+      |> BatList.sum
+    in
+    unfold_case id_map (n - malus) case
+  in
   let cases' =
     List.map (fun case -> match SL.view case with
       | Ite (cond, t, e) -> SL.mk_ite cond (fn t) (fn e)
@@ -179,7 +204,6 @@ and unfold_id id_map id xs n =
   SL.mk_or @@ cases'
 
 let unfold = unfold_id
-
 
 let instantiate_guided ~refresh g id xs =
   let process_case g c =
