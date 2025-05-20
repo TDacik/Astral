@@ -147,8 +147,9 @@ let unfold_finite id xs : SL.t =
       let res = Simplifier.simplify
                 @@ SL.map_view (function Predicate _ -> `Modify SL.ff | _ -> `Skip) aux in (* Needed for rules with if-then-else *)
       res
+    (* TODO *)
     | bs when List.for_all SL.is_pure bs -> SL.mk_or bs
-    | _ -> SL.ff
+    | _ -> SL.emp (* There is no more space for spatial atoms... *)
   in
   SL.substitute_list unfolding ~vars:id.header ~by:xs
 
