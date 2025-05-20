@@ -431,13 +431,15 @@ let parse_predicate_type ctx vars =
     ctx', acc @ [var]
   ) (ctx, []) vars
 
+let parse_predicate_header ctx def =
+  Logger.debug "Parsing header of predicate %a\n" Term.print def.body;
+  let _, header = parse_predicate_type ctx def.params in
+  header
+
 let parse_predicate ctx (def : def) =
   Logger.debug "Parsing inductive predicate %a\n" Term.print def.body;
   let name = parse_id def.id in
   let local_ctx, header = parse_predicate_type ctx def.params in
-
-  (* To access predicate header, we register a dummy definition that is later overwritten. *)
-  SID.add name header SL.emp;
 
   Logger.debug "Header: %s\n" (SL.Variable.show_list header);
   let body = parse_formula local_ctx def.body in
@@ -448,6 +450,15 @@ let parse_definition ctx (defs : def group) =
   Logger.debug "Parsing definition group\n";
   if defs.recursive then
     let names = List.map (fun (def : def) -> parse_id def.id) defs.contents in
+
+    (* To handle recursion, we register a dummy definition that is later overwritten. *)
+    (* TODO: refactor duplicity *)
+    List.iter (fun def ->
+      let header = parse_predicate_header ctx def in
+      let name = parse_id def.id in
+      SID.add name header SL.emp
+    ) defs.contents;
+
     let ctx = List.fold_left Context.declare_pred ctx names in
     List.fold_left parse_predicate ctx defs.contents
   else failwith "Unsupported definition"
