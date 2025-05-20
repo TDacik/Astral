@@ -20,3 +20,5 @@ val split3 : ('a * 'b * 'c) list -> 'a list * 'b list * 'c list
 val map3 : ('a -> 'b -> 'c -> 'd) -> 'a list -> 'b list -> 'c list -> 'd list
 
 val zip3 : 'a list -> 'b list -> 'c list -> ('a * 'b * 'c) list
+
+val sublists : 'a list -> 'a list list

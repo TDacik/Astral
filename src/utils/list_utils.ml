@@ -40,3 +40,9 @@ let rec map3 fn xs ys zs = match xs, ys, zs with
 
 let zip3 xs ys zs =
   map3 (fun x y z -> (x, y, z)) xs ys zs
+
+let rec sublists = function
+  | [] -> [[]]
+  | x :: xs ->
+    let subs = sublists xs in
+    subs @ List.map (fun l -> x :: l) subs
