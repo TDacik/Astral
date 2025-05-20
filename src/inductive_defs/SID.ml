@@ -8,9 +8,23 @@ include SID0
 
 module Logger = L
 
+let distinguishers = ref (SID_checks.M.empty : SID_checks.distinguisher SID_checks.M.t)
+
+let distinguisher name =
+  let open SID_checks in
+  let pred = find_user_defined name in
+  if M.exists (fun (id1, id2) d ->
+    if InductiveDefinition.equal pred id1 || InductiveDefinition.equal pred id2 then d = Field
+    else false
+  ) !distinguishers then Field
+  else Sort
+
+
+
 (** {2 Operations over dependency graph *)
 
 let dg = ref DependencyGraph.empty
+
 
 let is_self_recursive name = match find name with
   | Builtin _ -> true (* Conservatively assume true *)

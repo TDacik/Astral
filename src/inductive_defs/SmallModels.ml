@@ -2,10 +2,14 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
-module G = DependencyGraph
-
 module Logger = Logger.MakeWithDir
-  (struct let dirname = "small-models" let name = "small-models" let level = 1 end)
+  (struct
+    let dirname = "small-models"
+    let name = "small-models"
+    let level = 1
+  end)
+
+module Abstraction = PredicateAbstraction
 
 module SL_graph = struct
   include SL_graph
@@ -13,6 +17,19 @@ module SL_graph = struct
   let is_existential term : bool =
     let name = SL.Term.show term in
     String.contains name '!' (* TODO: do this properly *)
+
+  (** In general, SL-graps are used to capture must-properties of BSL. This function
+      is intended for their specific usage in context of symbolic heaps and thus defined
+      here and not in SL_Graph. *)
+  let is_never_allocated v g =
+    if SL_graph.must_allocated v g then false
+    else
+      let alloc = SL_graph.must_alloc g in
+      List.for_all (fun a ->
+        let cls = SL_graph.equivalence_class g a in
+        List.exists (SL_graph.must_neq g v) cls
+      ) alloc
+
 
   let is_global term = not @@ is_existential term
 
@@ -42,6 +59,7 @@ module SL_graph = struct
       let alloc = Float.of_int @@ SL_graph.nb_allocated g in
       let alloc_params = Float.of_int @@ nb_alloc_params g in
       Float.div alloc alloc_params
+
 end
 
 (** Hyperedge represents an unprocessed predicate occurrence. *)
@@ -58,7 +76,7 @@ module Hyperedge = struct
   let match_id id self = Identifier.equal_with_string id (InductiveDefinition.name (fst self))
 
   (** Replace hyperedge by a list of its possible SL-formula instances. *)
-  let unfold (pred, xs) = InductiveDefinition.cases pred ~refresh:true ~params:xs
+  let unfold ~base_only (pred, xs) = InductiveDefinition.cases pred ~refresh:true ~base_only ~params:xs
 
   module Self = struct
     type nonrec t = t
@@ -69,7 +87,6 @@ module Hyperedge = struct
   include Datatype.Collections(Self)
 
 end
-
 
 module Hypergraph = struct
 
@@ -84,19 +101,17 @@ module Hypergraph = struct
       (String.concat "\n  " @@ List.map Hyperedge.show @@ Hyperedge.Set.elements self.hyper_edges)
 
   (** Create a singleton hyper-edge representing inductive predicate call. *)
-  let of_inductive_def id params = {
-    graph = SL_graph.empty;
-    hyper_edges = Hyperedge.Set.singleton @@ Hyperedge.of_formula @@ InductiveDefinition.to_formula id ~params;
-  }
-
-  let formula_split phi =
-    let _, atoms = SL.as_quantified_symbolic_heap phi in
-    List.partition SL.is_predicate atoms
+  let of_inductive_def id params =
+    {
+      graph = SL_graph.empty;
+      hyper_edges = Hyperedge.Set.singleton @@ Hyperedge.of_formula @@ InductiveDefinition.to_formula id ~params;
+    }
 
   let of_formula phi =
-    let predicates, atoms = formula_split phi in
+    let _, atoms = SL.as_quantified_symbolic_heap phi in
+    let predicates, pointers = List.partition SL.is_predicate atoms in
     {
-      graph = SL_graph.compute @@ SL.mk_star atoms;
+      graph = SL_graph.compute ~stars:false @@ SL.mk_star pointers;
       hyper_edges = Hyperedge.Set.of_list @@ List.map Hyperedge.of_formula predicates;
     }
 
@@ -105,8 +120,7 @@ module Hypergraph = struct
     hyper_edges = Hyperedge.Set.union hg1.hyper_edges hg2.hyper_edges;
   }
 
-  let size self =
-    SL_graph.nb_allocated ~distinct:true self.graph
+  let size self = SL_graph.nb_allocated ~distinct:true self.graph
 
   let is_graph self = Hyperedge.Set.is_empty self.hyper_edges
 
@@ -115,18 +129,22 @@ module Hypergraph = struct
     self.graph
 
   (** Unfolding *)
-  let unfold self =
-    Logger.debug "Unfolding\n %s\n" (show self);
+  let unfold ~base_only self =
+    (*Logger.debug "Unfolding\n %s\n" (show self);*)
     Hyperedge.Set.fold (fun selected acc ->
-      Logger.debug "Unfolding edge %s\n" (Hyperedge.show selected);
+      (*Logger.debug "Unfolding edge %s\n" (Hyperedge.show selected);*)
       let untouched = {self with hyper_edges = Hyperedge.Set.remove selected self.hyper_edges} in
       let unfoldings =
-        Hyperedge.unfold selected
+        Hyperedge.unfold ~base_only selected
         |> List.map of_formula
         |> List.map (disjoint_union untouched)
       in
       unfoldings @ acc
     ) self.hyper_edges []
+
+
+
+
 
 end
 
@@ -137,12 +155,18 @@ module Derivation = struct
   module GS = Set.Make(SL_graph)
 
   type t = {
+    id : InductiveDefinition.t;
+    stable : int option;
+
     graphs : GS.t;    (** Derived graphs *)
     worklist : HS.t;  (** Worklist of hypergraphs to be unfolded *)
     finished : HS.t;  (** Set of already (fully) unfolded hypergraphs *)
   }
 
-  let empty = {
+  let empty id = {
+    id = id;
+    stable = None;
+
     graphs = GS.empty;
     worklist = HS.empty;
     finished = HS.empty;
@@ -156,47 +180,38 @@ module Derivation = struct
       {self with worklist = HS.add hg self.worklist}
     else self
 
-  let initial id =
-    let params = List.map SL.Term.of_var @@ InductiveDefinition.header id in
-    add_to_worklist empty (Hypergraph.of_inductive_def id params)
-
   let leafs self = GS.elements self.graphs
 
   let worklist self = HS.elements self.worklist
 
   (** Single step of unfolding: *)
-  let unfold_step n self =
+  let unfold_step ?(base_only=false) n self =
     (* Select only those that not yet reached the bound *)
     let worklist =
       worklist self
-      |> List.filter (fun h -> Hypergraph.size h < n)
+      |> List.filter (fun h -> Hypergraph.size h <= n)
     in
     let self' = {
-      self with worklist = HS.empty;
+      self with worklist = HS.empty; (* TODO: check rest *)
                 finished = HS.union self.finished self.worklist}
     in
-    List.concat_map Hypergraph.unfold worklist
+    List.concat_map (Hypergraph.unfold ~base_only) worklist
     |> List.fold_left add_to_worklist self'
 
-  (*
-  let unfold_aux n self =
-    let self = {self with finished = HS.union self.worklist self.finished} in
-    let worklist =
-      worklist self
-      (** Select only those that not yet reached the bound *)
-      |> List.filter (fun h -> Hypergraph.size h < n)
-    in
-    match worklist with
-      | [] -> self
-      | hgs ->
-        List.concat_map (Hypergraph.unfold n) hgs
-        |> BatList.unique ~eq:Hypergraph.equal
-        |> List.fold_left add_hypergraph {self with worklist = HS.empty}
-  *)
+  let rec close self =
+    if HS.is_empty self.worklist then self
+    else close @@ unfold_step ~base_only:true 1000 self (* TODO *)
 
   let rec unfold n self =
-    if HS.for_all (fun h -> Hypergraph.size h >= n) self.worklist then self
-    else unfold n (unfold_step n self)
+    if HS.for_all (fun h -> Hypergraph.size h > n) self.worklist then
+      (* TODO: close *) self
+    else
+      unfold n (unfold_step n self)
+
+  let initial id =
+    let params = List.map SL.Term.of_var @@ InductiveDefinition.header id in
+    add_to_worklist (empty id) (Hypergraph.of_inductive_def id params)
+    |> unfold 0
 
   let get_pure der =
     leafs der
@@ -222,23 +237,18 @@ module Derivation = struct
       ) atoms
     | _ -> failwith @@ SL.show phi
 
-  let is_unique_ptr negated ders =
+  let is_fixpoint n distinguishers phi der =
+    let negated = negated phi der.id in
     let ptrs = List.filter SL.is_pointer negated in
-    match ptrs with
+    let cond = match ptrs with
       | [] -> true
-      | _ -> List.exists SL_graph.has_existential ders
-
-  let is_fixpoint n id phi der others =
-    match negated phi id with
-      | [] -> true
-      | ns ->
-        let ders = leafs der in
-        (* TODO!! *)
-        let leafs = List.filter (fun g -> SL_graph.nb_allocated ~distinct:true g < n) ders in
-
-        (*
-        List.exists (fun d -> SL_graph.nb_allocated d > n && not @@ BatList.exists (SL_graph.eq_iso d) others) ders
-        &&*) is_unique_ptr ns leafs
+      | _ -> List.exists SL_graph.has_existential (leafs der)
+    in
+    (* TODO: optinisation with nil *)
+    if SID_checks.is_distinguishable_by_sort der.id distinguishers then
+      List.exists (fun g -> SL_graph.nb_allocated g > 0) (leafs der) && cond
+    else
+      List.exists (fun g -> SL_graph.nb_allocated ~distinct:true g > 1) (leafs der) && cond
 
   let size der =
     leafs der
@@ -248,22 +258,73 @@ module Derivation = struct
       with _ -> assert false
     )
 
+  (** TODO: Is root a variable allocated in all models? *)
+  let find_root id models =
+    List.find (fun v ->
+      List.for_all (SL_graph.must_allocated (SL.Term.of_var v)) models
+    ) id.InductiveDefinition.header
+
+  let find_allocated id models =
+    List.filter (fun v ->
+      List.for_all (SL_graph.must_allocated (SL.Term.of_var v)) models
+    ) id.InductiveDefinition.header
+
+  let find_never_allocated id models =
+    List.filter (fun v ->
+      List.for_all (SL_graph.is_never_allocated (SL.Term.of_var v)) models
+    ) id.InductiveDefinition.header
+
+  let compute_skeleton_fields models =
+    let all_fields =
+      List.concat_map SL_graph.get_fields models
+      |> BatList.unique_cmp ~cmp:MemoryModel.Field.compare
+    in
+    let sublists = List_utils.sublists all_fields in
+    (* TODO: order by size *)
+    List.find (fun fields ->
+      List.for_all (fun g -> SL_graph.are_skeleton_fields g fields) models
+    ) sublists
+
+  let abstraction id der =
+    let leafs = leafs der in
+    let non_empty = BatList.filter (fun g -> SL_graph.nb_allocated g > 0) leafs in
+    let root = find_root der.id non_empty in
+    let allocated = find_allocated der.id non_empty in
+    let never_allocated = find_never_allocated der.id non_empty in
+    let fixpoint_size = match leafs with
+      | [] -> assert false;
+      | ls -> BatList.max ~cmp:Float.compare @@ List.map SL_graph.size ls
+    in
+    let unfolding_depth =
+      Int.of_float (Float.mul fixpoint_size @@ Float.of_int @@ List.length allocated) in
+
+    let stable_size = match der.stable with
+      | None -> assert false
+      | Some x -> x
+    in
+
+    let skeleton_fields = compute_skeleton_fields non_empty in
+    Abstraction.{id; root; allocated; never_allocated; skeleton_fields; stable_size; fixpoint_size; unfolding_depth}
+
   let cardinal self = HS.cardinal self.worklist
 
   let show ?(indent=0) self =
-    GS.iter (fun g -> Logger.debug "%s" (SL_graph.show g)) self.graphs
     (*
-    Format.printf "G: %d, W: %d, F: %d\n"
+   GS.iter (fun g -> Logger.debug "%s" (SL_graph.show g)) self.graphs
+    *)Format.printf "G: %d, W: %d, F: %d\n"
       (GS.cardinal self.graphs)
       (HS.cardinal self.worklist)
       (HS.cardinal self.finished);
-    (*GS.iter (fun g -> Format.printf "g:\n  %d\n" (SL_graph.nb_allocated g)) self.graphs;*)
-    HS.iter (fun h -> Format.printf "F:\n  %s\n" (Hypergraph.show h)) self.finished;
-    HS.iter (fun h -> Format.printf "H:\n  %s\n" (Hypergraph.show h)) self.worklist
-    *)
+
+    Format.printf "\nGraphs:";
+    GS.iter (fun g -> Format.printf "\n  %s\n" (SL_graph.show g)) self.graphs;
+    Format.printf "\nWorklist:";
+    HS.iter (fun h -> Format.printf "\n  %s\n" (Hypergraph.show h)) self.worklist;
+    Format.printf "\nVisited:";
+    HS.iter (fun h -> Format.printf "\n  %s\n" (Hypergraph.show h)) self.finished
 
   let debug pred der =
-    (*
+  (*
     Logger.debug "Derivation %s:\n" (InductiveDefinition.name pred);
     show der;*)
     leafs der
@@ -275,109 +336,48 @@ module Derivation = struct
 
 end
 
-(** Result of small-model computation:
+let rec compute_fixpoint ?(n=1) phi distinguishers pred res =
+  (if n > 100 then
+    let _ = Derivation.debug pred res in
+    Exceptions.unsupported_fragment
+      ~reason:"incomplete small model search"
+      ~details:"The fixpoint computation does not terminated after 100 steps"
+  );
+  let open InductiveDefinition in
+  Logger.debug "%s: iteration %d\n" pred.name n;
+  let res' = Derivation.unfold n res in
 
-    Mapping from inductive predicates to explored derivations. *)
-module Result = struct
-
-  module M = InductiveDefinition.Map
-
-  type t = Derivation.t M.t
-
-  type sizes = {
-    lhs_unfolding : int;
-    small_bound : float;
-    bound : float;
-  }
-
-  let aux pred atoms =
-    List.exists (fun psi -> match SL.view psi with
-      | Predicate (name, _, _) -> String.equal name (InductiveDefinition.name pred)
-      | _ -> false
-    ) atoms
-
-  let get_others self phi pred =
-    M.remove pred self
-    |> M.filter (fun pred _ -> aux pred (Derivation.negated phi pred))
-    |> M.values
-    |> List.concat_map Derivation.leafs
-
-  let size res = M.fold (fun _ x acc -> acc + Derivation.cardinal x) res 0
-
-  let is_stable res res' =
-    M.for_all (fun pred d ->
-      let d' = M.find pred res' in
-      Derivation.is_stable d d'
-    ) res
-
-  let is_fixpoint n phi res =
-    M.for_all (fun pred d ->
-      let others = get_others res phi pred in
-      Derivation.is_fixpoint n pred phi d others
-    ) res
-
-  let unfold n res = M.map (Derivation.unfold n) res
-
-  let compute_size res = M.map Derivation.size res
-
-  let initial g =
-    G.fold_vertex (fun v acc ->
-      M.add v (Derivation.initial v) acc
-    ) g M.empty
-
-  let debug res = M.iter Derivation.debug res
-
-  let show res =
-    M.iter (fun pred d ->
-      Logger.debug "Predicate %s:\n" (InductiveDefinition.name pred);
-      Derivation.show d;
-      Logger.debug "\n\n";
-    ) res
-
-end
-
-exception Termination of int * Result.t
-
-let rec compute_fixpoint ?(n=1) res phi =
-  Logger.debug "Iteration %d (cardinality %d)\n" n (Result.size res);
-  let res' = Result.unfold n res in
-  Result.debug res';
-  (*Result.show res';*)
-
-  let is_stable = Result.is_stable res res' in
-  let is_fixpoint_prev = Result.is_fixpoint n phi res in (* TODO: n-1 *)
-  let is_fixpoint_curr = Result.is_fixpoint n phi res' in
+  let is_stable = Derivation.is_stable res res' in
+  let is_fixpoint = Derivation.is_fixpoint n distinguishers phi res' in
 
   Logger.debug "  - stable: %b\n" is_stable;
-  Logger.debug "  - fixpoint (prev): %b\n" is_fixpoint_prev;
-  Logger.debug "  - fixpoint (curr): %b\n" is_fixpoint_curr;
+  Logger.debug "  - fixpoint (prev): %b\n" is_fixpoint;
 
-  if is_stable && is_fixpoint_prev then res (* TODO: sub-optimal *)
-  else if is_stable && is_fixpoint_curr then res'
-  else begin
-    (if n > 0 && n mod 5 = 0 then
-    Logger.warning "Small model search does not terminated after %d steps. \
-    The system of inductive definitions is likely not flat." n);
-    if n > 10 then raise @@ Termination (n, res)
-    else compute_fixpoint ~n:(n+1) res' phi
-  end
+  let res'' = if is_stable && Option.is_none res'.stable then {res' with stable = Some (n - 1)} else res' in
 
-let debug_results res sizes =
+  if is_stable && is_fixpoint then match res''.stable with
+    | _ when Derivation.is_fixpoint (n-1) distinguishers phi res ->
+      (res, Derivation.abstraction pred {res with stable = Some (n -1)})
+    | _ -> (res'', Derivation.abstraction pred res'')
+  else compute_fixpoint ~n:(n+1) phi distinguishers pred res''
+
+
+let debug_results res =
   Logger.debug "Results:\n";
-  Result.M.iter (fun id n -> Logger.debug  "- %s: %f\n" (InductiveDefinition.name id) n) sizes;
-  Result.debug res
+  PredicateAbstraction.M.iter (fun id a ->
+      Logger.debug  "- %s: %s\n" (InductiveDefinition.name id) (Abstraction.show a)
+  ) res
 
-let compute g phi =
+let compute phi distinguishers =
   Logger.debug "Computing small models of predicates\n";
-  let res0 = Result.initial g in
-  try
-    let res = compute_fixpoint res0 phi in
-    let sizes = Result.compute_size res in
-    debug_results res sizes;
-    sizes
-  with Termination (n, res) ->
-    let sizes = Result.compute_size res in
-    debug_results res sizes;
-    Exceptions.unknown_result
-      ~reason:"Small model search incomplete"
-      ~details:(Format.asprintf "Search does not terminated after %d steps" n)
+  let preds = SID.get_user_defined () in
+  let res =
+    List.fold_left (fun acc pred ->
+      let res0 = Derivation.initial pred in
+      let der, res = compute_fixpoint phi distinguishers pred res0 in
+      Derivation.debug pred der;
+      Abstraction.M.add pred res acc
+    ) Abstraction.M.empty preds
+  in
+  debug_results res;
+  res
