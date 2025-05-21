@@ -36,19 +36,31 @@ let rewrite_semantics phi = match Options_base.semantics () with
 
 let normalise (pred : t) =
   let module Logger = (val make_logger pred : LOGGER) in
-  Logger.dump pred "";
+  (* Before checking, we need to eliminate quantifiers *)
+  if Inlining.can_be_inlined pred then
+    let _ = Logger.debug "Removing predicate\n" in
+    None
+  else
+    let _ = Logger.debug "Keeping predicate\n" in
+   let _ = Logger.dump pred "" in
+
   let pred = preprocess_cases rewrite_semantics pred in
-  Logger.dump pred "_2-semantics-rewrite";
-  pred
+  let _ = Logger.dump pred "_3-semantics-rewrite" in
+
+  (*let pred = refresh pred in
+  Logger.dump pred "_2-refresh";
+*)
+
+  Some pred
 
 let preprocess (pred : t) =
   let module Logger = (val make_logger pred : LOGGER) in
 
   let qelim case = QuantifierElimination.apply (SL_graph.compute case) case in
   let pred = preprocess_cases qelim pred in
-  Logger.dump pred "_3-quntifier-elim";
+  Logger.dump pred "_4-quntifier-elim";
 
   let forbidden_vars = SID.existentials pred in
   let pred = InductiveDefinition.map (IntroduceIfThenElse.apply ~forbidden_vars) pred in
-  Logger.dump pred "_4-introduce-ite";
-  pred
+  Logger.dump pred "_5-introduce-ite";
+  Some pred

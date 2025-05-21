@@ -56,7 +56,7 @@ module Instance = struct
           match global with [] -> None | g :: _ -> Some g (* TODO: why just g? *)
         else None
       | Distinct _ | Predicate _ -> None
-      | Star psis -> join_list @@ List.map continue psis
+      | Star psis | And psis -> join_list @@ List.map continue psis
       | Or psis -> None
       | Ite (c, t, e) ->
         (* If condition c is build of only ground terms, we can use it in the instance *)

@@ -27,7 +27,7 @@ let rec candidate_conditions phi = match SL.view phi with
 
 let is_contradiction atom1 atom2 = match SL.view atom1, SL.view atom2 with
   | Eq xs, Distinct ys
-  | Distinct xs, Eq ys -> List.equal SL.Term.equal xs ys
+  | Distinct xs, Eq ys -> SL.Term.Set.(equal (of_list xs) (of_list ys))
   | _ -> false
 
 let find_ite_condition forbidden lhs rhs =
@@ -43,14 +43,15 @@ let find_ite_condition forbidden lhs rhs =
     let lhs' = SL.mk_exists qs1 @@ SL.mk_star @@ BatList.remove_if (SL.equal c1) atoms1 in
     let rhs' = SL.mk_exists qs2 @@ SL.mk_star @@ BatList.remove_if (SL.equal c2) atoms2 in
     Some (c1, lhs', rhs')
-  with Not_found -> None | _ -> assert false
+  with Not_found -> None
 
 let apply ?(forbidden_vars=[]) phi =
   SL.map_view (function
     | Or [lhs; rhs] when List.for_all SL.is_symbolic_heap [lhs; rhs] ->
       let res = find_ite_condition forbidden_vars lhs rhs in
       begin match res with
-        | Some (c, lhs', rhs') -> `Modify (SL.mk_ite c lhs' rhs')
+        | Some (c, lhs', rhs') ->
+          `Modify (SL.mk_ite c lhs' rhs')
         | None -> `Skip
       end
     | _ -> `Skip

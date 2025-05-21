@@ -57,21 +57,16 @@ let rec existentials ?(visited=[]) id =
 
 (** {2 Preprocessing *)
 
-let inline name xs = match find name with
-  | UserDefined id when not @@ is_self_recursive id.name ->
-    (* TODO: move to preprocessor
-    let id = InductiveDefinition.map_cases PreciseToImprecise.to_precise id in*)
-    Some (InductiveDefinition.instantiate ~refresh:true id xs)
-  | _ -> None
-
 let preprocess name sl_graph instance = match find name with
   | Builtin (module B : BUILTIN) -> B.preprocess sl_graph instance
   | _ -> None
 
 let preprocess_user_definitions fn =
-  sid := M.map (function id -> match id with
-    | Builtin _ -> id
-    | UserDefined id -> UserDefined (fn id)
+  sid := M.filter_map (fun _ id -> match id with
+    | Builtin _ -> Some id
+    | UserDefined id -> match fn id with
+      | None -> None
+      | Some id -> Some (UserDefined id)
   ) !sid
 
 

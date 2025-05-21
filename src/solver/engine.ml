@@ -17,10 +17,18 @@ let debug_info input = match SL.classify_fragment input.phi with
   | Positive -> Logger.debug "Solving as positive formula\n"
   | Arbitrary -> Logger.debug "Solving as arbitrary formula\n"
 
-let solve (input : Context.t) =
+(** Apply necessary transformations to input formula and SID.
+
+    Note: Normalisation needs to be run on formula first to correctly handle inlining
+          (first inline and the remove inlined IDs from SID). *)
+let normalise input =
   let input = Preprocessor.first_phase input in
   SID.preprocess_user_definitions PredicatePreprocessing.normalise;
   SID.init ();
+  input
+
+let solve (input : Context.t) =
+  let input = normalise input in
 
   let sl_graph = SL_graph.compute input.phi in
   if SL_graph.has_contradiction sl_graph then
