@@ -88,6 +88,29 @@ let unfold_test5 () =
   in
   SL.check_equal actual expected
 
+let unfold_tll_test1 () =
+  let open TLL in
+  let sid = InductiveDefinition.ID_map.of_list [("tll", id)] in
+  let actual = Simplifier.simplify @@ InductiveDefinition.unfold sid id [x; y; z] 3 in
+  let expected =
+    SL.mk_or [
+      SL.mk_star [
+        SL.mk_pto_struct x def [z; nil; nil];
+        SL.mk_eq [x; y]
+      ];
+      SL.mk_exists' [sort; sort; sort] (fun [l; r; mid] ->
+        SL.mk_star [
+          SL.mk_pto_struct x def [l; r; nil];
+          SL.mk_pto_struct l def [mid; nil; nil];
+          SL.mk_pto_struct r def [z; nil; nil];
+          SL.mk_eq [l; y];
+          SL.mk_eq [r; mid];
+        ]
+      )
+    ]
+  in
+  SL.check_equal actual expected
+
 (** Guided unfolding tests *)
 
 let guided_unfold_test1 () =
@@ -126,6 +149,9 @@ let () =
       test_case "unfold ls, depth: 2"     `Quick unfold_test3;
       test_case "unfold ls-ite, depth: 0" `Quick unfold_test4;
       test_case "unfold ls-ite, depth: 1" `Quick unfold_test5;
+    ];
+    "unfold (branching)", [
+      test_case "unfold tll, depth: 3"     `Quick unfold_tll_test1;
     ];
     "unfold (guided)", [
       test_case "unfold ls (x=y)" `Quick guided_unfold_test1;

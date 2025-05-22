@@ -36,7 +36,7 @@ let dls =
 let dnls =
   let sort = Sort.mk_loc "RefDNLS" in
   let def = StructDef.mk "DNLS" [Field.mk "next" sort; Field.mk "prev" sort; Field.mk "down" loc_ls] in
-  let header = SL.Variable.mk_list loc_dls ["x"; "y"; "x'"; "y'"; "z"] in
+  let header = SL.Variable.mk_list sort ["x"; "y"; "x'"; "y'"; "z"] in
   let [x; y; x'; y'; z] = List.map SL.Term.of_var header in
   ID.mk "dnls" header @@
     SL.mk_or [
@@ -49,3 +49,31 @@ let dnls =
           SL.mk_predicate "dnls" [n; y; x'; x; z];
           SL.mk_predicate "ls" [d; z]
     ])]
+
+(** ==== Tree with linked leaves ==== *)
+
+module TLL = struct
+
+  let sort = Sort.mk_loc "RefTLL"
+
+  let def = StructDef.mk "TLL" [Field.mk "next" sort; Field.mk "left" sort; Field.mk "right" sort]
+
+  let id =
+    let header = SL.Variable.mk_list sort ["x"; "ll"; "lr"] in
+    let [x; ll; lr] = List.map SL.Term.of_var header in
+    let nil = SL.Term.nil in
+    ID.mk "tll" header @@
+      SL.mk_or [
+        SL.mk_star [
+          SL.mk_pto_struct x def [lr; nil; nil];
+          SL.mk_eq [x; ll]
+        ];
+        SL.mk_exists' [sort; sort; sort] (fun [l; r; mid] ->
+          SL.mk_star [
+            SL.mk_pto_struct x def [l; r; nil];
+            SL.mk_predicate "tll" [l; ll; mid];
+            SL.mk_predicate "tll" [r; mid; lr];
+          ]
+        )
+      ]
+end
