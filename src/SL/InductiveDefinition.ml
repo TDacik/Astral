@@ -46,6 +46,8 @@ let arity self = List.length self.header
 
 let cases id = id.base_cases @ id.inductive_cases
 
+let is_ite id = List.length (cases id) == 1
+
 let get_base_cases id =
   let aux case = match SL.view case with
     | Ite (c, t, e) ->
@@ -78,6 +80,8 @@ let refresh_existentials id =
   )
   in
   {id with base_cases = List.map aux id.base_cases; inductive_cases = List.map aux id.inductive_cases}
+
+let refresh pred = refresh_header @@ refresh_existentials pred
 
 let to_formula ?params id = match params with
   | None -> SL.mk_predicate id.name (List.map SL.Term.of_var id.header)

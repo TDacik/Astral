@@ -30,6 +30,8 @@ val show : t -> string
 
 val mk : string -> SL.Variable.t list -> SL.t -> t
 
+val refresh : t -> t
+
 val mk_call : t -> SL.Term.t list -> SL.t
 
 val arity : t -> int
@@ -38,6 +40,8 @@ val fields : t -> Field.t list
 
 val dependencies : t -> string list
 (** Return names of predicates used in inductive cases. *)
+
+val is_ite : t -> bool
 
 val map : (SL.t -> SL.t) -> t -> t
 

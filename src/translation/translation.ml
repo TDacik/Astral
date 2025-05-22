@@ -195,8 +195,12 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     (* Check whether there exists some precomputed footprint. If yes, use it. *)
     let footprints =
       try Footprints.of_list @@ SL.Map.find (SL.mk_or psis) ctx.precomputed_footprints
-      with Not_found ->
-        (*if not @@ ctx.can_skolemise then
+      with Not_found -> (*
+        if not @@ ctx.can_skolemise then
+        (Logger.debug "%s\n\n" @@ SL.Map.show (SMT.show_list) ctx.precomputed_footprints;
+        failwith @@ SL.show (SL.mk_or psis))
+        else
+        if not @@ ctx.can_skolemise then
           failwith @@ SL.show (SL.mk_or psis)
         else*) List.fold_left Footprints.union Footprints.empty footprints
     in

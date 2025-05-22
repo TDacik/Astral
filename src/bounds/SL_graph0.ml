@@ -304,9 +304,7 @@ module CC = Graph.Components.Undirected(G)
 
 let is_connected g =
   let spatial_g = spatial_projection g in
-  print spatial_g;
   let components = CC.components_list spatial_g in
-  List.iter SL.Term.print_list components;
   List.length components == 1
 
 let are_skeleton_fields g fields =

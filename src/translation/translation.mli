@@ -7,6 +7,8 @@ open Translation_sig
 
 module Make (Encoding : ENCODING) (Solver : BACKEND) : sig
 
+  val formula_footprint : (_, _) Translation_context.t -> SL.t -> SMT.t
+
   val translate_var : (Encoding.Locations.t, Encoding.HeapEncoding.t) Translation_context.t -> SL.Variable.t -> SMT.Variable.t
 
   val translate_term : (Encoding.Locations.t, Encoding.HeapEncoding.t) Translation_context.t -> SL.Term.t -> SMT.t

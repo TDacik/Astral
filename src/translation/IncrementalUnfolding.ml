@@ -58,7 +58,13 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     p
     *)
 
-  let rec unfold_step ctx n ~allocated ~existential id id_map name xs =
+  let has_unique_footprint abs id =
+    let may_allocated = PredicateAbstraction.may_allocated abs in
+    let res = List.is_empty may_allocated || InductiveDefinition.is_ite id in
+    Logger.debug "UFP: %b\n" res;
+    res
+
+  let rec unfold_step ctx n ?(boundaries=[]) ~allocated ~existential id id_map name xs =
     Logger.debug "Remaining: %d\n" n;
     if n = 0 then unfold_finite id xs
     else
@@ -66,7 +72,6 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       match SL.view def with
       (* TODO: existential prefix for ite*)
       | Ite (cond, t, e) ->
-        SL.print cond;
         let c = SL.translate_pure_with_heap_term (Translation.translate_term ctx) cond in
         (*let c = SMT.Quantifier.mk_exists existential c in *)
         let res = check c in
@@ -76,7 +81,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
           Backend.push c;
           (*Backend.push @@ pure_abstraction ctx t;*)
           let existential = existential @ (List.map (Translation.translate_var ctx) (SL.bound_vars t)) in
-          let res = unfold_predicate ~existential (n - 1) ctx id_map t in
+          let res = unfold_predicate ~existential ~boundaries ~first:false (n - 1) ctx id_map t in
           Backend.pop 1;
           res
         in
@@ -85,7 +90,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
           Backend.push (SMT.Boolean.mk_not c);
           (*Backend.push @@ pure_abstraction ctx e;*)
           let existential = existential @ (List.map (Translation.translate_var ctx) (SL.bound_vars e)) in
-          let res = unfold_predicate ~existential (n - 1) ctx id_map e in
+          let res = unfold_predicate ~existential ~boundaries ~first:false (n - 1) ctx id_map e in
           Backend.pop 1;
           res
         in
@@ -100,7 +105,6 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
           let pure, spatial = List.partition SL.is_pure atoms in
           let c = List.map (SL.translate_pure_with_heap_term (Translation.translate_term ctx)) pure in
           let c = pure_abstraction ctx case in
-          SMT.print ~prefix:"Going to check" c;
           let check = check_simple c in
           Logger.debug "%s --> %s\n" (SMT.show c) (ThreeValuedLogic.show check);
           let res = match check with
@@ -112,29 +116,66 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
                 |> List.map (fun (x, _, _) -> x)
                 |> List.append allocated
               in
-              SL.mk_or [acc; (Backend.push c; let res = unfold_predicate (n-1) ~allocated ctx id_map case in Backend.pop 1; res)]
+              SL.mk_or [acc; (Backend.push c; let res = unfold_predicate (n-1) ~allocated ~boundaries ~first:false ctx id_map case in Backend.pop 1; res)]
           in
           (if Options_base.fp_construction ()
            then
-             cache := SL.Map.add res (Footprints.mk_footprint ctx ~allocated !lhs_t id xs) !cache
+             cache := SL.Map.add res (Footprints.mk_footprint ctx ~allocated ~boundaries !lhs_t id xs) !cache
            else ()
           );
           res
           ) SL.ff cases
 
       (* Non-disjunctive definition *)
-      | _ -> unfold_predicate n ~allocated ctx id_map def
+      | _ -> unfold_predicate n ~allocated ~boundaries ~first:false ctx id_map def
 
-  and unfold_predicate n ?(allocated=[]) ?(existential=[]) ctx id_map phi =
+  (** Unfolding of an inductive predicate.
+
+      - If the predicate has non-unique footprint, create a single case-split at the
+        top-level and continue with unique footprints given by fixed may-allocated
+        parameters. *)
+  and unfold_predicate n ?(allocated=[]) ?(boundaries=[]) ?(existential=[]) ?(first=true) ctx id_map phi =
     SL.map_view (function
       | Predicate (name, xs, _) when not @@ SID.is_builtin name ->
         let id = SID.get_definition name in
-        `Modify (unfold_step ctx n ~allocated ~existential id id_map name xs)
+        let abs = SID.abstraction name in
+        Logger.debug "UFPPP: %b\n" (has_unique_footprint abs id);
+        `Modify (unfold_step ctx n ~allocated ~boundaries ~existential id id_map name xs)
+        (*let result =
+          if has_unique_footprint abs id || not first
+          then unfold_step ctx n ~allocated ~boundaries ~existential id id_map name xs
+          else
+            let root = PredicateAbstraction.get_root abs ~params:xs in
+            let may_allocated = PredicateAbstraction.may_allocated abs ~params:xs in
+            let cases = List_utils.sublists may_allocated in
+            let res = SL.mk_or @@ List.map (fun never_allocated ->
+              let module S = SL.Term.Set in
+              let must_allocated = S.elements @@ S.diff (S.of_list may_allocated) (S.of_list never_allocated) in
+              let never = List.map (Translation.translate_term ctx) never_allocated in
+              let must = List.map (Translation.translate_term ctx) must_allocated in
+              let dom = Translation.formula_footprint ctx (SL.mk_predicate name xs) in (* TODO: check *)
+              let axioms =
+                SL.mk_and [(*
+                  SL.mk_pure @@ SMT.Sets.mk_subset (SMT.Sets.mk_constant ctx.fp_sort must) dom;
+                  SL.mk_pure @@ SMT.Sets.mk_disjoint[SMT.Sets.mk_constant ctx.fp_sort never; dom];*)
+                  unfold_step ctx n ~allocated ~boundaries:never_allocated ~existential id id_map name xs
+                ]
+              in
+              axioms
+              ) cases
+            in
+            let bound = LocationBounds.sum ctx.location_bounds - 1 in (* For nil *)
+            let allocated = List.map (Translation.translate_term ctx) allocated in
+            cache := SL.Map.add res (Footprints.mk_non_unique_footprint ctx ~allocated bound abs id xs) !cache;
+            res
+        in
+        `Modify result*)
       | _ -> `Skip
     ) phi
 
+  type footprint_map = (SMT.t list) SL.Map.t
 
-  let unfold input lhs rhs =
+  let unfold input lhs rhs : (SL.t * footprint_map) =
     let module C = Translation_context.Make(Encoding.Locations)(Encoding.HeapEncoding) in
     Profiler.add "Unfolding";
     cache := SL.Map.empty;
@@ -148,7 +189,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       | SMT_Unsat _ ->
         Logger.debug "LHS is UNSAT\n";
         SL.tt
-      | _ -> unfold_predicate bound ctx id_map rhs
+      | _ -> unfold_predicate ~boundaries:[] bound ctx id_map rhs
     in
     Backend.pop 1;
     Logger.debug "Performed %d SMT queries\n" !cnt;

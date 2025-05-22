@@ -84,14 +84,14 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       res
 
   (** Create a unique footprint of a predicate pred. *)
-  let mk_unique_footprint ~allocated (ctx : (_, _) t) bound abs (id : InductiveDefinition.t) xs =
+  let mk_unique_footprint ~allocated ~boundaries (ctx : (_, _) t) bound abs (id : InductiveDefinition.t) xs =
     Logger.debug "%s(%s)\n" (id.name) (SL.Term.show_list xs);
 
     let root = PredicateAbstraction.get_root abs ~params:xs in
     let holes = BatList.unique_cmp ~cmp:SL.Term.compare
                 @@ SL.Term.nil :: PredicateAbstraction.get_holes abs ~params:xs in
 
-    let res = mk_footprint_boundaries ~allocated bound ctx abs root holes in
+    let res = mk_footprint_boundaries ~allocated bound ctx abs root (holes @ boundaries) in
     (*SL.print ~prefix:"Instance: " @@ SL.mk_predicate id.name xs;
     SL.Term.print_list ~prefix:"Holes: " holes;
     SMT.print_list ~prefix:"Res: " res;*)
@@ -103,20 +103,21 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let root = PredicateAbstraction.get_root abs ~params in
     let may_allocated = PredicateAbstraction.may_allocated abs ~params in
     let worklist = List_utils.sublists may_allocated in
-    List.map (fun boundaries -> mk_footprint_boundaries ~allocated bound ctx abs root boundaries) worklist
+    List.map (fun boundaries -> mk_footprint_boundaries ~allocated bound ctx abs root (SL.Term.nil :: boundaries)) worklist
 
   let has_unique_footprint abs =
     let may_allocated = PredicateAbstraction.may_allocated abs in
-    List.is_empty may_allocated
+    let res = List.is_empty may_allocated in
+    res
 
   (** Create a list of terms representing footprints of an inductive predicate. *)
-  let mk_footprint (ctx : (_, _) t) ~allocated (lhs : SMT.t) id xs =
+  let mk_footprint (ctx : (_, _) t) ~allocated ~boundaries (lhs : SMT.t) id xs =
     let open InductiveDefinition in
     let abs = SID.abstraction id.name in
     let bound = LocationBounds.sum ctx.location_bounds - 1 in (* Minus one for nil *)
     let allocated = List.map (Translation.translate_term ctx) allocated in
-    if has_unique_footprint abs
-    then mk_unique_footprint ~allocated ctx bound abs id  xs
-    else mk_non_unique_footprint ~allocated ctx bound abs id xs
+    (*if has_unique_footprint abs
+    then*) mk_unique_footprint ~allocated ~boundaries ctx bound abs id xs
+    (*else mk_non_unique_footprint ~allocated ctx bound abs id xs*)
 
 end
