@@ -1,5 +1,6 @@
 import os
 import re
+import argparse
 
 VERBOSE = True
 
@@ -16,7 +17,7 @@ def process_file(path, definition):
         text = f.read()
 
     regex = r"; def-begin(.|\n)*; def-end"
-    res = re.sub(regex, f"; def-begin\n\n{definition}\n\n; def-end", text)
+    res = re.sub(regex, f"; def-begin{definition}; def-end", text)
 
     with open(path, "w") as f:
         f.write(res)
@@ -30,25 +31,43 @@ def read_definition(path):
             comment = f";; Included from {f} (modify there and run scripts/include_definitions.py)\n"
             with open(os.path.join(path, f)) as f:
                 res = f.read()
-            return comment + res
+            return "\n\n" + comment + res + "\n\n"
 
     log("No definition found")
 
 
-def process_directory(path):
+def process_directory(path, compact):
     log(f"Processing directory {path}")
-    definition = read_definition(path)
+
+    if compact:
+        definition = "\n"
+    else:
+        definition = read_definition(path)
+
     for f in sorted(os.listdir(path)):
         if (not f.startswith("00")) and f.endswith(".smt2"):
             f = os.path.join(path, f)
             process_file(f, definition)
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--compact", action="store_true")
+    return parser.parse_args()
 
 def main():
-    for root, dirs, files in sorted(os.walk("benchmarks/x21-trees/")):
-        for d in dirs:
-            path = os.path.join("benchmarks/x21-trees/", d)
-            process_directory(path)
+    args = parse_args()
+
+    benchmarks = [
+        "21-lists",
+        "22-trees",
+        "23-non_unique_footprints",
+    ]
+    for b in benchmarks:
+        bench_path = os.path.join("benchmarks", b)
+        for root, dirs, files in sorted(os.walk(bench_path)):
+            for d in dirs:
+                path = os.path.join(bench_path, d)
+                process_directory(path, args.compact)
 
 
 if __name__ == "__main__":
