@@ -43,4 +43,5 @@ let check_inductive_definitions () =
 
 let check ctx =
   let* res1 = check_low_level_sl ctx in
+  let* res2 = check_inductive_definitions () in
   check_inductive_definitions ()

@@ -187,6 +187,11 @@ let set_encoding = function
   | "bitvectors" -> _locations := "bitvectors"; _sets := "bitvectors"
   | other -> Utils.cmd_option_error "encoding" other
 
+(* ==== Unsafe ==== *)
+
+let _unsafe = ref false
+let unsafe () = !_unsafe
+
 let speclist =
   [
     ("--produce-models", Arg.Set _produce_models, "");
@@ -255,6 +260,7 @@ let speclist =
     (* Hidden *)
     ("--broom", Arg.Set _broom_preprocessing, "");
     ("--easter-eggs", Arg.Set _easter_eggs, "");
+    ("--unsafe", Arg.Set _unsafe, "");
 
     (* Do not show '-help' *)
     ("-help", Arg.Unit ignore, "");

@@ -108,9 +108,13 @@ val semantics : unit -> [`NotSpecified | `Precise | `Imprecise]
 
 val set_encoding : string -> unit
 
+
+val unsafe : unit -> bool
+
 val to_json : unit -> Yojson.Basic.t
 
 val exit_usage : int -> unit
+
 
 (**/**)
 

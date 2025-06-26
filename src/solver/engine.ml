@@ -33,9 +33,9 @@ let solve (input : Context.t) =
   let sl_graph = SL_graph.compute input.phi in
   if SL_graph.has_contradiction sl_graph then
     Context.set_result `Unsat ~unsat_core:[] input
-  else match FragmentChecker.check input with
-  | Error reason -> Context.set_result (`Unknown reason) input
-  | Ok () ->
+  else match FragmentChecker.check input, Options.unsafe () with
+  | Error reason, false -> Context.set_result (`Unknown reason) input
+  | _, _ ->
     Profiler.add "Normalisation";
 
     (** Small model should be computed on normalised, but non-preprocessed definition *)
