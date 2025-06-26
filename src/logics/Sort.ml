@@ -71,6 +71,11 @@ let is_bitvector = function Bitvector _ -> true | _ -> false
 
 let is_nil = (=) loc_nil
 
+let equal_mod_nil sort1 sort2 =
+  if is_nil sort1 && is_loc sort2 then true
+  else if is_nil sort2 && is_loc sort1 then true
+  else equal sort1 sort2
+
 let rec show = function
   | Bool -> "Bool"
   | Int -> "Int"

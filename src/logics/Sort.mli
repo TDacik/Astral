@@ -21,6 +21,9 @@ include PRINTABLE with type t := t
 include COMPARABLE with type t := t
 include COLLECTIONS with type t := t
 
+val equal_mod_nil : t -> t -> bool
+(** Equality modulo nil sort: each location sort is equal to the nil sort. *)
+
 val name : t -> string
 
 val all_names : t -> string list
