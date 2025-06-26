@@ -23,6 +23,10 @@ module Printable (M : SHOW) = struct
     Printf.fprintf channel "%s\n" (M.show x);
     close_out channel
 
+  let show_option = function
+    | None -> "None"
+    | Some x -> "Some" ^ show x
+
   let show_list ?(separator=", ") = function
     | [] -> "[]"
     | xs -> String.concat separator @@ List.map M.show xs
@@ -52,6 +56,24 @@ let show_map_aux show_key show_val = function
 module Collections (M : COMPARISON) = struct
 
   type t = M.t [@@ ocaml.warning "-34"]
+
+  (** Monomorphic list *)
+  module MonoList = struct
+    type key = M.t
+
+    module P = Printable(M)
+    module C = Comparable(M)
+
+    let show = P.show_list ~separator:","
+    let compare = List.compare M.compare
+    let equal = List.equal C.equal
+
+    include Printable(struct
+       type t = M.t list
+       let show = show
+    end)
+
+  end
 
   module Set = struct
 

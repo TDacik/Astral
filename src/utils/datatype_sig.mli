@@ -21,6 +21,8 @@ module type PRINTABLE = sig
   val print : ?prefix:string -> t -> unit
   (** Output to stdout. *)
 
+  val show_option : t option -> string
+
   val print_option : ?prefix:string -> t option -> unit
 
   val dump : string -> t -> unit
@@ -51,6 +53,20 @@ end
 module type COMPARABLE = sig
 
   include COMPARISON
+
+  val equal : t -> t -> bool
+
+end
+
+module type MONO_LIST = sig
+
+  type key
+
+  type t = key list
+
+  val show : t -> string
+
+  val compare : t -> t -> int
 
   val equal : t -> t -> bool
 
@@ -135,6 +151,9 @@ module type COLLECTIONS = sig
 
   module Set : SET with type elt = t
   (** Set over type t *)
+
+  module MonoList : MONO_LIST with type key = t and type t = t list
+  (** Monomorphic list over type t *)
 
   module Map : MAP with type key = t
   (** Polymorphic map from t to 'a *)
