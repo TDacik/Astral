@@ -73,6 +73,8 @@ module Collections (M : COMPARISON) = struct
        let show = show
     end)
 
+    let sort = List.sort M.compare
+
   end
 
   module Set = struct

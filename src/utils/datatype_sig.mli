@@ -70,6 +70,8 @@ module type MONO_LIST = sig
 
   val equal : t -> t -> bool
 
+  val sort : t -> t
+
 end
 
 module type MAP = sig
