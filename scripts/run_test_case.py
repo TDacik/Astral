@@ -5,7 +5,7 @@
 import os
 import yaml
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from enum import Enum
 from subprocess import run, PIPE, TimeoutExpired
 
@@ -21,22 +21,29 @@ class Config:
     verify_model: bool = False
 
     timeout: int = 10
-    backend: str = "z3"
+    backend: str = "bitwuzla-cmd"
     encoding: str = "bitvectors"
     qf_encoding: str = "direct"
     separation: str = "weak"
 
     @classmethod
-    def from_file(cls, path):
+    def from_file(cls, path, default):
         with open(path, "r") as f:
             json = yaml.safe_load(f)
             if json is None:
-                return Config()
+                assert False
 
         kwargs = {
             key.replace("-", "_"): value for key, value in json.items()
         }  # if key in vars(Config)}
-        return Config(**kwargs)
+
+        # Fields not present in file are used from the default Config object
+        res = asdict(default)
+        for key in res:
+            if key in json:
+                res[key] = json[key]
+
+        return Config(**res)
 
     def to_command(self, path):
         name = os.path.basename(path)

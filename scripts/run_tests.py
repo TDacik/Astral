@@ -4,6 +4,7 @@
 
 import os
 import shutil
+import argparse
 
 from utils import *
 from subprocess import run, PIPE
@@ -14,8 +15,8 @@ TMP = "/tmp/astral"
 
 
 class Runner:
-    def __init__(self, verbose=True):
-        self.default_config = Config()
+    def __init__(self, args, verbose=True):
+        self.default_config = Config(backend=args.backend)
         self.verbose = verbose
 
         self.results = {}
@@ -47,7 +48,7 @@ class Runner:
     def run_test_suite(self, directory, files):
         # Load configuration, if specified
         try:
-            config = Config.from_file(os.path.join(directory, "config.yaml"))
+            config = Config.from_file(os.path.join(directory, "config.yaml"), self.default_config)
         except FileNotFoundError:
             config = self.default_config
 
@@ -62,8 +63,12 @@ class Runner:
                 result = self.run_test_case(path, config)
                 self.results[result.path] = result
 
-    def run_all(self):
+    def run_all(self, args):
         for root, dirs, files in sorted(os.walk("benchmarks/")):
+            id_prefixes = ["21", "22", "23"]
+            if args.ids and not any(root.startswith("benchmarks/" + p) for p in id_prefixes):
+                continue
+
             if "astral_debug" in root or root == "benchmarks/":
                 # Ignore debug
                 continue
@@ -96,11 +101,21 @@ class Runner:
             return 1
         return 0
 
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--ids", action="store_true")
+    parser.add_argument("--backend", default="bitwuzla-cmd") # TODO: what should be default?
+    return parser.parse_args()
 
-if __name__ == "__main__":
-    runner = Runner()
+def main():
+    args = parse_args()
+
+    runner = Runner(args)
     runner.init()
     runner.smoke_test()
-    runner.run_all()
+    runner.run_all(args)
 
     exit(runner.report())
+
+if __name__ == "__main__":
+    main()
