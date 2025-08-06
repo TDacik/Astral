@@ -238,6 +238,20 @@ module Model = struct
     | Plus xs ->
       Constant.mk_int @@ List.fold_left (fun acc c -> acc + (Constant.get_int @@ eval model c)) 0 xs
 
+    | IfThenElse (c, t, e) ->
+      let c = eval model c in
+      if Constant.is_true c then eval model t
+      else eval model e
+
+    | Or xs -> Constant.mk_bool @@ List.exists Constant.is_true @@ List.map (eval model) xs
+    | Equal [x; y] -> Constant.mk_bool @@ Constant.equal (eval model x) (eval model y)
+    | Distinct [x; y] -> Constant.mk_bool @@ not @@ Constant.equal (eval model x) (eval model y)
+
+    | Union (xs, _) ->
+      Constant.mk_set @@ List.concat_map Constant.get_elems @@ List.map (eval model) xs
+    | Enumeration (xs, _) ->
+      Constant.mk_set @@ List.map (eval model) xs
+
     | _ -> failwith ("TODO: eval other: " ^ Term.show t)
 
   let check model t = Constant.is_true @@ eval model t
