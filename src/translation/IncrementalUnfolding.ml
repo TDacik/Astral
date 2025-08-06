@@ -1,181 +1,125 @@
-
-module Input = Context
-module Context = Translation_context
-
+module TVL = ThreeValuedLogic
 open ThreeValuedLogic
-open InductiveDefinition
 
-module Logger = Logger.Make(struct let name = "Incremental unfolding" let level = 1 end)
+module Logger = Logger.Make(struct
+  let name = "Incremental unfolding"
+  let level = 1
+  let dirname = "footprints"
+end)
 
 module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND) = struct
 
-  module Translation = Translation.Make(Encoding)(Backend)
-  module Footprints = FootprintEncoding.Make(Encoding)(Backend)
+  module S = SL.Variable.Set
 
-  let cnt = ref 0
+  module Translation = Translation.Make(Encoding)(Backend)
+  module QueryCounter = Counter.Simple ()
+  module FpCounter = Counter.Simple ()
 
   let check_simple cond =
-    match incr cnt; Backend.check_sat cond with
+    QueryCounter.inc ();
+    match Backend.check_sat cond with
       | SMT_Unsat _ -> False
       | _ -> Unknown
 
   let check cond =
-    match incr cnt; Backend.check_sat cond with
-      | SMT_Unsat _ -> False
-      | _ ->
-        begin match incr cnt; Backend.check_sat @@ SMT.Boolean.mk_not cond with
-          | SMT_Unsat _ -> True
-          | _ -> Unknown
-        end
+    match check_simple cond with
+      | False -> False
+      | Unknown -> begin match check_simple @@ SMT.Boolean.mk_not cond with
+        | False -> True
+        | _ -> Unknown
+      end
 
-  let lhs_t = ref SMT.Boolean.tt
-  let cache = ref SL.Map.empty
-
-  let get_root atom = match SL.view atom with
-    | SL.Emp -> []
-    | SL.PointsTo (x, _, _) -> [x]
-    | SL.Predicate (name, params, _) ->
-      let abstraction = SID.abstraction name in
-      [PredicateAbstraction.get_root abstraction ~params]
-    | _ -> failwith @@ SL.show atom
-
-  let pure_abstraction ctx phi =
-    assert (SL.is_symbolic_heap phi);
-    let _, atoms = SL.as_quantified_symbolic_heap phi in
+  (* TODO: can be improved *)
+  let abstraction ctx existentials phi =
+    (* TODO *)
+    let atoms = match SL.view phi with
+      | Star psis -> List.filter SL.is_atom psis
+      | Eq _ | Distinct _ | PointsTo _ -> [phi]
+      | Exists (xs, body) -> [] (* TODO: check *)
+    in
     let pure, spatial = List.partition SL.is_pure atoms in
 
-    let pure = List.map (SL.translate_pure_with_heap_term (Translation.translate_term ctx)) pure in
+    List.filter (SL.is_ground' ~forbidden:(S.elements existentials)) pure
+    |> List.map (SL.translate_pure_with_heap_term (Translation.translate_term ctx))
+    |> SMT.Boolean.mk_and
 
-    let roots =
-      List.concat_map get_root spatial
-      |> List.map (Translation.translate_term ctx)
-    in
-    SMT.Boolean.mk_and pure
+  (** Predicate unfolding
 
-    (*
-    let p = SMT.Boolean.mk_and [SMT.Boolean.mk_and pure; SMT.Boolean.mk_distinct roots] in
-    SMT.print ~prefix:"Abstraction:" p;
-    p
-    *)
-
-  let has_unique_footprint abs id =
-    let may_allocated = PredicateAbstraction.may_allocated abs in
-    let res = List.is_empty may_allocated || InductiveDefinition.is_ite id in
-    Logger.debug "UFP: %b\n" res;
-    res
-
-  let rec unfold_step ctx n ?(boundaries=[]) ~allocated ~existential id id_map name xs =
-    Logger.debug "Remaining: %d\n" n;
-    if n = 0 then unfold_finite id xs
+      @param existentials     Existential variables introduced during the unfolding process.
+      @param must_allocated   Variables set to be must-allocated at the top level unfolding.
+      @param allocated        Terms representing allocated locations collected during unfolding. *)
+  let rec unfold_pred ~existentials ~must_allocated ~(allocated : SL.Term.t list) ctx n sid pred xs =
+    (* TODO: improve for non-empty base case *)
+    if n = 0 then InductiveDefinition.unfold_finite pred xs
     else
-      let def = instantiate ~refresh:true id xs in
+      let def = InductiveDefinition.instantiate ~refresh:true pred xs in
+      let continue_branch guard branch alloc_plus =
+        Backend.push guard;
+        let allocated = allocated @ alloc_plus in
+        let res = unfold_rec ~existentials ~must_allocated ~allocated ctx (n-1) sid branch in
+        Backend.pop 1;
+       res
+      in
       match SL.view def with
-      (* TODO: existential prefix for ite*)
-      | Ite (cond, t, e) ->
+      | Exists (xs, body) ->
+        (* Just collects existentials and continue without decreasing [n]
+           as nothing was unfolded. *)
+        let existentials = S.union (S.of_list xs) existentials in
+        unfold_rec ~existentials ~must_allocated ~allocated ctx n sid body
+
+      | Ite (cond, t_branch, e_branch) ->
+        (* Here, we assume that existential variables are never used in ite-conditions *)
+        assert (SL.is_ground' cond ~forbidden:(S.elements existentials));
+
         let c = SL.translate_pure_with_heap_term (Translation.translate_term ctx) cond in
-        (*let c = SMT.Quantifier.mk_exists existential c in *)
         let res = check c in
-        Logger.debug "%s --> %s\n" (SMT.show c) (ThreeValuedLogic.show res);
+        Logger.debug "[|%s|] -> %s\n" (SMT.show c) (TVL.show res);
 
-        let continue_t () =
-          Backend.push c;
-          (*Backend.push @@ pure_abstraction ctx t;*)
-          let existential = existential @ (List.map (Translation.translate_var ctx) (SL.bound_vars t)) in
-          let res = unfold_predicate ~existential ~boundaries ~first:false (n - 1) ctx id_map t in
-          Backend.pop 1;
-          res
-        in
+        (* TODO: why no alloc_plus? *)
+        let continue_t () = continue_branch c t_branch [] in
 
-        let continue_e () =
-          Backend.push (SMT.Boolean.mk_not c);
-          (*Backend.push @@ pure_abstraction ctx e;*)
-          let existential = existential @ (List.map (Translation.translate_var ctx) (SL.bound_vars e)) in
-          let res = unfold_predicate ~existential ~boundaries ~first:false (n - 1) ctx id_map e in
-          Backend.pop 1;
-          res
-        in
+        let alloc_plus = SL_graph.must_alloc @@ SL_graph.compute def in
+        let continue_e () = continue_branch (SMT.Boolean.mk_not c) e_branch alloc_plus in
+
         begin match res with
           | True -> continue_t ()
           | False -> continue_e ()
           | Unknown -> SL.mk_ite cond (continue_t ()) (continue_e ())
         end
+
       | Or cases ->
+        (* Continue by only those cases that are feasible on the left-hand side. *)
         List.fold_left (fun acc case ->
-          let es, atoms = SL.as_quantified_symbolic_heap case in
-          let pure, spatial = List.partition SL.is_pure atoms in
-          let c = List.map (SL.translate_pure_with_heap_term (Translation.translate_term ctx)) pure in
-          let c = pure_abstraction ctx case in
-          let check = check_simple c in
-          Logger.debug "%s --> %s\n" (SMT.show c) (ThreeValuedLogic.show check);
-          let res = match check with
-            | False -> acc
-            | _ ->
-              let allocated =
-                List.filter SL.is_pointer spatial
-                |> List.map SL.as_pointer
-                |> List.map (fun (x, _, _) -> x)
-                |> List.append allocated
-              in
-              SL.mk_or [acc; (Backend.push c; let res = unfold_predicate (n-1) ~allocated ~boundaries ~first:false ctx id_map case in Backend.pop 1; res)]
-          in
-          (if Options_base.fp_construction ()
-           then
-             cache := SL.Map.add res (Footprints.mk_footprint ctx ~allocated ~boundaries !lhs_t id xs) !cache
-           else ()
-          );
-          res
-          ) SL.ff cases
+          let cond = abstraction ctx existentials case in
+          let res = check_simple cond in
+          Logger.debug "OR: [|%s|] -> %s\n" (SMT.show cond) (TVL.show res);
+
+          begin match res with
+            | False -> acc (* Case is infeasible *)
+            | Unknown ->
+              let alloc_plus = SL_graph.must_alloc @@ SL_graph.compute case in
+              let case' = continue_branch cond case alloc_plus in
+              SL.mk_or [acc; case']
+          end
+        ) SL.ff cases
 
       (* Non-disjunctive definition *)
-      | _ -> unfold_predicate n ~allocated ~boundaries ~first:false ctx id_map def
+      | _ -> unfold_rec ~existentials ~must_allocated ~allocated ctx n sid def
 
-  (** Unfolding of an inductive predicate.
+    and unfold_rec ~existentials ~must_allocated ~allocated ctx n sid phi =
+      SL.map_view (function
+        | Predicate (name, xs, []) when not @@ SID.is_builtin name ->
+          let id = SID.get_definition name in
+          `Modify (unfold_pred ~existentials ~must_allocated ~allocated ctx n sid id xs)
+        | _ -> `Skip
+      ) phi
 
-      - If the predicate has non-unique footprint, create a single case-split at the
-        top-level and continue with unique footprints given by fixed may-allocated
-        parameters. *)
-  and unfold_predicate n ?(allocated=[]) ?(boundaries=[]) ?(existential=[]) ?(first=true) ctx id_map phi =
-    SL.map_view (function
-      | Predicate (name, xs, _) when not @@ SID.is_builtin name ->
-        let id = SID.get_definition name in
-        let abs = SID.abstraction name in
-        Logger.debug "UFPPP: %b\n" (has_unique_footprint abs id);
-        `Modify (unfold_step ctx n ~allocated ~boundaries ~existential id id_map name xs)
-        (*let result =
-          if has_unique_footprint abs id || not first
-          then unfold_step ctx n ~allocated ~boundaries ~existential id id_map name xs
-          else
-            let root = PredicateAbstraction.get_root abs ~params:xs in
-            let may_allocated = PredicateAbstraction.may_allocated abs ~params:xs in
-            let cases = List_utils.sublists may_allocated in
-            let res = SL.mk_or @@ List.map (fun never_allocated ->
-              let module S = SL.Term.Set in
-              let must_allocated = S.elements @@ S.diff (S.of_list may_allocated) (S.of_list never_allocated) in
-              let never = List.map (Translation.translate_term ctx) never_allocated in
-              let must = List.map (Translation.translate_term ctx) must_allocated in
-              let dom = Translation.formula_footprint ctx (SL.mk_predicate name xs) in (* TODO: check *)
-              let axioms =
-                SL.mk_and [(*
-                  SL.mk_pure @@ SMT.Sets.mk_subset (SMT.Sets.mk_constant ctx.fp_sort must) dom;
-                  SL.mk_pure @@ SMT.Sets.mk_disjoint[SMT.Sets.mk_constant ctx.fp_sort never; dom];*)
-                  unfold_step ctx n ~allocated ~boundaries:never_allocated ~existential id id_map name xs
-                ]
-              in
-              axioms
-              ) cases
-            in
-            (*
-            let fps =
-              List.map (List.map (Translation.translate_term ctx)) cases
-              |> List.map (fun c -> SMT.Sets.mk_constant ctx.fp_sort c)
-            in
-            cache := PrecomputedFootprints.add res fps !cache;
-            Logger.dump ~filename:("toplevel_" ^ Int.to_string @@ FpCounter.next ()) (phi, res, fps);
-            *)
-            `Modify res*)
-          (*else
-            `Modify (unfold_pred ~existentials:S.empty ~must_allocated:[] ~allocated:[] ctx bound sid id xs)
-          *)
+    let unfold_toplevel ctx bound sid phi =
+      SL.map_view (function
+        | Predicate (name, xs, []) when not @@ SID.is_builtin name ->
+          let id = SID.get_definition name in
+          (* TODO: unsound, check FP *)
+          `Modify (unfold_pred ~existentials:S.empty ~must_allocated:[] ~allocated:[] ctx bound sid id xs)
         | _ -> `Skip
       ) phi
 
