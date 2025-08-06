@@ -1,6 +1,7 @@
 (lang dune 3.17)
 
 (name astral)
+(version 2.0)
 
 (using menhir 2.0)
 
@@ -27,7 +28,6 @@
     bitwuzla
     z3
   )
-
 )
 
 (generate_opam_files)
