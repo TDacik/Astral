@@ -37,7 +37,7 @@ let rewrite_semantics phi = match Options_base.semantics () with
 let normalise (pred : t) =
   let module Logger = (val make_logger pred : LOGGER) in
   (* Before checking, we need to eliminate quantifiers *)
-  if Inlining.can_be_inlined pred then
+  if Inlining.can_be_inlined pred.name then
     let _ = Logger.debug "Removing predicate\n" in
     None
   else

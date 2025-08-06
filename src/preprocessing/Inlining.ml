@@ -6,9 +6,11 @@
 
 module Logger = Logger.Make (struct let name = "Inlining" let level = 2 end)
 
-let can_be_inlined id =
-  let cases = InductiveDefinition.cases id in
-  match cases with
+let can_be_inlined name =
+  try
+    let id = SID.find_user_defined name in
+    let cases = InductiveDefinition.cases id in
+    begin match cases with
     | [case] ->
       (* TODO: Avoid this by doing preprocessing of formula and IDs simultaneously. *)
       let case =
@@ -23,7 +25,11 @@ let can_be_inlined id =
       SL.is_quantifier_free case
       && SL.is_symbolic_heap case
       && not @@ SID.is_self_recursive id.name
-    | _ -> false
+
+      (* Currently, multiple cases can be inlined only when all of them are atomic *)
+      | cases -> List.for_all SL.is_atomic cases
+  end
+  with Not_found -> false
 
 let inline name xs =
   Logger.debug "Inlining predicate %s(%s)\n" name (SL.Term.show_list xs);
@@ -35,12 +41,12 @@ let inline name xs =
 
 let inline phi =
   SL.map_view (function
-    | Predicate (name, xs, []) when can_be_inlined (SID.find_user_defined name) -> `Modify (inline name xs)
+    | Predicate (name, xs, []) when can_be_inlined name -> `Modify (inline name xs)
     | _ -> `Skip
   ) phi
 
 let inline phi =
-  Logger.debug "Running inlining";
+  Logger.debug "Running inlining\n";
   let phi' = inline phi in
   if SL.equal phi phi' then phi
   else inline phi'
