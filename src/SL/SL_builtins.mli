@@ -25,3 +25,5 @@ val mk_ls : SL.Term.t -> sink:SL.Term.t -> SL.t
 val mk_dls : SL.Term.t -> sink:SL.Term.t -> root':SL.Term.t -> sink':SL.Term.t -> SL.t
 
 val mk_nls : SL.Term.t -> sink:SL.Term.t -> bottom:SL.Term.t -> SL.t
+
+val mk_freed : SL.Term.t -> SL.t

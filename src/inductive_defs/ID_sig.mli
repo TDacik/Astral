@@ -28,6 +28,8 @@ module type BUILTIN_BASE = sig
 
   val sl_graph : instance -> SL_graph0.t
 
+  val additional_bound : int
+
   val rules : SL.Variable.t list * StructDef.t list -> SL.t list
 
 

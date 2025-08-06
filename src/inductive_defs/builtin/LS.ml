@@ -65,6 +65,8 @@ let term_bound phi heap_sort x =
     | SymbolicHeap_ENTL -> 1.0
     | Positive | Arbitrary -> 2.0
 
+let additional_bound = 0
+
 let rules ([x; y], [def]) =
   let sort = SL.Variable.get_sort x in
   let [x; y] = List.map SL.Term.of_var [x; y] in

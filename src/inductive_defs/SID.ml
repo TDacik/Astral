@@ -72,6 +72,7 @@ let preprocess_user_definitions fn =
 
 (** {2 Parsing} *)
 
+
 let instantiate heap_sort name operands = match find name with
   | Builtin (module B : BUILTIN) -> B.instantiate heap_sort operands
   | UserDefined id -> Result.Ok (SL.mk_predicate name operands)
@@ -111,6 +112,12 @@ let term_bound phi g heap_sort x =
    in
    max acc bound
 ) !sid Float.one
+
+let additional_bounds () =
+  M.fold (fun _ pred acc -> match pred with
+    | Builtin (module B : BUILTIN) -> acc + B.additional_bound
+    | UserDefined id -> 0
+  ) !sid 0
 
 let abstraction name =  match find name with
   | UserDefined id -> PredicateAbstraction.M.find id !cache

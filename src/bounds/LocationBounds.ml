@@ -68,8 +68,9 @@ let compute_positive heap_sort sort g phi =
     | SymbolicHeap_ENTL -> 1
     | Positive | Arbitrary -> 0
   in
-  let allocated = compute_allocated heap_sort sort g phi + bonus in
-  let total = compute_total heap_sort sort g phi + bonus in
+  let pred_bonus = SID.additional_bounds () in
+  let allocated = compute_allocated heap_sort sort g phi + bonus + pred_bonus in
+  let total = compute_total heap_sort sort g phi + bonus + pred_bonus in
   let allocated, total = match Sort.cardinality sort with
     | None -> allocated, total
     | Some bound -> min (bound - 1) allocated, min (bound - 1) total
