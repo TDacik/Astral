@@ -74,6 +74,8 @@ module Heap : sig
   include MONO_MAP with type key := Location.t and type data := Value.t
   (** Heap is a mapping from locations to values. *)
 
+  val disjoint_union : t list -> t
+
   val find_field : Field.t -> Location.t -> t -> Location.t
 
   val to_smtlib : t -> string

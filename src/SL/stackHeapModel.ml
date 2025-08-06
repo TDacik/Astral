@@ -128,8 +128,11 @@ module Heap = struct
 
   include Location.MonoMap(Value)
 
-  (** Partial field access *)
+  let disjoint_union = function
+    | [] -> empty
+    | h :: hs -> List.fold_left (union (fun _ _ _ -> failwith "not disjoint")) h hs
 
+  (** Partial field access *)
   let find_field field x heap = match find x heap with
     | Struct (def, xs) ->
       let index = StructDef.field_index def field in
