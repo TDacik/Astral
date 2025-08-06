@@ -66,7 +66,6 @@ module Init () = struct
     | SMT.Variable var -> translate_arr_var var
     | SMT.ConstArr (const, dom_sort) ->
       let sort = Sort.mk_array dom_sort (SMT.get_sort const) in
-      Sort.print sort;
       BW.Term.Ar.make (translate_arr_sort sort) (translate const)
     | SMT.Store (a, i, v) -> BW.Term.Ar.store (translate_arr a) (translate i) (translate v)
 
