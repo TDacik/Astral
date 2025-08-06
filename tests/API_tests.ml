@@ -63,6 +63,13 @@ let nls_test2 () =
   let phi = mk_nls nil ~sink:nil ~bottom:nil in
   assert (Solver.check_sat solver phi)
 
+(** Freed *)
+
+let freed_test1 () =
+  let solver = Solver.init () in
+  let phi = SL_builtins.mk_freed x in
+  assert (Solver.check_sat solver phi)
+
 (** Custom memory model *)
 
 let memory_model_test () =
@@ -166,6 +173,9 @@ let () =
     "NLS", [
       test_case "nls(x, y, z)"       `Quick nls_test1;
       test_case "nls(nil, nil, nil)" `Quick nls_test2;
+    ];
+    "freed", [
+      test_case "freed(x)" `Quick freed_test1;
     ];
 
 
