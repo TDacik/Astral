@@ -113,9 +113,9 @@ let term_bound phi g heap_sort x =
    max acc bound
 ) !sid Float.one
 
-let additional_bounds () =
+let additional_bounds phi =
   M.fold (fun _ pred acc -> match pred with
-    | Builtin (module B : BUILTIN) -> acc + B.additional_bound
+    | Builtin (module B : BUILTIN) -> acc + B.additional_bound phi
     | UserDefined id -> 0
   ) !sid 0
 

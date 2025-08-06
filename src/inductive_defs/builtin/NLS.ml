@@ -76,7 +76,7 @@ module Self0 = struct
       | SymbolicHeap_ENTL -> 1.0
       | Positive | Arbitrary -> 2.0
 
-  let additional_bound = 0
+  let additional_bound _ = 0
 
   let rules ([x; y; z], [top_node; next_node]) =
     let sort_top, sort_next = sorts top_node in
