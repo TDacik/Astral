@@ -46,3 +46,35 @@ let rec sublists = function
   | x :: xs ->
     let subs = sublists xs in
     subs @ List.map (fun l -> x :: l) subs
+
+module Relation (X : Datatype_sig.COMPARISON) = struct
+
+  module X = struct
+    include X
+    let hash = Hashtbl.hash
+    let equal x y = X.compare x y == 0
+  end
+
+  module G = struct
+    module G0 = Graph.Persistent.Graph.Concrete(X)
+    include G0
+    include Graph.Oper.P(G0)
+  end
+
+  let transitive_closure_of_graph g =
+    let g' = G.transitive_closure g in
+    G.fold_edges (fun u v acc -> (u, v) :: acc) g' []
+
+  let transitive_closure xs =
+    let g = List.fold_left (fun g (u, v) -> G.add_edge g u v) G.empty xs in
+    transitive_closure_of_graph g
+
+  let transitive_closure_list xs =
+    let add_edge_list g xs =
+      diagonal_product xs
+      |> List.fold_left (fun acc (u, v) -> G.add_edge acc u v) g
+    in
+    let g = List.fold_left (add_edge_list) G.empty xs in
+    transitive_closure_of_graph g
+
+end

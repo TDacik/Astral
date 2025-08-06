@@ -164,36 +164,39 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
               axioms
               ) cases
             in
-            let bound = LocationBounds.sum ctx.location_bounds - 1 in (* For nil *)
-            let allocated = List.map (Translation.translate_term ctx) allocated in
-            cache := SL.Map.add res (Footprints.mk_non_unique_footprint ctx ~allocated bound abs id xs) !cache;
-            res
-        in
-        `Modify result*)
-      | _ -> `Skip
-    ) phi
+            (*
+            let fps =
+              List.map (List.map (Translation.translate_term ctx)) cases
+              |> List.map (fun c -> SMT.Sets.mk_constant ctx.fp_sort c)
+            in
+            cache := PrecomputedFootprints.add res fps !cache;
+            Logger.dump ~filename:("toplevel_" ^ Int.to_string @@ FpCounter.next ()) (phi, res, fps);
+            *)
+            `Modify res*)
+          (*else
+            `Modify (unfold_pred ~existentials:S.empty ~must_allocated:[] ~allocated:[] ctx bound sid id xs)
+          *)
+        | _ -> `Skip
+      ) phi
 
-  type footprint_map = (SMT.t list) SL.Map.t
+    let unfold input lhs rhs =
+      let module C = Translation_context.Make(Encoding.Locations)(Encoding.HeapEncoding) in
+      Profiler.add "Unfolding";
+      let ctx = C.init input in
+      let bound = LocationBounds.sum input.location_bounds - 1 in (* For nil *)
+      let sid = SID.id_map () in
 
-  let unfold input lhs rhs : (SL.t * footprint_map) =
-    let module C = Translation_context.Make(Encoding.Locations)(Encoding.HeapEncoding) in
-    Profiler.add "Unfolding";
-    cache := SL.Map.empty;
-    let ctx = C.init input in
-    let bound = LocationBounds.sum input.location_bounds - 1 in (* For nil *)
-    let id_map = SID.id_map () in
-    lhs_t := lhs;
-    (** TODO: add axioms to lhs *)
-    let base = Backend.push lhs in
-    let res = match Backend.check_sat lhs with
-      | SMT_Unsat _ ->
-        Logger.debug "LHS is UNSAT\n";
-        SL.tt
-      | _ -> unfold_predicate ~boundaries:[] bound ctx id_map rhs
-    in
-    Backend.pop 1;
-    Logger.debug "Performed %d SMT queries\n" !cnt;
-    res, !cache
+      Backend.push lhs; (* TODO: could axioms help? *)
 
+      let res = match Backend.check_sat lhs with
+        | SMT_Unsat _ ->
+          Logger.debug "LHS is UNSAT\n";
+          SL.tt
+        | _ -> unfold_toplevel ctx bound sid rhs
+      in
+
+      Backend.pop 1;
+      Logger.debug "Performed %d SMT queries (%d)\n" (QueryCounter.get ()) (SL.size res);
+      res
 
 end

@@ -77,15 +77,14 @@ let unfold_rhs ctx bound lhs rhs =
   Unfolder.unfold bound lhs rhs
 
 let apply_aux ctx phi =
-  let empty_fp : (SMT.t list) SL.Map.t = SL.Map.empty in
-  if not @@ SLID.has_user_defined_predicates phi then ctx, empty_fp
+  if not @@ SLID.has_user_defined_predicates phi then ctx
   else
     let open Context in
     let location_bound = ctx.location_bounds in
     Logger.debug "Unfolding %s\n" (SL.show phi);
     match SL.view phi with
       | _ when SL.is_symbolic_heap phi ->
-        {ctx with phi = unfold_sat phi}, empty_fp
+        {ctx with phi = unfold_sat phi}
       | GuardedNeg (lhs, rhs) ->
         let ctx_lhs = QuantifierElimination.apply_ctx @@
           {ctx with phi = Simplifier.simplify @@ unfold_lhs location_bound phi lhs}
@@ -93,13 +92,10 @@ let apply_aux ctx phi =
         let lhs = ctx_lhs.phi in
         Debug.formula ~suffix:"LHS" lhs;
         let sl_graph = SL_graph.compute lhs in
-        let rhs, map = unfold_rhs ctx ctx lhs rhs in
-        {ctx with phi = SL.mk_gneg lhs rhs; model_adapter = ctx_lhs.model_adapter}, map
-    | _ -> ctx, empty_fp
+        let rhs = unfold_rhs ctx ctx lhs rhs in
+        {ctx with phi = SL.mk_gneg lhs rhs; model_adapter = ctx_lhs.model_adapter}
+    | _ -> ctx
 
-let apply ctx phi = fst @@ apply_aux ctx phi
+let apply ctx phi = apply_aux ctx phi
 
-let apply_ctx ctx =
-  let open Context in
-  let ctx', precomputed_footprints = apply_aux ctx ctx.phi in
-  {ctx' with precomputed_footprints}
+let apply_ctx ctx = apply ctx ctx.phi

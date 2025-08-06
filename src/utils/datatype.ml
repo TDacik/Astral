@@ -57,26 +57,6 @@ module Collections (M : COMPARISON) = struct
 
   type t = M.t [@@ ocaml.warning "-34"]
 
-  (** Monomorphic list *)
-  module MonoList = struct
-    type key = M.t
-
-    module P = Printable(M)
-    module C = Comparable(M)
-
-    let show = P.show_list ~separator:","
-    let compare = List.compare M.compare
-    let equal = List.equal C.equal
-
-    include Printable(struct
-       type t = M.t list
-       let show = show
-    end)
-
-    let sort = List.sort M.compare
-
-  end
-
   module Set = struct
 
     include BatSet.Make(M)
@@ -94,8 +74,34 @@ module Collections (M : COMPARISON) = struct
        let show = show
      end)
 
+  end
+
+  (** Monomorphic list *)
+  module MonoList = struct
+    type key = M.t
+
+    module P = Printable(M)
+    module C = Comparable(M)
+
+    let show = P.show_list ~separator:","
+    let compare = List.compare M.compare
+    let equal = List.equal C.equal
+
+    include Printable(struct
+       type t = M.t list
+       let show = show
+    end)
+
+    let sort = List.sort M.compare
+    let inter xs1 xs2 = Set.(elements @@ (inter (of_list xs1) (of_list xs2)))
+
+    let rec inter_list = function
+      | [] -> raise @@ Invalid_argument "Intersection of empty list"
+      | [xs] -> xs
+      | xs :: rest -> inter xs @@ inter_list rest
 
   end
+
 
   module Map = struct
 

@@ -72,6 +72,11 @@ module type MONO_LIST = sig
 
   val sort : t -> t
 
+  val inter : t -> t -> t
+  (** Does not preserve element's ordering. *)
+
+  val inter_list : t list -> t
+
 end
 
 module type MAP = sig

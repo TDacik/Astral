@@ -20,10 +20,6 @@ type ('locs, 'heap) t = {
     under_star : bool;
     polarity : bool;
 
-    precomputed_footprints : (SMT.t list) SL.Map.t;
-    (** Mapping from separation logic formulae to their pre-computed footprints.
-        Currently only used for disjunctions. *)
-
     (* Translation sorts *)
     loc_sort : Sort.t;
     fp_sort : Sort.t;

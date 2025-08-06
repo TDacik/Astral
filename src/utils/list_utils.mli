@@ -22,3 +22,17 @@ val map3 : ('a -> 'b -> 'c -> 'd) -> 'a list -> 'b list -> 'c list -> 'd list
 val zip3 : 'a list -> 'b list -> 'c list -> ('a * 'b * 'c) list
 
 val sublists : 'a list -> 'a list list
+
+
+(** {2 Relations as lists} *)
+
+module Relation (X : Datatype_sig.COMPARISON) : sig
+
+  type 'a relation := ('a * 'a) list
+
+  val transitive_closure : X.t relation -> X.t relation
+
+  val transitive_closure_list : X.t list list -> X.t relation
+  (** Given list of equivalence classes, compute the transitive closure. *)
+
+end

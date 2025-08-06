@@ -51,9 +51,6 @@ module Make
       under_star = false;
       polarity = true;
 
-      precomputed_footprints = context.precomputed_footprints;
-      (* TODO: is it necessary to have it in both? *)
-
       loc_sort = loc_sort;
       fp_sort = fp_sort;
 
