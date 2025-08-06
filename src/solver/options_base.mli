@@ -11,6 +11,8 @@ val _produce_models : bool ref
 val parse : unit -> unit
 (** Parse command-line options and return path to the input file. *)
 
+val version : unit -> bool
+
 val interactive : unit -> bool
 val set_interactive : bool -> unit
 

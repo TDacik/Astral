@@ -13,7 +13,7 @@ type backend = [`Bitwuzla | `CVC5 | `Z3 | `Auto ]
 type encoding = [`Bitvectors | `Sets]
 type quantifier_encoding = [`Direct | `Enum]
 
-val parse : unit -> string
+val parse : version:string -> string
 
 val backend : unit -> (module BACKEND)
 val set_backend : backend -> unit

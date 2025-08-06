@@ -168,16 +168,20 @@ let print_backend_help () =
   backend_detail (module Yices_backend : BACKEND);
   backend_detail (module Boolector_backend : BACKEND)
 
-let call_helps () =
-  if Options_base.backend_help () then (
+let call_helps ~version =
+  if Options_base.version () then (
+    Format.printf "%s" version;
+    exit 0
+  )
+  else if Options_base.backend_help () then (
     print_backend_help ();
     exit 0
   )
   else ()
 
-let parse () =
+let parse ~version =
   Options.parse ();
-  call_helps ();
+  call_helps ~version;
   check ();
   _set_debug ();
   UnicodeSymbols.easter_eggs (Options.easter_eggs () || Options.debug ());

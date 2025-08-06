@@ -4,7 +4,7 @@
 
 let run () =
   Astral.Profiler.add "Start";
-  let input_file = Astral.Options.parse () in
+  let input_file = Astral.Options.parse ~version:(BuildInfo.version ()) in
   Astral.Debug.init (); (* Debug initialisation needs to be called after options' parsing *)
   Astral.Logger_state.init ();
   Printexc.record_backtrace (Astral.Options.debug ());

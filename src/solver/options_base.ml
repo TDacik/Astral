@@ -5,6 +5,9 @@
 
 let usage_msg = "astral [options] <input>"
 
+let _version = ref false
+let version () = !_version
+
 let _interactive = ref false
 let interactive () = !_interactive
 let set_interactive flag = _interactive := flag
@@ -255,6 +258,7 @@ let speclist =
     ("--unicode", Arg.Set _unicode,   "Use unicode in output");
     ("--dry-run", Arg.Set _dry_run,   "Only translate formula and return unknown");
     ("--profile", Arg.Set _profile,   "Print profiling information");
+    ("--version", Arg.Set _version,   "Show version and exit");
 
 
     (* Hidden *)
