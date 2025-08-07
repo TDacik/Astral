@@ -27,9 +27,10 @@ let has_user_defined_predicates phi =
   in
   not @@ List.is_empty uids
 
+
 let rec get_structs ?(visited=[]) (phi : SL.t) =
-  SL.select_subformulae SL.is_spatial_atom phi
-  |> List.concat_map (fun psi -> match SL.view psi with
+  let atoms = SL.select_subformulae SL.is_spatial_atom phi in
+  atoms |> List.concat_map (fun psi -> match SL.view psi with
        | PointsTo (_, s, _) -> [s]
        | Predicate (pred, _, _) -> SID.get_structs visited (fun visited -> get_structs ~visited) pred
        | _ -> []

@@ -496,6 +496,9 @@ module Boolean = struct
     | Application (Distinct, [x; y]) -> Equality.mk_eq [x; y]
     | other -> mk_app Not [other]
 
+  (* IfThenElse is a sequence [guard1, case1, guard2, case2, ..., else].
+     Such an representation is not nice, but it is hidden by view types. *)
+
   let mk_ite cond b_then b_else = match cond with
     | c when equal c tt -> b_then
     | c when equal c ff -> b_else
@@ -563,6 +566,10 @@ module Sets = struct
     | Application (Enum _, xs) -> Set.of_list xs
     | set -> raise @@ Invalid_argument ("Not a constant set " ^ show set)
 
+  let is_empty_constant term =
+    try Set.is_empty @@ as_constant term
+    with Invalid_argument _ -> false
+
   let mk_sort = Sort.mk_set
 
   let mk_constant sort =
@@ -593,7 +600,12 @@ module Sets = struct
   let mk_add set elem = mk_union (Sort.mk_set @@ get_sort elem) [set; mk_singleton elem]
   let mk_diff lhs rhs = mk_app Diff [lhs; rhs]
   let mk_compl set = mk_app Compl [set]
-  let mk_mem elem set = mk_app Membership [elem; set]
+
+  let mk_mem elem set =
+    if !do_simplification && is_empty_constant set then Boolean.ff
+    else mk_app Membership [elem; set]
+
+
   let mk_subset lhs rhs = mk_app Subset [lhs; rhs]
   let mk_eq_empty set = mk_eq [set; mk_empty @@ get_sort set]
   let mk_eq_singleton set elem = mk_eq [set; mk_singleton elem]
@@ -622,7 +634,6 @@ module Array = struct
   let mk_select arr index =
     assert (Sort.is_array @@ get_sort arr);
     assert (Sort.equal (get_sort index) (Sort.get_dom_sort @@ get_sort arr));
-
     mk_app Select [arr; index]
 
   let mk_store arr index value = mk_app Store [arr; index; value]

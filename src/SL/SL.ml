@@ -184,9 +184,10 @@ let mk_pure smt =
 
 let mk_not phi = BaseLogic.mk_app Not [phi]
 
-let negate_pure phi = match view phi with
+let rec negate_pure phi = match view phi with
   | Distinct xs -> mk_eq xs
   | Eq xs -> mk_distinct xs
+  | Star xs -> mk_or @@ List.map negate_pure xs (* Treat star as classical conjunction *)
 
 (** Simplify to emp, instead of true *)
 let mk_eq xs =
@@ -204,6 +205,12 @@ let mk_ite cond b_then b_else =
     else BaseLogic.Boolean.mk_ite cond b_then b_else
   end
   else BaseLogic.Boolean.mk_ite cond b_then b_else
+
+(** Copied from BaseLogic *)
+let mk_mupliple_ite branches t_else = match branches with
+  | (c, t) :: rest -> mk_ite c t (mk_multiple_ite rest t_else)
+  | [] -> t_else
+
 
 (** Redefine to do not continue under atoms *)
 let rec select_subformulae pred phi =
@@ -330,6 +337,10 @@ let is_negation_free =
     | Application (Not, _) | Application (GuardedNot, _) -> false
     | _ -> true
   )
+
+let as_equality phi = match view phi with
+  | Eq xs -> Some xs
+  | _ -> None
 
 let as_pointer phi = match view phi with
   | PointsTo (x, def, ys) -> (x, def, ys)

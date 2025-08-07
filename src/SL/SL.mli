@@ -262,6 +262,8 @@ type query =
   | SymbolicHeap_ENTL of t * t
   | Arbitrary of t
 
+val as_equality : t -> Term.t list option
+
 val as_pointer : t -> Term.t * StructDef.t * Term.t list
 
 val as_predicate : t -> string * Term.t list
