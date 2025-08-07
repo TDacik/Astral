@@ -26,7 +26,7 @@ let rec candidate_conditions phi = match SL.view phi with
         SL.mk_eq2 y rhs
       ) fields ys
     |> (fun tl -> SL.mk_distinct [x; SL.Term.nil] :: tl)
-  | Star psis -> List.concat_map candidate_conditions psis
+  | And psis | Star psis -> List.concat_map candidate_conditions psis
   | Exists (xs, psi) ->
     List.filter (SL.is_ground' ~forbidden:xs) @@ candidate_conditions psi
   | Predicate (pred, xs, []) -> SID.param_conditions pred xs
