@@ -5,7 +5,7 @@
 module Self =  struct
 
   let name = "freed"
-  let arity = 1
+  let signature = [Sort.loc_nil]
 
   let default_instantiation = []
   let instantiate _ [x] = Result.ok (SL.mk_predicate "freed" [x])
