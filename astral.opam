@@ -16,6 +16,7 @@ bug-reports: "https://github.com/TDacik/Astral/issues"
 depends: [
   "dune" {>= "3.17"}
   "ocaml" {>= "5.1.0"}
+  "dunw-build-info"
   "batteries"
   "dolmen" {= "0.10"}
   "ocamlgraph"
