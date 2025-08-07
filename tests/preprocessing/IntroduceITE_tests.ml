@@ -38,14 +38,34 @@ let test6 () =
   let expected = SL.mk_ite (y == nil) (x |-> y) (y |-> z) in
   SL.check_apply IntroduceIfThenElse.apply ~input ~expected
 
+let multiple_test1 () =
+  let b1 = w |-> nil in
+  let b2 = x |-> nil in
+  let b3 = y |-> nil in
+  let b4 = z |-> nil in
+  let c1 = SL.mk_star [b1; x == nil; y == nil] in
+  let c2 = SL.mk_star [b2; x == nil; y != nil] in
+  let c3 = SL.mk_star [b3; x != nil; y == nil] in
+  let c4 = SL.mk_star [b4; x != nil; y != nil] in
+  let input = SL.mk_or [c1; c2; c3; c4] in
+  let expected =
+    SL.mk_ite (y == nil)
+      (SL.mk_ite (x == nil) c1 c3)
+      (SL.mk_ite (x == nil) c2 c4)
+  in
+  SL.check_apply IntroduceIfThenElse.apply ~input ~expected
+
 let () =
   run "Introduce if-then-else" [
-    "apply", [
-      test_case "Test 1" `Quick test1;
-      test_case "Test 2" `Quick test2;
-      test_case "Test 3" `Quick test3;
-      test_case "Test 4" `Quick test4;
-      test_case "Test 5" `Quick test5;
-      test_case "Test 6" `Quick test6;
+    "simple", [
+      test_case "Simple 1" `Quick test1;
+      test_case "Simple 2" `Quick test2;
+      test_case "Simple 3" `Quick test3;
+      test_case "Simple 4" `Quick test4;
+      test_case "Simple 5" `Quick test5;
+      test_case "Simple 6" `Quick test6;
+    ];
+    "multiple", [
+      test_case "Multiple 1" `Quick multiple_test1;
     ];
   ]

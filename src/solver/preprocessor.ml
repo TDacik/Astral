@@ -5,6 +5,8 @@
 open SL
 open Context
 
+module Logger = Logger.Make(struct let level = 1 let name = "preprocesssor" end)
+
 let counter = ref 0
 
 type pass = (Context.t -> Context.t) * string
@@ -42,6 +44,7 @@ let remove_unused_elements ?(with_vars=false) ctx =
   let defs = List.filter is_used_def ctx.defs in
   let heap_sort = filter_heap_sort ctx.heap_sort sorts in
   let inductive_preds = List.filter is_used_pred ctx.inductive_preds in
+
   {ctx with sorts; heap_sort; defs; inductive_preds}
 
 
@@ -60,6 +63,8 @@ let rewrite_semantics ctx = match Options_base.semantics () with
 let first_phase context =
   counter := 0;
   SID.normalise ();
+
+  BaseLogic.use_simplification false;
 
   apply_list context [
     NegationNormalisation.apply_ctx, "normalisation";
@@ -85,11 +90,8 @@ let second_phase_aux aggresive context =
   let ctx'' = apply_list ctx' [
     Simplifier.simplify_ctx, "simplification";
     AggresiveSimplifier.apply_ctx, "simplification 2";
-
-    (* TODO: Currently, unfolding needs to be the last preprocessing to not
-             break the footprint mapping. *)
     UnfoldIDs.apply_ctx, "predicate_unfolding";
-    QuantifierElimination.apply_ctx, "quantifier_eliminitation";
+    QuantifierElimination.apply_ctx, "quantifier_elimination";
   ]
   in
   remove_unused_elements ctx''

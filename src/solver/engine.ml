@@ -47,18 +47,19 @@ let solve (input : Context.t) =
 
     Debug.out_input input;
 
-    SID.preprocess_user_definitions PredicatePreprocessing.preprocess;
-
     let bounds = LocationBounds.compute input.phi input.raw_input.heap_sort sl_graph in
     let input = Context.add_metadata input sl_graph bounds in
 
     Debug.context input;
 
     BaseLogic.use_simplification true;
+    SID.preprocess_user_definitions PredicatePreprocessing.preprocess;
 
     let input = Preprocessor.second_phase input in
     Profiler.add "Preprocessor";
-    Logger.debug "%s" (ModelAdapter.show input.model_adapter);
+    Logger.debug "Preprocessing finished\n";
+
+    Logger.debug "%s\n" (ModelAdapter.show input.model_adapter);
 
     let input = Context.add_metadata input sl_graph bounds in
 

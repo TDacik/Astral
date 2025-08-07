@@ -34,6 +34,11 @@ let rewrite_semantics phi = match Options_base.semantics () with
   | `Precise -> phi
   | `Imprecise -> PreciseToImprecise.to_precise phi
 
+let rec repeat_until_fixpoint ~eq f x =
+  let x' = f x in
+  if eq x x' then x
+  else repeat_until_fixpoint ~eq f x'
+
 let normalise (pred : t) =
   let module Logger = (val make_logger pred : LOGGER) in
   (* Before checking, we need to eliminate quantifiers *)
@@ -60,7 +65,14 @@ let preprocess (pred : t) =
   let pred = preprocess_cases qelim pred in
   Logger.dump pred "_4-quntifier-elim";
 
+  let pred = InductiveDefinition.map Simplifier.simplify pred in
+  Logger.dump pred "_5_simplifier";
+
+  (* Needs to be last as it introduces disjunctive rules *)
+  let pred = RuleAntiunification.apply pred in
+  Logger.dump pred "_6_generalisation";
+
   let forbidden_vars = SID.existentials pred in
-  let pred = InductiveDefinition.map (IntroduceIfThenElse.apply ~forbidden_vars) pred in
-  Logger.dump pred "_5-introduce-ite";
+  let pred = InductiveDefinition.map (repeat_until_fixpoint ~eq:SL.equal @@ IntroduceIfThenElse.apply ~forbidden_vars) pred in
+  Logger.dump pred "_7-introduce-ite";
   Some pred
