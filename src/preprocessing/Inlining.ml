@@ -17,7 +17,7 @@ let can_be_inlined name =
         PreciseToImprecise.to_precise case
         |> QuantifierElimination.apply SL_graph.empty
       in
-      Logger.debug "Checking %s (qf: %b, sh: %b, %b)"
+      Logger.debug "Checking %s (qf: %b, sh: %b, not self-recursive: %b)\n"
         (SL.show case)
         (SL.is_quantifier_free case)
         (SL.is_symbolic_heap case)

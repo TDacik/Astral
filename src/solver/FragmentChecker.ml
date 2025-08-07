@@ -16,7 +16,8 @@ let check_low_level_sl ctx =
 
 (** Checks for individual inductive definitions *)
 
-let rec check_progress psi = SL.is_atomic psi || (match SL.view psi with
+let rec check_progress psi =
+  SL.is_atomic psi || (match SL.view psi with
     | Exists (_, psi) -> check_progress psi
     | Star psis -> List.exists check_progress psis
     | PointsTo _ -> true

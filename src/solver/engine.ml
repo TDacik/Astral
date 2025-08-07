@@ -19,15 +19,18 @@ let debug_info input = match SL.classify_fragment input.phi with
 
 (** Apply necessary transformations to input formula and SID.
 
-    Note: Normalisation needs to be run on formula first to correctly handle inlining
-          (first inline and the remove inlined IDs from SID). *)
+    Note: It is necessary to first initialize SID and predicate dependency
+          graph to perform inlining correctly. Inlined predicates are removed
+          by re-initializing SID.*)
 let normalise input =
-  let input = Preprocessor.first_phase input in
-  SID.preprocess_user_definitions PredicatePreprocessing.normalise;
   SID.init ();
+  let input = Preprocessor.first_phase input in
+  SID.init ();
+  SID.preprocess_user_definitions PredicatePreprocessing.normalise;
   input
 
 let solve (input : Context.t) =
+  Logger.debug "Normalisation\n";
   let input = normalise input in
 
   let sl_graph = SL_graph.compute input.phi in
