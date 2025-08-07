@@ -24,7 +24,7 @@ let ls_two_plus =
   let header = SL.Variable.mk_list loc_ls ["x"; "y"] in
   let [x; y] = List.map SL.Term.of_var header in
   ID.mk "ls_2_plus" header @@
-    SL.mk_exists' [loc_ls] (fun [n; m] ->
+    SL.mk_exists' [loc_ls; loc_ls] (fun [n; m] ->
       SL.mk_star [
         SL.mk_pto x n;
         SL.mk_pto n m;
@@ -52,7 +52,7 @@ let dls_three_plus =
   let header = SL.Variable.mk_list loc_dls ["x"; "y"; "x'"; "y'"] in
   let [x; y; x'; y'] = List.map SL.Term.of_var header in
   ID.mk "dls_3_plus" header @@
-    SL.mk_exists' [loc_ls] (fun [n1; n2; n3] ->
+    SL.mk_exists' [loc_dls; loc_dls; loc_dls] (fun [n1; n2; n3] ->
       SL.mk_star [
         mk_pto_dls x ~next:n1 ~prev:y';
         mk_pto_dls n1 ~next:n2 ~prev:x;
@@ -68,11 +68,11 @@ let nls =
   ID.mk "nls" header @@
     SL.mk_or [
       SL.mk_eq [x; y];
-      SL.mk_exists' [loc_ls] (fun [top; next] ->
+      SL.mk_exists' [loc_nls; loc_ls;] (fun [top; next] ->
         SL.mk_star [
           SL.mk_distinct [x; y];
           mk_pto_nls x ~top ~next;
-          SL.mk_predicate "nls" [top; y];
+          SL.mk_predicate "nls" [top; y; z];
           SL.mk_predicate "ls" [next; z];
     ])]
 
@@ -81,7 +81,7 @@ let nls_two_plus =
   let header = SL.Variable.mk_list loc_nls ["x"; "y"] @ [SL.Variable.mk "z" loc_ls] in
   let [x; y; z] = List.map SL.Term.of_var header in
   ID.mk "nls_two_plus" header @@
-    SL.mk_exists' [loc_nls] (fun [t1; t2; n1; n2] ->
+    SL.mk_exists' [loc_nls; loc_nls; loc_ls; loc_ls] (fun [t1; t2; n1; n2] ->
       SL.mk_star [
         mk_pto_nls x ~top:t1 ~next:n1;
         mk_pto_nls t1 ~top:t2 ~next:n2;
