@@ -103,6 +103,9 @@ let init
 let set_heap_sort heap_sort solver =
   {solver with heap_sort = heap_sort}
 
+let add_inductive_definition solver def =
+  SID.register_user_defined def
+
 let _solve solver phi =
   reset ();
   activate solver;
