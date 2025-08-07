@@ -51,7 +51,7 @@ let is_contradiction atom1 atom2 = match SL.view atom1, SL.view atom2 with
 
 let rec split phi = match SL.view phi with
   | Eq _ | Distinct _ | PointsTo _ | Predicate _ -> [], [phi]
-  | Star psis -> [], psis
+  | And psis | Star psis -> [], psis (* TODO: should and be here? *)
   | Ite _ -> [], [phi] (* TODO? *)
   | Exists (xs, body) ->
     let xs', args = split body in
