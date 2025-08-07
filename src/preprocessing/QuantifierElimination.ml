@@ -101,7 +101,7 @@ let apply sl_graph phi =
   if SL.is_quantifier_free phi then phi
   else
     remove_useless phi
-    |> RemoveVariadic.apply
+    |> RemoveVariadic.apply ~symbolic_heap:true (* TODO: is removal needed? *)
     |> remove_determined sl_graph
 
 let apply_ctx ctx =
