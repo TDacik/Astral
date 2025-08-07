@@ -37,6 +37,10 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
   let translate_block_end ctx x = SMT.Array.mk_select ctx.block_end x
 
+  (* let translate_term ctx term =
+   TODO: SMT terms
+    Locations.translate_term ctx.locs ctx.heap term
+    *)
   let rec translate_term ctx t = match SL.Term.view t with
     | SL.Term.Var x -> SMT.of_var @@ Locations.translate_var ctx.locs x
     | SL.Term.HeapTerm (f, x) -> translate_heap_term ctx f (translate_term ctx x)
@@ -202,19 +206,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     let semantics = Boolean.mk_or semantics in
     let axioms = Boolean.mk_and axioms in
-
-    (* Check whether there exists some precomputed footprint. If yes, use it. *)
-    let footprints =
-      try Footprints.of_list @@ SL.Map.find (SL.mk_or psis) ctx.precomputed_footprints
-      with Not_found -> (*
-        if not @@ ctx.can_skolemise then
-        (Logger.debug "%s\n\n" @@ SL.Map.show (SMT.show_list) ctx.precomputed_footprints;
-        failwith @@ SL.show (SL.mk_or psis))
-        else
-        if not @@ ctx.can_skolemise then
-          failwith @@ SL.show (SL.mk_or psis)
-        else*) List.fold_left Footprints.union Footprints.empty footprints
-    in
+    let footprints = List.fold_left Footprints.union Footprints.empty footprints in
     (semantics, axioms, footprints)
 
   and translate_ite ctx domain cond then_ else_ =
@@ -314,6 +306,9 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
       (* TODO: can we use lazy better? *)
       let ranges = List.map (fun x -> lazy (Footprints.elements x)) footprints in
+
+      Logger.debug "|footprints| = %s\n"
+        @@ (match Footprints.cardinal_opt fp_worklist with None -> "Top" | Some d -> string_of_int d);
 
       let fp_worklist, ranges =
         try
