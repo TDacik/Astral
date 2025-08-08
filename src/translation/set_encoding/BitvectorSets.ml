@@ -21,9 +21,10 @@ let compute_width set_sort = Sort.cardinality @@ Sort.get_dom_sort set_sort
 
 let mk_empty = function
   | Sort.Bitvector n -> Bitvector.mk_zero n
-  | other -> Utils.internal_error @@ Format.asprintf
-    "Sort of abstract sets needs to be a bitvector sort, instead sort %s is used"
-      (Sort.show other)
+  | other ->
+    Exceptions.internal_error
+      ~reason: "Set encoding: invalid set sort"
+      ~details: "Sort of abstract sets needs to be a bitvector sort, instead sort %s is used"
 
 (** Singleton set {x} is represented by `1` shifted to position x. *)
 let mk_singleton elem =
