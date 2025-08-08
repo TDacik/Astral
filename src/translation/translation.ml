@@ -79,8 +79,10 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     | SL.Pure term -> translate_pure ctx domain term
     | SL.Exists ([x], psi) -> translate_exists ctx domain x psi
     | SL.Exists (x :: xs, psi) -> translate_exists ctx domain x (SL.mk_exists xs psi)
-    | _ -> Utils.internal_error
-            (Format.asprintf "Translation: unknown term %s" (SL.show_with_sort phi))
+    | _ ->
+      Exceptions.internal_error
+        ~reason: "Translation: unexpected formula"
+        ~details: (SL.show phi)
 
   and translate_true ctx domain =
     (Boolean.tt, Boolean.tt, Footprints.singleton @@ Sets.mk_empty ctx.fp_sort)
