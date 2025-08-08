@@ -42,13 +42,17 @@ let solve (input : Context.t) =
     Profiler.add "Normalisation";
 
     (** Small model should be computed on normalised, but non-preprocessed definition *)
-    let distinguishers = SID_checks.compute_distinguishers !SID.dg in
-    let sm = SmallModels.compute input.phi distinguishers in
-    Profiler.add "Small-models";
-    SID.cache := sm;
-    SID.distinguishers := distinguishers;
 
-    Debug.out_input input;
+    (** TODO: following is a hack for interactive mode *)
+    (if not @@ SID.is_computed () then
+      let distinguishers = SID_checks.compute_distinguishers !SID.dg in
+      let sm = SmallModels.compute input.phi distinguishers in
+      Profiler.add "Small-models";
+      SID.cache := sm;
+      SID.distinguishers := distinguishers;
+
+      Debug.out_input input
+    );
 
     let bounds = LocationBounds.compute input.phi input.raw_input.heap_sort sl_graph in
     let input = Context.add_metadata input sl_graph bounds in

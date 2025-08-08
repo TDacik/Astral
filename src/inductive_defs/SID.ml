@@ -81,6 +81,8 @@ let instantiate heap_sort name operands = match find name with
 
 let cache = ref PredicateAbstraction.M.empty
 
+let is_computed () = not @@ PredicateAbstraction.M.is_empty !cache
+
 let sl_graph name instance = match find name with
   | Builtin (module B : BUILTIN) -> B.sl_graph instance
   | UserDefined id -> SL_graph0.empty
