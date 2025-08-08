@@ -77,25 +77,24 @@ let unfold_rhs ctx bound lhs rhs =
   Unfolder.unfold bound lhs rhs
 
 let apply_aux ctx phi =
-  if not @@ SLID.has_user_defined_predicates phi then ctx
-  else
-    let open Context in
-    let location_bound = ctx.location_bounds in
-    Logger.debug "Unfolding %s\n" (SL.show phi);
-    match SL.view phi with
-      | _ when SL.is_symbolic_heap phi ->
-        {ctx with phi = unfold_sat phi}
-      | GuardedNeg (lhs, rhs) ->
-        let ctx_lhs = QuantifierElimination.apply_ctx @@
-          {ctx with phi = Simplifier.simplify @@ unfold_lhs location_bound phi lhs}
-        in
-        let lhs = ctx_lhs.phi in
-        Debug.formula ~suffix:"LHS" lhs;
-        let sl_graph = SL_graph.compute lhs in
-        let rhs = unfold_rhs ctx ctx lhs rhs in
-        {ctx with phi = SL.mk_gneg lhs rhs; model_adapter = ctx_lhs.model_adapter}
-    | _ -> ctx
+  let open Context in
+  let location_bound = ctx.location_bounds in
+  Logger.debug "Unfolding %s\n" (SL.show phi);
+  match SL.view phi with
+    | _ when SL.is_symbolic_heap phi ->
+      {ctx with phi = unfold_sat phi}
+    | GuardedNeg (lhs, rhs) ->
+      let ctx_lhs = QuantifierElimination.apply_ctx @@
+        {ctx with phi = Simplifier.simplify @@ unfold_lhs location_bound phi lhs}
+      in
+      let lhs = ctx_lhs.phi in
+      let sl_graph = SL_graph.compute lhs in
+      let rhs = unfold_rhs ctx ctx lhs rhs in
+      {ctx with phi = SL.mk_gneg lhs rhs; model_adapter = ctx_lhs.model_adapter}
+    | _ -> assert false (* Should be catched earlier *)
 
-let apply ctx phi = apply_aux ctx phi
+let apply ctx phi =
+  if not @@ SLID.has_user_defined_predicates phi then ctx
+  else apply_aux ctx phi
 
 let apply_ctx ctx = apply ctx ctx.phi

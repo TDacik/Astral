@@ -42,7 +42,15 @@ let check_inductive_definitions () =
     Result.bind acc @@ (fun _ -> check_id id)
   ) (Result.ok ())
 
+let check_formula ctx =
+  if SLID.has_user_defined_predicates ctx.phi then
+    match SL.classify_fragment ctx.phi with
+      | SL.SymbolicHeap_SAT | SL.SymbolicHeap_ENTL -> Result.Ok ()
+      | _ -> Result.error "User-defined inductive predicates supported only in the symbolic heap fragment"
+  else Result.Ok ()
+
 let check ctx =
   let* res1 = check_low_level_sl ctx in
   let* res2 = check_inductive_definitions () in
+  let* res3 = check_formula ctx in
   check_inductive_definitions ()
