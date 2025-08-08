@@ -27,7 +27,7 @@ let parser_error ?hint ctx loc msg : _ =
     | None -> Format.fprintf Format.err_formatter "\n"
     | Some l ->
       let loc = Dolmen.Std.Loc.(loc (mk_file "") l) in
-      Format.fprintf Format.err_formatter ":\nLoc:%a\n" Dolmen.Std.Loc.fmt_pos loc
+      Format.fprintf Format.err_formatter "\nLoc:%a\n" Dolmen.Std.Loc.fmt_pos loc
   end;
   begin match ctx with (* TODO: only in debug mode *)
     | Some ctx when Options.debug () ->
@@ -246,7 +246,12 @@ and parse_pointer_aux ctx source target source_loc target_loc =
          ~actual:(Sort.show @@ SL.Term.get_sort target)
          ~expected:(Sort.show expected_sort)
 
-and parse_pointer ctx [source_t; target_t] =
+and parse_pointer ctx (operands : Term.t list) =
+  let source_t, target_t = match operands with
+    | [x; y] -> x, y
+    | x :: _ -> ParserException.raise_syntax_error (Some x.loc) "Invalid pointer expression"
+    | _ -> ParserException.raise_syntax_error None "Invalid pointer expression"
+  in
   Logger.debug "  Parsing pointer %a -> %a \n" Term.print source_t Term.print target_t;
   let source = parse_term ctx source_t in
   let res = match target_t.term with
