@@ -49,16 +49,17 @@ let pretty_error (loc, ctx, error) = match error with
 
 
 module Extension = struct
-  (* TODO: fail for non declare-heap command *)
-  let statement str = Some (fun ?(loc=Loc.no_loc) terms ->
-    let name = Id.create Id.decl (Name.simple "declare-heap") in
-    {
-      id = None;
-      descr = Other {name = name; args = terms};
-      attrs = [];
-      loc = loc;
-    }
-  )
+  let statement str = match str with
+    | "declare-heap" ->
+      Some (fun ?(loc=Loc.no_loc) terms ->
+        let name = Id.create Id.decl (Name.simple str) in
+        {
+          id = None;
+          descr = Other {name = name; args = terms};
+          attrs = [];
+          loc = loc;
+        })
+    | other -> None
 end
 
 module Parser = Make(Loc)(Id)(Term)(Statement)(Extension)

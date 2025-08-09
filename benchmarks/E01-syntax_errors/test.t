@@ -7,3 +7,8 @@
   Parser error: Invalid pointer expression
   Loc:line 1, character 223-224
   [3]
+
+  $ astral 03-invalid_command.smt2
+  Parser error: 115
+  Loc:line 1, character 28-40
+  [3]
