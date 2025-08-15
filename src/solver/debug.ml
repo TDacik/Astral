@@ -66,7 +66,7 @@ let formula ?force_name ?(suffix="") phi =
     | None -> if suffix = "" then "phi" else "phi_" ^ suffix
     | Some name -> name
   in
-  debug_out (out_file ^ ".out") (SL.show phi);
+  debug_out (out_file ^ ".smt2") (SL.to_smtlib phi);
   let ast = SL.to_ast phi in
   SL.output_ast (path_ast out_file) ast
 
