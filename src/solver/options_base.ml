@@ -143,7 +143,7 @@ let backend_help () = !_backend_help
 let _backend = ref "auto"
 let backend () = !_backend
 
-let _incremental_backend = ref "z3"
+let _incremental_backend = ref "bitwuzla"
 let incremental_backend () = !_incremental_backend
 
 let _incremental_timeout = ref 5
