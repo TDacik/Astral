@@ -108,7 +108,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     and unfold_rec ~existentials ~must_allocated ~allocated ctx n sid phi =
       SL.map_view (function
-        | Predicate (name, xs, []) when not @@ SID.is_builtin name ->
+        | Predicate (name, xs, _) when SID.is_user_defined name ->
           let id = SID.get_definition name in
           `Modify (unfold_pred ~existentials ~must_allocated ~allocated ctx n sid id xs)
         | _ -> `Skip
@@ -116,7 +116,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     let unfold_toplevel ctx bound sid phi =
       SL.map_view (function
-        | Predicate (name, xs, []) when not @@ SID.is_builtin name ->
+        | Predicate (name, xs, _) when SID.is_user_defined name ->
           let id = SID.get_definition name in
           (* TODO: unsound, check FP *)
           `Modify (unfold_pred ~existentials:S.empty ~must_allocated:[] ~allocated:[] ctx bound sid id xs)
