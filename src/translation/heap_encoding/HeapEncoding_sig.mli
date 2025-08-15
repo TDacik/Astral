@@ -17,6 +17,8 @@ module type HEAP_ENCODING = sig
   val mk : ?suffix:string -> SL.t -> HeapSort.t -> Locations.t -> t
   (* TODO: perhaps parameter could be somethin more general like Input.t? *)
 
+  val get_fields : t -> Field.t list
+
   val inverse_translate : t -> SMT.Model.t -> (SMT.t * Location.t) list -> StackHeapModel.Heap.t
   (** [inverse_translate t model domain] *)
 
