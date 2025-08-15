@@ -33,6 +33,8 @@ module Term : sig
 
   val mk_var : string -> Sort.t -> t
 
+  val mk_fresh_var : string -> Sort.t -> t
+
   val mk_heap_term : Field.t -> t -> t
 
   val mk_smt : SMT.t -> t
