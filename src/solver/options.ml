@@ -104,7 +104,7 @@ let encoding () =
 (** === Setters === *)
 
 let set_backend = function
-  | `Bitwuzla -> Options_base.set_backend "bitwuzla"
+  | `Bitwuzla -> Options_base.set_backend "bitwuzla-cmd"
   | `CVC5 -> Options_base.set_backend "cvc5"
   | `Z3 -> Options_base.set_backend "z3"
   | `Auto ->

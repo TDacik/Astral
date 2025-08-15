@@ -158,10 +158,12 @@ let backend_options () = match !_backend_options with
   | "" -> []
   | options -> BatString.split_on_char ' ' options
 
+(* TODO... *)
 let set_backend = function
   | "cvc5" -> _backend := "cvc5"
   | "z3" -> _backend := "z3"
   | "bitwuzla" -> _backend := "bitwuzla"
+  | "bitwuzla-cmd" -> _backend := "bitwuzla-cmd"
   | "boolector" -> _backend := "boolector"
   | "yices2" -> _backend := "yices2"
   | other -> failwith ("unknown backend `" ^ other ^ "`")
