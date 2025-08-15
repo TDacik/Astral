@@ -89,7 +89,7 @@ let second_phase_aux aggresive context =
 
   let ctx'' = apply_list ctx' [
     Simplifier.simplify_ctx, "simplification";
-    AggresiveSimplifier.apply_ctx, "simplification 2";
+    (*AggresiveSimplifier.apply_ctx, "simplification 2";*)
     UnfoldIDs.apply_ctx, "predicate_unfolding";
     QuantifierElimination.apply_ctx, "quantifier_elimination";
   ]
