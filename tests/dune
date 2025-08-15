@@ -45,6 +45,7 @@
     alcotest
     qcheck
   )
+  (build_if %{lib-available:alcotest})
   (flags
     :standard
     -w "+a-8-40-42-44-48-70"
