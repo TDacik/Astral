@@ -1,6 +1,10 @@
+open MemoryModel
+
 (** Constructors *)
 
 val loc_nls : Sort.t
+
+val struct_nls : StructDef.t
 
 val mk_pto : SL.Term.t -> top:SL.Term.t -> next:SL.Term.t -> SL.t
 
