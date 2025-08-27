@@ -1,10 +1,13 @@
+(* Incremental unfolding of entailment RHS using incremental SMT solving.
+ *
+ * Author: Tomas Dacik (idacik@fit.vut.cz), 2025 *)
+
 module TVL = ThreeValuedLogic
 open ThreeValuedLogic
 
 module Logger = Logger.Make(struct
   let name = "Incremental unfolding"
   let level = 1
-  let dirname = "footprints"
 end)
 
 module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND) = struct
@@ -31,7 +34,6 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
   (* TODO: can be improved *)
   let abstraction ctx existentials phi =
-    (* TODO *)
     let atoms = match SL.view phi with
       | Star psis -> List.filter SL.is_atom psis
       | Eq _ | Distinct _ | PointsTo _ -> [phi]
@@ -45,18 +47,15 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
   (** Predicate unfolding
 
-      @param existentials     Existential variables introduced during the unfolding process.
-      @param must_allocated   Variables set to be must-allocated at the top level unfolding.
-      @param allocated        Terms representing allocated locations collected during unfolding. *)
-  let rec unfold_pred ~existentials ~must_allocated ~(allocated : SL.Term.t list) ctx n sid pred xs =
+      @param existentials     Existential variables introduced during the unfolding process. *)
+  let rec unfold_pred ~existentials ctx n sid pred xs =
     (* TODO: improve for non-empty base case *)
     if n = 0 then InductiveDefinition.unfold_finite pred xs
     else
       let def = InductiveDefinition.instantiate ~refresh:true pred xs in
       let continue_branch guard branch alloc_plus =
         Backend.push guard;
-        let allocated = allocated @ alloc_plus in
-        let res = unfold_rec ~existentials ~must_allocated ~allocated ctx (n-1) sid branch in
+        let res = unfold_rec ~existentials ctx (n-1) sid branch in
         Backend.pop 1;
        res
       in
@@ -65,7 +64,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         (* Just collects existentials and continue without decreasing [n]
            as nothing was unfolded. *)
         let existentials = S.union (S.of_list xs) existentials in
-        unfold_rec ~existentials ~must_allocated ~allocated ctx n sid body
+        unfold_rec ~existentials ctx n sid body
 
       | Ite (cond, t_branch, e_branch) ->
         (* Here, we assume that existential variables are never used in ite-conditions *)
@@ -104,13 +103,13 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         ) SL.ff cases
 
       (* Non-disjunctive definition *)
-      | _ -> unfold_rec ~existentials ~must_allocated ~allocated ctx n sid def
+      | _ -> unfold_rec ~existentials ctx n sid def
 
-    and unfold_rec ~existentials ~must_allocated ~allocated ctx n sid phi =
+    and unfold_rec ~existentials ctx n sid phi =
       SL.map_view (function
         | Predicate (name, xs, []) when not @@ SID.is_builtin name ->
           let id = SID.get_definition name in
-          `Modify (unfold_pred ~existentials ~must_allocated ~allocated ctx n sid id xs)
+          `Modify (unfold_pred ~existentials ctx n sid id xs)
         | _ -> `Skip
       ) phi
 
@@ -119,28 +118,27 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         | Predicate (name, xs, []) when not @@ SID.is_builtin name ->
           let id = SID.get_definition name in
           (* TODO: unsound, check FP *)
-          `Modify (unfold_pred ~existentials:S.empty ~must_allocated:[] ~allocated:[] ctx bound sid id xs)
+          `Modify (unfold_pred ~existentials:S.empty ctx bound sid id xs)
         | _ -> `Skip
       ) phi
 
     let unfold input lhs rhs =
       let module C = Translation_context.Make(Encoding.Locations)(Encoding.HeapEncoding) in
       Profiler.add "Unfolding";
+
       let ctx = C.init input in
-      let bound = LocationBounds.sum input.location_bounds - 1 in (* For nil *)
+      let bound = LocationBounds.sum input.location_bounds - 1 in (* -1 for nil *)
       let sid = SID.id_map () in
 
-      Backend.push lhs; (* TODO: could axioms help? *)
+      Backend.push lhs; (* TODO: could adding axioms help? *)
 
       let res = match Backend.check_sat lhs with
-        | SMT_Unsat _ ->
-          Logger.debug "LHS is UNSAT\n";
-          SL.tt
+        | SMT_Unsat _ -> Logger.debug "LHS is UNSAT\n"; SL.tt
         | _ -> unfold_toplevel ctx bound sid rhs
       in
 
       Backend.pop 1;
-      Logger.debug "Performed %d SMT queries (%d)\n" (QueryCounter.get ()) (SL.size res);
+      Logger.debug "Performed %d SMT queries\n" (QueryCounter.get ());
       res
 
 end

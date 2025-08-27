@@ -1,3 +1,7 @@
+(* Pass for full unfolding of inductive predicates.
+ *
+ * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
+
 module Logger = Logger.Make(struct let name = "unfolder" let level = 1 end)
 
 let must_allocate_lhs phi lhs g name =
@@ -66,7 +70,6 @@ let unfold_sat lhs = SL.map_view (function
 let unfold_rhs ctx bound lhs rhs =
   let open Backend_sig in
   let open Translation_sig in
-  (* Other backends do not support incremental solving *)
   let module Backend = (val Options.backend () : BACKEND) in
   let module IncrementalBackend = (val Options.incremental_backend () : BACKEND) in
   let module Encoding = (val Options.encoding () : ENCODING) in
