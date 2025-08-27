@@ -224,11 +224,7 @@ let map_vars fn = map (function Variable v -> fn v | other -> other)
 
 let rec map_app fn = function
   | Variable (v, sort) -> Variable (v, sort)
-  | Application (app, xs) ->
-    begin
-      try fn app (List.map (map_app fn) xs)
-      with Match_failure _ -> Application (app, List.map (map_app fn) xs) (* TODO: exit only once!! *)
-    end
+  | Application (app, xs) -> fn app (List.map (map_app fn) xs)
   | Binder (binder, vs, x) -> Binder (binder, vs, map_app fn x)
 
 (** TODO: works only for SL (not implication etc.) *)
