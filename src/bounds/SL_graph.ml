@@ -100,6 +100,16 @@ let update g1 g2 =
       else g
     ) g product
 
+let saturate_heap_terms phi g =
+  let heap_terms =
+    SL.get_terms phi
+    |> List.filter SL.Term.is_heap_term
+  in
+  List.fold_left (fun acc term ->
+    let field, base = SL.Term.as_heap_term term in
+    G.add_edge_e acc (base, Pointer field, term)
+  ) g heap_terms
+
 let disjoint_union ?(stars=true) graphs =
   List.fold_left
     (fun acc g ->
@@ -178,5 +188,8 @@ let has_contradiction g =
 let do_normalise = normalise
 
 let compute ?(normalise=true) ?(stars=true) phi =
-  let g = compute stars phi in
+  let g =
+    compute stars phi
+    |> saturate_heap_terms phi
+  in
   if normalise then do_normalise g else g

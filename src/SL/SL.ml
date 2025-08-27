@@ -63,6 +63,8 @@ module Term = struct
 
   let as_var t = match view t with Var v -> v
 
+  let as_heap_term t = match view t with HeapTerm (f, base) -> (f, base)
+
   let rec get_vars t = match view t with
     | Var v -> [v]
     | SmtTerm t -> List.map (fun v -> Variable.of_description @@ SMT.Variable.describe v) (SMT.free_vars t)
@@ -430,6 +432,18 @@ let translate_pure_with_heap_term (fn : Term.t -> SMT.t) phi =
         | x -> x
       )
   |> SMT.of_base_logic
+
+let pointer_size phi =
+  assert (is_symbolic_heap phi);
+  if is_atomic phi then
+    select_subformulae is_atom phi
+    |> List.map (fun psi -> match view psi with
+         | Eq _ | Distinct _ | Emp -> 0
+         | PointsTo _ -> 1
+       )
+    |> BatList.sum
+    |> Option.some
+  else None
 
 module Infix = struct
 

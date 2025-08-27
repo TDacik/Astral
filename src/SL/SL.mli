@@ -29,6 +29,8 @@ module Term : sig
 
   val is_heap_term : t -> bool
 
+  val as_heap_term : t -> Field.t * t
+
   val is_smt_term : t -> bool
 
   val mk_var : string -> Sort.t -> t
@@ -337,3 +339,5 @@ val as_symbolic_heap : t -> t list * t list
 val as_quantified_symbolic_heap : t -> Variable.t list * t list
 
 val translate_pure_with_heap_term : (Term.t -> SMT.t) -> t -> SMT.t
+
+val pointer_size : t -> int option

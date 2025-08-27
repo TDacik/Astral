@@ -25,15 +25,15 @@ let unfolding_depth lhs g pred_name ys =
     ) atoms
 *)
 
-let unfold_predicate_lhs phi lhs loc_bound name xs =
-  let g = SL_graph.compute lhs in
-  let self = SID.unfolding_depth phi g name xs in
-  let alloc = must_allocate_lhs phi lhs g name in
-  let bound = (LocationBounds.sum loc_bound) - alloc + self - 1 in (* -1 for nil *)
-  (*let bound = Float.to_int @@ SID.unfolding_depth name in*)
-    Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
-    name (SL.Term.show_list xs) (bound);
-  SID.unfold name xs (bound)
+let max_unfold_bound_lhs rhs default =
+  match SL.pointer_size rhs with
+    | None -> default
+    | Some n -> n + 1
+
+let unfold_predicate_lhs phi lhs max_bound name xs =
+  Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
+    name (SL.Term.show_list xs) (max_bound);
+  SID.unfold name xs (max_bound)
 
 let unfold_sat phi name xs =
   let abstraction = SID.abstraction name in
@@ -51,8 +51,14 @@ let unfold_predicate_rhs phi loc_bound g name xs =
     name (SL.Term.show_list xs) max_bound;
   SID.unfold_guided name g xs max_bound
 
-let unfold_lhs bound phi lhs = SL.map_view (function
+let unfold_lhs bound phi lhs rhs = SL.map_view (function
   | Predicate (name, xs, _) when SID.is_user_defined name ->
+    let g = SL_graph.compute lhs in (* TODO: do not recompute *)
+    let self = SID.unfolding_depth phi g name xs in
+    let alloc = must_allocate_lhs phi lhs g name in
+    let default = (LocationBounds.sum bound) - alloc + self - 1 in (* -1 for nil *)
+    let max_bound = max_unfold_bound_lhs rhs default in
+    let bound = max_unfold_bound_lhs rhs default in
     `Modify (unfold_predicate_lhs phi lhs bound name xs)
   | _ -> `Skip
 ) lhs
@@ -85,7 +91,7 @@ let apply_aux ctx phi =
       {ctx with phi = unfold_sat phi}
     | GuardedNeg (lhs, rhs) ->
       let ctx_lhs = QuantifierElimination.apply_ctx @@
-        {ctx with phi = Simplifier.simplify @@ unfold_lhs location_bound phi lhs}
+        {ctx with phi = Simplifier.simplify @@ unfold_lhs location_bound phi lhs rhs}
       in
       let lhs = ctx_lhs.phi in
       let sl_graph = SL_graph.compute lhs in
