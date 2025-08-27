@@ -126,6 +126,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       let module C = Translation_context.Make(Encoding.Locations)(Encoding.HeapEncoding) in
       Profiler.add "Unfolding";
 
+      Backend.init ~timeout:(Options.incremental_timeout ()) ();
+
       let ctx = C.init input in
       let bound = LocationBounds.sum input.location_bounds - 1 in (* -1 for nil *)
       let sid = SID.id_map () in
