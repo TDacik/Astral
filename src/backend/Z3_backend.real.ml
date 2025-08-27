@@ -297,29 +297,27 @@ module Init () = struct
 
   let next () = incr cnt; Format.asprintf "query%04d.smt2" !cnt
 
-  let incremental_solver = Z3.Solver.mk_solver_s !context "ALL"
-
   let push phi =
-    Z3.Solver.push incremental_solver;
+    Z3.Solver.push !solver;
     let phi = translate phi in
-    Z3.Solver.add incremental_solver [phi]
+    Z3.Solver.add !solver [phi]
 
   let pop n =
-    Z3.Solver.pop incremental_solver n
+    Z3.Solver.pop !solver n
 
   let check_sat phi =
-    Z3.Solver.push incremental_solver;
-    Z3.Solver.add incremental_solver [translate phi];
-    Logger.dump_string ~filename:(next ()) @@ Z3.Solver.to_string incremental_solver ^ "\n(check-sat)";
+    Z3.Solver.push !solver;
+    Z3.Solver.add !solver [translate phi];
+    Logger.dump_string ~filename:(next ()) @@ Z3.Solver.to_string !solver ^ "\n(check-sat)";
     let start = (Unix.times ()).tms_utime in
-    let res = match Z3.Solver.check incremental_solver [] with
+    let res = match Z3.Solver.check !solver [] with
       | Z3.Solver.SATISFIABLE -> SMT_Sat None
       | Z3.Solver.UNSATISFIABLE -> SMT_Unsat []
-      | Z3.Solver.UNKNOWN -> SMT_Unknown (Z3.Solver.get_reason_unknown incremental_solver)
+      | Z3.Solver.UNKNOWN -> SMT_Unknown (Z3.Solver.get_reason_unknown !solver)
     in
     let tend = (Unix.times ()).tms_utime in
     Logger.debug "Query %04d time %f\n" !cnt (Float.sub tend start);
-    Z3.Solver.pop incremental_solver 1;
+    Z3.Solver.pop !solver 1;
     res
 
   (* === Debugging === *)

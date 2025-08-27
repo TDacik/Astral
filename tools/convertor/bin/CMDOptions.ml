@@ -25,17 +25,19 @@ let _convertor = ref ""
 let convertor () = match String.lowercase_ascii !_convertor with
   | "s2s" -> (module Convertors.S2S : CONVERTOR)
   | "songbird" | "sls" -> (module Convertors.Songbird : CONVERTOR)
+  | "slide" -> (module Convertors.Slide : CONVERTOR)
   (*
   | "astral" -> (module AstralConvertor : CONVERTOR)
   | "cvc5" -> (module CVC5Convertor : CONVERTOR)
   | "harrsh" -> (module HarrshConvertor : CONVERTOR)
   | "grasshopper" -> (module GrasshopperConvertor : CONVERTOR)
   | "sloth" -> (module SlothConvertor : CONVERTOR)
-  | "songbird" | "sls" -> (module SongbirdConvertor : CONVERTOR)
-  | "slide" -> (module SlideConvertor : CONVERTOR)
   *)
   | "" -> failwith "TODO: smt2"
-  | other -> Astral.Utils.cmd_option_error "convertor" other
+  | bad_value ->
+    Exceptions.cmd_option_error
+      ~param:"convertor"
+      ~bad_value ~expected_values:"s2s | songbird | sls | slide"
 
 let options () =
   let module Options = (struct let precise = not !_imprecise end) in

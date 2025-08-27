@@ -6,6 +6,31 @@ open Astral
 open Context
 open ThreeValuedLogic
 
+let print_error fmt =
+  Format.kasprintf (fun msg ->
+    if Unix.isatty Unix.stderr
+    then Format.eprintf "%s%s%s" Colors.red msg Colors.white
+    else Format.eprintf "%s\n" msg
+  ) fmt
+
+let user_error fmt ~exit_code msg =
+  Format.kasprintf (fun msg ->
+    if Unix.isatty Unix.stderr
+    then Format.eprintf "%s%s%s" Colors.red msg Colors.white
+    else Format.eprintf "%s\n" msg
+  ) fmt
+
+let internal_error ?(backtrace=true) ~exit_code msg =
+  let stack = Printexc.get_callstack 1000000 in
+  Format.eprintf "%s[Internal error]%s %s\n"
+    Colors.red Colors.white msg;
+  if backtrace then begin
+    Format.eprintf "\nBacktrace:\n%s"
+      (Printexc.raw_backtrace_to_string stack)
+  end;
+  Format.fprintf Format.err_formatter "\n%s\n" msg;
+  exit exit_code
+
 (** Check status against specification in the input. *)
 let check_status result =
   let actual = Option.get result.status in
@@ -21,21 +46,24 @@ let check_model result =
   if Options.verify_model () && Option.is_some result.model
   then match ModelChecker.check (Option.get result.model) result.phi with
     | Ok true -> Format.printf "Model verified\n"; True
-    | Ok false -> Utils.error "Model is not correct\n"; False
+    | Ok false -> print_error "Model is not correct\n"; False
     | Error (Unsupported msg) -> Utils.warning "%s\n" msg; Unknown
-    | Error (Failure (msg, backtrace)) -> Utils.error (*~backtrace:backtrace*) "%s\n" msg; Unknown
+    | Error (Failure (exc, backtrace)) ->
+      let msg = Printexc.to_string exc in
+      print_error "%s" msg;
+      Unknown
   else Unknown
 
 let check_result result status model = match status, model with
   | (True | Unknown), (True | Unknown) -> ()
   | (False), (False | Unknown) ->
-    Utils.internal_error ~backtrace:false ~report:false ~exit_code:1
+    internal_error ~backtrace:false ~exit_code:1
       ("Expected status is " ^ Context.show_expected_status result)
   | False, True ->
-    Utils.internal_error ~backtrace:false ~report:false ~exit_code:3
+    internal_error ~backtrace:false ~exit_code:3
       ("Expected status is " ^ Context.show_expected_status result ^ ", but model is correct!")
   | True, False ->
-    Utils.internal_error ~backtrace:false ~report:false ~exit_code:4
+    internal_error ~backtrace:false ~exit_code:4
       ("Generated model is not correct.")
   | _ -> ()
 

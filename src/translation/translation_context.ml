@@ -50,6 +50,7 @@ module Make
       can_skolemise = true;
       under_star = false;
       polarity = true;
+      quantifier_prefix = [];
 
       loc_sort = loc_sort;
       fp_sort = fp_sort;

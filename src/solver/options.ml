@@ -24,12 +24,18 @@ type quantifier_encoding = [`Direct | `Enum]
 let sets_encoding () = match Options.sets () with
   | "direct" -> (module DirectSets : SET_ENCODING)
   | "bitvectors" -> (module BitvectorSets : SET_ENCODING)
-  | other -> Utils.cmd_option_error "sets" other
+  | bad_value ->
+    Exceptions.cmd_option_error
+      ~param:"set_encoding"
+      ~bad_value ~expected_values:"direct | bitvectors"
 
 let location_encoding () = match Options.locations () with
   | "enum" -> (module DatatypeLocations : LOCATIONS)
   | "bitvectors" -> (module BitvectorLocations : LOCATIONS)
-  | other -> Utils.cmd_option_error "location encoding" other
+  | bad_value ->
+    Exceptions.cmd_option_error
+      ~param:"location_encoding"
+      ~bad_value ~expected_values:"enum | bitvectors"
 
 let auto_selection_of_backend () =
   if not @@ Options.produce_models ()
@@ -51,7 +57,11 @@ let backend_aux (getter : unit -> string) = match getter () with
   | "yices2" -> (module Yices_backend : BACKEND)
   | "auto" -> auto_selection_of_backend ()
   (*| "parallel" -> (module Parallel : BACKEND)*)
-  | other -> Utils.cmd_option_error "backend" other
+  | bad_value ->
+    Exceptions.cmd_option_error
+      ~param:"location_encoding"
+      ~bad_value
+      ~expected_values:"bitwuzla | bitwuzla-cmd | boolector | cvc5 | z3 | yices2 | auto"
 
 let backend () = backend_aux Options.backend
 let incremental_backend () = backend_aux Options.incremental_backend
@@ -90,7 +100,10 @@ let encoding () =
         (module QuantifierEncoding.SmartEnumeration(L) :
           QUANTIFIER_ENCODING with type Locations.internal = L.internal
         )
-    | other -> Utils.cmd_option_error "quantifier encoding" other
+    | bad_value ->
+      Exceptions.cmd_option_error
+        ~param:"quantifier_encoding"
+        ~bad_value ~expected_values:"direct | enum"
   in
   (module struct
     module Locations = L

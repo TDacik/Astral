@@ -21,7 +21,7 @@ let check sh phi =
   let msg = Format.asprintf "Model: TODO, formula: %s" (SL.show phi) in
   let msg, actual = match ModelChecker.check sh phi with
     | Ok res -> msg, res
-    | Error (Failure (e, _)) -> Format.asprintf "%s, error: %s" msg e, false
+    | Error (Failure (e, _)) -> Format.asprintf "%s, error: %s" msg (Printexc.to_string e), false
   in
   Alcotest.check' Alcotest.bool ~msg ~actual ~expected:true
 
