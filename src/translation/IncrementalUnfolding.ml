@@ -69,8 +69,9 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
       | Ite (cond, t_branch, e_branch) ->
         (* Here, we assume that existential variables are never used in ite-conditions *)
-        assert (SL.is_ground' cond ~forbidden:(S.elements existentials));
-
+        if not @@ SL.is_ground' cond ~forbidden:(S.elements existentials) then
+          InductiveDefinition.unfold sid pred xs n
+        else
         let c = SL.translate_pure_with_heap_term (Translation.translate_term ctx) cond in
         let res = check c in
         Logger.debug "[|%s|] -> %s\n" (SMT.show c) (TVL.show res);
@@ -114,12 +115,12 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         | _ -> `Skip
       ) phi
 
-    let unfold_toplevel ctx bound sid phi =
+    let unfold_toplevel ~existentials ctx bound sid phi =
       SL.map_view (function
         | Predicate (name, xs, _) when SID.is_user_defined name ->
           let id = SID.get_definition name in
           (* TODO: unsound, check FP *)
-          `Modify (unfold_pred ~existentials:S.empty ~must_allocated:[] ~allocated:[] ctx bound sid id xs)
+          `Modify (unfold_pred ~existentials ~must_allocated:[] ~allocated:[] ctx bound sid id xs)
         | _ -> `Skip
       ) phi
 
@@ -136,7 +137,9 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         | SMT_Unsat _ ->
           Logger.debug "LHS is UNSAT\n";
           SL.tt
-        | _ -> unfold_toplevel ctx bound sid rhs
+        | _ ->
+          let existentials = S.of_list @@ SL.bound_vars rhs in
+          unfold_toplevel ~existentials ctx bound sid rhs
       in
 
       Backend.pop 1;
