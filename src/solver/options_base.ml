@@ -85,7 +85,10 @@ let predicate_bounds () = match !_predicate_bounds with
   | "both" -> `Both
   | "upper" -> `Upper
   | "none" -> `None
-  | other -> Utils.cmd_option_error "predicate_bounds" other
+  | bad_value ->
+    Exceptions.cmd_option_error
+      ~param:"predicate_bounds"
+      ~bad_value ~expected_values:"both | upper | none"
 
 let _compute_sl_graph = ref true
 let compute_sl_graph () = !_compute_sl_graph
@@ -185,7 +188,10 @@ let set_quantifiers opt = _quantifiers := opt
 let set_encoding = function
   | "enum" -> _locations := "enum"; _sets := "direct"
   | "bitvectors" -> _locations := "bitvectors"; _sets := "bitvectors"
-  | other -> Utils.cmd_option_error "encoding" other
+  | bad_value ->
+    Exceptions.cmd_option_error
+      ~param:"set_encoding"
+      ~bad_value ~expected_values:"direct | bitvectors"
 
 (* ==== Unsafe ==== *)
 

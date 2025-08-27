@@ -14,7 +14,7 @@ module Print = Logger.Make(struct let name = "Model checker" let level = 2 end)
 
 type error =
   | Unsupported of string      (* Formula is in unsupported fragment *)
-  | Failure of string * string (* Internal failure: exception, backtrace *)
+  | Failure of exn * string    (* Internal failure: exception, backtrace *)
 
 (** Compute footprints according the unique footprint property *)
 let rec compute_footprint sh phi = match SL.view phi with
@@ -75,6 +75,5 @@ let check sh phi =
   end
   (* We want to continue even when model checking fails *)
   with e ->
-    let msg = Printexc.to_string e in
     let backtrace = Printexc.get_backtrace () in
-    Result.error @@ Failure (msg, backtrace)
+    Result.error @@ Failure (e, backtrace)
