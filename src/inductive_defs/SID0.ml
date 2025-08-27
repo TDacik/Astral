@@ -10,13 +10,22 @@ module Logger = Logger.Make (struct let name = "SID" let level = 2 end)
     their definitions (either builtin or user defined. *)
 include Stdlib.Map.Make(String)
 
+let _sid : ID.t t ref = ref empty
+
 let sid : ID.t t ref = ref empty
 
 let struct_defs = ref StructDef.Set.empty
 
+let cache = ref PredicateAbstraction.M.empty
+
 let reset () =
   sid := empty;
-  struct_defs := StructDef.Set.empty
+  struct_defs := StructDef.Set.empty;
+  cache := PredicateAbstraction.M.empty
+
+let reset_results () =
+  sid := !_sid;
+  cache := PredicateAbstraction.M.empty
 
 (** Create parser context with all builtin definitions. *)
 
@@ -52,17 +61,20 @@ let builtin_context () =
 let show () =
   bindings !sid
   |> List.map (fun (_, pred) -> ID.show pred)
-  |> String.concat ", "
+  |> String.concat ",\n"
 
 let register (module B : BUILTIN) =
   Logger.debug "Registering ID %s\n" (B.name);
   sid := add B.name (Builtin (module B : BUILTIN)) !sid;
+  _sid := add B.name (Builtin (module B : BUILTIN)) !_sid;
   struct_defs := StructDef.Set.union !struct_defs (StructDef.Set.of_list B.struct_defs)
 
 let register_user_defined id =
+  _sid := add id.name (UserDefined id) !_sid;
   sid := add id.name (UserDefined id) !sid
 
 let update_pred id =
+  _sid := add id.name (UserDefined id) !_sid;
   sid := add id.name (UserDefined id) !sid
 
 let add name header body =

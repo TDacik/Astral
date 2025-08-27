@@ -79,7 +79,7 @@ let instantiate heap_sort name operands = match find name with
 
 (** {2 Bounds} *)
 
-let cache = ref PredicateAbstraction.M.empty
+let is_computed () = not @@ PredicateAbstraction.M.is_empty !cache
 
 let sl_graph name instance = match find name with
   | Builtin (module B : BUILTIN) -> B.sl_graph instance
@@ -87,6 +87,9 @@ let sl_graph name instance = match find name with
 
 let compute_aux phi g id x a =
   let open InductiveDefinition in
+  let open PredicateAbstraction in
+  if SL.is_symbolic_heap phi then (Float.of_int a.stable_size)
+  else
   let lhs, _ = SL.as_entailment phi in
   let _, atoms = SL.as_symbolic_heap lhs in
   let c = false && List.for_all (fun atom -> match SL.view atom with
@@ -97,7 +100,6 @@ let compute_aux phi g id x a =
     | _ -> true
   ) atoms
   in
-  let open PredicateAbstraction in
   if c then (Float.of_int a.stable_size) else a.fixpoint_size
 
 let term_bound phi g heap_sort x =

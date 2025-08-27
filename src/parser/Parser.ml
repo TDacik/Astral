@@ -487,7 +487,12 @@ let parse_option ctx opt = match opt.term with
       DLS.register ();
       NLS.register ();
       Context.add_defs ctx (SID.builtin_context ())
-    | _ -> ctx
+    | ":use-freed-predicate" ->
+      Freed.register ();
+      Context.add_defs ctx (SID.builtin_context ())
+    | opt ->
+      Utils.warning "Ignoring unknown option '%s'" opt;
+      ctx
     end
   | _ -> ctx
 

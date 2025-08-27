@@ -1,0 +1,4 @@
+; This whole file is a workaround for dune bug with alternative dependencies: 
+; https://github.com/ocaml/dune/issues/4383
+
+(include_subdirs no)

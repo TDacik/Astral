@@ -107,6 +107,8 @@ module type MONO_MAP = sig
 
   val empty : t
 
+  val is_empty : t -> bool
+
   val add : key -> data -> t -> t
 
   val mem : key -> t -> bool

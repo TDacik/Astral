@@ -42,14 +42,12 @@ module Self =  struct
 
     let translate (ctx : E.Context.t) ([_], []) domain [x] () =
       let open SMT in
-      let open MemoryModel in
       let freed = Locations.mk_var ctx.locs "freed" in
-      let semantics =
-        Boolean.mk_and [
-          Sets.mk_eq_singleton domain x;
-          SMT.mk_eq [HeapEncoding.mk_succ ctx.heap Field.next x; freed];
-        ]
+      let field_semantics =
+        HeapEncoding.get_fields ctx.heap
+        |> List.map (fun f -> SMT.mk_eq [HeapEncoding.mk_succ ctx.heap f x; freed])
       in
+      let semantics = Boolean.mk_and @@ Sets.mk_eq_singleton domain x :: field_semantics in
       let var_axioms =
         List.map (fun v -> SMT.mk_distinct [SMT.of_var v; freed]) ctx.smt_vars
         |> SMT.Boolean.mk_and

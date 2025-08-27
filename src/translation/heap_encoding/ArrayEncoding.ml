@@ -33,6 +33,9 @@ module Make (Locations : LOCATIONS) = struct
       (HeapSort.show self.heap_sort)
       (Field.Map.show_custom Field.show_with_sort SMT.show_with_sort self.field_map)
 
+  let get_fields self =
+    Field.Map.keys self.field_map
+
   let mk_field suffix field locs =
     let name = Format.asprintf "%s%s" (Field.show field) suffix in
     let sort = Field.get_sort field in

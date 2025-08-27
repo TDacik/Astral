@@ -29,6 +29,8 @@ val solve : ?timeout:Int.t -> solver -> SL.t -> [ `Sat of StackHeapModel.t optio
 
 val set_heap_sort : HeapSort.t -> solver -> solver
 
+val add_heap_sort : HeapSort.t -> solver -> solver
+
 
 val query_id: unit -> int
 

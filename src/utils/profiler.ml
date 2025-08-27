@@ -12,14 +12,14 @@ let total = ref Float.minus_one
 
 let reset () =
   self := [];
-  start := (Unix.times ()).tms_utime;
+  start := Unix.gettimeofday ();
   total := Float.zero
 
 let add name =
   let times = Unix.times () in
   self := ((name, times.tms_utime, times.tms_cutime) :: !self)
 
-let finish () = total := (Unix.times ()).tms_utime
+let finish () = total := Unix.gettimeofday ()
 
 let compute_stats () =
   let _, _, stats = List.fold_left

@@ -45,3 +45,8 @@
 (include_subdirs unqualified)
 
 (documentation (package astral))
+
+; Workaround for dune bug with alternative dependencies:
+; https://github.com/ocaml/dune/issues/4383
+(copy_files backend/*.ml)
+(copy_files backend/*.mli)
