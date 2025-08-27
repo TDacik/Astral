@@ -466,13 +466,14 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
   and translate_exists_loc ctx domain x psi = *)
 
-  (** TODO: this only works for existential from inside of predicates! *)
   and translate_exists ctx domain x psi =
     let x = Locations.translate_var ctx.locs x in
     let semantics, axioms, footprints = translate ctx domain psi in
 
     let axioms = Locations.var_axiom ctx.locs x in
-    let semantics = Quantifier.mk_exists [x] (Boolean.mk_implies axioms semantics) in
+    let semantics = Boolean.mk_implies axioms semantics in
+
+    ctx.quantifier_prefix <- x :: ctx.quantifier_prefix;
 
     (semantics, axioms, footprints)
 
@@ -529,12 +530,17 @@ let translate_phi (ctx : Context.t) ssl_phi =
     else SMT.Boolean.tt
   in
 
-  Boolean.mk_and
-    [
-      phi; axioms; nil_not_in_fp; location_lemmas;
-      low_level_axioms;
-      location_axioms; heap_axioms
-    ]
+  let body =
+    Boolean.mk_and
+      [
+        phi; axioms; nil_not_in_fp; location_lemmas;
+        low_level_axioms;
+        location_axioms; heap_axioms
+      ]
+  in
+
+  (* TODO: Track polarities properly, this works only for symbolic heap entailment! *)
+  Quantifier.mk_forall ctx.quantifier_prefix body
 
   (* ==== Translation of SMT model to stack-heap model ==== *)
 

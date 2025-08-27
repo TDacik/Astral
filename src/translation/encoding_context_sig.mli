@@ -19,6 +19,7 @@ type ('locs, 'heap) t = {
     can_skolemise : bool;
     under_star : bool;
     polarity : bool;
+    mutable quantifier_prefix : SMT.Variable.t list;
 
     (* Translation sorts *)
     loc_sort : Sort.t;
