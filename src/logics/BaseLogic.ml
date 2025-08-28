@@ -817,11 +817,9 @@ open Sexplib
 module F = Format
 
 let declare_var var =
-  Format.asprintf "(declare-const %s %s)"
-    (Variable.show var)
-    (Sort.name @@ Variable.get_sort var)
+  Format.asprintf "(declare-const %s)" (Variable.smt2_decl var)
 
-let header with_decls phi source status =
+let header with_decls phi source status options =
   let source = match source with
     | None -> ""
     | Some source -> F.asprintf "(set-info :source %s)\n" source
@@ -831,9 +829,12 @@ let header with_decls phi source status =
     | Some `Sat -> "(set-info :source sat)\n"
     | Some `Unsat -> "(set-info :source unsat)\n"
   in
-  let builtins = "(set-option :use-builtin-definitions)\n" in
+  let options = match options with
+    | None -> ""
+    | Some options -> "\n" ^ options ^ "\n"
+  in
   let vars = String.concat "\n" @@ List.map declare_var (BatList.remove (free_vars phi) Variable.nil) in
-  source ^ status ^ "\n" ^ builtins ^ "\n" ^ vars ^ "\n\n"
+  source ^ status ^ options ^ vars ^ "\n\n"
 
 let binder_var var =
   Sexp.List [Sexp.Atom (Variable.show var); Sexp.Atom (Sort.name @@ Variable.get_sort var)]
@@ -868,14 +869,14 @@ let rec to_sexp = function
     let vars = Sexp.List (List.map binder_var xs) in
     Sexp.List [binder; vars; to_sexp phi]
 
-let to_smtlib ?(source=None) ?(status=None) phi =
-  let header = header true phi source status in
+let to_smtlib ?(source=None) ?(status=None) ?(options=None) phi =
+  let header = header true phi source status options in
   let body = Sexp.to_string_hum @@ Sexp.List [Sexp.Atom "assert"; to_sexp phi] in
   header ^ "\n" ^ body
 
-let output_benchmark ?source ?status path phi =
+let output_benchmark ?source ?status ?options path phi =
   let channel = open_out path in
-  output_string channel @@ to_smtlib ~source ~status phi;
+  output_string channel @@ to_smtlib ~source ~status ~options phi;
   Out_channel.close channel
 
 (* ----------------------------------------------------------------------------
