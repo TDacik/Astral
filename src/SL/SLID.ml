@@ -18,15 +18,6 @@ let rec has_unique_footprint phi = match view phi with
 
 let has_unique_shape _ = failwith "has_unique_shape"
 
-let has_user_defined_predicates phi =
-  let uids =
-    SL.select_subformulae (fun phi -> match SL.view phi with
-      | Predicate (name, _, _) -> SID.is_user_defined name
-      | _ -> false
-    ) phi
-  in
-  not @@ List.is_empty uids
-
 let rec get_structs ?(visited=[]) (phi : SL.t) =
   let atoms = SL.select_subformulae SL.is_spatial_atom phi in
   atoms |> List.concat_map (fun psi -> match SL.view psi with
@@ -44,6 +35,18 @@ let get_inductive_definitions phi =
       | _ -> false
     ) phi
   |> List.map (fun phi -> match SL.view phi with Predicate (name, _, _) -> SID.find_user_defined name)
+
+let has_builtin_predicates phi =
+  let uids =
+    SL.select_subformulae (fun phi -> match SL.view phi with
+      | Predicate (name, _, _) -> SID.is_builtin name
+      | _ -> false
+    ) phi
+  in
+  not @@ List.is_empty uids
+
+let has_user_defined_predicates phi =
+  not @@ List.is_empty @@ get_inductive_definitions phi
 
 let declare_sort = Sort.smt2_decl
 let declare_struct = MemoryModel.StructDef.smt2_decl
