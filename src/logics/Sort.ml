@@ -107,7 +107,7 @@ let all_names = function
   | Loc (name, aliases) -> List.map Identifier.show (name :: aliases)
   | other -> [name other]
 
-let to_smt2_decl = function
+let smt2_decl = function
   | sort -> Format.asprintf "(declare-sort %s 0)" (name sort)
 
 let cardinality = function

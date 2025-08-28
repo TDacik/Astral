@@ -237,3 +237,9 @@ let rec unfold_guided id_map id g xs n =
         `Modify (unfold_guided id_map id' g ys (n-1))
       | _ -> `Skip
      ) (instantiate_guided ~refresh:true g id xs)
+
+let smt2_decl id =
+  Format.asprintf "%s (%s) Bool\n%s"
+    id.name
+    (String.concat " " @@ List.map SL.Variable.smt2_decl id.header)
+    (show id)

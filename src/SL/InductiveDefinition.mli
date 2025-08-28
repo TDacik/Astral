@@ -64,3 +64,5 @@ module ID_map : (module type of Stdlib.Map.Make(String))
 val unfold : t ID_map.t -> t -> SL.Term.t list -> int -> SL.t
 
 val unfold_guided : t ID_map.t -> t -> SL_graph0.t -> SL.Term.t list -> int -> SL.t
+
+val smt2_decl : t -> string
