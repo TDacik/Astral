@@ -66,6 +66,8 @@ module type VARIABLE = sig
 
   val show_debug : t -> string
 
+  val smt2_decl : t -> string
+
   val equal : t -> t -> bool
 
   val compare : t -> t -> int
@@ -156,9 +158,17 @@ module type LOGIC = sig
 
   val output_ast : string -> ast -> unit
 
-  val to_smtlib : ?source:string option -> ?status:[< `Sat | `Unsat | `Unknown] option -> t -> string
+  val to_smtlib :
+    ?source:string option ->
+    ?status:[< `Sat | `Unsat | `Unknown] option ->
+    ?options:string option ->
+    t -> string
 
-  val output_benchmark : ?source:string -> ?status:[< `Sat | `Unsat | `Unknown] -> string -> t -> unit
+  val output_benchmark :
+    ?source:string ->
+    ?status:[< `Sat | `Unsat | `Unknown] ->
+    ?options:string ->
+    string -> t -> unit
 
   val (===) : t -> t -> bool
 end

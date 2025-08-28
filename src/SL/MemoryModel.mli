@@ -63,6 +63,7 @@ module StructDef : sig
 
   val field_value : t -> Field.t -> 'a list -> 'a
 
+  val smt2_decl : t -> string
 
   val show_cons : t -> string
 
