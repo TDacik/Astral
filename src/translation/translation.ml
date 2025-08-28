@@ -26,6 +26,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       (Locations.show ctx.locs)
       (HeapEncoding.show ctx.heap)
 
+  let quantifier_prefix = ref []
+
   (* ==== Helper functions for constructing common terms ==== *)
   (* TODO: we currently assume that there are no heap-terms under begin/end *)
 
@@ -470,10 +472,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let x = Locations.translate_var ctx.locs x in
     let semantics, axioms, footprints = translate ctx domain psi in
 
-    let axioms = Locations.var_axiom ctx.locs x in
-    let semantics = Boolean.mk_implies axioms semantics in
-
-    ctx.quantifier_prefix <- x :: ctx.quantifier_prefix;
+    quantifier_prefix := x :: !quantifier_prefix;
 
     (semantics, axioms, footprints)
 
@@ -515,6 +514,7 @@ let low_level_axioms ctx = (* TODO *)
     )
 
 let translate_phi (ctx : Context.t) ssl_phi =
+  quantifier_prefix := [];
   let footprint = formula_footprint ctx ssl_phi in
   let phi, axioms, _ = translate ctx ctx.global_footprint ssl_phi in
   let nil = SMT.mk_var "nil" ctx.loc_sort in
@@ -540,7 +540,11 @@ let translate_phi (ctx : Context.t) ssl_phi =
   in
 
   (* TODO: Track polarities properly, this works only for symbolic heap entailment! *)
-  Quantifier.mk_forall ctx.quantifier_prefix body
+  let q_axioms =
+    List.map (Locations.var_axiom ctx.locs) !quantifier_prefix
+    |> Boolean.mk_and
+  in
+  Quantifier.mk_forall !quantifier_prefix @@ Boolean.mk_implies q_axioms body
 
   (* ==== Translation of SMT model to stack-heap model ==== *)
 
