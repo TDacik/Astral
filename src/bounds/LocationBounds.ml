@@ -102,7 +102,7 @@ let add_chunk_size bounds phi =
   let new_bound = SortBound.plus ls_bound (SortBound.n garbage_bound) in
   add Sort.loc_ls new_bound bounds
 
-let compute phi heap_sort g =
+let compute_general phi heap_sort g =
   let sorts = Sort.loc_nil :: HeapSort.get_loc_sorts heap_sort in
   let positive_bounds =
     List.fold_left
@@ -117,3 +117,11 @@ let compute phi heap_sort g =
     else add_chunk_size positive_bounds phi
   in
   bounds
+
+let compute phi heap_sort g = match SL.as_query phi with
+  | SymbolicHeap_ENTL (lhs, rhs) ->
+    begin match SL.pointer_size lhs with
+      | None -> compute_general phi heap_sort g
+      | Some n -> n
+    end
+  | _ -> compute_general phi heap_sort g
