@@ -41,6 +41,45 @@ let contract g (is_existential : SL.Term.t -> bool) =
       G.add_edge_e acc (lookup src dst, label, lookup dst src)
   ) g G.empty
 
+(** ==== Reachability ==== *)
+
+module Reachability = Graph.Fixpoint.Make(G)
+  (struct
+    type vertex = G.V.t
+    type edge = G.E.t
+    type g = G.t
+    type data = bool
+    let direction = Graph.Fixpoint.Forward
+    let equal = (=)
+    let join = (||)
+    let analyze _ = (fun x -> x)
+  end)
+
+let reachable_nodes g start =
+  let res = Reachability.analyze (SL.Term.equal start) g in
+  G.fold_vertex (fun v acc -> if res v then v :: acc else acc) g []
+
+let find_reachable g start targets =
+  let reachable = reachable_nodes g start in
+  BatList.at_opt (SL.Term.MonoList.inter targets reachable) 0
+
+(** ==== Paths ==== *)
+
+module W = struct
+  type edge = G.E.t
+  type t = int
+  let weight _ = 1
+  let compare = Int.compare
+  let add = (+)
+  let zero = 0
+end
+
+module Dijkstra = Graph.Path.Dijkstra(G)(W)
+
+let find_path g x y =
+  let edges, _ = Dijkstra.shortest_path g x y in
+  List.map (fun e -> SL_edge.get_field @@ G.E.label e) edges
+
 (** ==== Vertex substitution ==== *)
 
 module GM = Graph.Gmap.Vertex(G)(struct include G let empty () = G.empty end)
