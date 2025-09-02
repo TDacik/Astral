@@ -64,11 +64,17 @@ module type MONO_LIST = sig
 
   type t = key list
 
+  val mem : key -> t -> bool
+
+  val remove : t -> key -> t
+
   val show : t -> string
 
   val compare : t -> t -> int
 
   val equal : t -> t -> bool
+
+  val unique : t -> t
 
   val sort : t -> t
 

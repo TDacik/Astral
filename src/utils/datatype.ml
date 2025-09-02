@@ -92,7 +92,12 @@ module Collections (M : COMPARISON) = struct
        let show = show
     end)
 
+    let mem x xs = List.exists (C.equal x) xs
+
+    let remove xs x = BatList.remove_if (C.equal x) xs
+
     let sort = List.sort M.compare
+    let unique = BatList.unique ~eq:C.equal
     let inter xs1 xs2 = Set.(elements @@ (inter (of_list xs1) (of_list xs2)))
 
     let rec inter_list = function
