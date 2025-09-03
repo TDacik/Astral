@@ -23,7 +23,6 @@ let debug_info input = match SL.classify_fragment input.phi with
           graph to perform inlining correctly. Inlined predicates are removed
           by re-initializing SID.*)
 let normalise input =
-  SID.init ();
   let input = Preprocessor.first_phase input in
   SID.init ();
   SID.preprocess_user_definitions PredicatePreprocessing.normalise;
