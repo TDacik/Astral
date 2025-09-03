@@ -190,6 +190,12 @@ let mk_pure smt =
   let smt = SMT.of_base_logic @@ SMT.to_base_logic smt in
   SeparationLogic.mk_pure (of_smt smt)
 
+(** Redefinition of get_all_sorts *)
+let get_all_sorts ?(with_nil=false) phi =
+  let sorts = get_all_sorts phi in
+  if with_nil then sorts
+  else Sort.MonoList.remove sorts Sort.loc_nil
+
 let mk_not phi = BaseLogic.mk_app Not [phi]
 
 let rec negate_pure phi = match view phi with

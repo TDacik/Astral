@@ -28,6 +28,11 @@ let find_target_unwrapped sort self =
   assert (List.length target.fields = 1);
   Field.get_sort @@ List.hd target.fields
 
+let restriction dom self =
+  M.filter (fun s _ -> Sort.MonoList.mem s dom) self
+
+let get_structures = M.values
+
 let get_fields self =
   M.values self
   |> BatList.concat_map StructDef.get_fields

@@ -9,6 +9,8 @@ val empty : t
 
 val union : t list -> t
 
+val restriction : Sort.t list -> t -> t
+
 val of_list : (Sort.t * StructDef.t) list -> t
 
 val to_list : t -> (Sort.t * StructDef.t) list
@@ -22,6 +24,8 @@ val find_target_unwrapped : Sort.t -> t -> Sort.t
 val is_loc_sort : t -> Sort.t -> bool
 
 val get_loc_sorts : t -> Sort.t list
+
+val get_structures : t -> StructDef.t list
 
 val get_fields : t -> Field.t list
 (** Get all fields in all target structures. *)

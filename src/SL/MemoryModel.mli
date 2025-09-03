@@ -63,6 +63,8 @@ module StructDef : sig
 
   val field_value : t -> Field.t -> 'a list -> 'a
 
+  val find_field : (Field.t -> bool) -> t -> Field.t
+
   val smt2_decl : t -> string
 
   val show_cons : t -> string

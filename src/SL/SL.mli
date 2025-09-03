@@ -280,6 +280,8 @@ val get_root : t -> Variable.t
 
 val get_fields : t -> Field.t list
 
+val get_all_sorts : ?with_nil:bool -> t -> Sort.t list
+
 (** {2 Syntactic manipulation} *)
 
 val skolemisation : t -> t * Variable.t list
