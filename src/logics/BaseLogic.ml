@@ -312,7 +312,7 @@ let is_ground' ~forbidden phi =
   S.disjoint (S.of_list vars) (S.of_list forbidden)
 
 let get_all_sorts phi =
-  free_vars phi
+  get_vars phi
   |> List.map Variable.get_sort
   |> BatList.unique ~eq:Sort.equal
 
