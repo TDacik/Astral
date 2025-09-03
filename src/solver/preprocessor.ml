@@ -87,17 +87,25 @@ let second_phase_aux aggresive context =
   let vars = remove_useless_vars context.phi context.vars in
   let ctx' = Context.set_preprocessed context context.phi vars in
 
-  let ctx'' = apply_list ctx' [
+  let ctx2 = apply_list ctx' [
     Simplifier.simplify_ctx, "simplification";
     (*AggresiveSimplifier.apply_ctx, "simplification 2";*)
-    QuantifierElimination.apply_ctx, "quantifier_elimination";
-    UnfoldIDs.apply_ctx, "predicate_unfolding";
-    QuantifierElimination.apply_ctx, "quantifier_elimination_2";
+    QuantifierElimination.apply_ctx, "quantifier_elim"
   ]
   in
-  remove_unused_elements ctx''
+  let sl_graph = SL_graph.compute ctx2.phi in
+  SL_graph.output_file "sl2.dot" sl_graph;
+  let bounds = LocationBounds.compute ctx2.phi ctx2.raw_input.heap_sort sl_graph in
+  let ctx2 = {ctx2 with location_bounds = bounds} in (* TODO: take min? *)
+
+  let ctx3 = apply_list ctx2 [
+    UnfoldIDs.apply_ctx, "pred_unfolding";
+    QuantifierElimination.apply_ctx, "q_elim_2";
+  ]
+  in
+  remove_unused_elements ctx3, (Some bounds)
 
 let second_phase context = match Options_base.preprocessing () with
-  | `None -> context
+  | `None -> context, None
   | `Default -> second_phase_aux false context
   | `Aggresive -> second_phase_aux true context

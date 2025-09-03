@@ -51,21 +51,21 @@ let solve (input : Context.t) =
     SID.distinguishers := distinguishers;
     Debug.out_input input;
 
-    let bounds = LocationBounds.compute input.phi input.raw_input.heap_sort sl_graph in
-    let input = Context.add_metadata input sl_graph bounds in
-
-    Debug.context input;
-
     BaseLogic.use_simplification true;
     SID.preprocess_user_definitions PredicatePreprocessing.preprocess;
 
-    let input = Preprocessor.second_phase input in
+    let input, bounds = Preprocessor.second_phase input in
+
+    let input = Context.add_metadata input sl_graph (Option.get bounds) in (* TODO: compute and take min *)
+    Debug.context input;
+
+
     Profiler.add "Preprocessor";
     Logger.debug "Preprocessing finished\n";
 
     Logger.debug "%s\n" (ModelAdapter.show input.model_adapter);
 
-    let input = Context.add_metadata input sl_graph bounds in
+    let input = Context.add_metadata input sl_graph (Option.get bounds) in
 
     let module Backend = (val Options.backend () : BACKEND) in
     let module Encoding = (val Options.encoding () : ENCODING) in

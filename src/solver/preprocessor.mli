@@ -6,4 +6,4 @@ val remove_unused_elements : ?with_vars:bool -> Context.t -> Context.t
 
 val first_phase : Context.t -> Context.t
 
-val second_phase : Context.t -> Context.t
+val second_phase : Context.t -> Context.t * LocationBounds.t option
