@@ -137,6 +137,8 @@ let get_struct_defs ctx =
   M.bindings ctx.struct_defs
   |> List.map snd
 
+let get_heap_sort ctx = ctx.heap_sort
+
 let get_predicates ctx = S.elements ctx.declared_preds
 
 (*** ==== Pretty-printing ==== *)

@@ -69,6 +69,8 @@ val get_sorts : t -> Sort.t list
 
 val get_struct_defs : t -> StructDef.t list
 
+val get_heap_sort : t -> HeapSort.t
+
 val get_predicates : t -> String.t list
 
 
