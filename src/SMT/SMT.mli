@@ -93,6 +93,7 @@ include Logic_sig.WITH_VIEW with
   and type view := view
 
 include EQUALITY with type t := t
+include COLLECTIONS with type t := t
 
 val is_var : t -> bool
 
