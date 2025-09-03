@@ -19,7 +19,15 @@ let distinguisher name =
   ) !distinguishers then Field
   else Sort
 
+let has_user_defined_predicates () =
+  exists (fun _ id -> match id with Builtin _ -> false | UserDefined _ -> true) !sid
 
+let compute_dependencies ?(original=false) preds =
+  let sid = if original then !_sid else !sid in
+  Format.printf "%s\n\n%s\n" (Printexc.get_backtrace ()) (SID0.show sid);
+
+  let dg = DependencyGraph.compute sid in
+  DependencyGraph.compute_dependencies dg preds
 
 (** {2 Operations over dependency graph *)
 
@@ -30,7 +38,7 @@ let is_self_recursive name = match find name with
   | UserDefined id -> DependencyGraph.is_self_recursive !dg id
 
 let init () =
-  let g = DependencyGraph.compute () in
+  let g = DependencyGraph.compute !sid in
   Logger.dump DependencyGraph.output "predicate_graph.dot" g;
   dg := g
 

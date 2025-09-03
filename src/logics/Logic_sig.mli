@@ -158,10 +158,13 @@ module type LOGIC = sig
 
   val output_ast : string -> ast -> unit
 
-  val to_smtlib :
-    ?source:string option ->
-    ?status:[< `Sat | `Unsat | `Unknown] option ->
-    ?options:string option ->
+  val to_smt2 : t -> string
+  (** Human readable SMT-LIB string. *)
+
+  val to_bench :
+    ?source:string ->
+    ?status:[< `Sat | `Unsat | `Unknown] ->
+    ?options:string ->
     t -> string
 
   val output_benchmark :

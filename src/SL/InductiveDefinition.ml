@@ -241,5 +241,5 @@ let rec unfold_guided id_map id g xs n =
 let smt2_decl id =
   Format.asprintf "%s (%s) Bool\n%s"
     id.name
-    (String.concat " " @@ List.map SL.Variable.smt2_decl id.header)
-    (show id)
+    (String.concat " " @@ List.map (fun v -> "(" ^ SL.Variable.smt2_decl v ^ ")") id.header)
+    (SL.to_smt2 @@ SL.mk_or @@ cases id)

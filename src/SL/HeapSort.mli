@@ -30,6 +30,10 @@ val get_structures : t -> StructDef.t list
 val get_fields : t -> Field.t list
 (** Get all fields in all target structures. *)
 
+val to_smt2 : t -> string
+
+val to_smt2_decl : t -> string
+
 (* {2 Predicates} *)
 
 val is_bitvector_model : t -> bool

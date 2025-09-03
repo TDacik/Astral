@@ -12,3 +12,5 @@ val has_unique_shape : SL.t -> bool
 val has_user_defined_predicates : SL.t -> bool
 
 val get_structs : SL.t -> MemoryModel.StructDef.t list
+
+val output_benchmark : ?source:string -> ?status:[`Sat | `Unsat | `Unknown] -> ?heap_sort:HeapSort.t -> string -> SL.t -> unit

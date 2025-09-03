@@ -52,6 +52,14 @@ let is_bitvector_model self =
       let range_sort = Field.get_sort @@ List.hd range.fields in
       Sort.is_bitvector dom && Sort.is_bitvector range_sort
 
+let to_smt2 self =
+  M.bindings self
+  |> List.map (fun (dom, range) -> Format.asprintf "(%s %s)" (Sort.name dom) (StructDef.get_name range))
+  |> String.concat " "
+
+let to_smt2_decl self =
+  Format.asprintf "(declare-heap %s)" (to_smt2 self)
+
 module Self = struct
   type nonrec t = t
   let show = show

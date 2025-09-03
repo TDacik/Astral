@@ -40,14 +40,15 @@ let normalise g = g
   ) g g
   *)
 
-let compute () =
-  SID0.fold_on_user_defined (fun pred acc ->
+let compute sid =
+  let predicates = SID0.__get_user_defined sid in
+  List.fold_left (fun acc pred ->
     let g = add_vertex acc pred in
-    let children = SID0.dependencies pred in
+    let children = SID0.dependencies sid pred in
     List.fold_left (fun g child ->
-      add_edge g child pred
+      add_edge g pred child
     ) g children
-  ) empty
+  ) empty predicates
 
 let has_nontrivial_cycle g =
   let module W = struct
@@ -66,6 +67,27 @@ let has_nontrivial_cycle g =
     true
   with Not_found -> false
 
+(** Reachability *)
+
+module Reachability = Graph.Fixpoint.Make(G)
+  (struct
+    type vertex = G.V.t
+    type edge = G.E.t
+    type g = G.t
+    type data = bool
+    let direction = Graph.Fixpoint.Forward
+    let equal = (=)
+    let join = (||)
+    let analyze _ = (fun x -> x)
+  end)
+
+let compute_dependencies g preds =
+  let preds = InductiveDefinition.MonoList.unique preds in
+  let module Topological = Graph.Topological.Make(G) in
+  let res = Reachability.analyze (fun p -> InductiveDefinition.MonoList.mem p preds) g in
+  let preds = Topological.fold (fun v acc -> if res v then v :: acc else acc) g [] in
+  let res = InductiveDefinition.MonoList.unique preds in
+  res
 
 let output filename g =
   let channel = open_out filename in

@@ -20,6 +20,7 @@ let cache = ref PredicateAbstraction.M.empty
 
 let reset () =
   sid := empty;
+  _sid := empty;
   struct_defs := StructDef.Set.empty;
   cache := PredicateAbstraction.M.empty
 
@@ -58,8 +59,8 @@ let builtin_context () =
   let ids = builtin_ids () in
   ParserContext.empty ~sorts ~struct_defs ~heap_sort ~ids ()
 
-let show () =
-  bindings !sid
+let show sid =
+  bindings sid
   |> List.map (fun (_, pred) -> ID.show pred)
   |> String.concat ",\n"
 

@@ -869,14 +869,16 @@ let rec to_sexp = function
     let vars = Sexp.List (List.map binder_var xs) in
     Sexp.List [binder; vars; to_sexp phi]
 
-let to_smtlib ?(source=None) ?(status=None) ?(options=None) phi =
+let to_smt2 phi = Sexp.to_string_hum @@ to_sexp phi
+
+let to_bench ?source ?status ?options phi =
   let header = header true phi source status options in
   let body = Sexp.to_string_hum @@ Sexp.List [Sexp.Atom "assert"; to_sexp phi] in
   header ^ "\n" ^ body
 
 let output_benchmark ?source ?status ?options path phi =
   let channel = open_out path in
-  output_string channel @@ to_smtlib ~source ~status ~options phi;
+  output_string channel @@ to_bench ?source ?status ?options phi;
   Out_channel.close channel
 
 (* ----------------------------------------------------------------------------
