@@ -28,7 +28,7 @@ depends: [
   "qcheck" {with-test}
   "odoc" {with-doc}
 ]
-depopts: ["bitwuzla" "z3"]
+depopts: ["bitwuzla" "cvc5" "z3"]
 build: [
   ["dune" "subst"] {dev}
   [

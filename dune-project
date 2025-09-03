@@ -27,6 +27,7 @@
   )
   (depopts
     bitwuzla
+    cvc5
     z3
   )
 )

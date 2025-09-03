@@ -19,6 +19,11 @@
        (bitwuzla -> BitwuzlaNative.real.ml)
        (-> BitwuzlaNative.dummy.ml)
     )
+
+    (select CVC5_native.ml from
+       (cvc5 -> CVC5_native.real.ml)
+       (-> CVC5_native.dummy.ml)
+    )
   )
 
   (preprocess
