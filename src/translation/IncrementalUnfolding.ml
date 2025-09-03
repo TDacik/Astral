@@ -10,8 +10,11 @@ module Logger = Logger.Make(struct
   let level = 1
 end)
 
-let compute_lookahaed sl_graph ground var =
-  let g = SL_graph.projection_pointer sl_graph in
+let compute_lookahaed sl_graph ground heap_sort var =
+  let sort = SL.Term.get_sort var in
+  let def = HeapSort.find_target sort heap_sort in
+  let field = MemoryModel.StructDef.find_field (fun f -> Sort.equal sort @@ MemoryModel.Field.get_sort f) def in
+  let g = SL_graph.projection_pointer @@ SL_graph.projection_field field sl_graph in
   let target = SL_graph.find_reachable g var ground in
   match target with
     | None -> None
@@ -115,7 +118,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
           let existentials = List.map SL.Term.of_var @@ S.elements existentials in
           let ground = List.map SL.Term.of_var @@ SL.free_vars ctx.phi in
           let to_remove = SL.Term.MonoList.inter xs existentials in
-          let lookaheads = List.map (compute_lookahaed sl_graph ground) to_remove in
+          let lookaheads = List.map (compute_lookahaed sl_graph ground ctx.heap_sort) to_remove in
           if List.for_all Option.is_some lookaheads then
             let lookaheads = List.map Option.get lookaheads in
             let c0, hint = apply_lookahead cond to_remove lookaheads in
