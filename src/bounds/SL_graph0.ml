@@ -324,9 +324,11 @@ let rec eval_term g t =
   match SL.Term.view t with
     | Var _ -> Some t
     | HeapTerm (f, s) ->
-      match eval_term g s with
-      | None -> None
-      | Some s -> must_successor_ptr g f s
+      begin match eval_term g s with
+        | None -> None
+        | Some s -> must_successor_ptr g f s
+      end
+    | _ -> None (* TODO *)
 
 let lift g eval_true eval_false x y =
   let open ThreeValuedLogic in
