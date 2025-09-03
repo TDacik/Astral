@@ -12,6 +12,7 @@ type solver = {
   heap_sort : HeapSort.t;
 
   timeout : int option;
+  source : string option;
 
   (* Options *)
   produce_models : bool;
@@ -77,6 +78,7 @@ let init
   ?(produce_models=false)
   ?(use_builtin_defs=true)
   ?(dump_queries=`None)
+  ?source
   ()
 =
   let solver = {
@@ -87,6 +89,7 @@ let init
     heap_sort = HeapSort.empty;
 
     timeout = timeout;
+    source = source;
 
     produce_models = produce_models;
     use_builtin_defs = use_builtin_defs;
@@ -122,7 +125,7 @@ let _solve solver phi =
     let input = Input.declare_heap_sort input heap_sort in
     Input.add_vars input vars
   in
-  Debug.input input;
+  Debug.input input ?source:solver.source;
   let result = Engine.solve input in
   Profiler.finish ();
   Debug.result result;

@@ -12,6 +12,7 @@ val init :
   ?produce_models : bool ->
   ?use_builtin_defs : bool ->
   ?dump_queries : [`None | `Full of string] ->
+  ?source : string ->
   unit -> solver
 (** Create a solver object:
 

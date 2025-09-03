@@ -14,7 +14,7 @@ val formula : ?suffix:string -> SL.t -> unit
 
 val inductive_pred : ?suffix:string -> string -> SL.t -> unit
 
-val input : ParserContext.t -> unit
+val input : ?source:string -> ParserContext.t -> unit
 
 val context : Context.t -> unit
 

@@ -66,7 +66,7 @@ let formula ?force_name ?(suffix="") phi =
     | None -> if suffix = "" then "phi" else "phi_" ^ suffix
     | Some name -> name
   in
-  debug_out (out_file ^ ".smt2") (SL.to_smtlib phi);
+  debug_out (out_file ^ ".smt2") (SL.to_bench phi);
   let ast = SL.to_ast phi in
   SL.output_ast (path_ast out_file) ast
 
@@ -76,10 +76,15 @@ let inductive_pred ?(suffix="") name phi =
   let ast = SL.to_ast phi in
   SL.output_ast (path_ast out_file) ast
 
-let input input =
+let input ?source ?heap_sort input =
   debug_out "input.txt" (ParserContext.show input);
   formula ~force_name:"input" (ParserContext.get_phi input);
-  SL.output_benchmark ((debug_dir ()) ^ "/input.smt2") (ParserContext.get_phi input) ~status:`Unknown
+  SLID.output_benchmark
+    ((debug_dir ()) ^ "/input.smt2")
+    (ParserContext.get_phi input)
+    ?source
+    ~heap_sort:(ParserContext.get_heap_sort input)
+    ~status:`Unknown
 
 let context context =
   SL_graph.output_file (sl_graph_dot "") context.sl_graph;
@@ -112,7 +117,7 @@ let backend_model str = debug_out "backend_model.smt2" str
 let backend_call str = debug_out "backend_call.sh" str
 
 (** Decorated functions *)
-let input      = decorate input
+let input ?source = decorate (input ?source)
 let context    = decorate context
 let model      = decorate model
 let smt_model  = decorate smt_model
