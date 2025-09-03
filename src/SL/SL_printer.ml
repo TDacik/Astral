@@ -7,6 +7,41 @@ open MemoryModel
 
 let (++) = (^)
 
+let pretty_eq xs =
+  String.concat " = " @@ List.map SL.Term.show xs
+
+let pretty_distinct xs =
+  Format.asprintf "distinct(%s)" @@ SL.Term.show_list xs
+
+let pretty_pointsto x ys =
+  Format.asprintf "x %s <%s>"
+    !UnicodeSymbols.maps_to
+    (SL.Term.show_list ys)
+
+let pretty_atom psi = match SL.view psi with
+  | Emp -> "emp"
+  | Eq xs -> pretty_eq xs
+  | Distinct xs -> pretty_distinct xs
+  | PointsTo (x, _, ys) -> pretty_pointsto x ys
+  | Predicate (name, xs, _) ->
+    Format.asprintf "%s(%s)" name (SL.Term.show_list xs)
+
+let pretty_binder = function
+  | [] -> ""
+  | xs ->
+    Format.asprintf "%s %s."
+      !UnicodeSymbols.exists
+      (SL.Variable.show_list xs)
+
+let pretty_symbolic_heap phi =
+  let qs, atoms = SL.as_quantified_symbolic_heap phi in
+  if List.is_empty atoms then "emp"
+  else
+    pretty_binder qs
+    ++ " " ++
+    (String.concat " * " @@ List.map pretty_atom atoms)
+
+
 type printer = {
   eq : string;
   neq : string;
