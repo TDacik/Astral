@@ -93,6 +93,12 @@ val max_footprints : unit -> int option
 
 val max_pred_enum : unit -> int option
 
+(** ==== Unfolding ==== *)
+
+val incremental_unfolding : unit -> bool
+
+val unfolding_lookahead : unit -> bool
+
 (** ==== Encoding ==== *)
 
 val sets : unit -> string

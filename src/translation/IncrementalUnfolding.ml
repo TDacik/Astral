@@ -110,7 +110,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
             | False -> continue_e ()
             | Unknown -> SL.mk_ite cond (continue_t ()) (continue_e ())
           end)
-        else (
+        else if Options.unfolding_lookahead () then (
           (* Remove existentials by look-ahaed *)
           let existentials = List.map SL.Term.of_var @@ S.elements existentials in
           let ground = List.map SL.Term.of_var @@ SL.free_vars ctx.phi in
@@ -138,6 +138,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
           (* Otherwise, do full unfolding *)
           else InductiveDefinition.unfold sid pred xs n
         )
+        (* Otherwise, do full unfolding *)
+        else InductiveDefinition.unfold sid pred xs n
       | Or cases ->
         (* Continue by only those cases that are feasible on the left-hand side. *)
         List.fold_left (fun acc case ->

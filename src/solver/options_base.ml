@@ -100,6 +100,12 @@ let semantics () = match !_semantics with
   | "imprecise" -> `Imprecise
   | other -> failwith ("Unknown semanics '" ^ other ^ "'")
 
+let _incremental_unfolding = ref true
+let incremental_unfolding () = !_incremental_unfolding
+
+let _unfolding_lookahead = ref false
+let unfolding_lookahead () = !_unfolding_lookahead
+
 let _max_footprints = ref 100
 let max_footprints () = match !_max_footprints with
   | 0 -> None
