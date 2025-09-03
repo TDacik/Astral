@@ -19,6 +19,13 @@ let pp fmt (_, name) = Format.fprintf fmt "%s" name
 
 let equal_with_string (_, name) str = String.equal name str
 
+let base_name_str name =
+  match String.split_on_char '!' name with
+    | [name] | [name; _] -> name
+    | _ -> assert false
+
+let base_name (_, name) = base_name_str name
+
 module Self = struct
   type nonrec t = t
   let show = show
@@ -56,6 +63,7 @@ module Make () = struct
 
   let mk name =
     (*debug "Creating identifier %s\n" name;*)
+    let name = if name = "" then "e" else name in
     let res =
       try (find_tag name, name)
       with Not_found ->
@@ -68,11 +76,8 @@ module Make () = struct
 
   let mk_fresh name =
     (*debug "Creating fresh identifier %s\n" name;*)
-    let base_name = match String.split_on_char '!' name with
-      | [s] -> s
-      | [s; _] -> s
-      | _ -> assert false
-    in
+    let name = if name = "" then "e" else name in
+    let base_name = base_name_str name in
     let index =
       try find_index base_name + 1
       with Not_found -> 1
@@ -93,4 +98,5 @@ module Make () = struct
   let tag = tag
   let compare = compare
   let equal = equal
+  let base_name = base_name
 end
