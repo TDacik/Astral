@@ -118,25 +118,30 @@ let compute_general phi heap_sort g =
   in
   bounds
 
+let default heap_sort =
+  let sorts = HeapSort.get_loc_sorts heap_sort in
+  List.fold_left (fun acc sort -> add sort SortBound.zero acc) empty sorts
+  |> add Sort.loc_nil (SortBound.init 0 1)
+
 (** Compute a bound for a symbolic heap without predicate calls. *)
-let compute_ptr_bound phi =
+let compute_ptr_bound heap_sort phi =
   if Option.is_some @@ SL.pointer_size phi then
     SL.select_subformulae SL.is_pointer phi
     |> List.map SL.as_pointer
     |> List.map (fun (x, _, _) -> SL.Term.get_sort x)
     |> List.fold_left (fun acc sort ->
          plus sort 1 acc
-      ) empty
+      ) (default heap_sort)
     |> Option.some
   else None
 
 let compute_sh_entl phi lhs rhs heap_sort g =
-  let lhs_bound = compute_ptr_bound lhs in
-  let rhs_bound = compute_ptr_bound rhs in
+  let lhs_bound = compute_ptr_bound heap_sort lhs in
+  let rhs_bound = compute_ptr_bound heap_sort rhs in
   match lhs_bound, rhs_bound with
     | Some b, _ | _, Some b -> b
     | None, None -> compute_general phi heap_sort g
 
 let compute phi heap_sort g = match SL.as_query phi with
-  | SymbolicHeap_ENTL (lhs, rhs) -> compute_sh_entl phi lhs rhs heap_sort g
+  (*| SymbolicHeap_ENTL (lhs, rhs) -> compute_sh_entl phi lhs rhs heap_sort g*)
   | _ -> compute_general phi heap_sort g
