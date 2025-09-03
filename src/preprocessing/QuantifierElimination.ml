@@ -48,8 +48,11 @@ module Instance = struct
     match SL.view psi with
       | PointsTo (s, def, ys) ->
         let open MemoryModel.StructDef in
-        let index = List.find_index (fun t -> SL.Term.equal t @@ SL.Term.of_var x) ys in
-        Option.map (fun i -> SL.Term.mk_heap_term (List.nth def.fields i) s) index
+        let vars = SL.Term.free_vars s in
+        if SL.Variable.Set.subset (SL.Variable.Set.of_list vars) (SL.Variable.Set.of_list ground) then
+          let index = List.find_index (fun t -> SL.Term.equal t @@ SL.Term.of_var x) ys in
+          Option.map (fun i -> SL.Term.mk_heap_term (List.nth def.fields i) s) index
+        else None
       | Eq es ->
         if BatList.mem_cmp SL.Term.compare (SL.Term.of_var x) es then
           let global = List.filter (fun e -> SL.Term.is_ground ~ground e) es in
