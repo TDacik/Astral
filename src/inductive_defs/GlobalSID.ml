@@ -210,7 +210,7 @@ let term_bound phi g heap_sort x =
 let additional_bounds phi =
   SID.fold (fun pred acc -> match pred with
     | Builtin (module B : BUILTIN) -> acc + B.additional_bound phi
-    | UserDefined id -> 0
+    | UserDefined id -> acc
   ) !sid_updated 0
 
 (** TODO: compute some must-relations *)
