@@ -69,4 +69,4 @@ include Self
 
 let mk x = SL.mk_predicate "freed" [x]
 
-let register () = SID.register (module Self : ID_sig.BUILTIN)
+let register () = GlobalSID.register_builtin (module Self : ID_sig.BUILTIN)

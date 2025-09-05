@@ -29,7 +29,7 @@ let rec candidate_conditions phi = match SL.view phi with
   | And psis | Star psis -> List.concat_map candidate_conditions psis
   | Exists (xs, psi) ->
     List.filter (SL.is_ground' ~forbidden:xs) @@ candidate_conditions psi
-  | Predicate (pred, xs, []) -> SID.param_conditions pred xs
+  | Predicate (pred, xs, []) -> GlobalSID.param_conditions pred xs
   | Or psis ->
     let cs = List.map candidate_conditions psis in
     SL.MonoList.inter_list cs

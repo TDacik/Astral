@@ -79,10 +79,12 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
       @param existentials     Existential variables introduced during the unfolding process. *)
   let rec unfold_pred ~existentials ctx sl_graph n sid pred xs =
+    let id = SID.find_user_defined sid pred in
     (* TODO: improve for non-empty base case *)
-    if n = 0 then InductiveDefinition.unfold_finite pred xs
+    if n = 0 then InductiveDefinition.unfold_finite id xs
     else
-      let def = InductiveDefinition.instantiate ~refresh:true pred xs in
+      (* TODO: instantiate in SID? *)
+      let def = InductiveDefinition.instantiate ~refresh:true id xs in
       let continue_branch guard branch alloc_plus =
         Backend.push guard;
         let res = unfold_rec ~existentials ctx sl_graph (n-1) sid branch in
@@ -139,10 +141,10 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
             end
 
           (* Otherwise, do full unfolding *)
-          else InductiveDefinition.unfold sid pred xs n
+          else SID.unfold sid pred xs n
         )
         (* Otherwise, do full unfolding *)
-        else InductiveDefinition.unfold sid pred xs n
+        else SID.unfold sid pred xs n
       | Or cases ->
         (* Continue by only those cases that are feasible on the left-hand side. *)
         List.fold_left (fun acc case ->
@@ -164,18 +166,16 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     and unfold_rec ~existentials ctx sl_graph n sid phi =
       SL.map_view (function
-        | Predicate (name, xs, _) when SID.is_user_defined name ->
-          let id = SID.get_definition name in
-          `Modify (unfold_pred ~existentials ctx sl_graph n sid id xs)
+        | Predicate (name, xs, _) when GlobalSID.is_user_defined name ->
+          `Modify (unfold_pred ~existentials ctx sl_graph n sid name xs)
         | _ -> `Skip
       ) phi
 
     let unfold_toplevel ~existentials ctx sl_graph bound sid phi =
       SL.map_view (function
-        | Predicate (name, xs, _) when SID.is_user_defined name ->
-          let id = SID.get_definition name in
+        | Predicate (name, xs, _) when GlobalSID.is_user_defined name ->
           (* TODO: unsound, check FP *)
-          `Modify (unfold_pred ~existentials ctx sl_graph bound sid id xs)
+          `Modify (unfold_pred ~existentials ctx sl_graph bound sid name xs)
         | _ -> `Skip
       ) phi
 
@@ -183,6 +183,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       let module C = Translation_context.Make(Encoding.Locations)(Encoding.HeapEncoding) in
       Profiler.add "Unfolding";
 
+      let sid = GlobalSID.get () in
       Backend.init ~timeout:(Options.incremental_timeout ()) ();
 
       (* Is this sound??? *)
@@ -190,7 +191,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
       let ctx = C.init input in
       let bound = LocationBounds.sum input.location_bounds - 1 in (* -1 for nil *)
-      let sid = SID.id_map () in
+      let sid = GlobalSID.get () in
 
       Backend.push lhs; (* TODO: could adding axioms help? *)
 

@@ -34,7 +34,7 @@ let ls_two_plus =
 
 (** Doubly-linked list *)
 let dls =
-  let header = SL.Variable.mk_list loc_dls ["x"; "y"; "x'"; "y'"] in
+  let header = SL.Variable.mk_list loc_dls ["x"; "y"; "xp"; "yp"] in
   let [x; y; x'; y'] = List.map SL.Term.of_var header in
   ID.mk "dls" header @@
     SL.mk_or [
@@ -49,7 +49,7 @@ let dls =
 
 (** Doubly-linked list of length 3+ *)
 let dls_three_plus =
-  let header = SL.Variable.mk_list loc_dls ["x"; "y"; "x'"; "y'"] in
+  let header = SL.Variable.mk_list loc_dls ["x"; "y"; "xp"; "yp"] in
   let [x; y; x'; y'] = List.map SL.Term.of_var header in
   ID.mk "dls_3_plus" header @@
     SL.mk_exists' [loc_dls; loc_dls; loc_dls] (fun [n1; n2; n3] ->
@@ -68,6 +68,21 @@ let nls =
   ID.mk "nls" header @@
     SL.mk_or [
       SL.mk_eq [x; y];
+      SL.mk_exists' [loc_nls; loc_ls;] (fun [top; next] ->
+        SL.mk_star [
+          SL.mk_distinct [x; y];
+          mk_pto_nls x ~top ~next;
+          SL.mk_predicate "nls" [top; y; z];
+          SL.mk_predicate "ls" [next; z];
+    ])]
+
+(* Nested singly-linked list *)
+let nls_one_plus =
+  let header = SL.Variable.mk_list loc_nls ["x"; "y"] @ [SL.Variable.mk "z" loc_ls] in
+  let [x; y; z] = List.map SL.Term.of_var header in
+  ID.mk "nls_one_plus" header @@
+    SL.mk_or [
+      mk_pto_nls x ~top:y ~next:z;
       SL.mk_exists' [loc_nls; loc_ls;] (fun [top; next] ->
         SL.mk_star [
           SL.mk_distinct [x; y];

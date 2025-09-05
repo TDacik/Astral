@@ -38,7 +38,7 @@ let check_id id =
   ) (Result.ok ()) id.inductive_cases
 
 let check_inductive_definitions () =
-  SID.fold_on_user_defined (fun id acc ->
+  GlobalSID.fold_user_defined (fun id acc ->
     Result.bind acc @@ (fun _ -> check_id id)
   ) (Result.ok ())
 

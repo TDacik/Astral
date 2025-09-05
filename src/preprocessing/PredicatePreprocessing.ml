@@ -72,7 +72,7 @@ let preprocess (pred : t) =
   let pred = RuleAntiunification.apply pred in
   Logger.dump pred "_6_generalisation";
 
-  let forbidden_vars = SID.existentials pred in
+  let forbidden_vars = GlobalSID.existentials pred in
   let pred = InductiveDefinition.map (repeat_until_fixpoint ~eq:SL.equal @@ IntroduceIfThenElse.apply ~forbidden_vars) pred in
   Logger.dump pred "_7-introduce-ite";
   Some pred

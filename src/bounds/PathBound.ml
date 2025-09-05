@@ -85,7 +85,7 @@ let partial_path g field x y =
 
 let root_weight g phi heap_sort x =
   if must_pointer_any g x then 1
-  else Float.to_int @@ Float.floor @@ SID.term_bound phi g heap_sort x
+  else Float.to_int @@ Float.floor @@ GlobalSID.term_bound phi g heap_sort x
 
 let alloc_bound g phi heap_sort field x y max =
   must_disjoint_with g x field y

@@ -8,7 +8,7 @@ let must_allocate_lhs phi lhs g name =
   let _, atoms = SL.as_symbolic_heap lhs in
   List.map (fun atom -> match SL.view atom with
     | PointsTo _ -> 1
-    | Predicate (name, xs, _) when SID.is_user_defined name -> SID.alloc name
+    | Predicate (name, xs, _) when GlobalSID.is_user_defined name -> GlobalSID.alloc name
     | _ -> 0
   ) atoms
   |> BatList.sum
@@ -29,51 +29,51 @@ let unfolding_depth lhs g pred_name ys =
     ) atoms
 *)
 
-let max_unfold_bound_lhs rhs default =
+(** Bound on unfolding of lhs when rhs is atomic. *)
+let max_unfold_bound_lhs rhs default = default
+(*
   match SL.pointer_size rhs with
     | None -> default
-    | Some n -> n + 1
+    | Some n -> n + 1 *)
 
-let unfold_predicate_lhs phi lhs max_bound name xs =
+(** Bound on unfolding of rhs when lhs is atomic. *)
+let max_unfold_bound_rhs lhs default = default
+ (*
+  match SL.pointer_size lhs with
+    | None -> default
+    | Some n -> n
+ *)
+
+let unfold_predicate_lhs sid phi lhs max_bound name xs =
   Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
     name (SL.Term.show_list xs) (max_bound);
-  SID.unfold name xs (max_bound)
+  SID.unfold sid name xs (max_bound)
 
-let unfold_sat phi name xs =
-  let abstraction = SID.abstraction name in
+let unfold_sat sid phi name xs =
+  let abstraction = GlobalSID.abstraction name in
   let bound = PredicateAbstraction.(abstraction.unfolding_depth) in
   Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
     name (SL.Term.show_list xs) (bound);
-  SID.unfold name xs bound
+  SID.unfold sid name xs bound
 
-let unfold_predicate_rhs phi loc_bound g name xs =
-  let def = SID.get_definition name in
-  let max_bound = LocationBounds.sum loc_bound - 1 in
-  (*let max_bound = List.length @@ SL.free_vars phi in*)
-  (*let max_bound = unfolding_depth phi in*)
-  Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
-    name (SL.Term.show_list xs) max_bound;
-  SID.unfold_guided name g xs max_bound
-
-let unfold_lhs bound phi lhs rhs = SL.map_view (function
-  | Predicate (name, xs, _) when SID.is_user_defined name ->
+let unfold_lhs sid bound phi lhs rhs = SL.map_view (function
+  | Predicate (name, xs, _) when SID.is_user_defined sid name ->
     let g = SL_graph.compute lhs in (* TODO: do not recompute *)
-    let self = SID.unfolding_depth phi g name xs in
+    let self = GlobalSID.unfolding_depth phi g name xs in
     let alloc = must_allocate_lhs phi lhs g name in
     let default = (LocationBounds.sum bound) - alloc + self - 1 in (* -1 for nil *)
-    let max_bound = max_unfold_bound_lhs rhs default in
     let bound = max_unfold_bound_lhs rhs default in
-    `Modify (unfold_predicate_lhs phi lhs bound name xs)
+    `Modify (unfold_predicate_lhs sid phi lhs bound name xs)
   | _ -> `Skip
 ) lhs
 
-let unfold_sat lhs = SL.map_view (function
-  | Predicate (name, xs, _) when SID.is_user_defined name ->
-    `Modify (unfold_sat lhs name xs)
+let unfold_sat sid lhs = SL.map_view (function
+  | Predicate (name, xs, _) when SID.is_user_defined sid name ->
+    `Modify (unfold_sat sid lhs name xs)
   | _ -> `Skip
 ) lhs
 
-let unfold_rhs ctx bound lhs rhs =
+let unfold_rhs sid ctx lhs rhs =
   let open Backend_sig in
   let open Translation_sig in
   let module Backend = (val Options.backend () : BACKEND) in
@@ -81,29 +81,30 @@ let unfold_rhs ctx bound lhs rhs =
   let module Encoding = (val Options.encoding () : ENCODING) in
   let module Translation = Translation.Make(Encoding)(Backend) in
   let module Unfolder = IncrementalUnfolding.Make(Encoding)(IncrementalBackend) in
-  let lhs = Translation.translate {ctx with phi = lhs} in (* TODO: check*)
-  Debug.translated ~suffix:"LHS" lhs;
-  Unfolder.unfold bound lhs rhs
+  let lhs_t = Translation.translate {ctx with phi = lhs} in (* TODO: check*)
+  Debug.translated ~suffix:"LHS" lhs_t;
+  Unfolder.unfold ctx lhs_t rhs
 
 let apply_aux ctx phi =
+  let sid = GlobalSID.get () in
   let open Context in
   let location_bound = ctx.location_bounds in
   Logger.debug "Unfolding %s\n" (SL.show phi);
   match SL.view phi with
     | _ when SL.is_symbolic_heap phi ->
-      {ctx with phi = unfold_sat phi}
+      {ctx with phi = unfold_sat sid phi}
     | GuardedNeg (lhs, rhs) ->
       let ctx_lhs = QuantifierElimination.apply_ctx @@
-        {ctx with phi = Simplifier.simplify @@ unfold_lhs location_bound phi lhs rhs}
+        {ctx with phi = Simplifier.simplify @@ unfold_lhs sid location_bound phi lhs rhs}
       in
       let lhs = ctx_lhs.phi in
       let sl_graph = SL_graph.compute lhs in
-      let rhs = unfold_rhs ctx ctx lhs rhs in
+      let rhs = unfold_rhs sid ctx lhs rhs in
       {ctx with phi = SL.mk_gneg lhs rhs; model_adapter = ctx_lhs.model_adapter}
     | _ -> assert false (* Should be catched earlier *)
 
 let apply ctx phi =
-  if not @@ SLID.has_user_defined_predicates phi then ctx
+  if List.is_empty @@ GlobalSID.get_user_defined () then ctx
   else apply_aux ctx phi
 
 let apply_ctx ctx = apply ctx ctx.phi

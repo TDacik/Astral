@@ -8,7 +8,7 @@ module Logger = Logger.Make (struct let name = "Inlining" let level = 2 end)
 
 let can_be_inlined name =
   try
-    let id = SID.find_user_defined name in
+    let id = GlobalSID.find_user_defined name in
     let cases = InductiveDefinition.cases id in
     begin match cases with
     | [case] ->
@@ -21,10 +21,10 @@ let can_be_inlined name =
         (SL.show case)
         (SL.is_quantifier_free case)
         (SL.is_symbolic_heap case)
-        (not @@ SID.is_self_recursive id.name);
+        (not @@ GlobalSID.is_self_recursive id.name);
       SL.is_quantifier_free case
       && SL.is_symbolic_heap case
-      && not @@ SID.is_self_recursive id.name
+      && not @@ GlobalSID.is_self_recursive id.name
 
       (* Currently, multiple cases can be inlined only when all of them are atomic *)
       | cases -> List.for_all SL.is_atomic cases
@@ -33,7 +33,7 @@ let can_be_inlined name =
 
 let inline name xs =
   Logger.debug "Inlining predicate %s(%s)\n" name (SL.Term.show_list xs);
-  let id = SID.find_user_defined name in
+  let id = GlobalSID.find_user_defined name in
   InductiveDefinition.instantiate ~refresh:true id xs
   (* TODO: Avoid this by doing preprocessing of formula and IDs simultaneously. *)
   |> PreciseToImprecise.to_precise
@@ -41,7 +41,7 @@ let inline name xs =
 
 let inline phi =
   SL.map_view (function
-    | Predicate (name, xs, []) when SID.is_user_defined name && can_be_inlined name ->
+    | Predicate (name, xs, []) when GlobalSID.is_user_defined name && can_be_inlined name ->
       `Modify (inline name xs)
     | _ -> `Skip
   ) phi

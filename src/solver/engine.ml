@@ -24,8 +24,7 @@ let debug_info input = match SL.classify_fragment input.phi with
           by re-initializing SID.*)
 let normalise input =
   let input = Preprocessor.first_phase input in
-  SID.init ();
-  SID.preprocess_user_definitions PredicatePreprocessing.normalise;
+  GlobalSID.preprocess_user_definitions PredicatePreprocessing.normalise;
   input
 
 let solve (input : Context.t) =
@@ -43,16 +42,15 @@ let solve (input : Context.t) =
     (** Small model should be computed on normalised, but non-preprocessed definition *)
 
     (** TODO: following is a hack for interactive mode *)
-    (if Options.interactive () then SID.reset_results () else ());
-    let distinguishers = SID_checks.compute_distinguishers !SID.dg in
+    (if Options.interactive () then GlobalSID.reset_results () else ());
+    let distinguishers = SID_checks.compute_distinguishers @@ GlobalSID.dependency_graph () in
     let sm = SmallModels.compute input.phi distinguishers in
     Profiler.add "Small-models";
-    SID.cache := sm;
-    SID.distinguishers := distinguishers;
+    GlobalSID.cache := sm;
     Debug.out_input input;
 
     BaseLogic.use_simplification true;
-    SID.preprocess_user_definitions PredicatePreprocessing.preprocess;
+    GlobalSID.preprocess_user_definitions PredicatePreprocessing.preprocess;
 
     let input, bounds = Preprocessor.second_phase input in
 

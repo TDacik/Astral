@@ -178,7 +178,7 @@ let rec compute stars phi =
   | SL.Eq xs -> all_equal xs
   | SL.Distinct xs -> all_distinct xs
   | SL.PointsTo (x, s, ys) -> of_pointer x s ys
-  | SL.Predicate (id, xs, defs) -> SID.sl_graph id (xs, defs)
+  | SL.Predicate (id, xs, defs) -> GlobalSID.sl_graph id (xs, defs)
 
   | SL.Star psis -> disjoint_union ~stars (List.map compute psis)
   | SL.And psis -> List.fold_left G.union G.empty (List.map compute psis)

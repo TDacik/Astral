@@ -16,7 +16,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   open Encoding
 
   module Footprints = Topped_set.Lift(SMT.Set)
-  module PredicateTranslation = SID.Translation(Encoding)
+  module PredicateTranslation = GlobalSID.Translation(Encoding)
 
   (** Definition of context type *)
   open Encoding_context_sig

@@ -103,7 +103,7 @@ let semantics () = match !_semantics with
 let _incremental_unfolding = ref true
 let incremental_unfolding () = !_incremental_unfolding
 
-let _unfolding_lookahead = ref false
+let _unfolding_lookahead = ref true
 let unfolding_lookahead () = !_unfolding_lookahead
 
 let _max_footprints = ref 100
@@ -251,6 +251,12 @@ let speclist =
      "Encoding of SMT quantifiers (direct | enum)");
     ("--encoding", Arg.String set_encoding,
      "Predefined encoding of locations and sets (enum | bitvectors)");
+    
+    (* Unfolding *)
+    ("--incr-unfolding", Arg.Set _incremental_unfolding, 
+        "Perform incremental unfolding of predicates.");
+    ("--no-unfolding-lookahead", Arg.Clear _unfolding_lookahead,
+        "Perform look-ahead when unfolding predicate calls including determined existentials (experimental");
 
     ("--max-footprints", Arg.Set_int _max_footprints, "");
     ("--max-pred-enum", Arg.Set_int _max_pred_enum, "");

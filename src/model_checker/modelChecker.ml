@@ -20,7 +20,7 @@ type error =
 let rec compute_footprint sh phi = match SL.view phi with
   | Emp | Eq _ | Distinct _ -> Footprint.empty
   | PointsTo (x, _, _) -> Footprint.singleton (Stack.eval sh.stack x)
-  | Predicate (id, xs, defs) -> SID.compute_footprints id (xs, defs) sh
+  | Predicate (id, xs, defs) -> GlobalSID.compute_footprints id (xs, defs) sh
   | Star psis ->
     let fps = List.map (compute_footprint sh) psis in
     Footprint.of_list (List.concat @@ List.map Footprint.elements fps)
@@ -44,7 +44,7 @@ let rec check sh phi = match SL.view phi with
     && BatList.for_all2 (fun field y -> Location.equal y @@ Heap.find_field field sx sh.heap)
          fields sys
 
-  | Predicate (id, xs, defs) -> SID.model_check id (xs, defs) sh
+  | Predicate (id, xs, defs) -> GlobalSID.model_check id (xs, defs) sh
 
   | Star psis -> List.for_all (check sh) psis
 

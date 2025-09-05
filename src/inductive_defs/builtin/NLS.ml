@@ -246,7 +246,7 @@ end
 module Self = BuiltinBuilder.Make(Self0)
 include Self
 
-let register () = SID.register (module Self : ID_sig.BUILTIN)
+let register () = GlobalSID.register_builtin (module Self : ID_sig.BUILTIN)
 
 (** API *)
 

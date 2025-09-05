@@ -6,7 +6,7 @@ open ID_sig
 
 (** This module provies unified access to both built-in and user-defined predicates. *)
 module ID = struct
-  
+
   type t =
     | Builtin of (module BUILTIN)
     | UserDefined of InductiveDefinition.t
@@ -49,7 +49,6 @@ let empty = {
 let dependency_graph sid = sid.graph
 
 let register sid name id =
-  Format.printf "Registering to %d: %s\n" (Obj.magic sid) (ID.show id);
   assert (not @@ M.mem name sid.definitions);
   {sid with definitions = M.add name id sid.definitions}
   (** TODO: recompute graph after every change? *)
@@ -142,8 +141,7 @@ let dependencies sid name = match find sid name with
     InductiveDefinition.dependencies id
     |> List.map (find_user_defined sid)
 
-let is_self_recursive sid name = 
-  Format.printf "SID module: %s\n" (show sid);      
+let is_self_recursive sid name =
   match find sid name with
   | Builtin _ -> true (* Conservatively assume true *)
   | UserDefined id -> DependencyGraph.is_self_recursive sid.graph id

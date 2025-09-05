@@ -62,7 +62,6 @@ let rewrite_semantics ctx = match Options_base.semantics () with
 
 let first_phase context =
   counter := 0;
-  SID.normalise ();
 
   BaseLogic.use_simplification false;
 

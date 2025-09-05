@@ -9,7 +9,7 @@ open SL
 
 let rec has_unique_footprint phi = match view phi with
   | Emp | Eq _ | Distinct _ | PointsTo _ | False -> true
-  | Predicate (pred, _, _) -> SID.has_unique_footprint pred
+  | Predicate (pred, _, _) -> GlobalSID.has_unique_footprint pred
   | Star xs | And xs -> List.for_all has_unique_footprint xs
   | Or _ | Exists _ | Not _ -> false
   | GuardedNeg (lhs, _) -> has_unique_footprint lhs
@@ -22,7 +22,7 @@ let rec get_structs ?(visited=[]) (phi : SL.t) =
   let atoms = SL.select_subformulae SL.is_spatial_atom phi in
   atoms |> List.concat_map (fun psi -> match SL.view psi with
        | PointsTo (_, s, _) -> [s]
-       | Predicate (pred, _, _) -> SID.get_structs visited (fun visited -> get_structs ~visited) pred
+       | Predicate (pred, _, _) -> GlobalSID.get_structs visited (fun visited -> get_structs ~visited) pred
        | _ -> []
      )
   |> BatList.unique_cmp ~cmp:MemoryModel.StructDef.compare
@@ -31,21 +31,22 @@ let get_structs phi = get_structs phi
 
 let get_inductive_definitions ?(original=false) phi =
   SL.select_subformulae (fun phi -> match SL.view phi with
-      | Predicate (name, _, _) -> SID.is_user_defined name
+      | Predicate (name, _, _) -> GlobalSID.is_user_defined name
       | _ -> false
     ) phi
   |> List.map (fun phi -> match SL.view phi with 
-       Predicate (name, _, _) -> SID.find_user_defined ~original name
+       Predicate (name, _, _) -> GlobalSID.find_user_defined ~original name
      )
 
 let saturate_inductive_definitions ?(original=false) phi =
   get_inductive_definitions ~original phi
-  |> SID.compute_dependencies ~original
+  |> List.concat_map (fun id -> GlobalSID.dependencies ~original (InductiveDefinition.name id))
+  |> InductiveDefinition.MonoList.unique
 
 let has_builtin_predicates phi =
   let uids =
     SL.select_subformulae (fun phi -> match SL.view phi with
-      | Predicate (name, _, _) -> SID.is_builtin name
+      | Predicate (name, _, _) -> GlobalSID.is_builtin name
       | _ -> false
     ) phi
   in
@@ -80,7 +81,7 @@ let output_benchmark ?source ?status ?(heap_sort=HeapSort.empty) path phi =
   let options =
     (* TODO: handle other built-in elements properly
     if has_builtin_predicates phi then Some "(set-option :use-builtin-definitions)"\n*)
-    if SID.has_user_defined_predicates () then Option.some @@ generate_definitions phi heap_sort
+    if not @@ List.is_empty @@ GlobalSID.get_user_defined () then Option.some @@ generate_definitions phi heap_sort
     else None
   in
   output_benchmark ?source ?status ?options path phi

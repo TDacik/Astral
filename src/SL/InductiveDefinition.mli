@@ -26,6 +26,8 @@ val cases : ?refresh:bool -> ?base_only:bool -> ?params:SL.Term.t list -> t -> S
     @param base_only  Only base cases (default false)
 *)
 
+val instantiate_rules : t -> SL.Term.t list -> SL.t list
+
 val show : t -> string
 
 val mk : string -> SL.Variable.t list -> SL.t -> t
@@ -58,11 +60,5 @@ val instantiate : refresh:bool -> t -> SL.Term.t list -> SL.t
 val instantiate_formals : ?refresh:bool -> t -> SL.t
 
 val unfold_finite : t -> SL.Term.t list -> SL.t
-
-module ID_map : (module type of Stdlib.Map.Make(String))
-
-val unfold : t ID_map.t -> t -> SL.Term.t list -> int -> SL.t
-
-val unfold_guided : t ID_map.t -> t -> SL_graph0.t -> SL.Term.t list -> int -> SL.t
 
 val smt2_decl : t -> string

@@ -287,8 +287,8 @@ and parse_pointer ctx (operands : Term.t list) =
 
 and parse_predicate loc (ctx : Context.t) pred operands =
   let operands = List.map (get_term pred) operands in
-  if Context.is_declared_pred ctx pred && not @@ SID.is_builtin pred then
-    let id = SID.find_user_defined pred in
+  if Context.is_declared_pred ctx pred && not @@ GlobalSID.is_builtin pred then
+    let id = GlobalSID.find_user_defined pred in
     if List.length id.header != List.length operands then
       ParserException.raise_syntax_error (Some loc)
         (Format.asprintf "Incorrect arity of predicate %s: expected %d arguments, got %d"
@@ -296,7 +296,7 @@ and parse_predicate loc (ctx : Context.t) pred operands =
         )
     else (* TODO: type check *)
     Formula (SL.mk_predicate pred operands)
-  else match SID.instantiate ctx.heap_sort pred operands with
+  else match GlobalSID.instantiate ctx.heap_sort pred operands with
     | Ok phi -> Formula phi
     | Error msg -> ParserException.raise_syntax_error (Some loc) msg
 
@@ -449,7 +449,7 @@ let parse_predicate ctx (def : def) =
 
   Logger.debug "Header: %s\n" (SL.Variable.show_list header);
   let body = parse_formula local_ctx def.body in
-  SID.add name header body;
+  GlobalSID.update_user_defined @@ InductiveDefinition.mk name header body;
   ctx
 
 let parse_definition ctx (defs : def group) =
@@ -462,7 +462,7 @@ let parse_definition ctx (defs : def group) =
     List.iter (fun def ->
       let header = parse_predicate_header ctx def in
       let name = parse_id def.id in
-      SID.add name header SL.emp
+      GlobalSID.register_user_defined @@ InductiveDefinition.mk name header SL.emp;
     ) defs.contents;
 
     let ctx = List.fold_left Context.declare_pred ctx names in
@@ -486,10 +486,10 @@ let parse_option ctx opt = match opt.term with
       LS.register ();
       DLS.register ();
       NLS.register ();
-      Context.add_defs ctx (SID.builtin_context ())
+      Context.add_defs ctx (GlobalSID.builtin_context ())
     | ":use-freed-predicate" ->
       Freed.register ();
-      Context.add_defs ctx (SID.builtin_context ())
+      Context.add_defs ctx (GlobalSID.builtin_context ())
     | opt ->
       Utils.warning "Ignoring unknown option '%s'" opt;
       ctx

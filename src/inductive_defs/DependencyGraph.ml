@@ -38,7 +38,7 @@ let normalise g = g
     if is_self_recursive g v then acc
     else G.remove_vertex acc v
   ) g g
-  *)
+
 
 let compute sid =
   let predicates = SID0.__get_user_defined sid in
@@ -49,6 +49,7 @@ let compute sid =
       add_edge g pred child
     ) g children
   ) empty predicates
+*)
 
 let has_nontrivial_cycle g =
   let module W = struct

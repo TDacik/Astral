@@ -34,13 +34,13 @@ let activate solver =
     | `Full dir -> Options_base.set_debug true; Options_base.set_debug_dir dir
   in
 
-  (* TODO: maybe elsewhere? *)
+  (* TODO: maybe elsewhere?
   (if solver.use_builtin_defs then begin
       Freed.register ();
       LS.register ();
       DLS.register ();
       NLS.register ()
-  end);
+  end); *)
 
   Options.set_backend_timeout solver.timeout;
   Options.set_produce_models solver.produce_models;
@@ -119,7 +119,7 @@ let _solve solver phi =
   Profiler.add "Start";
   let vars = SL.free_vars ~with_nil:false phi in
   let input =
-    let input = if solver.use_builtin_defs then SID.builtin_context () else Input.empty () in
+    let input = if solver.use_builtin_defs then GlobalSID.builtin_context () else Input.empty () in
     let heap_sort = HeapSort.to_list input.heap_sort @ HeapSort.to_list solver.heap_sort in
     let input = Input.add_assertion input phi in
     let input = Input.declare_heap_sort input heap_sort in

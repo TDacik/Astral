@@ -25,7 +25,7 @@ let _convertor = ref ""
 let convertor () = match String.lowercase_ascii !_convertor with
   | "s2s" -> (module Convertors.S2S : CONVERTOR)
   | "songbird" | "sls" -> (module Convertors.Songbird : CONVERTOR)
-  | "slide" -> (module Convertors.Slide : CONVERTOR)
+  (*| "slide" -> (module Convertors.Slide : CONVERTOR)*)
   (*
   | "astral" -> (module AstralConvertor : CONVERTOR)
   | "cvc5" -> (module CVC5Convertor : CONVERTOR)

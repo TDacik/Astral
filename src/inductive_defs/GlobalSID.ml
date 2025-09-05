@@ -85,16 +85,13 @@ let builtin_context () =
 
 (** Apply the function to each inductive definition *)
 let preprocess_user_definitions fn =
-  Format.printf "Before call:%s\n" (show ());
-  let res =
+  sid.updated :=
     SID.filter_map (fun id -> match id with
       | Builtin _ -> Some id
       | UserDefined id -> match fn id with
         | None -> None
         | Some id -> Some (UserDefined id)
     ) !sid_updated
-  in
-  sid_updated := res
 
 (** ==== Syntactic queries ==== *)
 
@@ -111,7 +108,7 @@ let has_unique_footprint name = match find name with
   | UserDefined id -> failwith "TODO: SID.unique_fp"
 
 (** ==== BUILTINS: General ==== *)
- 
+
 let builtin_context () = failwith "TODO"
 
 let instantiate heap_sort name operands = match find name with
@@ -146,7 +143,7 @@ module Translation (E : Translation_sig.ENCODING) = struct
       in
       Exceptions.internal_error ~reason ~details:(InductiveDefinition.show id)
 end
- 
+
 
 (** ==== Abstraction of predicates ==== *)
 

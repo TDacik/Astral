@@ -70,7 +70,7 @@ module Hyperedge = struct
   let show (id, xs) = Format.asprintf "%s(%s)" (InductiveDefinition.name id) (SL.Term.show_list xs)
 
   let of_formula phi = match SL.view phi with
-    | SL.Predicate (name, xs, _) -> (SID.find_user_defined name, xs)
+    | SL.Predicate (name, xs, _) -> (GlobalSID.find_user_defined ~original:true name, xs)
     | _ -> failwith @@ SL.show phi
 
   let match_id id self = Identifier.equal_with_string id (InductiveDefinition.name (fst self))
@@ -370,7 +370,7 @@ let debug_results res =
 
 let compute phi distinguishers =
   Logger.debug "Computing small models of predicates\n";
-  let preds = SID.get_user_defined () in
+  let preds = GlobalSID.get_user_defined ~original:true () in
   let res =
     List.fold_left (fun acc pred ->
       let res0 = Derivation.initial pred in
