@@ -1,203 +1,197 @@
-open ID
+(* Operations over system of inductive definitions.
+ *
+ * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
+
 open ID_sig
 
-module L = Logger.Make
-  (struct let name = "SID" let level = 1 end)
+(** This module provies unified access to both built-in and user-defined predicates. *)
+module ID = struct
+  
+  type t =
+    | Builtin of (module BUILTIN)
+    | UserDefined of InductiveDefinition.t
 
-include SID0
+  let name = function
+    | Builtin (module B : BUILTIN) -> B.name
+    | UserDefined id -> InductiveDefinition.show id
 
-module Logger = L
-
-let distinguishers = ref (SID_checks.M.empty : SID_checks.distinguisher SID_checks.M.t)
-
-let distinguisher name =
-  let open SID_checks in
-  let pred = find_user_defined name in
-  if M.exists (fun (id1, id2) d ->
-    if InductiveDefinition.equal pred id1 || InductiveDefinition.equal pred id2 then d = Field
-    else false
-  ) !distinguishers then Field
-  else Sort
-
-let has_user_defined_predicates () =
-  exists (fun _ id -> match id with Builtin _ -> false | UserDefined _ -> true) !sid
-
-let compute_dependencies ?(original=false) preds =
-  let sid = if original then !_sid else !sid in
-  Format.printf "%s\n\n%s\n" (Printexc.get_backtrace ()) (SID0.show sid);
-
-  let dg = DependencyGraph.compute sid in
-  DependencyGraph.compute_dependencies dg preds
-
-(** {2 Operations over dependency graph *)
-
-let dg = ref DependencyGraph.empty
-
-let is_self_recursive name = match find name with
-  | Builtin _ -> true (* Conservatively assume true *)
-  | UserDefined id -> DependencyGraph.is_self_recursive !dg id
-
-let init () =
-  let g = DependencyGraph.compute !sid in
-  Logger.dump DependencyGraph.output "predicate_graph.dot" g;
-  dg := g
-
-let normalise () =
-  let g = DependencyGraph.normalise !dg in
-  Logger.dump DependencyGraph.output "predicate_graph_normalised.dot" g;
-  dg := g
-  (* TODO: keep or not?
-     sid := M.filter (fun name _ -> is_self_recursive name) !sid
-  *)
-
-(* TODO: check whether we really compute what we want! *)
-let rec existentials ?(visited=[]) id =
-  if BatList.mem_cmp InductiveDefinition.compare id visited then []
-  else
-    let unfolding = InductiveDefinition.instantiate_formals ~refresh:false id in
-    let rec_calls =
-      SL.select_subformulae SL.is_predicate unfolding
-      |> List.map SL.as_predicate
-      |> List.map fst
+  let show pred =
+    let kind = match pred with
+      | Builtin _ -> "built-in"
+      | UserDefined _ -> "user defined"
     in
-    SL.bound_vars unfolding @ List.concat_map (existentials ~visited:(id::visited)) (List.map find_user_defined rec_calls)
+    Format.asprintf "%s (%s)" (name pred) kind
 
-
-(** {2 Preprocessing *)
-
-let preprocess name sl_graph instance = match find name with
-  | Builtin (module B : BUILTIN) -> B.preprocess sl_graph instance
-  | _ -> None
-
-let preprocess_user_definitions fn =
-  sid := M.filter_map (fun _ id -> match id with
-    | Builtin _ -> Some id
-    | UserDefined id -> match fn id with
-      | None -> None
-      | Some id -> Some (UserDefined id)
-  ) !sid
-
-
-(** {2 Parsing} *)
-
-
-let instantiate heap_sort name operands = match find name with
-  | Builtin (module B : BUILTIN) -> B.instantiate heap_sort operands
-  | UserDefined id -> Result.Ok (SL.mk_predicate name operands)
-
-(** {2 Bounds} *)
-
-let is_computed () = not @@ PredicateAbstraction.M.is_empty !cache
-
-let sl_graph name instance = match find name with
-  | Builtin (module B : BUILTIN) -> B.sl_graph instance
-  | UserDefined id -> SL_graph0.empty
-
-let compute_aux phi g id x a =
-  let open InductiveDefinition in
-  let open PredicateAbstraction in
-  if SL.is_symbolic_heap phi then (Float.of_int a.stable_size)
-  else
-  let lhs, _ = SL.as_entailment phi in
-  let _, atoms = SL.as_symbolic_heap lhs in
-  let c = false && List.for_all (fun atom -> match SL.view atom with
-    | Predicate (name, y :: ys, _) when String.equal name id.name ->
-      if SL.Term.equal x y then (* TODO *)
-        List.for_all (SL_graph0.must_neq g SL.Term.nil) ys
-      else true
-    | _ -> true
-  ) atoms
-  in
-  if c then (Float.of_int a.stable_size) else a.fixpoint_size
-
-let term_bound phi g heap_sort x =
-  let sort = SL.Term.get_sort x in
-  fold (fun name pred acc ->
-   let bound = match pred with
-    | Builtin (module B : BUILTIN) -> B.term_bound phi heap_sort x
-    | UserDefined id ->
-      let abstraction = PredicateAbstraction.M.find id !cache in
-      if Sort.equal (SL.Variable.get_sort abstraction.root) sort then compute_aux phi g id x abstraction
-      else Float.one
-   in
-   max acc bound
-) !sid Float.one
-
-let additional_bounds phi =
-  M.fold (fun _ pred acc -> match pred with
-    | Builtin (module B : BUILTIN) -> acc + B.additional_bound phi
-    | UserDefined id -> 0
-  ) !sid 0
-
-let abstraction name =  match find name with
-  | UserDefined id -> PredicateAbstraction.M.find id !cache
-
-
-let unfolding_depth phi g name xs = match find name with
-  | UserDefined id -> (PredicateAbstraction.M.find id !cache).unfolding_depth
-  (*  let abstraction = PredicateAbstraction.find id !cache in
-    compute_aux phi g id (List.hd xs) abstraction
-  *)
-
-let stable_depth name = match find name with
-  | UserDefined id -> (PredicateAbstraction.M.find id !cache).stable_size
-
-let alloc name = match find name with
-  | UserDefined id -> (PredicateAbstraction.M.find id !cache).unfolding_depth
-
-let param_conditions name params =
-  let abstr = abstraction name in
-  let alloc = PredicateAbstraction.get_must_allocated ~params abstr in
-  let pairwise =
-    List_utils.diagonal_product alloc
-    |> List.map (fun (x, y) -> SL.mk_distinct2 x y)
-  in
-  let nils = List.map (SL.mk_distinct2 SL.Term.nil) alloc in
-  pairwise @ nils
-
-
-
-
-(** {2 Translation} *)
-
-module Translation (E : Translation_sig.ENCODING) = struct
-
-  let translate name (context : E.Context.t) instance domain sxs = match find name with
+  let to_id = function
     | Builtin (module B : BUILTIN) ->
-      let module T = B.Translation(E) in
-      let bound =
-        B.Bound.compute context.sl_graph context.phi instance context.location_bounds in
-      T.translate context instance domain sxs bound
-    | UserDefined id ->
-      let reason =
-        Format.asprintf "User-defined inductive predicate %s is not unfolded before translation to SMT"
-          (id.name)
-      in
-      Exceptions.internal_error ~reason ~details:(InductiveDefinition.show id)
+      let xs = List.map (fun sort -> SL.Variable.mk_fresh "x" sort) B.signature in
+      InductiveDefinition.mk B.name xs @@ SL.mk_or @@ B.rules (xs, B.default_instantiation)
+    | UserDefined id -> id
+
 end
 
-let get_structs visited get_continue name = match find name with
-  | Builtin (module B : BUILTIN) -> B.struct_defs
-  | UserDefined id ->
-    if BatList.mem_cmp String.compare name visited then []
-    else get_continue (name::visited) @@ InductiveDefinition.instantiate_formals id
+open ID
 
-let id_map () =
-  M.fold (fun name pred acc -> match pred with
+
+(** System of inductive definitions maps predicate identifiers to
+    their definitions (either builtin or user defined. *)
+module M = Stdlib.Map.Make(String)
+
+type t = {
+  definitions : ID.t M.t;
+  graph : DependencyGraph.t; [@warning "-69"]
+}
+let empty = {
+  definitions = M.empty;
+  graph = DependencyGraph.empty;
+}
+
+let dependency_graph sid = sid.graph
+
+let register sid name id =
+  Format.printf "Registering to %d: %s\n" (Obj.magic sid) (ID.show id);
+  assert (not @@ M.mem name sid.definitions);
+  {sid with definitions = M.add name id sid.definitions}
+  (** TODO: recompute graph after every change? *)
+
+let register_builtin sid (module B : BUILTIN) =
+  register sid B.name (Builtin (module B))
+
+let register_user_defined sid id = register sid (InductiveDefinition.name id) (UserDefined id)
+
+let update_user_defined sid id =
+  let name = InductiveDefinition.name id in
+  let sid' = {sid with definitions = M.remove name sid.definitions} in
+  register_user_defined sid' id
+
+let show sid =
+  M.bindings sid.definitions
+  |> List.map (fun (_, pred) -> ID.show pred)
+  |> String.concat ",\n"
+
+module Self = struct
+  type nonrec t = t
+  let show = show
+end
+
+include Datatype.Printable(Self)
+
+let mem name sid = M.mem name sid.definitions
+
+let find sid name =
+  try M.find name sid.definitions
+  with Not_found ->
+    Exceptions.internal_error
+      ~reason:("No definition for predicate " ^ name)
+      ~details:("Registered predicates:\n" ^ show sid)
+
+let find_user_defined sid name = match find sid name with
+  | UserDefined id -> id
+  | _ ->
+    Exceptions.internal_error
+      ~reason:("No user-defined definition for predicate " ^ name ^ "(built-in exists)")
+      ~details:("Registered predicates:\n" ^ show sid)
+
+let find_builtin sid name = match find sid name with
+  | Builtin (module B : BUILTIN) -> (module B : BUILTIN)
+  | _ ->
+    Exceptions.internal_error
+      ~reason:("No user-defined definition for predicate " ^ name ^ "(built-in exists)")
+      ~details:("Registered predicates:\n" ^ show sid)
+
+let is_builtin sid name =
+  if not @@ mem name sid then false (* TODO: or raise? *)
+  else match find sid name with
+    | Builtin _ -> true
+    | UserDefined _ -> false
+
+let is_user_defined sid name =
+  if not @@ mem name sid then false (* TODO: or raise? *)
+  else match find sid name with
+    | Builtin _ -> false
+    | UserDefined _ -> true
+
+(** TODO: modify graph accordingly *)
+let filter_map fn sid =
+  {sid with definitions = M.filter_map (fun _ pred -> fn pred) sid.definitions}
+
+let fold fn sid acc =
+  M.fold (fun _ pred acc -> fn pred acc) sid.definitions acc
+
+let fold_builtin fn sid acc =
+  M.fold (fun _ pred acc -> match pred with
+    | Builtin (module B : BUILTIN) -> fn (module B : BUILTIN) acc
+    | UserDefined _ -> acc
+  ) sid.definitions acc
+
+let fold_user_defined fn sid acc =
+  M.fold (fun _ pred acc -> match pred with
     | Builtin _ -> acc
-    | UserDefined id -> M.add name id acc
-  ) !sid M.empty
+    | UserDefined id -> fn id acc
+  ) sid.definitions acc
 
-let unfold name = InductiveDefinition.unfold (id_map ()) (find_user_defined name)
-let unfold_guided name = InductiveDefinition.unfold_guided (id_map ()) (find_user_defined name)
+let get_builtin sid = fold_builtin List.cons sid []
+let get_user_defined sid = fold_user_defined List.cons sid []
+
+(** ==== Operations over dependency graph ==== *)
+
+(* TODO *)
+let dependencies sid name = match find sid name with
+  | Builtin _ -> []
+  | UserDefined id ->
+    InductiveDefinition.dependencies id
+    |> List.map (find_user_defined sid)
+
+let is_self_recursive sid name = 
+  Format.printf "SID module: %s\n" (show sid);      
+  match find sid name with
+  | Builtin _ -> true (* Conservatively assume true *)
+  | UserDefined id -> DependencyGraph.is_self_recursive sid.graph id
+
+(** ==== Unfolding ==== *)
 
 
-(** {2 Model checking} *)
+(** {2 Unfolding of inductive definitions} *)
 
-let model_check name instance sh = match find name with
-  | Builtin (module B : BUILTIN) -> B.model_check instance sh
-  | UserDefined _ -> failwith "TODO: model check UID"
+(** Compute how many locations will the rule allocate. *)
+let case_size rule =
+  let _, atoms = SL.as_quantified_symbolic_heap rule in
+  List.length @@ List.filter SL.is_pointer atoms
 
-let compute_footprints name instance sh = match find name with
-  | Builtin (module B : BUILTIN) -> B.compute_footprints instance sh
-  | UserDefined _ -> failwith "TODO: compute_footprints UID"
+let base_size id = match InductiveDefinition.cases ~base_only:true id with
+  | [] -> 0 (* TODO: check *)
+  | bs -> BatList.min @@ List.map case_size bs
+
+let rec unfold_case sid n case =
+  let rest = n - case_size case in
+  if rest < 0 then SL.ff
+  else SL.map_view (function
+    | Predicate (name, ys, _) ->
+      `Modify (unfold_id sid name ys rest)
+    | _ -> `Skip
+  ) case
+
+and unfold_id sid name xs n =
+  let id = find_user_defined sid name in
+  let cases = InductiveDefinition.instantiate_rules id xs in
+  let fn case =
+    let _, atoms = SL.as_quantified_symbolic_heap case in
+    let malus =
+      List.filter SL.is_predicate atoms
+      |> List.map SL.as_predicate
+      |> List.map (fun (name, _) -> find_user_defined sid name)
+      |> List.map base_size
+      |> (fun xs -> try List.tl xs with _ -> xs) (* TODO: remove systematically *)
+      |> BatList.sum
+    in
+    unfold_case sid (n - malus) case
+  in
+  let cases' =
+    List.map (fun case -> match SL.view case with
+      | Ite (cond, t, e) -> SL.mk_ite cond (fn t) (fn e)
+      | _ -> fn case
+    ) cases
+  in
+  SL.mk_or @@ cases'
+
+let unfold = unfold_id
