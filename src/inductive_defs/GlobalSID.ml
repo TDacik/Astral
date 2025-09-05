@@ -85,7 +85,7 @@ let builtin_context () =
 
 (** Apply the function to each inductive definition *)
 let preprocess_user_definitions fn =
-  sid.updated :=
+  sid_updated :=
     SID.filter_map (fun id -> match id with
       | Builtin _ -> Some id
       | UserDefined id -> match fn id with
