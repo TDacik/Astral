@@ -170,7 +170,8 @@ module Init () = struct
 
   let check_sat phi =
     push phi;
-    let res = match BW.check_sat () with
+    (* Timeout as parameter *)
+    let res = match BW.timeout 1. BW.check_sat () with
       | Sat -> SMT_Sat None
       | Unsat -> SMT_Unsat []
       | Unknown -> SMT_Unknown ""
