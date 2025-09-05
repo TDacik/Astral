@@ -109,8 +109,6 @@ let has_unique_footprint name = match find name with
 
 (** ==== BUILTINS: General ==== *)
 
-let builtin_context () = failwith "TODO"
-
 let instantiate heap_sort name operands = match find name with
   | Builtin (module B : BUILTIN) -> B.instantiate heap_sort operands
   | UserDefined id -> Result.Ok (SL.mk_predicate name operands)
