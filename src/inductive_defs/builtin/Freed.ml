@@ -40,12 +40,14 @@ module Self =  struct
 
     open E
 
-    let translate (ctx : E.Context.t) ([_], []) domain [x] () =
+    let translate (ctx : E.Context.t) ([xt], []) domain [x] () =
       let open SMT in
       let freed = Locations.mk_var ctx.locs "freed" in
+      let fields =
+        MemoryModel.StructDef.get_fields @@ HeapSort.find_target (SL.Term.get_sort xt) ctx.heap_sort
+      in
       let field_semantics =
-        HeapEncoding.get_fields ctx.heap
-        |> List.map (fun f -> SMT.mk_eq [HeapEncoding.mk_succ ctx.heap f x; freed])
+        List.map (fun f -> SMT.mk_eq [HeapEncoding.mk_succ ctx.heap f x; freed]) fields
       in
       let semantics = Boolean.mk_and @@ Sets.mk_eq_singleton domain x :: field_semantics in
       let var_axioms =
