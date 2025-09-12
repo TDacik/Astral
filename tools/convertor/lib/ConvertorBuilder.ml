@@ -19,7 +19,8 @@ module Instantiate (O : OPTIONS) = struct
       built-in and used-defined predicates uniformly. *)
   let get_predicates (ctx : Context.t) =
     ctx.inductive_preds
-    |> List.map GlobalSID.find_user_defined
+    |> List.map GlobalSID.find
+    |> List.map SID.ID.to_def
     |> List.map (fun id -> PredicatePreprocessing.preprocess_cases preprocess id)
 
   let (++) x y = x ^ "\n" ^ y
