@@ -26,10 +26,12 @@ let rec candidate_conditions phi = match SL.view phi with
         SL.mk_eq2 y rhs
       ) fields ys
     |> (fun tl -> SL.mk_distinct [x; SL.Term.nil] :: tl)
-  | And psis | Star psis -> List.concat_map candidate_conditions psis
+  | Star psis -> List.concat_map candidate_conditions psis
   | Exists (xs, psi) ->
     List.filter (SL.is_ground' ~forbidden:xs) @@ candidate_conditions psi
-  | Predicate (pred, xs, []) -> GlobalSID.param_conditions pred xs
+  | Predicate (pred, xs, []) ->
+    let unfolding = GlobalSID.unfold pred xs 1 in
+    candidate_conditions unfolding
   | Or psis ->
     let cs = List.map candidate_conditions psis in
     SL.MonoList.inter_list cs
@@ -51,7 +53,7 @@ let is_contradiction atom1 atom2 = match SL.view atom1, SL.view atom2 with
 
 let rec split phi = match SL.view phi with
   | Eq _ | Distinct _ | PointsTo _ | Predicate _ -> [], [phi]
-  | And psis | Star psis -> [], psis (* TODO: should and be here? *)
+  | Star psis -> [], psis
   | Ite _ -> [], [phi] (* TODO? *)
   | Exists (xs, body) ->
     let xs', args = split body in

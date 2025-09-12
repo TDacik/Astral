@@ -56,6 +56,8 @@ let dependency_graph () = SID.dependency_graph !sid_updated
 
 let get () = !sid_updated
 
+let unfold name xs = SID.unfold !sid_updated name xs
+
 (** ==== Context ==== *)
 
 module S = Stdlib.Set.Make(String)
@@ -158,16 +160,6 @@ let is_computed () = not @@ PredicateAbstraction.M.is_empty !cache
 
 let abstraction name =  match find name with
   | UserDefined id -> PredicateAbstraction.M.find id !cache
-
-let param_conditions name params =
-  let abstr = abstraction name in
-  let alloc = PredicateAbstraction.get_must_allocated ~params abstr in
-  let pairwise =
-    List_utils.diagonal_product alloc
-    |> List.map (fun (x, y) -> SL.mk_distinct2 x y)
-  in
-  let nils = List.map (SL.mk_distinct2 SL.Term.nil) alloc in
-  pairwise @ nils
 
 let alloc name = match find name with
   | UserDefined id -> (PredicateAbstraction.M.find id !cache).unfolding_depth
