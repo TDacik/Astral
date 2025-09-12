@@ -14,6 +14,8 @@ module ID : sig
 
   val show : t -> string
 
+  val to_def : t -> InductiveDefinition.t
+
 end
 
 type t
@@ -27,6 +29,8 @@ val register_builtin : t -> (module BUILTIN) -> t
 val register_user_defined : t -> InductiveDefinition.t -> t
 
 val update_user_defined : t -> InductiveDefinition.t -> t
+
+val compute_graph : t -> t
 
 val is_builtin : t -> string -> bool
 

@@ -14,7 +14,16 @@ let cache = ref PredicateAbstraction.M.empty
 let show () =
   Format.asprintf "Original:\n%s\nUpdated:%s\n" (SID.show !sid_original) (SID.show !sid_updated)
 
+let reset () =
+  sid_original := SID.empty;
+  sid_updated := SID.empty
+
 let reset_results () = cache := PredicateAbstraction.M.empty
+
+let compute_graph () =
+  sid_original := SID.compute_graph !sid_original;
+  sid_updated := SID.compute_graph !sid_updated;
+  DependencyGraph.output "dependency_graph.dot" (SID.dependency_graph !sid_updated)
 
 let select original = if original then !sid_original else !sid_updated
 
