@@ -4,13 +4,15 @@
 
 module Logger = Logger.Make(struct let name = "unfolder" let level = 1 end)
 
-let must_allocate_lhs phi lhs g name =
+let must_allocate_lhs phi heap_sort lhs g name =
   let _, atoms = SL.as_symbolic_heap lhs in
   List.map (fun atom -> match SL.view atom with
-    | PointsTo _ -> 1
-    | Predicate (name, xs, _) -> GlobalSID.alloc name
-    | _ -> 0
+    | PointsTo _ -> 1.0
+    | Predicate (name, xs, _) -> GlobalSID.alloc name phi g heap_sort xs
+    | _ -> 0.0
   ) atoms
+  |> List.map Float.floor
+  |> List.map Float.to_int
   |> BatList.sum
 
 (*
@@ -56,10 +58,10 @@ let unfold_sat sid phi name xs =
     name (SL.Term.show_list xs) (bound);
   SID.unfold sid name xs bound
 
-let unfold_lhs sid g bound phi lhs rhs = SL.map_view (function
+let unfold_lhs sid g heap_sort bound phi lhs rhs = SL.map_view (function
   | Predicate (name, xs, _) when SID.is_user_defined sid name ->
     let self = GlobalSID.unfolding_depth phi g name xs in
-    let alloc = must_allocate_lhs phi lhs g name in
+    let alloc = must_allocate_lhs phi heap_sort lhs g name in
     let default = (LocationBounds.sum_of_allocated bound) - alloc + self in
     let bound = max_unfold_bound_lhs rhs default in
     `Modify (unfold_predicate_lhs sid phi lhs bound name xs)
@@ -95,7 +97,7 @@ let apply_aux ctx phi =
     | GuardedNeg (lhs, rhs) ->
       (* Here we assume that quantifier elimination for LHS was already performed. *)
       let sl_graph = SL_graph.compute lhs in
-      let ctx_lhs = {ctx with phi = Simplifier.simplify @@ unfold_lhs sid sl_graph location_bound phi lhs rhs} in
+      let ctx_lhs = {ctx with phi = Simplifier.simplify @@ unfold_lhs sid sl_graph ctx.heap_sort location_bound phi lhs rhs} in
       let lhs = ctx_lhs.phi in
       let rhs = unfold_rhs sid ctx lhs rhs in
       {ctx with phi = SL.mk_gneg lhs rhs; model_adapter = ctx_lhs.model_adapter}

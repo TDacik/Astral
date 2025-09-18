@@ -46,7 +46,7 @@ module Self0 = struct
 
   let default_instantiation = [struct_nls; LS.struct_ls]
 
-  let nb_must_allocated = 1
+  let must_allocated [x; y; z] = [x]
 
   (** TODO: can both sorts be same? *)
   let get_target sort heap_sort =

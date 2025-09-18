@@ -161,10 +161,6 @@ let is_computed () = not @@ PredicateAbstraction.M.is_empty !cache
 let abstraction name =  match find name with
   | UserDefined id -> PredicateAbstraction.M.find id !cache
 
-let alloc name = match find name with
-  | UserDefined id -> (PredicateAbstraction.M.find id !cache).unfolding_depth
-  | Builtin (module B : BUILTIN) -> B.nb_must_allocated
-
 (* TODO: check whether we really compute what we want! *)
 let rec existentials ?(visited=[]) id =
   if BatList.mem_cmp InductiveDefinition.compare id visited then []
@@ -208,6 +204,13 @@ let term_bound phi g heap_sort x =
     in
     max acc bound
   ) !sid_updated Float.one
+
+let alloc name phi g heap_sort xs = match find name with
+  | UserDefined id -> Float.of_int (PredicateAbstraction.M.find id !cache).unfolding_depth
+  | Builtin (module B : BUILTIN) ->
+    B.must_allocated xs
+    |> List.map (term_bound phi g heap_sort)
+    |> BatList.kahan_sum
 
 let additional_bounds phi =
   SID.fold (fun pred acc -> match pred with

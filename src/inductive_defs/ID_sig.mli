@@ -16,7 +16,7 @@ module type BUILTIN_BASE = sig
       a list of structures describing this instance. Otherwise, return a message decsribing
       why such instantiation is not possible. *)
 
-  val nb_must_allocated :  int
+  val must_allocated : SL.Term.t list -> SL.Term.t list
 
   val unique_footprint : bool
   (** True iff the predicate has unique footprint. *)

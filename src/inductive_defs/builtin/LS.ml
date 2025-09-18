@@ -40,7 +40,7 @@ let name = "ls"
 
 let signature = [loc_ls; loc_ls]
 
-let nb_must_allocated = 1
+let must_allocated [x; y] = [x]
 
 let default_instantiation = [struct_ls]
 

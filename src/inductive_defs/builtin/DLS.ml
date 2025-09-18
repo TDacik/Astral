@@ -32,7 +32,7 @@ let name = "dls"
 
 let signature = [loc_dls; loc_dls; loc_dls; loc_dls]
 
-let nb_must_allocated = 2
+let must_allocated [x; x'; y'; y] = [x; x']
 
 let default_instantiation = [struct_dls]
 

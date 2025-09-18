@@ -10,7 +10,7 @@ module Self =  struct
   let default_instantiation = []
   let instantiate _ [x] = Result.ok (SL.mk_predicate "freed" [x])
 
-  let nb_must_allocated = 1
+  let must_allocated [x] = [x]
 
   let unique_footprint = true
 
