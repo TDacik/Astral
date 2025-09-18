@@ -22,7 +22,7 @@ module ID = struct
     in
     Format.asprintf "%s (%s)" (name pred) kind
 
-  let to_id = function
+  let to_def = function
     | Builtin (module B : BUILTIN) ->
       let xs = List.map (fun sort -> SL.Variable.mk_fresh "x" sort) B.signature in
       InductiveDefinition.mk B.name xs @@ SL.mk_or @@ B.rules (xs, B.default_instantiation)
@@ -51,7 +51,6 @@ let dependency_graph sid = sid.graph
 let register sid name id =
   assert (not @@ M.mem name sid.definitions);
   {sid with definitions = M.add name id sid.definitions}
-  (** TODO: recompute graph after every change? *)
 
 let register_builtin sid (module B : BUILTIN) =
   register sid B.name (Builtin (module B))
@@ -132,6 +131,7 @@ let fold_user_defined fn sid acc =
 let get_builtin sid = fold_builtin List.cons sid []
 let get_user_defined sid = fold_user_defined List.cons sid []
 
+
 (** ==== Operations over dependency graph ==== *)
 
 (* TODO *)
@@ -145,6 +145,16 @@ let is_self_recursive sid name =
   match find sid name with
   | Builtin _ -> true (* Conservatively assume true *)
   | UserDefined id -> DependencyGraph.is_self_recursive sid.graph id
+
+(* TODO: compute after each update? *)
+let compute_graph sid =
+  let res = fold_user_defined (fun def g ->
+    let g = DependencyGraph.add_vertex g def in
+    let children = dependencies sid (InductiveDefinition.name def) in
+    List.fold_left (fun g2 child -> DependencyGraph.add_edge g2 def child) g children
+  ) sid DependencyGraph.empty
+  in
+  {sid with graph = res}
 
 (** ==== Unfolding ==== *)
 

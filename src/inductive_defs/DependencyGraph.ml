@@ -30,26 +30,14 @@ let is_self_recursive g pred =
     List.exists (fun succ ->
       PathChecker.check_path path_checker succ pred
     ) succs
-  with Invalid_argument _ -> false
+  with Invalid_argument _ -> false (* Vertex not in graph *)
 
 let normalise g = g
   (* TODO: keep?
    G.fold_vertex (fun v acc ->
     if is_self_recursive g v then acc
     else G.remove_vertex acc v
-  ) g g
-
-
-let compute sid =
-  let predicates = SID0.__get_user_defined sid in
-  List.fold_left (fun acc pred ->
-    let g = add_vertex acc pred in
-    let children = SID0.dependencies sid pred in
-    List.fold_left (fun g child ->
-      add_edge g pred child
-    ) g children
-  ) empty predicates
-*)
+  ) g g *)
 
 let has_nontrivial_cycle g =
   let module W = struct

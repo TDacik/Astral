@@ -1,5 +1,5 @@
 (set-info :source Astral)
-(set-info :status sat)
+(set-info :status unsat)
 
 (set-option :use-builtin-definitions)
 

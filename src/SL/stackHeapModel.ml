@@ -302,7 +302,7 @@ module HeapGraph = struct
       else acc
     ) g Graph.empty
 
-  let has_path g field ~src ~dst =
+  let has_path ?field ~src ~dst g =
     let g = match field with
       | None -> g
       | Some field -> filter_field g field
@@ -328,7 +328,7 @@ module HeapGraph = struct
       let default_edge_attributes _ = []
     end)
 
-  let get_path g field ~src ~dst =
+  let get_path ?field ~src ~dst g =
     let g = match field with
       | None -> g
       | Some f -> filter_field g f
@@ -342,13 +342,13 @@ module HeapGraph = struct
     with Not_found -> []
 
   let get_nested_path g ~src ~dst ~sink ~field1 ~field2 =
-    let top_path = get_path g ~src ~dst (Some field1) in
-    List.map (fun loc -> get_path g ~src:loc ~dst:sink (Some field2)) top_path
+    let top_path = get_path g ~src ~dst ~field:field1 in
+    List.map (fun loc -> get_path g ~src:loc ~dst:sink ~field:field2) top_path
 
   let has_nested_path g ~src ~dst ~sink ~field1 ~field2 =
-    let top_path = get_path g ~src ~dst (Some field1) in
-    has_path g (Some field1) ~src ~dst
-    && List.for_all (fun loc -> has_path g (Some field2) ~src:loc ~dst:sink) top_path
+    let top_path = get_path g ~src ~dst ~field:field1 in
+    has_path g ~field:field1 ~src ~dst
+    && List.for_all (fun loc -> has_path g ~field:field2 ~src:loc ~dst:sink) top_path
 
   let get sh =
     let update x y g = match y with
@@ -400,10 +400,10 @@ let succ_field sh field loc =
 let domain sh = Footprint.of_list @@ List.map fst @@ Heap.bindings sh.heap
 
 let has_path ?field sh ~src ~dst =
-  HeapGraph.has_path (HeapGraph.get sh) field ~src:(Loc src) ~dst:(Loc dst)
+  HeapGraph.has_path (HeapGraph.get sh) ?field ~src:(Loc src) ~dst:(Loc dst)
 
 let get_path ?field sh ~src ~dst =
-  HeapGraph.get_path (HeapGraph.get sh) field ~src:(Loc src) ~dst:(Loc dst)
+  HeapGraph.get_path (HeapGraph.get sh) ?field ~src:(Loc src) ~dst:(Loc dst)
   |> List.map (fun (Vertex.Loc l) -> l)
 
 let get_nested_path sh ~src ~dst ~sink ~field1 ~field2 =

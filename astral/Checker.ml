@@ -28,7 +28,6 @@ let internal_error ?(backtrace=true) ~exit_code msg =
     Format.eprintf "\nBacktrace:\n%s"
       (Printexc.raw_backtrace_to_string stack)
   end;
-  Format.fprintf Format.err_formatter "\n%s\n" msg;
   exit exit_code
 
 (** Check status against specification in the input. *)

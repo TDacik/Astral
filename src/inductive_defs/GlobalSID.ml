@@ -14,7 +14,16 @@ let cache = ref PredicateAbstraction.M.empty
 let show () =
   Format.asprintf "Original:\n%s\nUpdated:%s\n" (SID.show !sid_original) (SID.show !sid_updated)
 
+let reset () =
+  sid_original := SID.empty;
+  sid_updated := SID.empty
+
 let reset_results () = cache := PredicateAbstraction.M.empty
+
+let compute_graph () =
+  sid_original := SID.compute_graph !sid_original;
+  sid_updated := SID.compute_graph !sid_updated;
+  DependencyGraph.output "dependency_graph.dot" (SID.dependency_graph !sid_updated)
 
 let select original = if original then !sid_original else !sid_updated
 
@@ -46,6 +55,8 @@ let dependencies ?(original=false) = SID.dependencies (select original)
 let dependency_graph () = SID.dependency_graph !sid_updated
 
 let get () = !sid_updated
+
+let unfold name xs = SID.unfold !sid_updated name xs
 
 (** ==== Context ==== *)
 
@@ -149,16 +160,6 @@ let is_computed () = not @@ PredicateAbstraction.M.is_empty !cache
 
 let abstraction name =  match find name with
   | UserDefined id -> PredicateAbstraction.M.find id !cache
-
-let param_conditions name params =
-  let abstr = abstraction name in
-  let alloc = PredicateAbstraction.get_must_allocated ~params abstr in
-  let pairwise =
-    List_utils.diagonal_product alloc
-    |> List.map (fun (x, y) -> SL.mk_distinct2 x y)
-  in
-  let nils = List.map (SL.mk_distinct2 SL.Term.nil) alloc in
-  pairwise @ nils
 
 let alloc name = match find name with
   | UserDefined id -> (PredicateAbstraction.M.find id !cache).unfolding_depth
