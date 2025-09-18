@@ -190,7 +190,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       let sl_graph = SL_graph.compute rhs in
 
       let ctx = C.init input in
-      let bound = LocationBounds.sum input.location_bounds - 1 in (* -1 for nil *)
+      let bound = LocationBounds.sum_of_allocated input.location_bounds in
       let sid = GlobalSID.get () in
 
       Backend.push lhs; (* TODO: could adding axioms help? *)
