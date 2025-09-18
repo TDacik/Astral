@@ -32,6 +32,8 @@ let name = "dls"
 
 let signature = [loc_dls; loc_dls; loc_dls; loc_dls]
 
+let nb_must_allocated = 2
+
 let default_instantiation = [struct_dls]
 
 let struct_defs = [struct_dls]
@@ -70,7 +72,7 @@ let term_bound phi heap_sort x =
     | SymbolicHeap_ENTL -> 1.0
     | Positive | Arbitrary -> 1.5
 
-let additional_bound _ = 0
+let additional_bound _ = LocationBounds0.empty
 
 let rules ([x; y; px; ny], [def]) =
   let sort = SL.Variable.get_sort x in

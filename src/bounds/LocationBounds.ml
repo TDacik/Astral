@@ -68,9 +68,8 @@ let compute_positive heap_sort sort g phi =
     | SymbolicHeap_ENTL -> 1
     | Positive | Arbitrary -> 0
   in
-  let pred_bonus = GlobalSID.additional_bounds phi in
-  let allocated = compute_allocated heap_sort sort g phi + bonus + pred_bonus in
-  let total = compute_total heap_sort sort g phi + bonus + pred_bonus in
+  let allocated = compute_allocated heap_sort sort g phi + bonus in
+  let total = compute_total heap_sort sort g phi + bonus in
   let allocated, total = match Sort.cardinality sort with
     | None -> allocated, total
     | Some bound -> min (bound - 1) allocated, min (bound - 1) total
@@ -116,7 +115,9 @@ let compute_general phi heap_sort g =
     if SL.is_positive phi then positive_bounds
     else add_chunk_size positive_bounds phi
   in
-  bounds
+  let pred_bonus = GlobalSID.additional_bounds phi in
+  let res = LocationBounds0.plus bounds pred_bonus in
+  res
 
 let default heap_sort =
   let sorts = HeapSort.get_loc_sorts heap_sort in
@@ -130,7 +131,7 @@ let compute_ptr_bound heap_sort phi =
     |> List.map SL.as_pointer
     |> List.map (fun (x, _, _) -> SL.Term.get_sort x)
     |> List.fold_left (fun acc sort ->
-         plus sort 1 acc
+         plus_n sort 1 acc
       ) (default heap_sort)
     |> Option.some
   else None

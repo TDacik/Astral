@@ -16,6 +16,8 @@ module type BUILTIN_BASE = sig
       a list of structures describing this instance. Otherwise, return a message decsribing
       why such instantiation is not possible. *)
 
+  val nb_must_allocated :  int
+
   val unique_footprint : bool
   (** True iff the predicate has unique footprint. *)
 
@@ -28,7 +30,7 @@ module type BUILTIN_BASE = sig
 
   val sl_graph : instance -> SL_graph0.t
 
-  val additional_bound : SL.t -> int
+  val additional_bound : SL.t -> LocationBounds0.t
 
   val rules : SL.Variable.t list * StructDef.t list -> SL.t list
 

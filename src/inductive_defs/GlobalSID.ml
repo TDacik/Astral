@@ -162,6 +162,7 @@ let param_conditions name params =
 
 let alloc name = match find name with
   | UserDefined id -> (PredicateAbstraction.M.find id !cache).unfolding_depth
+  | Builtin (module B : BUILTIN) -> B.nb_must_allocated
 
 (* TODO: check whether we really compute what we want! *)
 let rec existentials ?(visited=[]) id =
@@ -209,9 +210,9 @@ let term_bound phi g heap_sort x =
 
 let additional_bounds phi =
   SID.fold (fun pred acc -> match pred with
-    | Builtin (module B : BUILTIN) -> acc + B.additional_bound phi
+    | Builtin (module B : BUILTIN) -> LocationBounds0.plus acc @@ B.additional_bound phi
     | UserDefined id -> acc
-  ) !sid_updated 0
+  ) !sid_updated LocationBounds0.empty
 
 (** TODO: compute some must-relations *)
 let sl_graph name instance = match find name with

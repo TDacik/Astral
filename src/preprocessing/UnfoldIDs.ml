@@ -8,7 +8,7 @@ let must_allocate_lhs phi lhs g name =
   let _, atoms = SL.as_symbolic_heap lhs in
   List.map (fun atom -> match SL.view atom with
     | PointsTo _ -> 1
-    | Predicate (name, xs, _) when GlobalSID.is_user_defined name -> GlobalSID.alloc name
+    | Predicate (name, xs, _) -> GlobalSID.alloc name
     | _ -> 0
   ) atoms
   |> BatList.sum
@@ -56,9 +56,8 @@ let unfold_sat sid phi name xs =
     name (SL.Term.show_list xs) (bound);
   SID.unfold sid name xs bound
 
-let unfold_lhs sid bound phi lhs rhs = SL.map_view (function
+let unfold_lhs sid g bound phi lhs rhs = SL.map_view (function
   | Predicate (name, xs, _) when SID.is_user_defined sid name ->
-    let g = SL_graph.compute lhs in (* TODO: do not recompute *)
     let self = GlobalSID.unfolding_depth phi g name xs in
     let alloc = must_allocate_lhs phi lhs g name in
     let default = (LocationBounds.sum bound) - alloc + self - 1 in (* -1 for nil *)
@@ -94,11 +93,10 @@ let apply_aux ctx phi =
     | _ when SL.is_symbolic_heap phi ->
       {ctx with phi = unfold_sat sid phi}
     | GuardedNeg (lhs, rhs) ->
-      let ctx_lhs = QuantifierElimination.apply_ctx @@
-        {ctx with phi = Simplifier.simplify @@ unfold_lhs sid location_bound phi lhs rhs}
-      in
-      let lhs = ctx_lhs.phi in
+      (* Here we assume that quantifier elimination for LHS was already performed. *)
       let sl_graph = SL_graph.compute lhs in
+      let ctx_lhs = {ctx with phi = Simplifier.simplify @@ unfold_lhs sid sl_graph location_bound phi lhs rhs} in
+      let lhs = ctx_lhs.phi in
       let rhs = unfold_rhs sid ctx lhs rhs in
       {ctx with phi = SL.mk_gneg lhs rhs; model_adapter = ctx_lhs.model_adapter}
     | _ -> assert false (* Should be catched earlier *)

@@ -10,7 +10,9 @@ module Self =  struct
   let default_instantiation = []
   let instantiate _ [x] = Result.ok (SL.mk_predicate "freed" [x])
 
-  let unique_footprint = false
+  let nb_must_allocated = 1
+
+  let unique_footprint = true
 
   let struct_defs = []
   let heap_sort = HeapSort.empty
@@ -24,8 +26,9 @@ module Self =  struct
     ) phi
 
   let additional_bound phi =
-    if is_present phi then 1 (* Location representing freed memory *)
-    else 0
+    if is_present phi then
+      LocationBounds0.init_sort Sort.loc_nil 0 1 (* Location representing freed memory *)
+    else LocationBounds0.empty
 
   let sl_graph _ = SL_graph.empty (* TODO *)
   let rules _ = []

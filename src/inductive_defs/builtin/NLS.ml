@@ -46,6 +46,8 @@ module Self0 = struct
 
   let default_instantiation = [struct_nls; LS.struct_ls]
 
+  let nb_must_allocated = 1
+
   (** TODO: can both sorts be same? *)
   let get_target sort heap_sort =
     let target = HeapSort.find_target sort heap_sort in
@@ -76,7 +78,7 @@ module Self0 = struct
       | SymbolicHeap_ENTL -> 1.0
       | Positive | Arbitrary -> 2.0
 
-  let additional_bound _ = 0
+  let additional_bound _ = LocationBounds.empty
 
   let rules ([x; y; z], [top_node; next_node]) =
     let sort_top, sort_next = sorts top_node in
