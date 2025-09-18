@@ -24,10 +24,13 @@ let allocated sort self = (find sort self).allocated
 
 let total sort self = (find sort self).total
 
-let sum bounds =
+let general_sum getter bounds =
   values bounds
-  |> BatList.map (fun b -> b.total)
+  |> BatList.map getter
   |> BatList.sum
+
+let sum = general_sum (fun x -> x.total)
+let sum_of_allocated = general_sum (fun x -> x.allocated)
 
 (** {2 Computation of bounds for positive formulae *)
 

@@ -60,7 +60,7 @@ let unfold_lhs sid g bound phi lhs rhs = SL.map_view (function
   | Predicate (name, xs, _) when SID.is_user_defined sid name ->
     let self = GlobalSID.unfolding_depth phi g name xs in
     let alloc = must_allocate_lhs phi lhs g name in
-    let default = (LocationBounds.sum bound) - alloc + self - 1 in (* -1 for nil *)
+    let default = (LocationBounds.sum_of_allocated bound) - alloc + self - 1 in (* -1 for nil *)
     let bound = max_unfold_bound_lhs rhs default in
     `Modify (unfold_predicate_lhs sid phi lhs bound name xs)
   | _ -> `Skip
