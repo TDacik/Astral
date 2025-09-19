@@ -26,7 +26,7 @@ let rec candidate_conditions phi = match SL.view phi with
         SL.mk_eq2 y rhs
       ) fields ys
     |> (fun tl -> SL.mk_distinct [x; SL.Term.nil] :: tl)
-  | Star psis -> List.concat_map candidate_conditions psis
+  | Star psis | And psis -> List.concat_map candidate_conditions psis
   | Exists (xs, psi) ->
     List.filter (SL.is_ground' ~forbidden:xs) @@ candidate_conditions psi
   | Predicate (pred, xs, []) ->
@@ -53,7 +53,7 @@ let is_contradiction atom1 atom2 = match SL.view atom1, SL.view atom2 with
 
 let rec split phi = match SL.view phi with
   | Eq _ | Distinct _ | PointsTo _ | Predicate _ -> [], [phi]
-  | Star psis -> [], psis
+  | Star psis | And psis -> [], psis
   | Ite _ -> [], [phi] (* TODO? *)
   | Exists (xs, body) ->
     let xs', args = split body in
