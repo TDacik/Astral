@@ -101,6 +101,7 @@ let apply_aux ctx phi =
       let lhs = ctx_lhs.phi in
       let rhs = unfold_rhs sid ctx lhs rhs in
       {ctx with phi = SL.mk_gneg lhs rhs; model_adapter = ctx_lhs.model_adapter}
+    | False | True -> ctx
     | _ -> assert false (* Should be catched earlier *)
 
 let apply ctx phi =

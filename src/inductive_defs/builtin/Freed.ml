@@ -33,6 +33,19 @@ module Self =  struct
   let sl_graph _ = SL_graph.empty (* TODO *)
   let rules _ = []
 
+  let count_freed phi =
+    let is_freed phi = match SL.view phi with Predicate ("freed", _, _) -> true | _ -> false in
+    SL.select_subformulae is_freed phi
+    |> List.length
+
+  let global_preprocessing phi = match SL.as_query phi with
+   | SymbolicHeap_ENTL (lhs, rhs) ->
+     let nb_freed_lhs = count_freed lhs in
+     let nb_freed_rhs = count_freed rhs in
+     if Int.equal nb_freed_lhs nb_freed_rhs then phi
+     else lhs
+   | _ -> phi
+
   module Bound = struct
     type t = unit
     let show () = ""

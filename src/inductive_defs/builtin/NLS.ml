@@ -96,6 +96,8 @@ module Self0 = struct
       ]
     ]
 
+  let global_preprocessing = Fun.id
+
   module Bound = struct
 
     type t = {

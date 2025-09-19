@@ -98,6 +98,7 @@ let second_phase_aux aggresive context =
   let ctx2 = {ctx2 with location_bounds = bounds} in (* TODO: take min? *)
 
   let ctx3 = apply_list ctx2 [
+    GlobalSID.formula_preprocessing_ctx, "builtins";
     UnfoldIDs.apply_ctx, "pred_unfolding";
     QuantifierElimination.apply_ctx, "q_elim_2";
   ]

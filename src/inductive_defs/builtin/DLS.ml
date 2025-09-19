@@ -93,6 +93,8 @@ let rules ([x; y; px; ny], [def]) =
     ]
   ]
 
+let global_preprocessing = Fun.id
+
 module Bound = struct
 
   type t = Interval.t

@@ -228,3 +228,11 @@ let unfolding_depth phi g name xs = match find name with
   (*  let abstraction = PredicateAbstraction.find id !cache in
     compute_aux phi g id (List.hd xs) abstraction
   *)
+
+let formula_preprocessing phi =
+  SID.fold (fun pred acc -> match pred with
+    | Builtin (module B : BUILTIN) -> B.global_preprocessing phi
+    | UserDefined id -> acc
+  ) !sid_updated phi
+
+let formula_preprocessing_ctx ctx = Context.{ctx with phi = formula_preprocessing ctx.phi}

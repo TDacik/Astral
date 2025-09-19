@@ -34,6 +34,7 @@ module type BUILTIN_BASE = sig
 
   val rules : SL.Variable.t list * StructDef.t list -> SL.t list
 
+  val global_preprocessing : SL.t -> SL.t
 
   module Bound : sig
 
