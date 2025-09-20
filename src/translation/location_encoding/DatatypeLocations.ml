@@ -27,28 +27,38 @@ module Self = struct
     else
       BatList.range 0 `To (bound - 1)
       |> BatList.map (const_name sl_sort)
-      |> (@) [null_name]
 
   let location_encoding consts =
     Sort.Map.values consts
     |> List.flatten
-    |> (@) [null_name]
-    |> BatList.unique ~eq:String.equal (* Duplicate nils *)
 
-  let sort_encoding loc_sort sl_sort const_names =
+  let sort_encoding loc_sort sl_sort const_names polymorphic =
     let name = Sort.name sl_sort in
     let set_sort = Sets.mk_sort loc_sort in
     let consts = List.map (SMT.Enumeration.mk_const loc_sort) const_names in
-    SMT.Sets.mk_var name set_sort, consts
+    SMT.Sets.mk_var name set_sort, (consts @ polymorphic)
+
+  (** Create a name for each polymorphic location.
+      TODO: generalise for arbitrary number. *)
+  let polymorphic_names = function
+    | 1 -> [null_name]
+    | 2 -> [null_name; "Loc_freed"]
+    | _ -> assert false
 
   let init_constants bounds =
     LocationBounds.fold (fun sort bound acc ->
-      if Sort.is_nil sort then acc
+      if Sort.is_nil sort then Sort.Map.add sort (polymorphic_names bound.total) acc
       else Sort.Map.add sort (const_names sort bound.total) acc
     ) bounds Sort.Map.empty
 
-  let init_sort_encoding loc_sort =
-    Sort.Map.mapi (fun sl_sort consts -> sort_encoding loc_sort sl_sort consts)
+  let init_sort_encoding loc_sort map =
+    Sort.Map.mapi (fun sl_sort consts ->
+      let polymorphic =
+        Sort.Map.find Sort.loc_nil map
+        |> List.map (SMT.Enumeration.mk_const loc_sort)
+      in
+      sort_encoding loc_sort sl_sort consts polymorphic
+    ) map
 
   let init _ heap_sort bounds =
     (* First, build list of constants that are needed to initialise location sort *)

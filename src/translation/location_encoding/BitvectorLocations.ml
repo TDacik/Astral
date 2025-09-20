@@ -31,13 +31,17 @@ module Self = struct
 
   let init_encoding bounds width =
     let null :: constants = init_constants bounds width in
+    let polymorphic, constants = (* TODO: do not take it from the beggining *)
+      BatList.takedrop ((LocationBounds.find Sort.loc_nil bounds).total - 1) constants
+    in
     let set_sort = SMT.Sets.mk_sort @@ Bitvector.mk_sort width in
     fst @@ LocationBounds.fold (fun sort bound (res, remaining) ->
       if Sort.is_nil sort then (res, remaining)
       else
+        (* TODO: nothing if only polymorphic *)
         let consts, rest = BatList.takedrop bound.total remaining in
         let encoded_sort = SMT.Sets.mk_var (Sort.name sort) set_sort in
-        Sort.Map.add sort (encoded_sort, null :: consts) res, rest
+        Sort.Map.add sort (encoded_sort, (null :: consts) @ polymorphic) res, rest
     ) bounds (Sort.Map.empty, constants)
 
   let init phi heap_sort bounds =
