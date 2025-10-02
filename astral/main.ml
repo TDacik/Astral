@@ -28,3 +28,7 @@ let () =
     | Astral.Exceptions.InternalError (trace, reason, details) ->
       Astral.Exceptions.pretty_internal_error reason ~trace ~details
     | Astral.Exceptions.CmdOptionError _ -> ()
+
+    | Astral.BaseLogic.TypeError error ->
+      Format.eprintf "Unhandled type error: %s\n" (Astral.BaseLogic.show_type_error error);
+      Printexc.print_backtrace stderr

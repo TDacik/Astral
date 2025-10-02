@@ -412,7 +412,24 @@ let get_operands = function
 
 (** Constructors *)
 
+type type_error = string * string * Sort.t * t
+
+exception TypeError of type_error
+
 let cnt = ref 0
+
+let check_type_prop ~what ~expects pred term =
+  let sort = get_sort term in
+  if pred sort then ()
+  else raise (TypeError (what, expects, sort, term))
+
+let check_type ~what sort term =
+  let expects = "sort " ^ Sort.show sort in
+  check_type_prop ~what ~expects (Sort.equal sort) term
+
+let show_type_error (what, expects, sort, term) =
+  Format.asprintf "%s expects %s (got %s):\n %s"
+    what expects (Sort.show sort) (show term)
 
 let mk_smart_app_aux app neutral anihilator operands =
   let is_neutral x = match neutral with Some n when equal x n -> true | _ -> false in
@@ -628,8 +645,8 @@ module Array = struct
   let mk_const c dom_sort = mk_app (ConstArray dom_sort) [c]
 
   let mk_select arr index =
-    assert (Sort.is_array @@ get_sort arr);
-    assert (Sort.equal (get_sort index) (Sort.get_dom_sort @@ get_sort arr));
+    check_type_prop ~what:"mk_select param0" ~expects:"array sort" Sort.is_array arr;
+    check_type ~what:"mk_select param1" (Sort.get_dom_sort @@ get_sort arr) index;
     mk_app Select [arr; index]
 
   let mk_store arr index value = mk_app Store [arr; index; value]
