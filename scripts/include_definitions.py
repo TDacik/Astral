@@ -45,7 +45,7 @@ def process_directory(path, compact):
         definition = read_definition(path)
 
     for f in sorted(os.listdir(path)):
-        if (not f.startswith("00")) and f.endswith(".smt2"):
+        if f.endswith(".smt2"):
             f = os.path.join(path, f)
             process_file(f, definition)
 
@@ -64,10 +64,11 @@ def main():
     ]
     for b in benchmarks:
         bench_path = os.path.join("benchmarks", b)
-        for root, dirs, files in sorted(os.walk(bench_path)):
+        for root, dirs, _ in sorted(os.walk(bench_path)):
             for d in dirs:
-                path = os.path.join(bench_path, d)
-                process_directory(path, args.compact)
+                if d != "astral_debug":
+                    path = os.path.join(root, d)
+                    process_directory(path, args.compact)
 
 
 if __name__ == "__main__":
