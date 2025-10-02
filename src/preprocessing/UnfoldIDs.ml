@@ -33,12 +33,6 @@ let unfolding_depth lhs g pred_name ys =
 
 (** Bound on unfolding of lhs when rhs is atomic. *)
 let max_unfold_bound_lhs rhs default = default
-(*
-(* TODO: remove already in bounds *)
-let max_unfold_bound_lhs rhs default =
-  match SL.pointer_size rhs with
-    | None -> default
-    | Some n -> n + 1 *)
 
 (** Bound on unfolding of rhs when lhs is atomic. *)
 let max_unfold_bound_rhs lhs default = default
