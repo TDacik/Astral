@@ -34,6 +34,7 @@ module Application = struct
     (* Sets *)
     | Membership | Subset | Disjoint | Union of Sort.t | Inter of Sort.t | Diff | Compl
     | Enum of Sort.t | Universe of Sort.t
+    | Cardinality
     (* Arrays *)
     | ConstArray of Sort.t | Select | Store
     (* Separation logic *)
@@ -71,7 +72,7 @@ module Application = struct
 
     | Membership -> "mem" | Subset -> "subset" | Disjoint -> "disjoint"
     | Union _ -> "union" | Inter _ -> "inter" | Diff -> "diff" | Compl -> "compl"
-    | Enum _ -> "set" | Universe _ -> "universe"
+    | Enum _ -> "set" | Universe _ -> "universe" | Cardinality -> "card"
     | ConstArray _ -> "const-arr" | Select -> "select" | Store -> "store"
 
     | Pure -> "pure"
@@ -96,6 +97,7 @@ module Application = struct
     | Plus | Minus | Mult -> Sort.int
     | Union sort | Inter sort | Enum sort | Universe sort -> sort
     | Diff | Compl -> List.hd xs
+    | Cardinality -> Sort.int
     | BitPlus width | BitAnd width | BitOr width | BitXor width -> Sort.mk_bitvector width
     | BitNot | BitShiftLeft | BitShiftRight | BitImplies | BitCompl -> List.hd xs
     | HeapTerm (field) -> Field.get_sort field
@@ -628,6 +630,11 @@ module Sets = struct
   let mk_subset lhs rhs = mk_app Subset [lhs; rhs]
   let mk_eq_empty set = mk_eq [set; mk_empty @@ get_sort set]
   let mk_eq_singleton set elem = mk_eq [set; mk_singleton elem]
+
+  let mk_cardinality set =
+    if !do_simplification && is_constant set then
+      Arithmetic.mk_const @@ Set.cardinal @@ as_constant set
+    else mk_app Cardinality [set]
 
   let may_disjoint xs =
     try

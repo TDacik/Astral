@@ -317,6 +317,9 @@ module Sets : sig
   val mk_eq_empty : t -> t
   val mk_eq_singleton : t -> t -> t
 
+  val mk_cardinality : t -> t
+  (** Cardinality of the input. *)
+
   val may_disjoint : t list -> bool
 
 end
