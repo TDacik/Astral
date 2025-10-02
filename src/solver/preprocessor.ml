@@ -13,6 +13,7 @@ type pass = (Context.t -> Context.t) * string
 
 let apply ctx ((fn, name) : pass) =
   let ctx' = fn ctx in
+  Profiler.add @@ "- " ^ name;
   counter := !counter + 1;
   let suffix = Format.asprintf "%d-%s" !counter name in
   Debug.formula ~suffix ctx'.phi;
@@ -93,7 +94,6 @@ let second_phase_aux aggresive context =
   ]
   in
   let sl_graph = SL_graph.compute ctx2.phi in
-  SL_graph.output_file "sl2.dot" sl_graph;
   let bounds = LocationBounds.compute ctx2.phi ctx2.raw_input.heap_sort sl_graph in
   let ctx2 = {ctx2 with location_bounds = bounds} in (* TODO: take min? *)
 

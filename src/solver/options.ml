@@ -139,7 +139,7 @@ let check () =
   let module Backend = (val backend () : BACKEND) in
 
   if not @@ Backend.is_available ()
-  then failwith "Selected backend solver is not installed";
+  then failwith ("Selected backend solver is not installed: " ^ Backend.name);
 
   if Options.sets () = "bitvectors" && Options.locations () = "enum"
   then failwith "Encoding combining 'bitvector' sets and 'enum' locations is not available";
