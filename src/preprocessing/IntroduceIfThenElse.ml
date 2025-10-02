@@ -1,6 +1,5 @@
 (* Introduction of the if-then-else operator instead of disjunctions.
  *
- * TODO: consider n-ary disjunctions?
  * TODO: simplify
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
@@ -18,7 +17,12 @@ let saturate conds =
 
 let rec candidate_conditions phi = match SL.view phi with
   | Emp -> []
-  | Eq _ | Distinct _ -> [phi]
+  | Eq xs ->
+    List_utils.diagonal_product xs
+    |> List.map (fun (x, y) -> SL.mk_eq2 x y)
+  | Distinct xs ->
+    List_utils.diagonal_product xs
+    |> List.map (fun (x, y) -> SL.mk_distinct2 x y)
   | PointsTo (x, def, ys) ->
     let fields = MemoryModel.StructDef.get_fields def in
     List.map2 (fun f y ->
@@ -94,6 +98,7 @@ let rec split_based_on_equality psis conds = match conds, psis with
   | c :: conds_rest, _ ->
     (* TODO: could be done more efficiently *)
     let tt, ff = List.partition (fun (psi : SL.t) -> List.mem c @@ candidate_conditions psi) psis in
+
     match tt, ff with
     | [], [] -> assert false
     | [], xs -> SL.mk_or xs
