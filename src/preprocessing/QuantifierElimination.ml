@@ -19,7 +19,12 @@ let skolemisation ctx =
 
 (** Remove binders not contained in quantifier bodies. *)
 let remove_useless phi =
-  let filter_fn = fun psi x -> BatList.mem_cmp SL.Variable.compare x (SL.free_vars psi) in
+  let filter_fn psi x =
+    (* TODO: check loc vars using heap sort *)
+    let res = BatList.mem_cmp SL.Variable.compare x (SL.free_vars ~with_pure:true psi) in
+    if not res then Logger.debug "Removing unused variable %s\n" (SL.Variable.show x) else ();
+    res
+  in
   SL.map_view (function
     | Exists (xs, psi) -> `Modify (SL.mk_exists (List.filter (filter_fn psi) xs) psi)
     | Forall (xs, psi) -> `Modify (SL.mk_forall (List.filter (filter_fn psi) xs) psi)
@@ -80,7 +85,7 @@ end
 
 let remove_binder sl_graph phi psi (x : SL.Variable.t) =
   let _ = Logger.debug "Eliminating quantifier var %s\n" (SL.Variable.show x) in
-  let vals = Instance.compute_determined_value x (SL.free_vars phi) psi in
+  let vals = Instance.compute_determined_value x (SL.free_vars ~with_pure:true phi) psi in (* TODO *)
   match vals with
     | Some v ->
       let _ = Logger.debug "Eliminated %s using substitution: %s\n" (SL.Variable.show x) (SL.Term.show v) in
