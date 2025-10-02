@@ -99,7 +99,7 @@ let combined_memory_model_test () =
   in
 
   let heap_sort = HeapSort.of_list [(tree_sort, tree_struct)] in
-  let solver = Solver.init () |> Solver.set_heap_sort heap_sort in
+  let solver = Solver.init ~use_builtin_defs:true () |> Solver.add_heap_sort heap_sort in
   assert (Solver.check_sat solver phi)
 
 (** Timeout *)

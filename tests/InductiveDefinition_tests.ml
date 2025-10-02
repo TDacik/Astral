@@ -7,8 +7,6 @@ open InductiveDefinition_testable
 module SL = SL_testable
 open SL
 
-let sid_ls = InductiveDefinition.ID_map.of_list [("ls", ls)]
-
 let instantiate_test1 () =
   let actual = InductiveDefinition.instantiate ~refresh:false ls [u; v] in
   let expected = ls_def u v in
@@ -24,13 +22,15 @@ let instantiate_test2 () =
 
 (* TODO: we could test more properties of unfolded formulas *)
 
+let sid_ls = SID.register_user_defined SID.empty ls
+
 let unfold_test1 () =
-  let actual = InductiveDefinition.unfold sid_ls ls [x; y] 0 in
+  let actual = SID.unfold sid_ls "ls" [x; y] 0 in
   let expected = SL.mk_eq [x; y] in
   SL.check_equal actual expected
 
 let unfold_test2 () =
-  let actual = InductiveDefinition.unfold sid_ls ls [x; y] 1 in
+  let actual = SID.unfold sid_ls "ls" [x; y] 1 in
   let expected =
     SL.mk_or [
       SL.mk_eq [x; y];
@@ -44,7 +44,7 @@ let unfold_test2 () =
   SL.check_equal actual expected
 
 let unfold_test3 () =
-  let actual = InductiveDefinition.unfold sid_ls ls [x; y] 2 in
+  let actual = SID.unfold sid_ls "ls" [x; y] 2 in
   let expected =
     SL.mk_or [
       SL.mk_eq [x; y];
@@ -66,16 +66,24 @@ let unfold_test3 () =
   SL.check_equal actual expected
 
 let unfold_test4 () =
+  (* TODO: workaround *)
+  GlobalSID.reset ();
+  GlobalSID.register_user_defined ls;
+
   let id = InductiveDefinition.map IntroduceIfThenElse.apply ls in
-  let sid = InductiveDefinition.ID_map.of_list [("ls", id)] in
-  let actual = InductiveDefinition.unfold sid id [x; y] 0 in
+  let sid = SID.register_user_defined SID.empty id in
+  let actual = SID.unfold sid "ls" [x; y] 0 in
   let expected = SL.mk_eq [x; y] in
   SL.check_equal actual expected
 
 let unfold_test5 () =
+  (* TODO: workaround *)
+  GlobalSID.reset ();
+  GlobalSID.register_user_defined ls;
+
   let id = InductiveDefinition.map IntroduceIfThenElse.apply ls in
-  let sid = InductiveDefinition.ID_map.of_list [("ls", id)] in
-  let actual = InductiveDefinition.unfold sid id [x; y] 1 in
+  let sid = SID.register_user_defined SID.empty id in
+  let actual = SID.unfold sid "ls" [x; y] 1 in
   let expected =
     SL.mk_ite
       (SL.mk_eq [x; y])
@@ -90,8 +98,8 @@ let unfold_test5 () =
 
 let unfold_tll_test1 () =
   let open TLL in
-  let sid = InductiveDefinition.ID_map.of_list [("tll", id)] in
-  let actual = Simplifier.simplify @@ InductiveDefinition.unfold sid id [x; y; z] 3 in
+  let sid = SID.register_user_defined SID.empty TLL.id in
+  let actual = Simplifier.simplify @@ SID.unfold sid "tll" [x; y; z] 3 in
   let expected =
     SL.mk_or [
       SL.mk_star [
@@ -111,32 +119,6 @@ let unfold_tll_test1 () =
   in
   SL.check_equal actual expected
 
-(** Guided unfolding tests *)
-
-let guided_unfold_test1 () =
-  let id = InductiveDefinition.map IntroduceIfThenElse.apply ls in
-  let sid = InductiveDefinition.ID_map.of_list [("ls", id)] in
-  let g = SL_graph.compute (SL.mk_eq [x; y]) in
-  let actual = InductiveDefinition.unfold_guided sid id g [x; y] 10 in
-  let expected = SL.emp in
-  SL.check_equal actual expected
-
-let guided_unfold_test2 () =
-  SID.register_user_defined ls; (* TODO: why? *)
-  let id =
-    InductiveDefinition.map IntroduceIfThenElse.apply ls
-    |> InductiveDefinition.map (QuantifierElimination.apply SL_graph.empty)
-  in
-  let sid = InductiveDefinition.ID_map.of_list [("ls", id)] in
-  let nx = SL.Term.mk_heap_term MemoryModel.Field.next x in
-  let g = SL_graph.compute (SL_builtins.mk_pto_ls x ~next:y) in
-  (* TODO: can we avoid simplification here? *)
-  let actual = Simplifier.simplify @@ InductiveDefinition.unfold_guided sid id g [x; y] 10 in
-  let expected =
-    SL.mk_ite (SL.mk_eq [x; y]) SL.emp (SL_builtins.mk_pto_ls x ~next:nx)
-  in
-  SL.check_equal actual expected
-
 let () =
   run "Inductive definitions" [
     "instantiate", [
@@ -152,10 +134,6 @@ let () =
     ];
     "unfold (branching)", [
       test_case "unfold tll, depth: 3"     `Quick unfold_tll_test1;
-    ];
-    "unfold (guided)", [
-      test_case "unfold ls (x=y)" `Quick guided_unfold_test1;
-      test_case "unfold ls (x |-> y)" `Quick guided_unfold_test2;
     ];
   ]
 
