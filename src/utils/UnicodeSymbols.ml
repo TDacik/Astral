@@ -48,7 +48,7 @@ let init unicode =
   set_ref forall "∀";
   set_ref entails "⊧";
   set_ref maps_to "↦";
-  set_ref star "∗";
+  set_ref star "✲";
   set_ref septraction "-⍟";
   set_ref empty_set "∅";
   set_ref bottom "⊥";

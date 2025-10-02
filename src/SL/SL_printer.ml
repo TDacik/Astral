@@ -10,11 +10,13 @@ let (++) = (^)
 let pretty_eq xs =
   String.concat " = " @@ List.map SL.Term.show xs
 
-let pretty_distinct xs =
-  Format.asprintf "distinct(%s)" @@ SL.Term.show_list xs
+let pretty_distinct = function
+  | [x; y] -> Format.asprintf "%s %s %s" (SL.Term.show x) !UnicodeSymbols.neq (SL.Term.show y)
+  | xs -> Format.asprintf "distinct(%s)" @@ SL.Term.show_list xs
 
 let pretty_pointsto x ys =
-  Format.asprintf "x %s <%s>"
+  Format.asprintf "%s %s <%s>"
+    (SL.Term.show x)
     !UnicodeSymbols.maps_to
     (SL.Term.show_list ys)
 
@@ -29,7 +31,7 @@ let pretty_atom psi = match SL.view psi with
 let pretty_binder = function
   | [] -> ""
   | xs ->
-    Format.asprintf "%s %s."
+    Format.asprintf "%s %s. "
       !UnicodeSymbols.exists
       (SL.Variable.show_list xs)
 
@@ -38,8 +40,7 @@ let pretty_symbolic_heap phi =
   if List.is_empty atoms then "emp"
   else
     pretty_binder qs
-    ++ " " ++
-    (String.concat " * " @@ List.map pretty_atom atoms)
+    ++ (String.concat (" " ^ !UnicodeSymbols.star ^ " ") @@ List.map pretty_atom atoms)
 
 
 type printer = {
