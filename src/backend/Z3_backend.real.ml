@@ -210,10 +210,10 @@ module Init () = struct
         ~reason:"[Z3 wrapper] unknown Z3 sort in model"
         ~details:(Z3.Sort.to_string sort)
 
-  let rec translate_m astral_ctx z3_model z3_array =
+  let rec translate_m ctx z3_model z3_array =
     try
       let operands = Z3.Expr.get_args z3_array in
-      let operands' = List.map (translate_m astral_ctx z3_model) operands in
+      let operands' = List.map (translate_m ctx z3_model) operands in
       match (Z3.FuncDecl.get_decl_kind @@ Z3.Expr.get_func_decl z3_array), operands' with
       | OP_TRUE, _ -> Constant.tt
       | OP_FALSE, _ -> Constant.ff
@@ -221,7 +221,7 @@ module Init () = struct
       | OP_CONST_ARRAY, [default] -> Constant.mk_array ~default []
       | OP_STORE, [arr; index; value] -> Constant.array_add_binding arr index value
 
-      | _, _ -> translate_constant astral_ctx.loc_sort z3_array
+      | _, _ -> translate_constant (ctx).loc_sort z3_array
 
     with Z3.Error _ ->
       let str = Z3.Expr.to_string z3_array in
@@ -232,7 +232,7 @@ module Init () = struct
           ~details:str
 
 
-  let translate_model_var astral_context z3_model var =
+  let translate_model_var ctx z3_model var =
     let term = SMT.of_var var in
     let sort = SMT.get_sort term in
     let interp = Option.get @@ Z3.Model.eval z3_model (translate term) true in
@@ -256,27 +256,26 @@ module Init () = struct
       let arr = SMT.of_var var in
       let res = Z3.Model.get_const_interp_e z3_model (translate arr) in
       let res = BatOption.get_exn res (Failure ("No interpretation for array " ^ SMT.show arr)) in
-      translate_m astral_context z3_model res
+      translate_m ctx z3_model res
 
   (** Translate Z3's model. This function assumes that all uninterpreted sorts are finite. *)
-  let translate_model context phi z3_model =
-    let vars = SMT.free_vars phi in
+  let translate_model ctx free_vars z3_model =
     List.fold_left
       (fun acc var ->
-        let term = translate_model_var context z3_model var in
+        let term = translate_model_var ctx z3_model var in
         SMT.Model.add var term acc
-      ) SMT.Model.empty vars
+      ) SMT.Model.empty free_vars
 
   (* ==== Solver ==== *)
 
-  let solve context phi_orig produce_models options =
-    let phi = translate phi_orig in
-    match Z3.Solver.check !solver [phi] with
+  let solve ctx phi produce_models options =
+    match Z3.Solver.check !solver [translate phi] with
     | Z3.Solver.SATISFIABLE ->
       if produce_models then
         let model = Option.get @@ Z3.Solver.get_model !solver in
         let _ = Debug.backend_model @@ Z3.Model.to_string model in
-        SMT_Sat (Some (translate_model context phi_orig model, model))
+        let free_vars = SMT.free_vars phi in
+        SMT_Sat (Some (translate_model ctx free_vars model, model))
       else
         SMT_Sat None
 
@@ -319,6 +318,10 @@ module Init () = struct
     Logger.debug "Query %04d time %f\n" !cnt (Float.sub tend start);
     Z3.Solver.pop !solver 1;
     res
+
+
+  let minimize ~objective phi = failwith "" (*optimize Z3.Optimize.minimize (Obj.magic 0)*)
+  let maximize ~objective phi = failwith "" (*optimize Z3.Optimize.maximize (Obj.magic 0)*)
 
   (* === Debugging === *)
 

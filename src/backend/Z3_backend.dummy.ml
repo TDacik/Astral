@@ -4,4 +4,6 @@
 
 module Init () = struct
   include DummyBackend.Make(struct let name = "Z3" end)
+  let minimize ~objective _ = failwith ""
+  let maximize ~objective _ = failwith ""
 end

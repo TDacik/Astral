@@ -12,6 +12,7 @@ end)
 
 module Init () = struct
 
+module Self = struct
 
   module BW = Bitwuzla.Incremental ()
 
@@ -148,8 +149,8 @@ module Init () = struct
 
   (* ==== Solver ==== *)
 
-  let solve context phi_orig produce_models options =
-    match BW.check_sat_assuming [| translate phi_orig |] with
+  let solve _ phi produce_models options =
+    match BW.check_sat_assuming [| translate phi|] with
       | Sat -> SMT_Sat None
       | Unsat -> SMT_Unsat []
       | Unknown -> SMT_Unknown ""
@@ -171,7 +172,7 @@ module Init () = struct
   let check_sat phi =
     push phi;
     (* Timeout as parameter *)
-    let res = match BW.timeout 1. BW.check_sat () with
+    let res = match BW.timeout 1.0 BW.check_sat () with
       | Sat -> SMT_Sat None
       | Unsat -> SMT_Unsat []
       | Unknown -> SMT_Unknown ""
@@ -186,5 +187,10 @@ module Init () = struct
   let show_model model = ""
 
   let to_smtlib phi _ _ = "--"
+
+end
+
+include Self
+include IncrementalSolverBuilder.Make(Self)
 
 end

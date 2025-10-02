@@ -99,7 +99,7 @@ module Make (Backend : SMTLIB_BACKEND) = struct
     let options = if produce_models then Backend.model_option :: options else options in
     Backend.name :: options
 
-  let read_answer context file produce_models =
+  let read_answer file produce_models =
     let channel = open_in file in
     let status_line = input_line channel in
     let reason_unknown =
@@ -129,7 +129,7 @@ module Make (Backend : SMTLIB_BACKEND) = struct
             ~details:error
 
 
-  let solve context phi produce_models options =
+  let solve _ phi produce_models options =
     let smt_query = generate_query phi produce_models options in
     let query_name = Backend.name ^ "_query" in
     let answer_name = Backend.name ^ "_answer" in
@@ -174,7 +174,7 @@ module Make (Backend : SMTLIB_BACKEND) = struct
     Unix.close input;
     close_out answer_channel;
     match status with
-      | WEXITED _ -> read_answer context answer_filename produce_models
+      | WEXITED _ -> read_answer answer_filename produce_models
       (*| WEXITED i -> failwith @@
         Format.asprintf "[ERROR] Backend solver %s exited with return code %d"
           Backend.name i*)
