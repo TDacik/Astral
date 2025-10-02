@@ -66,12 +66,10 @@ module Self =  struct
         List.map (fun f -> SMT.mk_eq [HeapEncoding.mk_succ ctx.heap f x; freed]) fields
       in
       let semantics = Boolean.mk_and @@ Sets.mk_eq_singleton domain x :: field_semantics in
-      let var_axioms =
+      let axioms =
         List.map (fun v -> SMT.mk_distinct [SMT.of_var v; freed]) ctx.smt_vars
-        |> SMT.Boolean.mk_and
+        |> SMT.mk_and
       in
-      let nil_axiom = SMT.mk_distinct [freed; ctx.locs.null] in
-      let axioms = Boolean.mk_and [var_axioms; nil_axiom] in
       let footprints = [Sets.mk_singleton x] in
       (semantics, axioms, footprints)
 
