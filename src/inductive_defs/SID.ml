@@ -194,12 +194,10 @@ and unfold_id sid name xs n =
     in
     unfold_case sid (n - malus) case
   in
-  let cases' =
-    List.map (fun case -> match SL.view case with
-      | Ite (cond, t, e) -> SL.mk_ite cond (fn t) (fn e)
-      | _ -> fn case
-    ) cases
+  let rec unfold_aux case = match SL.view case with
+    | Ite (cond, t, e) -> SL.mk_ite cond (unfold_aux t) (unfold_aux e)
+    | _ -> fn case
   in
-  SL.mk_or @@ cases'
+  SL.mk_or @@ List.map unfold_aux cases
 
 let unfold = unfold_id
