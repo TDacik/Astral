@@ -542,6 +542,9 @@ let parse_extension ctx extension = match parse_id extension.name with
     let mapping = List.map (parse_heap_sort ctx) extension.args in
     Logger.debug "Heap sort: %s\n" (HeapSort.show @@ HeapSort.of_list mapping);
     Context.declare_heap_sort ctx mapping
+  | other ->
+    ParserException.raise_syntax_error None ("Unknown extension '" ^ other ^ "'")
+
 
 let parse ctx path =
   let _, stmts = Parser.parse_all (`File path) in
