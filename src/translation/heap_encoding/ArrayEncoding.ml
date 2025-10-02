@@ -36,11 +36,11 @@ module Make (Locations : LOCATIONS) = struct
   let get_fields self =
     Field.Map.keys self.field_map
 
-  let mk_field suffix field locs =
+  let mk_field suffix heap_sort field locs =
     let name = Format.asprintf "%s%s" (Field.show field) suffix in
     let sort = Field.get_sort field in
     let encoding_sort =
-      if Field.is_pointer field
+      if HeapSort.is_loc_sort heap_sort sort
       then SMT.Array.mk_sort locs.sort locs.sort
       else SMT.Array.mk_sort locs.sort sort
     in
@@ -55,7 +55,7 @@ module Make (Locations : LOCATIONS) = struct
   let mk ?(suffix="") phi heap_sort locs =
     let fields = HeapSort.get_fields heap_sort in
     let field_map = List.fold_left (fun acc f ->
-      let arr = mk_field suffix f locs in
+      let arr = mk_field suffix heap_sort f locs in
       Field.Map.add f arr acc
     ) Field.Map.empty fields
     in
@@ -148,9 +148,9 @@ module Make (Locations : LOCATIONS) = struct
   let inverse_translate_loc self model (heap : StackHeapModel.Heap.t) (loc_term, loc) =
     Logger.debug "Translating heap for '%s'\n" (SH.Location.show_with_sort loc);
     let source_sort = SH.Location.get_sort loc in
+    Logger.debug "  Source sort %s\n" (Sort.show source_sort);
     let target_sort = HeapSort.find_target source_sort self.heap_sort in
 
-    Logger.debug "  Source sort %s\n" (Sort.show source_sort);
     Logger.debug "  Target sort %s\n" (StructDef.show target_sort);
     let fields = StructDef.get_fields target_sort in
     Logger.debug "  Relevant fields are: %s\n"
