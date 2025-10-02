@@ -201,6 +201,12 @@ let set_encoding = function
       ~param:"set_encoding"
       ~bad_value ~expected_values:"direct | bitvectors"
 
+let _optimize = ref "none"
+let optimize () = match !_optimize with
+  | "none" -> `None
+  | "max_heap" -> `MaxHeap
+  | "min_heap" -> `MinHeap
+
 (* ==== Unsafe ==== *)
 
 let _unsafe = ref false
@@ -251,9 +257,11 @@ let speclist =
      "Encoding of SMT quantifiers (direct | enum)");
     ("--encoding", Arg.String set_encoding,
      "Predefined encoding of locations and sets (enum | bitvectors)");
-    
+
+    ("--optimize", Arg.Set_string _optimize, "");
+
     (* Unfolding *)
-    ("--incr-unfolding", Arg.Set _incremental_unfolding, 
+    ("--incr-unfolding", Arg.Set _incremental_unfolding,
         "Perform incremental unfolding of predicates.");
     ("--no-unfolding-lookahead", Arg.Clear _unfolding_lookahead,
         "Perform look-ahead when unfolding predicate calls including determined existentials (experimental");

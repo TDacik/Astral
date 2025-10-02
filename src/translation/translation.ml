@@ -608,8 +608,7 @@ let translate_phi (ctx : Context.t) ssl_phi =
     translated
 
   (* ==== Solver ==== *)
-  let solve input =
-    let ctx = Context.init input in
+  let solve_aux solver_callback ctx input =
     debug_info ctx;
     log input ctx;
 
@@ -650,18 +649,20 @@ let translate_phi (ctx : Context.t) ssl_phi =
     in
     let backend_translated = Backend.translate translated in
 
+    (*
     Debug.backend_translated (Backend.show_formula backend_translated);
     Debug.backend_simplified (Backend.show_formula @@ Backend.simplify backend_translated);
     Debug.backend_input (Backend.to_smtlib translated produce_models user_options);
+    *)
 
     Logger.debug "Running backend SMT solver\n";
 
     (* Solve *)
-    let result = Backend.solve ctx translated produce_models user_options in
+    let result = solver_callback ctx translated produce_models user_options in
     Profiler.add "SMT backend";
 
     match result with
-    | SMT_Sat None -> Input.set_result `Sat input
+    | Backend_sig.SMT_Sat None -> Input.set_result `Sat input
     | SMT_Sat (Some (smt_model, backend_model)) ->
       let smt_model = SetEncoding.rewrite_back translated1 smt_model in
       let _ = Debug.smt_model smt_model in
@@ -673,6 +674,17 @@ let translate_phi (ctx : Context.t) ssl_phi =
 
     (* TODO: remove duplicit reason *)
     | SMT_Unknown reason -> Input.set_result (`Unknown reason) input
+
+  let solve input =
+    let ctx = Context.init input in
+    solve_aux Backend.solve ctx input
+
+  let solve_maximize input = failwith "TODO"
+  (*
+    let module B = Z3_backend.Init() in
+    let ctx = Context.init input in
+    let objective = SMT.Sets.mk_cardinality ctx.global_footprint in
+    solve_aux (fun phi _ _ _ -> B.maximize ~objective phi) ctx input *)
 
   (*let solve input =
     try solve input

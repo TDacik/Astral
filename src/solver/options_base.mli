@@ -93,6 +93,8 @@ val max_footprints : unit -> int option
 
 val max_pred_enum : unit -> int option
 
+val optimize : unit -> [`None | `MaxHeap | `MinHeap]
+
 (** ==== Unfolding ==== *)
 
 val incremental_unfolding : unit -> bool

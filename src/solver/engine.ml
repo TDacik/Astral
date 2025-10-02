@@ -72,12 +72,15 @@ let solve (input : Context.t) =
     let module Translation = Translation.Make(Encoding)(Backend) in
 
     debug_info input;
-    if not @@ Options_base.dry_run () then
-      let res = Translation.solve input in
+    if Options.dry_run () then Context.set_result (`Unknown "dry run") input
+    else
+      let res = match Options.optimize () with
+        | `None -> Translation.solve input
+        | `MaxHeap -> Translation.solve_maximize input
+      in
       let res' = Context.apply_model_adapter res in
       (match res'.model with None -> () | Some sh -> Debug.model sh);
       res'
-    else Context.set_result (`Unknown "dry run") input
 
 (* TODO: Do not return just input in case of exception. *)
 let solve input =
