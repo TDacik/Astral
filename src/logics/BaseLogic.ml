@@ -500,14 +500,20 @@ module Boolean = struct
 
   let mk_or = mk_smart_app Or ~neutral:ff ~anihilator:tt
 
-  let mk_implies lhs rhs = mk_app Implies [lhs; rhs]
-  let mk_iff = mk_app Iff
-
   (** Not valid for separation logic with precise semantics! *)
   let mk_not = function
     | Application (Equal, [x; y]) -> Equality.mk_distinct [x; y]
     | Application (Distinct, [x; y]) -> Equality.mk_eq [x; y]
     | other -> mk_app Not [other]
+
+  let mk_implies lhs rhs = match lhs, rhs with
+    | lhs, rhs when equal lhs tt -> rhs
+    | lhs, rhs when equal lhs ff -> tt
+    | lhs, rhs when equal rhs ff -> mk_not lhs
+    | lhs, rhs when equal rhs tt -> tt
+    | lhs, rhs -> mk_app Implies [lhs; rhs]
+
+  let mk_iff = mk_app Iff
 
   (* IfThenElse is a sequence [guard1, case1, guard2, case2, ..., else].
      Such an representation is not nice, but it is hidden by view types. *)
@@ -786,7 +792,9 @@ module SeparationLogic = struct
   let mk_dls x y f l = mk_predicate "dls" [x; y; f; l]
   let mk_nls x y z = mk_predicate "nls" [x; y; z]
 
-  let mk_gneg lhs rhs = mk_app GuardedNot [lhs; rhs]
+  let mk_gneg lhs rhs =
+    if !do_simplification && lhs === rhs then Boolean.ff
+    else mk_app GuardedNot [lhs; rhs]
 
   let is_nil x = equal x nil
 
