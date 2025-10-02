@@ -38,8 +38,9 @@ let get_fields self =
   |> BatList.concat_map StructDef.get_fields
   |> BatList.unique ~eq:Field.equal
 
+(* Always true for location sorts. For non-locations sorts, true if they are in domain. *)
 let is_loc_sort self sort =
-  M.mem sort self
+  Sort.is_nil sort || M.mem sort self
 
 let get_loc_sorts self = M.keys self
 
