@@ -19,7 +19,7 @@ module Make (Locations : LOCATIONS_BASE) = struct
     Format.asprintf "  Internal encoding: %s\n  Sort encoding: %s\n  Mappers: %s"
       (Locations.show self)
       (Sort.Map.show show_val self.sort_encoding)
-      (Sort.Map.show (fun _ -> "...") self.mapping)
+      (Sort.Map.show (fun (mapper, _) -> Sort.show @@ SMT.get_sort mapper) self.mapping)
 
   (** Accessors *)
 
@@ -67,6 +67,15 @@ module Make (Locations : LOCATIONS_BASE) = struct
   let translate_sort locs _ = locs.sort
 
   let translate_var locs var = SMT.Variable.mk (SL.Variable.show var) locs.sort
+
+  let translate_smt_term locs term =
+    let sort = SMT.get_sort term in
+    if not @@ HeapSort.is_loc_sort locs.heap_sort sort then term
+    else
+      try
+        let mapper = fst @@ get_mapper locs sort in
+        SMT.Array.mk_select mapper term
+      with Not_found -> internal_error locs ("No mapper for SMT sort " ^ Sort.show sort)
 
   (** Typing *)
 

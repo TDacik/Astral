@@ -46,7 +46,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   let rec translate_term ctx t = match SL.Term.view t with
     | SL.Term.Var x -> SMT.of_var @@ Locations.translate_var ctx.locs x
     | SL.Term.HeapTerm (f, x) -> translate_heap_term ctx f (translate_term ctx x)
-    | SL.Term.SmtTerm x -> x
+    | SL.Term.SmtTerm t -> Locations.translate_smt_term ctx.locs t
     | SL.Term.IfEqual (xs, t, e) ->
       Boolean.mk_ite
         (Boolean.mk_eq @@ List.map (translate_term ctx) xs)
@@ -125,7 +125,6 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       |> Boolean.mk_and
     in
 
-
     (** TODO: should be axiom of freed. *)
     let target_not_freed =
       if Freed.is_present ctx.phi then
@@ -134,6 +133,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
           ) fields
       else Boolean.tt
     in
+
 
     let semantics = Boolean.mk_and [domain_def; pointer; target_not_freed] in
     (semantics, axioms, footprints)
@@ -558,7 +558,7 @@ let translate_phi (ctx : Context.t) ssl_phi =
       (fun stack term ->
         let const = match SL.Term.view term with
           | SL.Term.SmtTerm c -> Some (StackHeapModel.Location.mk_smt @@ Model.eval model c)
-          | SL.Term.Var var when not @@ SL.Variable.is_loc var ->
+          | SL.Term.Var var when not @@ HeapSort.is_loc_sort ctx.heap_sort @@ SL.Variable.get_sort var ->
             Some (StackHeapModel.Location.mk_smt
             @@ Model.eval model @@ Locations.mk_var ctx.locs (SL.Variable.show var))
           | SL.Term.Var var ->

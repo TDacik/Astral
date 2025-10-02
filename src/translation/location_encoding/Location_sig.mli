@@ -64,6 +64,8 @@ module type LOCATIONS = sig
 
   val translate_var : t -> SL.Variable.t -> SMT.Variable.t
 
+  val translate_smt_term : t -> SMT.t -> SMT.t
+
   val inverse_translate : t -> SMT.Model.t -> Constant.t -> StackHeapModel.Location.t
   (** Translate an interpretation of a location to its representation in stack-heap model. *)
 
