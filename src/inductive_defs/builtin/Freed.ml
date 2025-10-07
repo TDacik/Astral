@@ -68,7 +68,7 @@ module Self =  struct
       let semantics = Boolean.mk_and @@ Sets.mk_eq_singleton domain x :: field_semantics in
       let axioms =
         List.map (fun v -> SMT.mk_distinct [SMT.of_var v; freed]) ctx.smt_vars
-        |> SMT.mk_and
+        |> SMT.Boolean.mk_and
       in
       let footprints = [Sets.mk_singleton x] in
       (semantics, axioms, footprints)
