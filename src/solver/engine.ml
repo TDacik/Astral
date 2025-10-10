@@ -41,15 +41,11 @@ let solve (input : Context.t) =
   | _, _ ->
     Profiler.add "Normalisation";
 
-    (** Small model should be computed on normalised, but non-preprocessed definition *)
-
-    (** TODO: following is a hack for interactive mode *)
-    (if Options.interactive () then GlobalSID.reset_results () else ());
-    let distinguishers = SID_checks.compute_distinguishers @@ GlobalSID.dependency_graph () in
-    let sm = SmallModels.compute input.phi distinguishers in
-    Profiler.add "Small-models";
-    GlobalSID.cache := sm;
+    (** Small model should be computed on normalised, but non-preprocessed definition.
+        TODO: still true? *)
     Debug.out_input input;
+
+    GlobalSID.cache := PredicateAnalysis.compute @@ GlobalSID.get ();
 
     BaseLogic.use_simplification true;
     GlobalSID.preprocess_user_definitions PredicatePreprocessing.preprocess;

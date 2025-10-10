@@ -4,17 +4,6 @@
 
 module Logger = Logger.Make(struct let name = "unfolder" let level = 1 end)
 
-let must_allocate_lhs phi heap_sort lhs g name =
-  let _, atoms = SL.as_symbolic_heap lhs in
-  List.map (fun atom -> match SL.view atom with
-    | PointsTo _ -> 1.0
-    | Predicate (name, xs, _) -> GlobalSID.alloc name phi g heap_sort xs
-    | _ -> 0.0
-  ) atoms
-  |> List.map Float.floor
-  |> List.map Float.to_int
-  |> BatList.sum
-
 (*
 let unfolding_depth lhs g pred_name ys =
     let _, atoms = SL.as_symbolic_heap lhs in
@@ -42,25 +31,54 @@ let max_unfold_bound_rhs lhs default = default
     | Some n -> n
  *)
 
+let unfold_sat sid phi name xs =
+  let bound = GlobalSID.unfolding_depth name in
+  Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
+    name (SL.Term.show_list xs) (bound);
+  SID.unfold sid name xs bound
+
+(*
 let unfold_predicate_lhs sid phi lhs max_bound name xs =
   Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
     name (SL.Term.show_list xs) (max_bound);
   SID.unfold sid name xs (max_bound)
 
-let unfold_sat sid phi name xs =
-  let abstraction = GlobalSID.abstraction name in
-  let bound = PredicateAbstraction.(abstraction.unfolding_depth) in
-  Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
-    name (SL.Term.show_list xs) (bound);
-  SID.unfold sid name xs bound
-
 let unfold_lhs sid g heap_sort bound phi lhs rhs = SL.map_view (function
   | Predicate (name, xs, _) when SID.is_user_defined sid name ->
-    let self = GlobalSID.unfolding_depth phi g name xs in
+    let self = GlobalSID.unfolding_depth name (*phi g name xs*) in
     let alloc = must_allocate_lhs phi heap_sort lhs g name in
     let default = (LocationBounds.sum_of_allocated bound) - alloc + self in
     let bound = max_unfold_bound_lhs rhs default in
     `Modify (unfold_predicate_lhs sid phi lhs bound name xs)
+  | _ -> `Skip
+) lhs
+*)
+
+let must_allocate_lhs phi heap_sort lhs g name =
+  let _, atoms = SL.as_symbolic_heap lhs in
+  List.map (fun atom -> match SL.view atom with
+    | PointsTo _ -> 1.0
+    | Predicate (name, xs, _) -> GlobalSID.alloc name phi g heap_sort xs
+    | _ -> 0.0
+  ) atoms
+  |> List.map Float.floor
+  |> List.map Float.to_int
+  |> BatList.sum
+
+let unfold_predicate_lhs sid phi lhs name xs =
+  let bound = GlobalSID.unfolding_depth name in
+  SID.unfold sid name xs bound
+
+let unfold_lhs sid g heap_sort bound phi lhs rhs = SL.map_view (function
+  | Predicate (name, xs, _) when SID.is_user_defined sid name ->
+    `Modify (unfold_predicate_lhs sid phi lhs name xs)
+    (*
+    let self = GlobalSID.unfolding_depth name (*phi g name xs*) in
+    let alloc = must_allocate_lhs phi heap_sort lhs g name in
+    let default = (LocationBounds.sum_of_allocated bound) - alloc + self in
+    let bound = max_unfold_bound_lhs rhs default in
+    `Modify (unfold_predicate_lhs sid phi lhs bound name xs)
+    *)
   | _ -> `Skip
 ) lhs
 
@@ -70,7 +88,7 @@ let unfold_sat sid lhs = SL.map_view (function
   | _ -> `Skip
 ) lhs
 
-let unfold_rhs sid ctx lhs rhs =
+let unfold_rhs sid ctx sl_graph lhs rhs =
   let open Backend_sig in
   let open Translation_sig in
   let module Backend = (val Options.backend () : BACKEND) in
@@ -78,9 +96,14 @@ let unfold_rhs sid ctx lhs rhs =
   let module Encoding = (val Options.encoding () : ENCODING) in
   let module Translation = Translation.Make(Encoding)(Backend) in
   let module Unfolder = IncrementalUnfolding.Make(Encoding)(IncrementalBackend) in
-  let lhs_t = Translation.translate {ctx with phi = lhs} in (* TODO: check*)
+
+  (* TODO: avoid duplicated computation *)
+  let open Context in
+  let bounds = LocationBounds.compute lhs ctx.raw_input.heap_sort sl_graph in
+
+  let lhs_t = Translation.translate {ctx with phi = lhs; location_bounds = bounds} in (* TODO: check*)
   Debug.translated ~suffix:"LHS" lhs_t;
-  Unfolder.unfold ctx lhs_t rhs
+  Unfolder.unfold {ctx with location_bounds = bounds} lhs_t rhs
 
 let apply_aux ctx phi =
   let sid = GlobalSID.get () in
@@ -95,7 +118,7 @@ let apply_aux ctx phi =
       let sl_graph = SL_graph.compute lhs in
       let ctx_lhs = {ctx with phi = Simplifier.simplify @@ unfold_lhs sid sl_graph ctx.heap_sort location_bound phi lhs rhs} in
       let lhs = ctx_lhs.phi in
-      let rhs = unfold_rhs sid ctx lhs rhs in
+      let rhs = unfold_rhs sid ctx sl_graph lhs rhs in
       {ctx with phi = SL.mk_gneg lhs rhs; model_adapter = ctx_lhs.model_adapter}
     | False | True -> ctx
     | _ -> assert false (* Should be catched earlier *)
