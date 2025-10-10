@@ -41,7 +41,7 @@ module Term = struct
 
   let view = function
     | B.Variable var when Variable.is_loc var ->
-      Var (Variable.mk (Variable.show var) (Variable.get_sort var))
+      Var var
     | B.Variable var -> SmtTerm (SMT.mk_var (Variable.show var) (Variable.get_sort var))
     | B.Application (IfThenElse, [c; t; e]) -> begin match c with
       | B.Application (Equal, xs) -> IfEqual (xs, t, e)
