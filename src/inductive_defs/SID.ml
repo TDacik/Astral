@@ -156,6 +156,13 @@ let compute_graph sid =
   in
   {sid with graph = res}
 
+let of_list xs =
+  let open InductiveDefinition in
+  compute_graph {
+    definitions = List.fold_left (fun acc id -> M.add id.name (UserDefined id) acc) M.empty xs;
+    graph = DependencyGraph.empty
+  }
+
 (** ==== Unfolding ==== *)
 
 

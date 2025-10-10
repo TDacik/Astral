@@ -24,6 +24,8 @@ include Datatype_sig.PRINTABLE with type t := t
 
 val empty : t
 
+val of_list : InductiveDefinition.t list -> t
+
 val register_builtin : t -> (module BUILTIN) -> t
 
 val register_user_defined : t -> InductiveDefinition.t -> t

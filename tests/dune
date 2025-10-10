@@ -33,7 +33,7 @@
 
     ;; Inductive definitions
     InductiveDefinition_tests
-    SmallModels_tests
+    PredicateAnalysis_tests
 
     ;Property_tests
   )

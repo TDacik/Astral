@@ -26,6 +26,9 @@ let p2 = SL.of_smt @@ SMT.mk_var "p2" Sort.int
 
 module Var = struct
   include Builder.Make(SL.Variable)
+  let check_name ~msg v expected = Alcotest.check' Alcotest.string ~actual:(SL.Variable.show v) ~expected ~msg
+  let check_names ~msg v expected =
+    Alcotest.check' Alcotest.(list string) ~actual:(List.map SL.Variable.show v) ~expected ~msg
 
   (** Values *)
   let nil = SL.Term.nil
