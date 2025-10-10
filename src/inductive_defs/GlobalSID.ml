@@ -9,7 +9,8 @@ open MemoryModel
 let sid_original = ref SID.empty
 let sid_updated = ref SID.empty
 
-let cache = ref PredicateAbstraction.M.empty
+(** TODO: this should be part of SID itself *)
+let cache = ref PredicateInfo.empty
 
 let show () =
   Format.asprintf "Original:\n%s\nUpdated:%s\n" (SID.show !sid_original) (SID.show !sid_updated)
@@ -18,12 +19,12 @@ let reset () =
   sid_original := SID.empty;
   sid_updated := SID.empty
 
-let reset_results () = cache := PredicateAbstraction.M.empty
+let reset_results () = cache := PredicateInfo.empty
 
 let compute_graph () =
   sid_original := SID.compute_graph !sid_original;
-  sid_updated := SID.compute_graph !sid_updated;
-  DependencyGraph.output "dependency_graph.dot" (SID.dependency_graph !sid_updated)
+  sid_updated := SID.compute_graph !sid_updated
+  (*DependencyGraph.output "dependency_graph.dot" (SID.dependency_graph !sid_updated)*)
 
 let select original = if original then !sid_original else !sid_updated
 
@@ -156,6 +157,35 @@ end
 
 (** ==== Abstraction of predicates ==== *)
 
+let unfolding_depth name = match find name with
+  | UserDefined pred -> (PredicateInfo.find pred !cache).unfolding_depth
+  | _ -> assert false
+
+(** TODO: does this make sense after new update? *)
+let term_bound phi g heap_sort x =
+  let sort = SL.Term.get_sort x in
+  SID.fold (fun pred acc ->
+    let bound = match pred with
+      | Builtin (module B : BUILTIN) -> B.term_bound phi heap_sort x
+      | UserDefined id -> 1.0 (* Location bound should be computed on unfolding *)
+    in
+    max acc bound
+  ) !sid_updated Float.one
+
+let additional_bounds phi =
+  SID.fold (fun pred acc -> match pred with
+    | Builtin (module B : BUILTIN) -> LocationBounds0.plus acc @@ B.additional_bound phi
+    | UserDefined id -> acc
+  ) !sid_updated LocationBounds0.empty
+
+let alloc name phi g heap_sort xs = match find name with
+  | UserDefined id -> Float.of_int @@ unfolding_depth name (* TODO: check *)
+  | Builtin (module B : BUILTIN) ->
+    B.must_allocated xs
+    |> List.map (term_bound phi g heap_sort)
+    |> BatList.kahan_sum
+
+(*
 let is_computed () = not @@ PredicateAbstraction.M.is_empty !cache
 
 let abstraction name =  match find name with
@@ -172,8 +202,9 @@ let rec existentials ?(visited=[]) id =
       |> List.map fst
     in
     SL.bound_vars unfolding @ List.concat_map (existentials ~visited:(id::visited)) (List.map find_user_defined rec_calls)
+*)
 
-(** ==== Location bound computation ==== *)
+(** ==== Location bound computation ====
 
 let compute_aux phi g id x a =
   let open InductiveDefinition in
@@ -205,29 +236,22 @@ let term_bound phi g heap_sort x =
     max acc bound
   ) !sid_updated Float.one
 
-let alloc name phi g heap_sort xs = match find name with
-  | UserDefined id -> Float.of_int (PredicateAbstraction.M.find id !cache).unfolding_depth
-  | Builtin (module B : BUILTIN) ->
-    B.must_allocated xs
-    |> List.map (term_bound phi g heap_sort)
-    |> BatList.kahan_sum
 
-let additional_bounds phi =
-  SID.fold (fun pred acc -> match pred with
-    | Builtin (module B : BUILTIN) -> LocationBounds0.plus acc @@ B.additional_bound phi
-    | UserDefined id -> acc
-  ) !sid_updated LocationBounds0.empty
+*)
 
 (** TODO: compute some must-relations *)
 let sl_graph name instance = match find name with
   | Builtin (module B : BUILTIN) -> B.sl_graph instance
   | UserDefined id -> SL_graph0.empty
 
+(*
 let unfolding_depth phi g name xs = match find name with
   | UserDefined id -> (PredicateAbstraction.M.find id !cache).unfolding_depth
   (*  let abstraction = PredicateAbstraction.find id !cache in
     compute_aux phi g id (List.hd xs) abstraction
   *)
+
+*)
 
 let formula_preprocessing phi =
   SID.fold (fun pred acc -> match pred with
