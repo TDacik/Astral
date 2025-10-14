@@ -69,7 +69,7 @@ let first_phase context =
   apply_list context [
     NegationNormalisation.apply_ctx, "normalisation";
     rewrite_semantics, "semantics_rewriting";
-    (*Inlining.inline_ctx, "inlining";*)
+    Inlining.inline_ctx, "inlining"
   ]
 
 (** ==== 2nd phase ==== *)
