@@ -185,6 +185,10 @@ let out aut s =
   Transition.Set.filter (fun t -> State.equal t.input s) aut.delta
   |> Transition.Set.elements
 
+let exists_selfloop aut s =
+  out aut s
+  |> List.exists Transition.is_self_loop
+
 let print aut =
   Transition.Set.iter (fun t ->
     Logger.debug "T: %s\n" (Transition.show t);
@@ -341,11 +345,12 @@ let check_fragment aut =
     if Transition.Set.mem t visited then
       if Transition.is_self_loop t then ()
       else Exceptions.unsupported_fragment ~reason:"System of predicates is not flat" ~details:""
-    else if not last_breakpoint && not @@ Transition.is_breakpoint t then
+    else if not last_breakpoint && not @@ Transition.is_breakpoint t && exists_selfloop aut t.input
+    then
       Exceptions.unsupported_fragment ~reason:"System of predicates is not 1-loop" ~details:""
     else
       let visited' = Transition.Set.add t visited in
-      let last_breakpoint' = Transition.is_breakpoint t in
+      let last_breakpoint' = Transition.is_breakpoint t || not @@ exists_selfloop aut t.input in
       t.output
       |> List.concat_map (fun s -> out aut s)
       |> List.iter (traverse_and_check visited' last_breakpoint')
@@ -382,4 +387,3 @@ let construct_pred sid pred =
   debug res;
   check_fragment res;
   res
-
