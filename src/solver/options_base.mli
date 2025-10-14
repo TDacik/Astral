@@ -16,6 +16,8 @@ val version : unit -> bool
 val interactive : unit -> bool
 val set_interactive : bool -> unit
 
+val benchmark_mode : unit -> bool
+
 val input_path : unit -> string
 
 val produce_models : unit -> bool

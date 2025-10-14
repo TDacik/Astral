@@ -12,6 +12,9 @@ let _interactive = ref false
 let interactive () = !_interactive
 let set_interactive flag = _interactive := flag
 
+let _benchmark_mode = ref false
+let benchmark_mode () = !_benchmark_mode
+
 (* ==== Input ==== *)
 
 let _input_path = ref None
@@ -212,6 +215,7 @@ let speclist =
     ("--verify-model", Arg.Set _verify_model, "Verify obtained model");
     ("--unsat-core", Arg.Set _unsat_core, "Print unsat core");
     ("--no-builtins", Arg.Clear _use_builtins, "Use built-in inductive definitions");
+    ("--benchmark-mode", Arg.Set _benchmark_mode, "Do not check status against expected one.");
     ("--json-output", Arg.Set_string _json_output_file, "Store solver's result as json");
 
     (* Backends *)
@@ -251,9 +255,9 @@ let speclist =
      "Encoding of SMT quantifiers (direct | enum)");
     ("--encoding", Arg.String set_encoding,
      "Predefined encoding of locations and sets (enum | bitvectors)");
-    
+
     (* Unfolding *)
-    ("--incr-unfolding", Arg.Set _incremental_unfolding, 
+    ("--incr-unfolding", Arg.Set _incremental_unfolding,
         "Perform incremental unfolding of predicates.");
     ("--no-unfolding-lookahead", Arg.Clear _unfolding_lookahead,
         "Perform look-ahead when unfolding predicate calls including determined existentials (experimental");

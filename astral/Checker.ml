@@ -53,7 +53,9 @@ let check_model result =
       Unknown
   else Unknown
 
-let check_result result status model = match status, model with
+let check_result result status model =
+  if Options.benchmark_mode () then ()
+  else match status, model with
   | (True | Unknown), (True | Unknown) -> ()
   | (False), (False | Unknown) ->
     internal_error ~backtrace:false ~exit_code:1
