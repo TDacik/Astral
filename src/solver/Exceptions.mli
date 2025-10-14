@@ -2,6 +2,8 @@
  *
  * Author: Tomas Dacik (idacik00@fit.vut.cz), 2025 *)
 
+exception Unsat of string
+
 exception UnsupportedFragment of string * string
 (** This exception is raised when unsupported fragment is detected. *)
 

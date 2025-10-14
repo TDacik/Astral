@@ -2,6 +2,8 @@
  *
  * Author: Tomas Dacik (idacik00@fit.vut.cz), 2025 *)
 
+exception Unsat of string
+
 exception UnknownResult of string * string
 
 exception UnsupportedFragment of string * string

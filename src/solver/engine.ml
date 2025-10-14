@@ -52,6 +52,8 @@ let solve (input : Context.t) =
 
     let input, bounds = Preprocessor.second_phase input in
 
+    (if SL.equal SL.ff input.phi then raise @@ Exceptions.Unsat "preprocessing");
+
     let input = Context.add_metadata input sl_graph (Option.get bounds) in (* TODO: compute and take min *)
     Debug.context input;
 
@@ -79,6 +81,8 @@ let solve (input : Context.t) =
 let solve input =
   let ctx = Context.init input in
   try solve ctx with
+  | Exceptions.Unsat reason ->
+    Context.set_result `Unsat ~unsat_core:[] ctx (* TODO: use this or propage through exception?  *)
   | Exceptions.UnknownResult (reason, _) ->
     Context.set_result (`Unknown reason) ctx
   | Exceptions.UnsupportedFragment (reason, _) ->
