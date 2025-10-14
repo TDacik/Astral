@@ -16,21 +16,17 @@ let check_low_level_sl ctx =
 
 (** Checks for individual inductive definitions *)
 
-let rec check_progress psi =
-  SL.is_atomic psi || (match SL.view psi with
-    | Exists (_, psi) -> check_progress psi
-    | Star psis -> List.exists check_progress psis
-    | PointsTo _ -> true
-    | Ite (_, then_, else_) -> List.for_all check_progress [then_; else_]
-    | _ -> false
-  )
+let check_progress name psi =
+  let n = List.length @@ SL.select_subformulae SL.is_pointer psi in
+  if n = 0 then Result.error @@ Format.asprintf "Predicate %s: case %s does not satisfy progress property" name (SL.show psi)
+  else if n > 1 then Result.error @@ Format.asprintf "Predicate %s: case %s has more than 1 points-to assertion" name (SL.show psi)
+  else Result.ok ()
 
 let check_id_case name psi =
   (*if not @@ SL.is_symbolic_heap psi then Result.error @@
     Format.asprintf "Predicate %s: case %s is not a symbolic heap" name (SL.show psi)
-  else*) if not @@ check_progress psi then Result.error @@
-    Format.asprintf "Predicate %s: case %s does not satisfy progress property" name (SL.show psi)
-  else Result.ok ()
+  else*)
+  check_progress name psi
 
 let check_id id =
   List.fold_left (fun acc case ->
