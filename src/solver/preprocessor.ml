@@ -69,7 +69,7 @@ let first_phase context =
   apply_list context [
     NegationNormalisation.apply_ctx, "normalisation";
     rewrite_semantics, "semantics_rewriting";
-    Inlining.inline_ctx, "inlining";
+    (*Inlining.inline_ctx, "inlining";*)
   ]
 
 (** ==== 2nd phase ==== *)
@@ -94,8 +94,6 @@ let second_phase_aux aggresive context =
   ]
   in
   let sl_graph = SL_graph.compute ctx2.phi in
-  let bounds = LocationBounds.compute ctx2.phi ctx2.raw_input.heap_sort sl_graph in
-  let ctx2 = {ctx2 with location_bounds = bounds} in (* TODO: take min? *)
 
   let ctx3 = apply_list ctx2 [
     GlobalSID.formula_preprocessing_ctx, "builtins";
@@ -103,7 +101,9 @@ let second_phase_aux aggresive context =
     QuantifierElimination.apply_ctx, "q_elim_2";
   ]
   in
-  remove_unused_elements ctx3, (Some bounds)
+  let bounds = LocationBounds.compute ctx3.phi ctx3.raw_input.heap_sort sl_graph in
+  let ctx4 = {ctx3 with location_bounds = bounds} in (* TODO: take min? *)
+  remove_unused_elements ctx4, Some bounds
 
 let second_phase context = match Options_base.preprocessing () with
   | `None -> context, None
