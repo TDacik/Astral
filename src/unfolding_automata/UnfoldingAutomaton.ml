@@ -263,13 +263,14 @@ module G = struct
 end
 
 let as_graph aut =
+  let g = G.add_vertex G.empty (Vertex.State (normalise aut aut.initial, 0)) in
   Transition.Set.fold (fun t acc ->
     let v = Vertex.Transition t in
     let g = G.add_vertex acc v in
     let g = G.add_edge_e g (Vertex.State (normalise aut t.input, 0), Edge.next_in t.symbol,v) in
     BatList.fold_lefti
       (fun acc i o -> G.add_edge_e acc (v, Edge.next_out (), Vertex.State (normalise aut o, 0))) g t.output
-  ) aut.delta G.empty
+  ) aut.delta g
 
 let as_simple_graph aut =
   Transition.Set.fold (fun t acc ->

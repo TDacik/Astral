@@ -119,7 +119,9 @@ let unfolding_depth aut =
   in
   out aut aut.initial
   |> List.map (aux Transition.Set.empty)
-  |> BatList.max
+  |> (fun xs -> try BatList.max xs with _ ->
+    (* TODO: fix this by doing pointer factoring as preprocessing on SID*)
+    BatList.max @@ List.map (fun psi -> Option.get @@ SL.pointer_size psi) @@ SL.Set.elements aut.initial.accepting_condition)
 
 let compute_pred sid pred =
   let aut = UnfoldingAutomaton.construct_pred sid pred in
@@ -156,7 +158,9 @@ let debug pred info =
 
 let compute sid =
   SID.fold_user_defined (fun pred acc ->
-    let res = compute_pred sid pred in
-    debug pred res;
-    PredicateInfo.add pred res acc
+    if Inlining.can_be_inlined pred.name then acc
+    else
+      let res = compute_pred sid pred in
+      debug pred res;
+      PredicateInfo.add pred res acc
   ) sid PredicateInfo.empty
