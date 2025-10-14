@@ -93,17 +93,16 @@ let second_phase_aux aggresive context =
     QuantifierElimination.apply_ctx, "quantifier_elim"
   ]
   in
-  let sl_graph = SL_graph.compute ctx2.phi in
-
   let ctx3 = apply_list ctx2 [
     GlobalSID.formula_preprocessing_ctx, "builtins";
     UnfoldIDs.apply_ctx, "pred_unfolding";
     QuantifierElimination.apply_ctx, "q_elim_2";
   ]
   in
+  let sl_graph = SL_graph.compute ctx3.phi in
   let bounds = LocationBounds.compute ctx3.phi ctx3.raw_input.heap_sort sl_graph in
-  let ctx4 = {ctx3 with location_bounds = bounds} in (* TODO: take min? *)
-  remove_unused_elements ctx4, Some bounds
+  let ctx = {ctx3 with location_bounds = bounds} in (* TODO: take min? *)
+  remove_unused_elements ctx, (Some bounds)
 
 let second_phase context = match Options_base.preprocessing () with
   | `None -> context, None
