@@ -16,7 +16,7 @@ let saturate conds =
   res
 
 let rec candidate_conditions phi = match SL.view phi with
-  | Emp -> []
+  | Emp | False -> []
   | Eq xs ->
     List_utils.diagonal_product xs
     |> List.map (fun (x, y) -> SL.mk_eq2 x y)

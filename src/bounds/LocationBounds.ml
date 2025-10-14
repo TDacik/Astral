@@ -148,6 +148,7 @@ let compute_sh_entl phi lhs rhs heap_sort g =
 
 let rec compute_atomic psi =
   let res = match SL.view psi with
+    | False -> empty
     | Eq _ | Distinct _ | Emp -> empty
     | PointsTo (x, _, _) -> add (SL.Term.get_sort x) (SortBound.init 1 1) empty
     | Star psis -> BatList.fold_left plus empty @@ List.map compute_atomic psis
