@@ -7,29 +7,24 @@
 module Logger = Logger.Make (struct let name = "Inlining" let level = 2 end)
 
 let can_be_inlined name =
-  try
-    let id = GlobalSID.find_user_defined name in
-    let cases = InductiveDefinition.cases id in
-    begin match cases with
-    | [case] ->
-      (* TODO: Avoid this by doing preprocessing of formula and IDs simultaneously. *)
-      let case =
-        PreciseToImprecise.to_precise case
-        |> QuantifierElimination.apply SL_graph.empty
-      in
-      Logger.debug "Checking %s (qf: %b, sh: %b, not self-recursive: %b)\n"
-        (SL.show case)
-        (SL.is_quantifier_free case)
-        (SL.is_symbolic_heap case)
-        (not @@ GlobalSID.is_self_recursive id.name);
-      SL.is_quantifier_free case
-      && SL.is_symbolic_heap case
-      && not @@ GlobalSID.is_self_recursive id.name
+  let id = GlobalSID.find_user_defined name in
+  let cases = InductiveDefinition.cases id in
+  match cases with
+  | [case] ->
+    (* TODO: Avoid this by doing preprocessing of formula and IDs simultaneously. *)
+    let case = QuantifierElimination.apply (SL_graph.compute case) case in
+    Logger.debug "Checking %s (qf: %b, sh: %b, not self-recursive: %b)\n"
+      (SL.show case)
+      (SL.is_quantifier_free case)
+      (SL.is_symbolic_heap case)
+      (not @@ GlobalSID.is_self_recursive id.name);
+    SL.is_quantifier_free case
+    && SL.is_symbolic_heap case
+    && not @@ GlobalSID.is_self_recursive id.name
+    && SL.for_all (fun psi -> match SL.view psi with PointsTo _ -> false | _ -> true) case
 
-      (* Currently, multiple cases can be inlined only when all of them are atomic *)
-      | cases -> List.for_all SL.is_atomic cases
-  end
-  with Not_found -> false
+    (* Currently, multiple cases can be inlined only when all of them are atomic *)
+    | cases -> List.for_all SL.is_atomic cases
 
 let inline name xs =
   Logger.debug "Inlining predicate %s(%s)\n" name (SL.Term.show_list xs);

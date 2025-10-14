@@ -41,21 +41,13 @@ let rec repeat_until_fixpoint ~eq f x =
 
 let normalise (pred : t) =
   let module Logger = (val make_logger pred : LOGGER) in
-  (* Before checking, we need to eliminate quantifiers *)
-  if Inlining.can_be_inlined pred.name then
-    let _ = Logger.debug "Removing predicate\n" in
-    None
-  else
-    let _ = Logger.debug "Keeping predicate\n" in
-   let _ = Logger.dump pred "" in
+  Logger.dump pred "";
 
   let pred = preprocess_cases rewrite_semantics pred in
-  let _ = Logger.dump pred "_3-semantics-rewrite" in
+  let _ = Logger.dump pred "_1-semantics-rewrite" in
 
-  (*let pred = refresh pred in
-  Logger.dump pred "_2-refresh";
-*)
-
+  let pred = preprocess_cases Inlining.inline pred in
+  let _ = Logger.dump pred "_2-inlining" in
   Some pred
 
 let preprocess (pred : t) =
@@ -63,15 +55,15 @@ let preprocess (pred : t) =
 
   let qelim case = QuantifierElimination.apply (SL_graph.compute case) case in
   let pred = preprocess_cases qelim pred in
-  Logger.dump pred "_4-quntifier-elim";
+  Logger.dump pred "_3-quntifier-elim";
 
   let pred = InductiveDefinition.map Simplifier.simplify pred in
-  Logger.dump pred "_5_simplifier";
+  Logger.dump pred "_4_simplifier";
 
   (* Needs to be last as it introduces disjunctive rules *)
   let pred = RuleAntiunification.apply pred in
-  Logger.dump pred "_6_generalisation";
+  Logger.dump pred "_5_generalisation";
 
   let pred = InductiveDefinition.map (repeat_until_fixpoint ~eq:SL.equal @@ IntroduceIfThenElse.apply) pred in
-  Logger.dump pred "_7-introduce-ite";
+  Logger.dump pred "_6-introduce-ite";
   Some pred
