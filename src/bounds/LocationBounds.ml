@@ -155,6 +155,7 @@ let rec compute_atomic psi =
     | Or psis -> BatList.fold_left LocationBounds0.max empty @@ List.map compute_atomic psis
     | Ite (_, lhs, rhs) -> LocationBounds0.max (compute_atomic lhs) (compute_atomic rhs)
     | GuardedNeg (lhs, _) -> compute_atomic lhs
+    | Exists (_, psi) -> compute_atomic psi
   in
   let poly = List.length @@ SL.Term.MonoList.unique @@ SL.get_terms_of_sort Sort.loc_nil psi in
   LocationBounds0.add Sort.loc_nil (SortBound.init 0 poly) res
