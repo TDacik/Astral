@@ -12,3 +12,5 @@ val zero : t
 val n : int -> t
 
 val plus : t -> t -> t
+
+val max : t -> t -> t

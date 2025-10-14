@@ -19,3 +19,5 @@ let zero = init 0 0
 let n x = init x x
 
 let plus b1 b2 = init (b1.allocated + b2.allocated) (b1.total + b2.total)
+
+let max b1 b2 = init (max b1.allocated b2.allocated) (max b1.total b2.total)

@@ -83,7 +83,7 @@ let compute_positive heap_sort sort g phi =
 
 let rec garbage_chunk_bound phi = match SL.view phi with
   | And psis | Or psis -> BatList.max @@ List.map garbage_chunk_bound psis
-  | GuardedNeg (lhs, rhs) -> max (garbage_chunk_bound lhs) (garbage_chunk_bound rhs)
+  | GuardedNeg (lhs, rhs) -> Stdlib.max (garbage_chunk_bound lhs) (garbage_chunk_bound rhs)
   | Not psi -> garbage_chunk_bound psi
   | Star psis -> BatList.sum @@ List.map garbage_chunk_bound psis
   | Septraction (_, psi2) -> garbage_chunk_bound psi2
@@ -146,6 +146,15 @@ let compute_sh_entl phi lhs rhs heap_sort g =
     | Some b, _ | _, Some b -> b
     | None, None -> compute_general phi heap_sort g
 
-let compute phi heap_sort g = match SL.as_query phi with
+let rec compute_atomic psi = match SL.view psi with
+  | Eq _ | Distinct _ | Emp -> empty
+  | PointsTo (x, _, _) -> add (SL.Term.get_sort x) (SortBound.init 1 1) empty
+  | Star psis -> BatList.fold_left plus empty @@ List.map compute_atomic psis
+  | Or psis -> BatList.fold_left LocationBounds0.max empty @@ List.map compute_atomic psis
+  | Ite (_, lhs, rhs) -> LocationBounds0.max (compute_atomic lhs) (compute_atomic rhs)
+  | GuardedNeg (lhs, _) -> compute_atomic lhs
+
+let compute phi heap_sort g =
   (*| SymbolicHeap_ENTL (lhs, rhs) -> compute_sh_entl phi lhs rhs heap_sort g*)
-  | _ -> compute_general phi heap_sort g
+  if SL.is_atomic phi then compute_atomic phi
+  else compute_general phi heap_sort g

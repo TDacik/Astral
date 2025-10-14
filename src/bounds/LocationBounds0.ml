@@ -12,6 +12,8 @@ let plus_n sort n map =
 
 let plus = union (fun sort n1 n2 -> Option.some @@ SortBound.plus n1 n2)
 
+let max = union (fun sort n1 n2 -> Option.some @@ SortBound.max n1 n2)
+
 let find sort map =
   try find sort map
   with Not_found -> SortBound.zero

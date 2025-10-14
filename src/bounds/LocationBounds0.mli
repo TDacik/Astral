@@ -7,3 +7,5 @@ val init_sort : Sort.t -> int -> int -> t
 val plus_n : Sort.t -> int -> t -> t
 
 val plus : t -> t -> t
+
+val max : t -> t -> t
