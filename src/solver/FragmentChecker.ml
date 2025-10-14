@@ -18,7 +18,8 @@ let check_low_level_sl ctx =
 
 let check_progress name psi =
   let n = List.length @@ SL.select_subformulae SL.is_pointer psi in
-  if n = 0 then Result.error @@ Format.asprintf "Predicate %s: case %s does not satisfy progress property" name (SL.show psi)
+  if n = 0 && not @@ Inlining.can_be_inlined name then (* TODO: use cache *)
+    Result.error @@ Format.asprintf "Predicate %s: case %s does not satisfy progress property" name (SL.show psi)
   else if n > 1 then Result.error @@ Format.asprintf "Predicate %s: case %s has more than 1 points-to assertion" name (SL.show psi)
   else Result.ok ()
 
