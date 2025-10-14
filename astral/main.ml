@@ -8,7 +8,6 @@ let run () =
   Astral.Debug.init (); (* Debug initialisation needs to be called after options' parsing *)
   Astral.Logger_state.init ();
   Printexc.record_backtrace (Astral.Options.debug ());
-  Reporter.register_at_exit ();
 
   (* In case we are working with imprecise semantics of SL, we need to turn off
      simplification before parsing to do not apply simplification rules such as

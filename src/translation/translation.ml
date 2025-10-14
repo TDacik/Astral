@@ -654,6 +654,9 @@ let translate_phi (ctx : Context.t) ssl_phi =
     Debug.backend_simplified (Backend.show_formula @@ Backend.simplify backend_translated);
     Debug.backend_input (Backend.to_smtlib translated produce_models user_options);
 
+    (* Store intermediate statistics *)
+    Stats.stats := Option.some @@ Input.set_result (`Unknown "intermediate") input;
+
     Logger.debug "Running backend SMT solver\n";
 
     (* Solve *)
