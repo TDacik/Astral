@@ -16,7 +16,7 @@
     )
 
     (select BitwuzlaNative.ml from
-       (bitwuzla -> BitwuzlaNative.real.ml)
+       (bitwuzla-cxx -> BitwuzlaNative.real.ml)
        (-> BitwuzlaNative.dummy.ml)
     )
 

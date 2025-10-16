@@ -26,7 +26,7 @@
     (odoc :with-doc)
   )
   (depopts
-    bitwuzla
+    bitwuzla-cxx
     cvc5
     z3
   )
