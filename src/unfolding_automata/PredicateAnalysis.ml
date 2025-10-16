@@ -43,7 +43,9 @@ let not_allocated v model =
   List.for_all (fun a ->
     let class_v = SL_graph.equivalence_class model @@ SL.Term.of_var v in
     let class_a = SL_graph.equivalence_class model a in
-    List.exists (fun x -> List.exists (fun y -> SL_graph.must_neq model x y) class_a) class_v
+    let sort_v = SL.Variable.get_sort v in
+    let sort_a = SL.Term.get_sort a in
+    List.exists (fun x -> List.exists (fun y -> SL_graph.must_neq model x y || not @@ Sort.equal sort_a sort_v) class_a) class_v
   ) (SL_graph.must_alloc model)
 
 let compute_dangling pred models =

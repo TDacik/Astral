@@ -8,7 +8,7 @@ open PredicateInfo.Entry
 
 let test_pred ?(deps=[]) ~root ~allocated ~dangling ~stable ~unfolding pred =
   let sid = SID.of_list (pred :: deps) in
-  let info = BoundComputation.compute_pred sid pred in
+  let info = PredicateAnalysis.compute_pred sid pred in
   SL.Var.check_name ~msg:"Root" info.root root;
   SL.Var.check_names ~msg:"Must-allocated parameters" info.allocated allocated;
   SL.Var.check_names ~msg:"Must-dangling parameters" info.never_allocated dangling;
