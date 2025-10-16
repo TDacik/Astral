@@ -188,7 +188,7 @@ module Init () = struct
 
   (* === Debugging === *)
 
-  let show_formula phi = Format.asprintf "%a" BW.Term.pp phi
+  let show_formula phi = "" (*Format.asprintf "%a" BW.Term.pp phi*)
 
   let show_model model = ""
 
