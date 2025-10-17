@@ -53,9 +53,16 @@ module Init () = struct
   module C = SMT.Variable.Map
 
   let bv_cache = ref C.empty
-  let arr_cache = ref C.empty
 
   let translate_var var =
+    try C.find var !bv_cache
+    with Not_found ->
+      let symbol, sort = SMT.Variable.describe var in
+      let res = BW.mk_var ~symbol (translate_sort sort) in
+      bv_cache := C.add var res !bv_cache;
+      res
+
+  let translate_const var =
     try C.find var !bv_cache
     with Not_found ->
       let symbol, sort = SMT.Variable.describe var in
@@ -67,7 +74,7 @@ module Init () = struct
 
   let rec translate t =
     match SMT.view t with
-    | SMT.Variable var -> translate_var var
+    | SMT.Variable var -> translate_const var
     | SMT.True -> BW.mk_true ()
     | SMT.False -> BW.mk_false ()
 
