@@ -22,8 +22,7 @@ let reset_results () = cache := PredicateAbstraction.M.empty
 
 let compute_graph () =
   sid_original := SID.compute_graph !sid_original;
-  sid_updated := SID.compute_graph !sid_updated;
-  DependencyGraph.output "dependency_graph.dot" (SID.dependency_graph !sid_updated)
+  sid_updated := SID.compute_graph !sid_updated
 
 let select original = if original then !sid_original else !sid_updated
 
