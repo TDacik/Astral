@@ -54,6 +54,7 @@ let backend_aux (getter : unit -> string) = match getter () with
   | "boolector" -> (module Boolector_backend : BACKEND)
   | "cvc5" -> (module CVC5_backend : BACKEND)
   | "z3" -> (module Z3_backend.Init() : BACKEND)
+  | "z3-ext" -> (module Z3_external : BACKEND)
   | "yices2" -> (module Yices_backend : BACKEND)
   | "auto" -> auto_selection_of_backend ()
   (*| "parallel" -> (module Parallel : BACKEND)*)
@@ -176,6 +177,7 @@ let print_backend_help () =
   backend_detail (module Z3_backend.Init() : Backend_sig.BACKEND);
   backend_detail (module BitwuzlaNative.Init() : BACKEND);
   Format.printf "External:\n";
+  backend_detail (module Z3_external : BACKEND);
   backend_detail (module Bitwuzla_backend : BACKEND);
   backend_detail (module CVC5_backend : BACKEND);
   backend_detail (module Yices_backend : BACKEND);

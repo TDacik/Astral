@@ -1,0 +1,29 @@
+(* External Z3 backend.
+ *
+ * Author: Tomas Dacik (idacik@fit.vut.cz), 2025 *)
+
+open Generic_smtlib
+
+module Self = struct
+  let name = "Z3"
+  let binary = "z3"
+
+  let model_option = ""
+  let default_options = []
+
+  let parser_implemented = false (* TODO *)
+
+  let supports_smtlib_options = true
+  let supports_get_info = true
+
+  let supports_sets = false
+  let supports_quantifiers = true
+
+  let translate_non_std = translate_std
+  and translate_non_std_sort = translate_std_sort
+
+  let declare_non_std_sort = declare_std_sort
+
+end
+
+include Smtlib_backend_builder.Make(Self)

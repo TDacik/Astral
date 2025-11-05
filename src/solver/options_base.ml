@@ -171,6 +171,7 @@ let backend_options () = match !_backend_options with
 let set_backend = function
   | "cvc5" -> _backend := "cvc5"
   | "z3" -> _backend := "z3"
+  | "z3-ext" -> _backend := "z3-ext"
   | "bitwuzla" -> _backend := "bitwuzla"
   | "bitwuzla-cmd" -> _backend := "bitwuzla-cmd"
   | "boolector" -> _backend := "boolector"
