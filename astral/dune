@@ -1,5 +1,5 @@
 (executable
   (name main)
   (public_name astral)
-  (libraries astral dune-build-info)
+  (libraries astral)
 )

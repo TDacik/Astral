@@ -2,33 +2,11 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
+open Utils
+
 open Astral
 open Context
 open ThreeValuedLogic
-
-let print_error fmt =
-  Format.kasprintf (fun msg ->
-    if Unix.isatty Unix.stderr
-    then Format.eprintf "%s%s%s" Colors.red msg Colors.white
-    else Format.eprintf "%s\n" msg
-  ) fmt
-
-let user_error fmt ~exit_code msg =
-  Format.kasprintf (fun msg ->
-    if Unix.isatty Unix.stderr
-    then Format.eprintf "%s%s%s" Colors.red msg Colors.white
-    else Format.eprintf "%s\n" msg
-  ) fmt
-
-let internal_error ?(backtrace=true) ~exit_code msg =
-  let stack = Printexc.get_callstack 1000000 in
-  Format.eprintf "%s[Internal error]%s %s\n"
-    Colors.red Colors.white msg;
-  if backtrace then begin
-    Format.eprintf "\nBacktrace:\n%s"
-      (Printexc.raw_backtrace_to_string stack)
-  end;
-  exit exit_code
 
 (** Check status against specification in the input. *)
 let check_status result =
@@ -42,7 +20,7 @@ let check_status result =
 (** Check model using model checker.*)
 let check_model result =
   Profiler.add "Model checker";
-  if Options.verify_model () && Option.is_some result.model
+  if Config.VerifyModels.get () && Option.is_some result.model
   then match ModelChecker.check (Option.get result.model) result.phi with
     | Ok true -> Format.printf "Model verified\n"; True
     | Ok false -> print_error "Model is not correct\n"; False
@@ -69,4 +47,5 @@ let check_result result status model = match status, model with
 let check result =
   let status = check_status result in
   let model = check_model result in
-  check_result result status model
+  if Config.BenchmarkMode.get () then ()
+  else check_result result status model
