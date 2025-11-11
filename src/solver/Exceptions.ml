@@ -6,8 +6,6 @@ exception UnknownResult of string * string
 
 exception UnsupportedFragment of string * string
 
-exception CmdOptionError of string * string * string
-
 exception InternalError of Printexc.raw_backtrace * string * string
 
 let unsupported_fragment ~reason ?(details="") =
@@ -19,9 +17,6 @@ let unknown_result ~reason ?(details="") =
 let internal_error ~reason ?(details="") =
   let trace = Printexc.get_callstack 1000 in
   raise @@ InternalError (trace, reason, details)
-
-let cmd_option_error ~param ~bad_value ~expected_values =
-  raise @@ CmdOptionError (param, bad_value, expected_values)
 
 (** Pretty printers *)
 let pretty_internal_error ?trace reason ~details =
