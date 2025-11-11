@@ -139,9 +139,8 @@ module Collections (M : COMPARISON) = struct
 
     type data = Data.t
 
-    (* Include polymorphic map and fix its type to Data.t *)
+    (* Include polymorphic map and later fix its type to Data.t *)
     include BatMap.Make(M)
-    type nonrec t = Data.t t
 
     let keys map = List.map fst @@ bindings map
     let values map = List.map snd @@ bindings map
@@ -156,6 +155,11 @@ module Collections (M : COMPARISON) = struct
     let show map = show_map_aux M.show Data.show (bindings map)
 
     let show_custom show_key show_data map = show_map_aux show_key show_data (bindings map)
+
+    include Printable(struct
+      type nonrec t = Data.t t
+      let show = show
+    end)
 
   end
 
