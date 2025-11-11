@@ -1,0 +1,8 @@
+(library
+  (name astral_cmd)
+  (public_name astral.cmd)
+  (wrapped false)
+  (libraries str)
+  (preprocess (pps ppx_deriving.show ppx_deriving.enum))
+  (modules_without_implementation param_sig)
+)
