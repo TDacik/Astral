@@ -29,10 +29,10 @@ let make_logger pred =
 
 let preprocess_cases fn pred = InductiveDefinition.map_cases fn pred
 
-let rewrite_semantics phi = match Options_base.semantics () with
-  | `NotSpecified -> phi
-  | `Precise -> phi
-  | `Imprecise -> PreciseToImprecise.to_precise phi
+let rewrite_semantics phi =
+  if Config.ImprecisePureAtoms.get ()
+  then PreciseToImprecise.to_precise phi
+  else phi
 
 let rec repeat_until_fixpoint ~eq f x =
   let x' = f x in

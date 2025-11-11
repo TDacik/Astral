@@ -53,12 +53,10 @@ let remove_unused_elements ?(with_vars=false) ctx =
 
 (** It is crucial that this pass is run in the first phase because if affects fragment
     classification which is needed to compute bounds. *)
-let rewrite_semantics ctx = match Options_base.semantics () with
-  | `NotSpecified -> ctx
-  | `Precise -> ctx
-  | `Imprecise ->
+let rewrite_semantics ctx =
+  if not @@ Config.ImprecisePureAtoms.get () then ctx
+  else
     let phi = PreciseToImprecise.to_precise ctx.phi in
-    let _ = Debug.formula ~suffix:"1.0-to_precise" phi in
     {ctx with phi = phi}
 
 let first_phase context =
@@ -75,8 +73,7 @@ let first_phase context =
 (** ==== 2nd phase ==== *)
 
 let remove_useless_vars phi vars =
-  (* TODO: Remove dependency on Options *)
-  if SL.is_positive phi || Options_base.ignore_unused_vars () then
+  if SL.is_positive phi then
     let phi_vars = SL.free_vars phi in
     let vars = List.filter (fun v -> List.mem v phi_vars) vars in
     if List.mem Variable.nil phi_vars then Variable.nil :: vars

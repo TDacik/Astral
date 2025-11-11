@@ -73,9 +73,9 @@ let unfold_sat sid lhs = SL.map_view (function
 let unfold_rhs sid ctx lhs rhs =
   let open Backend_sig in
   let open Translation_sig in
-  let module Backend = (val Options.backend () : BACKEND) in
-  let module IncrementalBackend = (val Options.incremental_backend () : BACKEND) in
-  let module Encoding = (val Options.encoding () : ENCODING) in
+  let module Backend = (val ConfigReader.get_backend () : BACKEND) in
+  let module IncrementalBackend = (val ConfigReader.get_incremental_backend () : BACKEND) in
+  let module Encoding = (val ConfigReader.get_encoding () : ENCODING) in
   let module Translation = Translation.Make(Encoding)(Backend) in
   let module Unfolder = IncrementalUnfolding.Make(Encoding)(IncrementalBackend) in
   let lhs_t = Translation.translate {ctx with phi = lhs} in (* TODO: check*)

@@ -36,7 +36,7 @@ let solve (input : Context.t) =
   let sl_graph = SL_graph.compute input.phi in
   if SL_graph.has_contradiction sl_graph then
     Context.set_result `Unsat ~unsat_core:[] input
-  else match FragmentChecker.check input, Options.unsafe () with
+  else match FragmentChecker.check input, Config.Unsafe.get () with
   | Error reason, false -> Context.set_result (`Unknown reason) input
   | _, _ ->
     Profiler.add "Normalisation";
@@ -44,7 +44,7 @@ let solve (input : Context.t) =
     (** Small model should be computed on normalised, but non-preprocessed definition *)
 
     (** TODO: following is a hack for interactive mode *)
-    (if Options.interactive () then GlobalSID.reset_results () else ());
+    (if Config.Interactive.get () then GlobalSID.reset_results () else ());
     let distinguishers = SID_checks.compute_distinguishers @@ GlobalSID.dependency_graph () in
     let sm = SmallModels.compute input.phi distinguishers in
     Profiler.add "Small-models";
@@ -72,8 +72,9 @@ let solve (input : Context.t) =
     let module Translation = Translation.Make(Encoding)(Backend) in
 
     debug_info input;
-    if not @@ Options_base.dry_run () then
-      let res = Translation.solve input in
+
+    if not @@ Config.DryRun.get () then
+      let res = run_solver input in
       let res' = Context.apply_model_adapter res in
       (match res'.model with None -> () | Some sh -> Debug.model sh);
       res'

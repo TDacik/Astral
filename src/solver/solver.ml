@@ -5,9 +5,9 @@
 module Input = ParserContext
 
 type solver = {
-  backend : Options.backend;
-  encoding : Options.encoding;
-  quantifier_encoding : Options.quantifier_encoding;
+  backend : Config.Backend.t;
+  encoding : Config.Encoding.t;
+  quantifier_encoding : Config.QuantifierEncoding.t;
 
   heap_sort : HeapSort.t;
 
@@ -27,26 +27,18 @@ let reset () =
   Profiler.reset ()
 
 let activate solver =
-  Options_base.set_interactive true;
+  Config.Interactive.set true;
 
   let _ = match solver.dump_queries with
-    | `None -> Options_base.set_debug false
-    | `Full dir -> Options_base.set_debug true; Options_base.set_debug_dir dir
+    | `None -> Config.Debug.set false
+    | `Full dir -> Config.Debug.set true; Config.DebugDir.set dir
   in
 
-  (* TODO: maybe elsewhere?
-  (if solver.use_builtin_defs then begin
-      Freed.register ();
-      LS.register ();
-      DLS.register ();
-      NLS.register ()
-  end); *)
-
-  Options.set_backend_timeout solver.timeout;
-  Options.set_produce_models solver.produce_models;
-  Options.set_backend solver.backend;
-  Options.set_encoding solver.encoding;
-  Options.set_quantifier_encoding solver.quantifier_encoding
+  Config.BackendTimeout.set @@ Option.value ~default:0 solver.timeout;
+  Config.ProduceModels.set solver.produce_models;
+  Config.Backend.set solver.backend;
+  Config.Encoding.set solver.encoding;
+  Config.QuantifierEncoding.set solver.quantifier_encoding
 
 let json_stats solver =
   let total = BatList.fsum solver.stats in
@@ -72,8 +64,8 @@ let dump_stats solver = match solver.dump_queries with
 
 let init
   ?timeout
-  ?(backend=`Z3)
-  ?(encoding=`Sets)
+  ?(backend=`Bitwuzla)
+  ?(encoding=`Bitvectors)
   ?(quantifier_encoding=`Direct)
   ?(produce_models=false)
   ?(use_builtin_defs=true)
@@ -98,9 +90,14 @@ let init
     stats = [];
   } in
   activate solver;
-  Options.check ();
-  Debug.init ();
-  Logger_state.init ();
+  Config.check ();
+  SolverState.init ();
+  (if solver.use_builtin_defs then begin
+    Freed.register ();
+    LS.register ();
+    DLS.register ();
+    NLS.register ()
+  end);
   solver
 
 let set_heap_sort heap_sort solver =
