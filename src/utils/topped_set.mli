@@ -5,7 +5,7 @@ end
 
 module Lift (Set : SET) : sig
 
-  exception TopError
+  exception TopError of string
 
   type t
 
