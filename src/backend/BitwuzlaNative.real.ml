@@ -13,6 +13,8 @@ end)
 module Bitwuzla = Bitwuzla_cxx
 module Options = Bitwuzla.Options
 
+let is_available () = true
+
 module Init () = struct
 
 
@@ -31,7 +33,7 @@ module Init () = struct
   let supports_sets = false
   let supports_quantifiers = true
 
-  let is_available () = true
+  let is_available = is_available
 
   let solver = ref @@ BW.Solver.create @@ Options.default ()
 
@@ -202,3 +204,5 @@ module Init () = struct
   let to_smtlib phi _ _ = "--"
 
 end
+
+let () = BackendConfig.register_native "bitwuzla" ~package:"bitwuzla-cxx" ~available:true

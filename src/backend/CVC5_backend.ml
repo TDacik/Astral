@@ -54,3 +54,5 @@ module Self = struct
 end
 
 include Smtlib_backend_builder.Make(Self)
+
+let () = BackendConfig.register_external "cvc5" ~binary:"cvc5"
