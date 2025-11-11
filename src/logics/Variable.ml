@@ -2,8 +2,6 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2022 *)
 
-open Prelude
-
 let escape name =
   if String.contains name ' '
   then "|" ^ name ^ "|"
