@@ -8,7 +8,7 @@ module Self = struct
   let name = "Z3"
   let binary = "z3"
 
-  let model_option = ""
+  let model_option = "-m"
   let default_options = []
 
   let parser_implemented = false (* TODO *)
