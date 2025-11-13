@@ -10,6 +10,8 @@
     ppx_deriving
     sexplib
 
+    astral_cmd
+
     (select Z3_backend.ml from
        (z3 -> Z3_backend.real.ml)
        (-> Z3_backend.dummy.ml)
@@ -27,7 +29,7 @@
   )
 
   (preprocess
-    (pps ppx_compare)
+    (pps ppx_compare ppx_deriving.enum ppx_deriving.show)
   )
 
   (modules_without_implementation
@@ -36,6 +38,7 @@
     SMT_sig
     backend_sig
     translation_sig
+    debug_sig
     logger_sig
     SetEncoding_sig
     location_sig

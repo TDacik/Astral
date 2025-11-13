@@ -6,11 +6,13 @@ open ParamBuilder
 
 exception CmdOptionError = ParamBuilder.OptionError
 
+let _version = ref ""
+
 module Version = Action(struct
   let name = "--version"
   let short_name = Some 'v'
   let help = "Print version and exit"
-  let action = (fun () -> print_string @@ BuildInfo.version (); exit 0)
+  let action = (fun () -> print_string !_version; exit 0)
 end)
 
 module BackendHelp = Action(struct
@@ -199,7 +201,7 @@ module Encoding = Enum(struct
   let name = "--encoding"
   let short_name = Some 'e'
   let help = "TODO: Encoding"
-  type t = [`Bitvectors | `Direct] [@@deriving show, enum]
+  type t = [`Bitvectors | `Sets] [@@deriving show, enum]
   let default = `Bitvectors
 end)
 
@@ -258,7 +260,8 @@ let usage = "astral [options] [input-file]"
 
 let check () = () (* TODO *)
 
-let parse_cmdline () =
+let parse_cmdline ?version () =
+  (match version with Some v -> _version := v | None -> ());
   CommandLine.parse take_file_once usage;
   InputFile.get ()
 

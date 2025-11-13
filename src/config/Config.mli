@@ -8,7 +8,7 @@ exception CmdOptionError of string
 
 val check : unit -> unit
 
-val parse_cmdline : unit -> string
+val parse_cmdline : ?version:string -> unit -> string
 
 val to_json : unit -> Yojson.Basic.t
 
@@ -82,7 +82,7 @@ module QuantifierEncoding : ENUM
   with type t = [`Direct | `Enum]
 
 module Encoding : ENUM
-  with type t = [`Bitvectors | `Direct]
+  with type t = [`Bitvectors | `Sets]
 
 (** Translation *)
 

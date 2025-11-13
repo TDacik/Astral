@@ -6,9 +6,9 @@ open Utils
 
 let run () =
   Astral.Profiler.add "Start";
-  let input_file = Astral.Config.parse_cmdline () in
+  let input_file = Astral.Config.parse_cmdline ~version:(BuildInfo.version ()) () in
 
-  Astral.SolverState.init (); (* Debug initialisation needs to be called after options' parsing *)
+  Astral.LoggerState.init (); (* Debug initialisation needs to be called after options' parsing *)
   Printexc.record_backtrace (Astral.Config.Debug.get ());
   Reporter.register_at_exit ();
   (* In case we are working with imprecise semantics of SL, we need to turn off
