@@ -2,7 +2,7 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
-module Logger = Logger.MakeWithDir
+module Logger = Debug.QueryDir
   (struct
     let dirname = "small-models"
     let name = "small-models"
@@ -326,13 +326,13 @@ module Derivation = struct
   let debug pred der =
   (*
     Logger.debug "Derivation %s:\n" (InductiveDefinition.name pred);
-    show der;*)
+    show der;
     leafs der
     |> List.iteri (fun i g ->
       let name = Format.asprintf "%s_%d" (InductiveDefinition.name pred) i in
-      Logger.dump SL_graph.G.output_file (name ^ ".xdot") g;
-      Logger.dump SL_graph.G.output_file (name ^ "_pure.xdot") (SL_graph.remove_existentials @@ SL_graph.pure_projection g)
-    )
+      Logger.sl_graph (name) g;
+      Logger.sl_graph (name ^ "_pure") (SL_graph.remove_existentials @@ SL_graph.pure_projection g)
+    )*) ()
 
 end
 

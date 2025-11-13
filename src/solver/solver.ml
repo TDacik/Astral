@@ -26,12 +26,16 @@ let reset () =
   PathBound.cache_reset ();
   Profiler.reset ()
 
+let query_id () = LoggerState.current_query ()
+
 let activate solver =
   Config.Interactive.set true;
 
   let _ = match solver.dump_queries with
-    | `None -> Config.Debug.set false
-    | `Full dir -> Config.Debug.set true; Config.DebugDir.set dir
+    | `None ->
+      Config.Debug.set false
+    | `Full dir ->
+      Config.Debug.set true; Config.DebugDir.set dir
   in
 
   Config.BackendTimeout.set @@ Option.value ~default:0 solver.timeout;
@@ -51,8 +55,6 @@ let json_stats solver =
      "Total time", `Float total;
      "Queries",    `Assoc (List.map (fun (name, f) -> name, `Float f) stats)
    ]
-
-let query_id () = !Logger_state.query_counter
 
 let dump_stats solver = match solver.dump_queries with
   | `None -> ()
@@ -91,7 +93,7 @@ let init
   } in
   activate solver;
   Config.check ();
-  SolverState.init ();
+  LoggerState.init ();
   (if solver.use_builtin_defs then begin
     Freed.register ();
     LS.register ();
@@ -122,7 +124,7 @@ let _solve solver phi =
     let input = Input.declare_heap_sort input heap_sort in
     Input.add_vars input vars
   in
-  Debug.input input ?source:solver.source;
+  Debug.input "input" ?source:solver.source input;
   let result = Engine.solve input in
   Profiler.finish ();
   Debug.result result;

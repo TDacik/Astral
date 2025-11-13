@@ -5,7 +5,11 @@
 open SL
 open Context
 
-module Logger = Logger.Make(struct let level = 1 let name = "preprocesssor" end)
+module Logger = Debug.QueryDir(struct
+  let dirname = "preprocessor"
+  let name = "preprocesssor"
+  let level = 1
+end)
 
 let counter = ref 0
 
@@ -15,8 +19,8 @@ let apply ctx ((fn, name) : pass) =
   let ctx' = fn ctx in
   Profiler.add @@ "- " ^ name;
   counter := !counter + 1;
-  let suffix = Format.asprintf "%d-%s" !counter name in
-  Debug.formula ~suffix ctx'.phi;
+  let name = Format.asprintf "%d-%s" !counter name in
+  Logger.sl_formula name ctx'.phi;
   ctx'
 
 let apply_list = List.fold_left apply

@@ -49,7 +49,7 @@ let solve (input : Context.t) =
     let sm = SmallModels.compute input.phi distinguishers in
     Profiler.add "Small-models";
     GlobalSID.cache := sm;
-    Debug.out_input input;
+    Debug.context "input" input;
 
     BaseLogic.use_simplification true;
     GlobalSID.preprocess_user_definitions PredicatePreprocessing.preprocess;
@@ -76,7 +76,7 @@ let solve (input : Context.t) =
     if not @@ Config.DryRun.get () then
       let res = run_solver input in
       let res' = Context.apply_model_adapter res in
-      (match res'.model with None -> () | Some sh -> Debug.model sh);
+      (match res'.model with None -> () | Some sh -> Debug.sl_model "model" sh);
       res'
     else Context.set_result (`Unknown "dry run") input
 

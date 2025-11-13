@@ -4,7 +4,7 @@
 
 open SL
 
-module Logger = Logger.MakeWithDir (struct
+module Logger = Debug.QueryDir (struct
   let name = "Quantifier elimination"
   let level = 2
   let dirname = "qelim"

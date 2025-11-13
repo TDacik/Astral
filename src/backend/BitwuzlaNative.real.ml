@@ -4,7 +4,7 @@
 
 open Backend_sig
 
-module Logger = Logger.MakeWithDir (struct
+module Logger = Debug.QueryDir (struct
   let name = "Backend:Bitwuzla-native"
   let level = 1
   let dirname = "unfolding_queries"

@@ -2,29 +2,17 @@
 
 open InductiveDefinition
 
-module type LOGGER = sig
-  include Logger_sig.LOGGER
-  val dump : InductiveDefinition.t -> string -> unit
-end
-
 (** Create Logger module *)
 let make_logger pred =
   let name = name pred in
-  let module Logger = struct
-    include Logger.MakeWithDir(struct
+  let module Logger =
+    Debug.QueryDir(struct
       let dirname = "preds/" ^ name
       let name = name
       let level = 2
     end)
-    let dump pred name =
-      let name = InductiveDefinition.name pred ^ name in
-      let psi = instantiate_formals pred in
-      dump SL.dump (name ^ ".smt2") psi;
-      let ast = SL.to_ast psi in
-      dump SL.output_ast (name ^ ".dot") ast
-  end
   in
-  (module Logger : LOGGER)
+  (module Logger : Debug_sig.EXTENDED_LOGGER)
 
 
 let preprocess_cases fn pred = InductiveDefinition.map_cases fn pred
@@ -40,17 +28,17 @@ let rec repeat_until_fixpoint ~eq f x =
   else repeat_until_fixpoint ~eq f x'
 
 let normalise (pred : t) =
-  let module Logger = (val make_logger pred : LOGGER) in
+  let module Logger = (val make_logger pred : Debug_sig.EXTENDED_LOGGER) in
   (* Before checking, we need to eliminate quantifiers *)
   if Inlining.can_be_inlined pred.name then
     let _ = Logger.debug "Removing predicate\n" in
     None
   else
     let _ = Logger.debug "Keeping predicate\n" in
-   let _ = Logger.dump pred "" in
+   let _ = Logger.inductive_predicate pred in
 
   let pred = preprocess_cases rewrite_semantics pred in
-  let _ = Logger.dump pred "_3-semantics-rewrite" in
+  let _ = Logger.inductive_predicate ~name:(pred.name ^ "_3-semantics-rewrite") pred in
 
   (*let pred = refresh pred in
   Logger.dump pred "_2-refresh";
@@ -59,20 +47,20 @@ let normalise (pred : t) =
   Some pred
 
 let preprocess (pred : t) =
-  let module Logger = (val make_logger pred : LOGGER) in
+  let module Logger = (val make_logger pred : Debug_sig.EXTENDED_LOGGER) in
 
   let qelim case = QuantifierElimination.apply (SL_graph.compute case) case in
   let pred = preprocess_cases qelim pred in
-  Logger.dump pred "_4-quntifier-elim";
+  Logger.inductive_predicate ~name:(pred.name ^ "_4-quntifier-elim") pred;
 
   let pred = InductiveDefinition.map Simplifier.simplify pred in
-  Logger.dump pred "_5_simplifier";
+  Logger.inductive_predicate ~name:(pred.name ^ "_5_simplifier") pred;
 
   (* Needs to be last as it introduces disjunctive rules *)
   let pred = RuleAntiunification.apply pred in
-  Logger.dump pred "_6_generalisation";
+  Logger.inductive_predicate ~name:(pred.name ^ "_6_generalisation") pred;
 
   let forbidden_vars = GlobalSID.existentials pred in
   let pred = InductiveDefinition.map (repeat_until_fixpoint ~eq:SL.equal @@ IntroduceIfThenElse.apply ~forbidden_vars) pred in
-  Logger.dump pred "_7-introduce-ite";
+  Logger.inductive_predicate ~name:(pred.name ^ "_7_ite_intro") pred;
   Some pred

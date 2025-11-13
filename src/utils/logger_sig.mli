@@ -51,13 +51,3 @@ module type LOGGER_WITH_DIR = sig
   val dump_string : filename:string -> string -> unit
 
 end
-
-module type LOGGER_WITH_DUMP = sig
-
-  include LOGGER_WITH_DIR
-
-  type t
-
-  val dump : filename:string -> t -> unit
-
-end
