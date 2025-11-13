@@ -18,9 +18,9 @@ let get_backend_aux = function
   | `Bitwuzla_ext -> (module Bitwuzla_backend : BACKEND)
   | `Boolector -> (module Boolector_backend : BACKEND)
   | `cvc5 -> (module CVC5_backend : BACKEND)
-  | `Yices2 -> (module Z3_backend.Init() : BACKEND)
-  | `Z3 -> (module Z3_external : BACKEND)
-  | `Z3_ext -> (module Yices_backend : BACKEND)
+  | `Yices2 -> (module Yices_backend : BACKEND)
+  | `Z3 -> (module Z3_backend.Init() : BACKEND)
+  | `Z3_ext -> (module Z3_external : BACKEND)
 
 (* TODO: backend options should be also handled here. *)
 
