@@ -79,7 +79,6 @@ let unfold_rhs sid ctx lhs rhs =
   let module Translation = Translation.Make(Encoding)(Backend) in
   let module Unfolder = IncrementalUnfolding.Make(Encoding)(IncrementalBackend) in
   let lhs_t = Translation.translate {ctx with phi = lhs} in (* TODO: check*)
-  Debug.translated ~suffix:"LHS" lhs_t;
   Unfolder.unfold ctx lhs_t rhs
 
 let apply_aux ctx phi =
