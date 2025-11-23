@@ -31,7 +31,9 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   (* ==== Helper functions for constructing common terms ==== *)
   (* TODO: we currently assume that there are no heap-terms under begin/end *)
 
-  let translate_var ctx var = Locations.translate_var ctx.locs var
+  let translate_var ctx x =
+      if SL.Variable.is_loc x then Locations.translate_var ctx.locs x
+      else SMT.Variable.mk (SL.Variable.get_name x) (SL.Variable.get_sort x)
 
   let translate_heap_term ctx (field : MemoryModel.Field.t) x = HeapEncoding.mk_succ ctx.heap field x
 
@@ -44,7 +46,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     Locations.translate_term ctx.locs ctx.heap term
     *)
   let rec translate_term ctx t = match SL.Term.view t with
-    | SL.Term.Var x -> SMT.of_var @@ Locations.translate_var ctx.locs x
+    | SL.Term.Var x -> SMT.of_var @@ translate_var ctx x
     | SL.Term.HeapTerm (f, x) -> translate_heap_term ctx f (translate_term ctx x)
     | SL.Term.SmtTerm t -> Locations.translate_smt_term ctx.locs t
     | SL.Term.IfEqual (xs, t, e) ->
@@ -469,10 +471,10 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   and translate_exists_loc ctx domain x psi = *)
 
   and translate_exists ctx domain x psi =
-    let x = Locations.translate_var ctx.locs x in
+    let tx = translate_var ctx x in
     let semantics, axioms, footprints = translate ctx domain psi in
 
-    quantifier_prefix := x :: !quantifier_prefix;
+    quantifier_prefix := (tx, SL.Variable.is_loc x) :: !quantifier_prefix;
 
     (semantics, axioms, footprints)
 
@@ -541,10 +543,13 @@ let translate_phi (ctx : Context.t) ssl_phi =
 
   (* TODO: Track polarities properly, this works only for symbolic heap entailment! *)
   let q_axioms =
-    List.map (Locations.var_axiom ctx.locs) !quantifier_prefix
+    List.map (fun (var, is_loc) ->
+      if is_loc then Locations.var_axiom ctx.locs var
+      else Boolean.tt
+    ) !quantifier_prefix
     |> Boolean.mk_and
   in
-  Quantifier.mk_forall !quantifier_prefix @@ Boolean.mk_implies q_axioms body
+  Quantifier.mk_forall (List.map fst !quantifier_prefix) @@ Boolean.mk_implies q_axioms body
 
   (* ==== Translation of SMT model to stack-heap model ==== *)
 
