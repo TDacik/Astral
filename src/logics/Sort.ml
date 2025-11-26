@@ -43,6 +43,10 @@ let mk_loc ?(aliases=[]) name =
 let loc_ls  = mk_loc "Loc" ~aliases:["LS_t"; "RefSll_t"]
 let loc_nil = mk_loc "nil_t" ~aliases:[]
 
+let is_builtin = function
+  | Bool | Int | Set _ | Sequence _ | Bitvector _ | Array _ -> true
+  | _ -> false
+
 let rec equal sort1 sort2 = match sort1, sort2 with
   | Bool, Bool -> true
   | Int, Int -> true

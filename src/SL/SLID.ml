@@ -34,7 +34,7 @@ let get_inductive_definitions ?(original=false) phi =
       | Predicate (name, _, _) -> GlobalSID.is_user_defined name
       | _ -> false
     ) phi
-  |> List.map (fun phi -> match SL.view phi with 
+  |> List.map (fun phi -> match SL.view phi with
        Predicate (name, _, _) -> GlobalSID.find_user_defined ~original name
      )
 
@@ -52,9 +52,10 @@ let has_builtin_predicates phi =
   in
   not @@ List.is_empty uids
 
-let declared_sorts phi structs = 
+let declared_sorts phi structs =
   let sorts = SL.get_all_sorts ~with_nil:false phi in
   sorts @ List.concat_map MemoryModel.StructDef.get_sorts structs
+  |> List.filter (fun sort -> not @@ Sort.is_builtin sort)
   |> Sort.MonoList.unique
 
 let has_user_defined_predicates phi =

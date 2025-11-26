@@ -24,6 +24,8 @@ include COLLECTIONS with type t := t
 val equal_mod_nil : t -> t -> bool
 (** Equality modulo nil sort: each location sort is equal to the nil sort. *)
 
+val is_builtin : t -> bool
+
 val name : t -> string
 
 val all_names : t -> string list
