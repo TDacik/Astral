@@ -45,6 +45,7 @@ let loc_nil = mk_loc "nil_t" ~aliases:[]
 
 let is_builtin = function
   | Bool | Int | Set _ | Sequence _ | Bitvector _ | Array _ -> true
+  | sort when sort = loc_nil -> true
   | _ -> false
 
 let rec equal sort1 sort2 = match sort1, sort2 with
