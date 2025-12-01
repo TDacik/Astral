@@ -100,4 +100,6 @@ val substitute : t -> t -> t -> t
 
 (** SMTLIB *)
 
+val smt2_name : t -> string
+
 val smt2_decl : t -> string

@@ -112,8 +112,14 @@ let all_names = function
   | Loc (name, aliases) -> List.map Identifier.show (name :: aliases)
   | other -> [name other]
 
+let rec smt2_name = function
+  | Bitvector n -> Format.asprintf "(_ BitVec %d)" n
+  | Set dom -> Format.asprintf "(Set %s)" (smt2_name dom)
+  | Array (dom, range) -> Format.asprintf "(Array %s %s)" (smt2_name dom) (smt2_name range)
+  | other -> name other
+
 let smt2_decl = function
-  | sort -> Format.asprintf "(declare-sort %s 0)" (name sort)
+  | sort -> Format.asprintf "(declare-sort %s 0)" (smt2_name sort)
 
 let cardinality = function
   | Bool -> Some 2
