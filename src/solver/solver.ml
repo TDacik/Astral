@@ -19,7 +19,7 @@ type solver = {
   use_builtin_defs: bool;
   dump_queries : [`None | `Full of string];
 
-  mutable stats : Float.t list;
+  mutable stats : Unix.process_times list;
 }
 
 let reset () =
@@ -45,10 +45,11 @@ let activate solver =
   Config.QuantifierEncoding.set solver.quantifier_encoding
 
 let json_stats solver =
-  let total = BatList.fsum solver.stats in
+  let open Unix in
+  let sum t = t.tms_utime +. t.tms_stime +. t.tms_cutime +. t.tms_cstime in
+  let total = List.fold_left (fun acc times -> acc +. sum times) 0.0 solver.stats in
   let stats =
-    List.mapi (fun i f -> Format.asprintf "Query #%d" i, f) solver.stats
-    |> List.sort (fun (_, f1) (_, f2) -> Float.compare f1 f2)
+    List.mapi (fun i f -> Format.asprintf "Query #%d" i, sum f) solver.stats
     |> List.rev
   in
   `Assoc [
