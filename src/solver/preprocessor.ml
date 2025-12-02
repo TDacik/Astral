@@ -5,7 +5,11 @@
 open SL
 open Context
 
-module Logger = Logger.Make(struct let level = 1 let name = "preprocesssor" end)
+module Logger = Debug.QueryDir(struct
+  let dirname = "preprocessor"
+  let name = "preprocesssor"
+  let level = 1
+end)
 
 let counter = ref 0
 
@@ -15,8 +19,8 @@ let apply ctx ((fn, name) : pass) =
   let ctx' = fn ctx in
   Profiler.add @@ "- " ^ name;
   counter := !counter + 1;
-  let suffix = Format.asprintf "%d-%s" !counter name in
-  Debug.formula ~suffix ctx'.phi;
+  let name = Format.asprintf "%d-%s" !counter name in
+  Logger.sl_formula name ctx'.phi;
   ctx'
 
 let apply_list = List.fold_left apply
@@ -53,12 +57,10 @@ let remove_unused_elements ?(with_vars=false) ctx =
 
 (** It is crucial that this pass is run in the first phase because if affects fragment
     classification which is needed to compute bounds. *)
-let rewrite_semantics ctx = match Options_base.semantics () with
-  | `NotSpecified -> ctx
-  | `Precise -> ctx
-  | `Imprecise ->
+let rewrite_semantics ctx =
+  if not @@ Config.ImprecisePureAtoms.get () then ctx
+  else
     let phi = PreciseToImprecise.to_precise ctx.phi in
-    let _ = Debug.formula ~suffix:"1.0-to_precise" phi in
     {ctx with phi = phi}
 
 let first_phase context =
@@ -75,24 +77,25 @@ let first_phase context =
 (** ==== 2nd phase ==== *)
 
 let remove_useless_vars phi vars =
-  (* TODO: Remove dependency on Options *)
-  if SL.is_positive phi || Options_base.ignore_unused_vars () then
+  if SL.is_positive phi then
     let phi_vars = SL.free_vars phi in
     let vars = List.filter (fun v -> List.mem v phi_vars) vars in
     if List.mem Variable.nil phi_vars then Variable.nil :: vars
     else vars
   else vars
 
-let second_phase_aux aggresive context =
+let second_phase_aux context =
   let vars = remove_useless_vars context.phi context.vars in
   let ctx' = Context.set_preprocessed context context.phi vars in
 
-  let ctx2 = apply_list ctx' [
+  apply_list ctx' [
     Simplifier.simplify_ctx, "simplification";
     (*AggresiveSimplifier.apply_ctx, "simplification 2";*)
-    QuantifierElimination.apply_ctx, "quantifier_elim"
-  ]
+    QuantifierElimination.apply_ctx, "quantifier_elim";
+    GlobalSID.formula_preprocessing_ctx, "builtins";
+  ](*
   in
+<<<<<<< HEAD
   let ctx3 = apply_list ctx2 [
     GlobalSID.formula_preprocessing_ctx, "builtins";
     UnfoldIDs.apply_ctx, "pred_unfolding";
@@ -108,3 +111,29 @@ let second_phase context = match Options_base.preprocessing () with
   | `None -> context, None
   | `Default -> second_phase_aux false context
   | `Aggresive -> second_phase_aux true context
+=======
+  let sl_graph = SL_graph.compute ctx2.phi in
+  let bounds = LocationBounds.compute ctx2.phi ctx2.raw_input.heap_sort sl_graph in
+  let ctx2 = {ctx2 with location_bounds = bounds} in (* TODO: take min? *)
+  *)
+
+let second_phase context =
+  if Config.Preprocessing.get ()
+  then second_phase_aux context
+  else context
+
+(** ==== 3rd phase ==== *)
+
+let default_bound_map phi =
+  let module BoundMap = SL.MonoMap(SL.Term.MonoList) in
+  let dangling = SLID.may_dangling_terms phi in
+  Logger.debug "Globally syntactically dangling terms: %a\n" SL.Term.pp_list dangling;
+  let predicates = SL.select_subformulae SL.is_predicate phi in
+  BoundMap.of_list @@ List.map (fun p -> (p, dangling)) predicates
+
+let third_phase ?bound_map ctx =
+  let bound_map = Option.value bound_map ~default:(default_bound_map ctx.phi)in
+  remove_unused_elements @@ apply_list ctx [
+    UnfoldIDs.apply_ctx ~bound_map, "pred_unfolding";
+    QuantifierElimination.apply_ctx, "q_elim_2";
+  ]

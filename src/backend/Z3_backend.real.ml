@@ -15,6 +15,8 @@ module Logger = Logger.MakeWithDir (struct
   let dirname = "unfolding_queries"
 end)
 
+let is_available () = true
+
 (** Generative module prevenets initialization of Z3 when it is not used *)
 module Init () = struct
 
@@ -338,3 +340,5 @@ module Init () = struct
       (translate phi)
 
 end
+
+let () = BackendConfig.register_native "z3" ~package:"z3" ~available:true

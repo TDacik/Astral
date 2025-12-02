@@ -9,7 +9,7 @@ end
 
 module Lift (Set : SET) = struct
 
-  exception TopError
+  exception TopError of string
 
   type t =
     | Lifted of Set.t
@@ -32,9 +32,9 @@ module Lift (Set : SET) = struct
   (** Functions to lift set operations. *)
 
   (** For concrete set apply original operation, raise TopError otherwise. *)
-  let lift_or_fail f = function
+  let lift_or_fail ?(op="") f = function
     | Lifted s -> f s
-    | Top -> raise TopError
+    | Top -> raise (TopError op)
 
   let lift_option f = function
     | Lifted s -> Some (f s)
@@ -60,7 +60,7 @@ module Lift (Set : SET) = struct
 
   let of_list xs = Lifted (Set.of_list xs)
 
-  let elements = lift_or_fail Set.elements
+  let elements = lift_or_fail ~op:"elements" Set.elements
 
   let top = Top
 
@@ -136,13 +136,13 @@ module Lift (Set : SET) = struct
     | Lifted x -> Set.cardinal x <= n
     | Top -> false
 
-  let cardinal = lift_or_fail Set.cardinal
+  let cardinal = lift_or_fail ~op:"cardinal" Set.cardinal
 
   let cardinal_opt = function
     | Lifted x -> Some (Set.cardinal x)
     | Top -> None
 
-  let choose = lift_or_fail Set.choose
+  let choose = lift_or_fail ~op:"choose" Set.choose
 
 
   (** Predicates *)

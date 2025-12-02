@@ -13,7 +13,7 @@ end
 
 module Make (Solver : INCREMENTAL_SOLVER) = struct
 
-  module Logger = Logger.MakeWithDir (struct
+  module Logger = Debug.QueryDir (struct
       let name = "Backend:" ^ Solver.name
       let level = 2
       let dirname = "incremental_queries"
@@ -28,7 +28,7 @@ module Make (Solver : INCREMENTAL_SOLVER) = struct
 
   let check_sat phi =
     let phi' = Solver.translate phi in
-    Logger.dump_string ~filename:(next ()) @@ Solver.show_formula phi';
+    Logger.output (next ()) Solver.show_formula phi';
     let t_start = (Unix.times ()).tms_utime in
     let res = Solver.check_sat phi in
     let t_end = (Unix.times ()).tms_utime in

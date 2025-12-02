@@ -27,3 +27,5 @@ module Self = struct
 end
 
 include Smtlib_backend_builder.Make(Self)
+
+let () = BackendConfig.register_external "yices2" ~binary:"yices2"

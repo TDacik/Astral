@@ -8,7 +8,11 @@ open StackHeapModel
 module Input = Context
 module Context = Translation_context
 
-module Logger = Logger.Make(struct let name = "Translation" let level = 1 end)
+module Logger = Debug.SubQueryDir (struct
+  let dirname = "translation"
+  let name = "Translation"
+  let level = 1
+end)
 
 module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND) = struct
 
@@ -31,7 +35,9 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   (* ==== Helper functions for constructing common terms ==== *)
   (* TODO: we currently assume that there are no heap-terms under begin/end *)
 
-  let translate_var ctx var = Locations.translate_var ctx.locs var
+  let translate_var ctx x =
+      if SL.Variable.is_loc x then Locations.translate_var ctx.locs x
+      else SMT.Variable.mk (SL.Variable.get_name x) (SL.Variable.get_sort x)
 
   let translate_heap_term ctx (field : MemoryModel.Field.t) x = HeapEncoding.mk_succ ctx.heap field x
 
@@ -44,7 +50,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     Locations.translate_term ctx.locs ctx.heap term
     *)
   let rec translate_term ctx t = match SL.Term.view t with
-    | SL.Term.Var x -> SMT.of_var @@ Locations.translate_var ctx.locs x
+    | SL.Term.Var x -> SMT.of_var @@ translate_var ctx x
     | SL.Term.HeapTerm (f, x) -> translate_heap_term ctx f (translate_term ctx x)
     | SL.Term.SmtTerm t -> Locations.translate_smt_term ctx.locs t
     | SL.Term.IfEqual (xs, t, e) ->
@@ -242,8 +248,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     let footprints = Footprints.top in
 
     let str_disjoint =
-      (* TODO: Remove dependency on Options *)
-      if List.for_all SL.is_positive psis || not @@ Options_base.strong_separation ()
+      if List.for_all SL.is_positive psis || not @@ Config.StrongSeparation.get ()
       then Boolean.tt
       else
         let vars = List.map SMT.of_var ctx.smt_vars in
@@ -298,7 +303,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     else
       let str_disjoint =
         (* TODO: Remove dependency on Options *)
-        if List.for_all SL.is_positive psis || not @@ Options_base.strong_separation ()
+        if List.for_all SL.is_positive psis || not @@ Config.StrongSeparation.get ()
         then Boolean.tt
         else
           let vars = List.map SMT.of_var ctx.smt_vars in
@@ -316,9 +321,8 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
       let fp_worklist, ranges =
         try
-          if Option.is_some @@ Options_base.max_footprints () &&
-            Footprints.cardinal fp_worklist > Option.get @@ Options_base.max_footprints () then
-            Footprints.top, None
+          let limit = Config.FootprintLimit.get () in
+          if limit > 0 && Footprints.cardinal fp_worklist > limit then Footprints.top, None
           else fp_worklist, Some ranges
         with _ -> Footprints.top, None
       in
@@ -469,10 +473,10 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   and translate_exists_loc ctx domain x psi = *)
 
   and translate_exists ctx domain x psi =
-    let x = Locations.translate_var ctx.locs x in
+    let tx = translate_var ctx x in
     let semantics, axioms, footprints = translate ctx domain psi in
 
-    quantifier_prefix := x :: !quantifier_prefix;
+    quantifier_prefix := (tx, SL.Variable.is_loc x) :: !quantifier_prefix;
 
     (semantics, axioms, footprints)
 
@@ -541,10 +545,13 @@ let translate_phi (ctx : Context.t) ssl_phi =
 
   (* TODO: Track polarities properly, this works only for symbolic heap entailment! *)
   let q_axioms =
-    List.map (Locations.var_axiom ctx.locs) !quantifier_prefix
+    List.map (fun (var, is_loc) ->
+      if is_loc then Locations.var_axiom ctx.locs var
+      else Boolean.tt
+    ) !quantifier_prefix
     |> Boolean.mk_and
   in
-  Quantifier.mk_forall !quantifier_prefix @@ Boolean.mk_implies q_axioms body
+  Quantifier.mk_forall (List.map fst !quantifier_prefix) @@ Boolean.mk_implies q_axioms body
 
   (* ==== Translation of SMT model to stack-heap model ==== *)
 
@@ -615,51 +622,51 @@ let translate_phi (ctx : Context.t) ssl_phi =
 
     (* Translation *)
     let translated1 = translate_phi ctx input.phi in
-    Debug.translated ~suffix:"1" translated1;
+    Logger.smt_formula "1_initial" translated1;
     Logger.debug "Translation (size: %d)\n" (SMT.size translated1);
     Profiler.add "Translation-1";
 
     (* Set rewritting *)
     let translated2 = SetEncoding.rewrite translated1 in
-    Debug.translated ~suffix:"2_set_encoding" translated2;
+    Logger.smt_formula "2_set_encoding" translated2;
     Logger.debug "Set encoding (size: %d)\n" (SMT.size translated2);
     Profiler.add "Translation-2";
 
     (* Quantifier rewritting *)
     let translated3 = QuantifierEncoding.rewrite ctx.locs translated2 in
-    Debug.translated ~suffix:"3_qf_rewriting" translated3;
+    Logger.smt_formula "3_qf_rewriting" translated3;
     Logger.debug "Quantifier encoding (size: %d)\n" (SMT.size translated3);
     Profiler.add "Translation-3";
 
     (* Backend preprocessor *)
     let translated = Backend_preprocessor.apply translated3 in
-    Debug.translated ~suffix:"4_backend_preprocessing" translated;
+    Logger.smt_formula "4_backend_preprocessing" translated;
     Logger.debug "Backend preprocessing (size: %d)\n" (SMT.size translated);
     Profiler.add "Translation-4";
 
     let size = SMT.size translated in
     let input = Input.set_size input size in
 
-    (* TODO: Remove dependency on Options *)
-    let produce_models = input.raw_input.produce_models || Options_base.produce_models () in
-    let user_options = Options_base.backend_options () in
+    let produce_models = input.raw_input.produce_models || Config.ProduceModels.get () in
+    let user_options = match Config.BackendOptions.get () with
+      | "" -> []
+      | opts -> String.split_on_char ' ' opts
+    in
 
-    let () = match Options.backend_timeout () with
-      | None -> Backend.init ()
-      | Some timeout -> Backend.init ~timeout ()
+    let () = match Config.BackendTimeout.get () with
+      | 0 -> Backend.init ()
+      | timeout -> Backend.init ~timeout ()
     in
     let backend_translated = Backend.translate translated in
 
-    Debug.backend_translated (Backend.show_formula backend_translated);
-    Debug.backend_simplified (Backend.show_formula @@ Backend.simplify backend_translated);
-    Debug.backend_input (Backend.to_smtlib translated produce_models user_options);
+    Logger.output "backend_repr.smt2" Backend.show_formula backend_translated;
+    Logger.output_apply "backend_simplified.smt2" Backend.simplify Backend.show_formula backend_translated;
 
     (* Store intermediate statistics *)
     Stats.stats := Option.some @@ Input.set_result (`Unknown "intermediate") input;
 
-    Logger.debug "Running backend SMT solver\n";
-
     (* Solve *)
+    Logger.debug "Running backend SMT solver\n";
     let result = Backend.solve ctx translated produce_models user_options in
     Profiler.add "SMT backend";
 
@@ -667,7 +674,7 @@ let translate_phi (ctx : Context.t) ssl_phi =
     | SMT_Sat None -> Input.set_result `Sat input
     | SMT_Sat (Some (smt_model, backend_model)) ->
       let smt_model = SetEncoding.rewrite_back translated1 smt_model in
-      let _ = Debug.smt_model smt_model in
+      let _ = Logger.smt_model "smt_model" smt_model in
       let model = translate_model ctx smt_model in
       Input.set_result `Sat ~model input
 

@@ -5,9 +5,9 @@
 module Input = ParserContext
 
 type solver = {
-  backend : Options.backend;
-  encoding : Options.encoding;
-  quantifier_encoding : Options.quantifier_encoding;
+  backend : Config.Backend.t;
+  encoding : Config.Encoding.t;
+  quantifier_encoding : Config.QuantifierEncoding.t;
 
   heap_sort : HeapSort.t;
 
@@ -19,48 +19,43 @@ type solver = {
   use_builtin_defs: bool;
   dump_queries : [`None | `Full of string];
 
-  mutable stats : Float.t list;
+  mutable stats : Unix.process_times list;
 }
 
 let reset () =
   PathBound.cache_reset ();
   Profiler.reset ()
 
+let query_id () = LoggerState.current_query ()
+
 let activate solver =
-  Options_base.set_interactive true;
+  Config.Interactive.set true;
 
   let _ = match solver.dump_queries with
-    | `None -> Options_base.set_debug false
-    | `Full dir -> Options_base.set_debug true; Options_base.set_debug_dir dir
+    | `None ->
+      Config.Debug.set false
+    | `Full dir ->
+      Config.Debug.set true; Config.DebugDir.set dir
   in
 
-  (* TODO: maybe elsewhere?
-  (if solver.use_builtin_defs then begin
-      Freed.register ();
-      LS.register ();
-      DLS.register ();
-      NLS.register ()
-  end); *)
-
-  Options.set_backend_timeout solver.timeout;
-  Options.set_produce_models solver.produce_models;
-  Options.set_backend solver.backend;
-  Options.set_encoding solver.encoding;
-  Options.set_quantifier_encoding solver.quantifier_encoding
+  Config.BackendTimeout.set @@ Option.value ~default:0 solver.timeout;
+  Config.ProduceModels.set solver.produce_models;
+  Config.Backend.set solver.backend;
+  Config.Encoding.set solver.encoding;
+  Config.QuantifierEncoding.set solver.quantifier_encoding
 
 let json_stats solver =
-  let total = BatList.fsum solver.stats in
+  let open Unix in
+  let sum t = t.tms_utime +. t.tms_stime +. t.tms_cutime +. t.tms_cstime in
+  let total = List.fold_left (fun acc times -> acc +. sum times) 0.0 solver.stats in
   let stats =
-    List.mapi (fun i f -> Format.asprintf "Query #%d" i, f) solver.stats
-    |> List.sort (fun (_, f1) (_, f2) -> Float.compare f1 f2)
+    List.mapi (fun i f -> Format.asprintf "Query #%d" i, sum f) solver.stats
     |> List.rev
   in
   `Assoc [
      "Total time", `Float total;
      "Queries",    `Assoc (List.map (fun (name, f) -> name, `Float f) stats)
    ]
-
-let query_id () = !Logger_state.query_counter
 
 let dump_stats solver = match solver.dump_queries with
   | `None -> ()
@@ -72,8 +67,8 @@ let dump_stats solver = match solver.dump_queries with
 
 let init
   ?timeout
-  ?(backend=`Z3)
-  ?(encoding=`Sets)
+  ?(backend=`Bitwuzla)
+  ?(encoding=`Bitvectors)
   ?(quantifier_encoding=`Direct)
   ?(produce_models=false)
   ?(use_builtin_defs=true)
@@ -98,9 +93,14 @@ let init
     stats = [];
   } in
   activate solver;
-  Options.check ();
-  Debug.init ();
-  Logger_state.init ();
+  Config.check ();
+  LoggerState.init ();
+  (if solver.use_builtin_defs then begin
+    Freed.register ();
+    LS.register ();
+    DLS.register ();
+    NLS.register ()
+  end);
   solver
 
 let set_heap_sort heap_sort solver =
@@ -115,7 +115,8 @@ let add_inductive_definition solver def =
 let _solve solver phi =
   reset ();
   activate solver;
-  Logger_state.next_query ();
+  LoggerState.next_query ();
+  Profiler.reset ();
   Profiler.add "Start";
   let vars = SL.free_vars ~with_nil:false phi in
   let input =
@@ -125,7 +126,7 @@ let _solve solver phi =
     let input = Input.declare_heap_sort input heap_sort in
     Input.add_vars input vars
   in
-  Debug.input input ?source:solver.source;
+  Debug.input "input" ?source:solver.source input;
   let result = Engine.solve input in
   Profiler.finish ();
   Debug.result result;

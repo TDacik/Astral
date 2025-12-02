@@ -35,9 +35,7 @@ let convertor () = match String.lowercase_ascii !_convertor with
   *)
   | "" -> failwith "TODO: smt2"
   | bad_value ->
-    Exceptions.cmd_option_error
-      ~param:"convertor"
-      ~bad_value ~expected_values:"s2s | songbird | sls | slide"
+    failwith "Param --convertor excepts one of s2s | songbird | sls"
 
 let options () =
   let module Options = (struct let precise = not !_imprecise end) in

@@ -5,5 +5,5 @@
 val print : Context.t -> unit
 (** Print json representation of results to standard output. *)
 
-val output : Context.t -> string -> unit
+val output : string -> Context.t -> unit
 (** Write results to a json file given by path *)

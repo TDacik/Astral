@@ -30,7 +30,7 @@ let parser_error ?hint ctx loc msg : _ =
       Format.fprintf Format.err_formatter "\nLoc:%a\n" Dolmen.Std.Loc.fmt_pos loc
   end;
   begin match ctx with (* TODO: only in debug mode *)
-    | Some ctx when Options.debug () ->
+    | Some ctx when Config.Debug.get () ->
       Format.fprintf Format.err_formatter "\nParser context:\n%s\n" (ParserContext.show ctx);
     | _ -> ()
   end;

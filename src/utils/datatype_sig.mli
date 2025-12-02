@@ -109,6 +109,8 @@ module type MONO_MAP = sig
   type data
   type t
 
+  include PRINTABLE with type t := t
+
   (** Copy-pasted signature of classic polymorphic map *)
 
   val empty : t

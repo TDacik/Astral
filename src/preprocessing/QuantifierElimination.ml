@@ -4,7 +4,7 @@
 
 open SL
 
-module Logger = Logger.MakeWithDir (struct
+module Logger = Debug.QueryDir (struct
   let name = "Quantifier elimination"
   let level = 2
   let dirname = "qelim"
@@ -79,6 +79,7 @@ module Instance = struct
         end
         else None
       | Exists (xs, psi) -> continue psi
+      | Pure _ -> None
       | _ -> failwith @@ SL.show psi
 
 end

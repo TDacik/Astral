@@ -90,14 +90,14 @@ module Make (Backend : SMTLIB_BACKEND) = struct
       assertion
       check_sat get_reason_unknown get_model exit_cmd
 
-  let generate_options produce_models user_options =
+  let generate_options produce_models user_options input_file =
     (* If options are specified, default options are over-written. *)
     let options = match user_options with
       | [] -> Backend.default_options
       | options -> options
     in
     let options = if produce_models then Backend.model_option :: options else options in
-    Backend.name :: options
+    Backend.name :: input_file :: options
 
   let read_answer context file produce_models =
     let channel = open_in file in
@@ -138,16 +138,17 @@ module Make (Backend : SMTLIB_BACKEND) = struct
     Printf.fprintf query_channel "%s" smt_query;
     close_out query_channel;
 
-    let options : string list = generate_options produce_models options in
+    (* Some solvers such as Z3 cannot read the input from stdin. Therefore
+       we need to pass the file name as an option. *)
+    let options : string list = generate_options produce_models options query_filename in
 
-    let input = Unix.descr_of_in_channel @@ open_in query_filename in
     let output = Unix.descr_of_out_channel answer_channel in
 
     let pid =
       Unix.create_process
         Backend.binary
         (Array.of_list options)
-        input
+        Unix.stdin
         output
         Unix.stderr
     in
@@ -171,7 +172,6 @@ module Make (Backend : SMTLIB_BACKEND) = struct
         (pid, Unix.WSIGNALED 0)
     in
 
-    Unix.close input;
     close_out answer_channel;
     match status with
       | WEXITED _ -> read_answer context answer_filename produce_models

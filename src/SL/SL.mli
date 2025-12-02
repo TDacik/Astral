@@ -65,9 +65,9 @@ module Term : sig
 
   include Logic_sig.SORTED with type t := t and module Sort = Sort
 
-  include Datatype_sig.COMPARABLE with type t := t
-  include Datatype_sig.PRINTABLE with type t := t
-  include Datatype_sig.COLLECTIONS with type t := t
+  include Datatype_sig.COMPARABLE with type t := t   (** @closed *)
+  include Datatype_sig.PRINTABLE with type t := t    (** @closed *)
+  include Datatype_sig.COLLECTIONS with type t := t  (** @closed *)
 
   val hash : t -> int
 
@@ -129,7 +129,7 @@ include Logic_sig.WITH_VIEW
    and type view := view
 
 
-include COLLECTIONS with type t := t
+include COLLECTIONS with type t := t (** @closed *)
 
 val of_smt : SMT.t -> t
 

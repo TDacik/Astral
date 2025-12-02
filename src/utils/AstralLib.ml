@@ -7,9 +7,11 @@ module List = BatList
 module String = struct
   include BatString
   let hash = Hashtbl.hash
+  let show = Fun.id
 end
 
 module Int = struct
   include BatInt
   let hash = Hashtbl.hash
+  let show = string_of_int
 end

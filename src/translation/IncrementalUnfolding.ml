@@ -115,7 +115,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
             | False -> continue_e ()
             | Unknown -> SL.mk_ite cond (continue_t ()) (continue_e ())
           end)
-        else if Options.unfolding_lookahead () then (
+        else if Config.UnfoldingLookahead.get () then (
           (* Remove existentials by look-ahaed *)
           let existentials = List.map SL.Term.of_var @@ S.elements existentials in
           let ground = List.map SL.Term.of_var @@ SL.free_vars ctx.phi in
@@ -184,7 +184,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       Profiler.add "Unfolding";
 
       let sid = GlobalSID.get () in
-      Backend.init ~timeout:(Options.incremental_timeout ()) ();
+      Backend.init ~timeout:(Config.IncrementalTimeout.get ()) ();
 
       (* Is this sound??? *)
       let sl_graph = SL_graph.compute rhs in

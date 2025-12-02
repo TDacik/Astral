@@ -8,7 +8,7 @@ let parse path =
   Profiler.add "Parsing";
   try
     let input = Parser.parse_file path in
-    Debug.input input;
+    Debug.input "input" input;
     input
   with ParserException.ParserError pe ->
     Parser.pretty_error pe;

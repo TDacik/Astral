@@ -29,6 +29,21 @@ let normalise input =
   let input = Preprocessor.first_phase input in
   input
 
+let run_solver ctx =
+  let module Backend = (val ConfigReader.get_backend () : BACKEND) in
+  let module Encoding = (val ConfigReader.get_encoding () : ENCODING) in
+  match Config.SolverStrategy.get () with
+    | `Auto ->
+      let module S = SingleQuerySolver.Make(Encoding)(Backend) in
+      S.solve ctx
+    | `SingleQuery ->
+      let module S = SingleQuerySolver.Make(Encoding)(Backend) in
+      S.solve ctx
+    | `MultiQuery ->
+      let module S = SingleQuerySolver.Make(Encoding)(Backend) in
+      S.solve ctx
+
+
 let solve (input : Context.t) =
   Logger.debug "Normalisation\n";
   let input = normalise input in
@@ -36,44 +51,34 @@ let solve (input : Context.t) =
   let sl_graph = SL_graph.compute input.phi in
   if SL_graph.has_contradiction sl_graph then
     Context.set_result `Unsat ~unsat_core:[] input
-  else match FragmentChecker.check input, Options.unsafe () with
+  else match FragmentChecker.check input, Config.Unsafe.get () with
   | Error reason, false -> Context.set_result (`Unknown reason) input
   | _, _ ->
     Profiler.add "Normalisation";
 
     (** Small model should be computed on normalised, but non-preprocessed definition.
         TODO: still true? *)
-    Debug.out_input input;
 
     GlobalSID.cache := PredicateAnalysis.compute @@ GlobalSID.get ();
 
     BaseLogic.use_simplification true;
     GlobalSID.preprocess_user_definitions PredicatePreprocessing.preprocess;
 
-    let input, bounds = Preprocessor.second_phase input in
+    let input = Preprocessor.second_phase input in
 
     (if SL.equal SL.ff input.phi then raise @@ Exceptions.Unsat "preprocessing");
 
-    let input = Context.add_metadata input sl_graph (Option.get bounds) in (* TODO: compute and take min *)
-    Debug.context input;
-
+    Debug.context "input" input;
 
     Profiler.add "Preprocessor";
     Logger.debug "Preprocessing finished\n";
-
     Logger.debug "%s\n" (ModelAdapter.show input.model_adapter);
-
-    let input = Context.add_metadata input sl_graph (Option.get bounds) in
-
-    let module Backend = (val Options.backend () : BACKEND) in
-    let module Encoding = (val Options.encoding () : ENCODING) in
-    let module Translation = Translation.Make(Encoding)(Backend) in
-
     debug_info input;
-    if not @@ Options_base.dry_run () then
-      let res = Translation.solve input in
+
+    if not @@ Config.DryRun.get () then
+      let res = run_solver input in
       let res' = Context.apply_model_adapter res in
-      (match res'.model with None -> () | Some sh -> Debug.model sh);
+      (match res'.model with None -> () | Some sh -> Debug.sl_model "model" sh);
       res'
     else Context.set_result (`Unknown "dry run") input
 
