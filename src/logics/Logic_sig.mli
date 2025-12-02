@@ -14,9 +14,9 @@ module type SORT = sig
 
   val equal : t -> t -> bool
 
-  include PRINTABLE with type t := t
-  include COMPARABLE with type t := t
-  include COLLECTIONS with type t := t
+  include PRINTABLE with type t := t   (** @closed *)
+  include COMPARABLE with type t := t  (** @closed *)
+  include COLLECTIONS with type t := t (** @closed *)
 
 end
 
@@ -42,9 +42,9 @@ module type VARIABLE = sig
 
   module Sort : SORT
 
-  include PRINTABLE with type t := t
-  include COMPARABLE with type t := t
-  include COLLECTIONS with type t := t
+  include PRINTABLE with type t := t   (** @closed *)
+  include COMPARABLE with type t := t  (** @closed *)
+  include COLLECTIONS with type t := t (** @closed *)
 
   include SORTED with type t := t and module Sort := Sort
 
@@ -90,9 +90,9 @@ module type LOGIC = sig
   val view : t -> view
   *)
 
-  include PRINTABLE with type t := t
-  include COMPARABLE with type t := t
-  include COLLECTIONS with type t := t
+  include PRINTABLE with type t := t   (** @closed *)
+  include COMPARABLE with type t := t  (** @closed *)
+  include COLLECTIONS with type t := t (** @closed *)
 
   include SORTED with type t := t and module Sort := Sort
 
