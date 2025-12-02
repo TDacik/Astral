@@ -36,6 +36,9 @@
     SmallModels_tests
 
     ;Property_tests
+
+    ;; Frontends
+    LowLevelSeplog
   )
 
   (modules_without_implementation testable_sig)
