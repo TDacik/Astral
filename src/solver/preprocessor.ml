@@ -84,29 +84,30 @@ let remove_useless_vars phi vars =
     else vars
   else vars
 
-let second_phase_aux aggresive context =
+let second_phase_aux context =
   let vars = remove_useless_vars context.phi context.vars in
   let ctx' = Context.set_preprocessed context context.phi vars in
 
-  let ctx2 = apply_list ctx' [
+  apply_list ctx' [
     Simplifier.simplify_ctx, "simplification";
     (*AggresiveSimplifier.apply_ctx, "simplification 2";*)
-    QuantifierElimination.apply_ctx, "quantifier_elim"
-  ]
+    QuantifierElimination.apply_ctx, "quantifier_elim";
+    GlobalSID.formula_preprocessing_ctx, "builtins";
+  ](*
   in
   let sl_graph = SL_graph.compute ctx2.phi in
   let bounds = LocationBounds.compute ctx2.phi ctx2.raw_input.heap_sort sl_graph in
   let ctx2 = {ctx2 with location_bounds = bounds} in (* TODO: take min? *)
+  *)
 
-  let ctx3 = apply_list ctx2 [
-    GlobalSID.formula_preprocessing_ctx, "builtins";
+let second_phase context =
+  if Config.Preprocessing.get ()
+  then second_phase_aux context
+  else context
+
+(** ==== 3rd phase ==== *)
+let third_phase ctx =
+  remove_unused_elements @@ apply_list ctx [
     UnfoldIDs.apply_ctx, "pred_unfolding";
     QuantifierElimination.apply_ctx, "q_elim_2";
   ]
-  in
-  remove_unused_elements ctx3, (Some bounds)
-
-let second_phase context = match Options_base.preprocessing () with
-  | `None -> context, None
-  | `Default -> second_phase_aux false context
-  | `Aggresive -> second_phase_aux true context

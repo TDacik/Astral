@@ -29,6 +29,21 @@ let normalise input =
   let input = Preprocessor.first_phase input in
   input
 
+let run_solver ctx =
+  let module Backend = (val ConfigReader.get_backend () : BACKEND) in
+  let module Encoding = (val ConfigReader.get_encoding () : ENCODING) in
+  match Config.SolverStrategy.get () with
+    | `Auto ->
+      let module S = SingleQuerySolver.Make(Encoding)(Backend) in
+      S.solve ctx
+    | `SingleQuery ->
+      let module S = SingleQuerySolver.Make(Encoding)(Backend) in
+      S.solve ctx
+    | `MultiQuery ->
+      let module S = SingleQuerySolver.Make(Encoding)(Backend) in
+      S.solve ctx
+
+
 let solve (input : Context.t) =
   Logger.debug "Normalisation\n";
   let input = normalise input in
@@ -54,23 +69,11 @@ let solve (input : Context.t) =
     BaseLogic.use_simplification true;
     GlobalSID.preprocess_user_definitions PredicatePreprocessing.preprocess;
 
-    let input, bounds = Preprocessor.second_phase input in
-
-    let input = Context.add_metadata input sl_graph (Option.get bounds) in (* TODO: compute and take min *)
-    Debug.context input;
-
+    let input = Preprocessor.second_phase input in
 
     Profiler.add "Preprocessor";
     Logger.debug "Preprocessing finished\n";
-
     Logger.debug "%s\n" (ModelAdapter.show input.model_adapter);
-
-    let input = Context.add_metadata input sl_graph (Option.get bounds) in
-
-    let module Backend = (val Options.backend () : BACKEND) in
-    let module Encoding = (val Options.encoding () : ENCODING) in
-    let module Translation = Translation.Make(Encoding)(Backend) in
-
     debug_info input;
 
     if not @@ Config.DryRun.get () then

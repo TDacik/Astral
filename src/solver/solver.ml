@@ -114,7 +114,8 @@ let add_inductive_definition solver def =
 let _solve solver phi =
   reset ();
   activate solver;
-  Logger_state.next_query ();
+  LoggerState.next_query ();
+  Profiler.reset ();
   Profiler.add "Start";
   let vars = SL.free_vars ~with_nil:false phi in
   let input =

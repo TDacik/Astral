@@ -6,9 +6,9 @@ type solver
 
 val init :
   ?timeout : Int.t ->
-  ?backend : Options.backend ->
-  ?encoding : Options.encoding ->
-  ?quantifier_encoding : Options.quantifier_encoding ->
+  ?backend : Config.Backend.t ->
+  ?encoding : Config.Encoding.t ->
+  ?quantifier_encoding : Config.QuantifierEncoding.t ->
   ?produce_models : bool ->
   ?use_builtin_defs : bool ->
   ?dump_queries : [`None | `Full of string] ->
