@@ -1,3 +1,4 @@
+Test that basic commands and their aliases work
 
   $ astral --version >/dev/null
 

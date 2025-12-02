@@ -40,7 +40,6 @@ module Builder (Params : S) = struct
   let debug_output ~name ~suffix (output : string -> 'a -> unit) (obj : 'a) =
     if Config.Debug.get () then
       let path = construct_path ~name ~suffix in
-      Format.printf "---> %s\n" path;
       output path obj
     else ()
 
