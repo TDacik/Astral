@@ -21,6 +21,8 @@ val get_holes : ?params:SL.Term.t list -> t -> SL.Term.t list
 
 val get_must_allocated : ?params:SL.Term.t list -> t -> SL.Term.t list
 
+val get_may_dangling : ?params:SL.Term.t list -> t -> SL.Term.t list
+
 val may_allocated : ?params:SL.Term.t list -> t -> SL.Term.t list
 
 module M : Datatype_sig.MONO_MAP

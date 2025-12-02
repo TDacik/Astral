@@ -157,8 +157,15 @@ end
 
 let is_computed () = not @@ PredicateAbstraction.M.is_empty !cache
 
-let abstraction name =  match find name with
+let abstraction name = match find name with
   | UserDefined id -> PredicateAbstraction.M.find id !cache
+
+let get_must_allocated ~params name =
+  PredicateAbstraction.get_must_allocated ~params @@ abstraction name
+
+let get_may_dangling ~params name =
+  PredicateAbstraction.get_may_dangling ~params @@ abstraction name
+
 
 (* TODO: check whether we really compute what we want! *)
 let rec existentials ?(visited=[]) id =

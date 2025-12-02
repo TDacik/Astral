@@ -8,7 +8,10 @@ val first_phase : Context.t -> Context.t
 
 val second_phase : Context.t -> Context.t
 
-(** TODO: move elsewhere *)
-module DanglingMap := SL.MonoMap(AstralLib.Int)
+(** The third phase is responsible for predicate unfolding. One can specify how
+    dangling variables should be distributed between predicates on LHS. *)
 
-val third_phase : (*?pred_bounds:DanglingMap.t ->*) Context.t -> Context.t
+module BoundMap := SL.MonoMap(SL.Term.MonoList)
+(** Mapping from predicates to list of dangling variables that could appear inside its unfolding. *)
+
+val third_phase : ?bound_map:BoundMap.t -> Context.t -> Context.t

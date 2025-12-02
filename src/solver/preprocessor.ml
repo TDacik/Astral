@@ -106,8 +106,17 @@ let second_phase context =
   else context
 
 (** ==== 3rd phase ==== *)
-let third_phase ctx =
+
+let default_bound_map phi =
+  let module BoundMap = SL.MonoMap(SL.Term.MonoList) in
+  let dangling = SLID.may_dangling_terms phi in
+  Logger.debug "Globally syntactically dangling terms: %a\n" SL.Term.pp_list dangling;
+  let predicates = SL.select_subformulae SL.is_predicate phi in
+  BoundMap.of_list @@ List.map (fun p -> (p, dangling)) predicates
+
+let third_phase ?bound_map ctx =
+  let bound_map = Option.value bound_map ~default:(default_bound_map ctx.phi)in
   remove_unused_elements @@ apply_list ctx [
-    UnfoldIDs.apply_ctx, "pred_unfolding";
+    UnfoldIDs.apply_ctx ~bound_map, "pred_unfolding";
     QuantifierElimination.apply_ctx, "q_elim_2";
   ]

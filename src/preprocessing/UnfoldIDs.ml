@@ -81,11 +81,10 @@ let unfold_rhs sid ctx lhs rhs =
   let lhs_t = Translation.translate {ctx with phi = lhs} in (* TODO: check*)
   Unfolder.unfold ctx lhs_t rhs
 
-let apply_aux ctx phi =
-  let sid = GlobalSID.get () in
+let unfold_default ctx phi =
   let open Context in
+  let sid = GlobalSID.get () in
   let location_bound = ctx.location_bounds in
-  Logger.debug "Unfolding %s\n" (SL.show phi);
   match SL.view phi with
     | _ when SL.is_symbolic_heap phi ->
       {ctx with phi = unfold_sat sid phi}
@@ -99,8 +98,16 @@ let apply_aux ctx phi =
     | False | True -> ctx
     | _ -> assert false (* Should be catched earlier *)
 
-let apply ctx phi =
-  if List.is_empty @@ GlobalSID.get_user_defined () then ctx
-  else apply_aux ctx phi
+(*
+let apply_toplevel bound_map ctx phi =
+  Logger.debug "Unfolding %s\n" (SL.show phi);
+  match bound_map with
+    | Some bounds -> unfold_instrumented bounds ctx phi
+    | None -> unfold_default ctx phi
+*)
 
-let apply_ctx ctx = apply ctx ctx.phi
+let apply ?bound_map ctx phi =
+  if List.is_empty @@ GlobalSID.get_user_defined () then ctx
+  else unfold_default ctx phi
+
+let apply_ctx ?bound_map ctx = apply ?bound_map ctx ctx.phi

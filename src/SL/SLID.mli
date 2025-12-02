@@ -9,6 +9,10 @@ val has_unique_footprint : SL.t -> bool
 
 val has_unique_shape : SL.t -> bool
 
+val must_allocated_terms : SL.t -> SL.Term.t list
+
+val may_dangling_terms : SL.t -> SL.Term.t list
+
 val has_user_defined_predicates : SL.t -> bool
 
 val get_structs : SL.t -> MemoryModel.StructDef.t list
