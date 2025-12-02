@@ -60,6 +60,7 @@ type view =
   | BitAnd of t list * Sort.t
   | BitOr of t list * Sort.t
   | BitXor of t list * Sort.t
+  | BitPlus of t list * Sort.t
   | BitImplies of t * t
   | BitCompl of t
   | BitShiftLeft of t * t    (* bitvector, integer *)

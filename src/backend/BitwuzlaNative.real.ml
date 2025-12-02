@@ -132,6 +132,9 @@ module Init () = struct
     | SMT.BitShiftLeft (bv, rotate) -> BW.mk_term2 Bv_shl (translate bv) (translate rotate)
     | SMT.BitShiftRight (bv, rotate) -> BW.mk_term2 Bv_shr (translate bv) (translate rotate)
 
+    | SMT.BitPlus ([x; y], _) -> BW.mk_term2 Bv_add (translate x) (translate y)
+    | SMT.BitPlus (x :: xs, width) -> BW.mk_term2 Bv_add (translate x) (translate @@ SMT.Bitvector.mk_plus (Sort.get_width width) xs)
+
     | SMT.Select (a, i) -> BW.mk_term2 Select (translate a) (translate i)
     | SMT.ConstArr (const, dom_sort) ->
       let sort = Sort.mk_array dom_sort (SMT.get_sort const) in

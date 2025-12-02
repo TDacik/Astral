@@ -4,9 +4,9 @@ module Make ( ) : sig
 
   include VARIABLE with module Sort = Sort
                     and type t = Identifier.t * Sort.t
+  (** @inline *)
 
-
-(** TODO: why is this necessary? *)
+  (* TODO: why is this necessary? *)
 
   val debug : unit -> string
 

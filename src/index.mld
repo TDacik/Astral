@@ -41,3 +41,9 @@ Constructors for built-in definitions provided by Astral.
 {!module: Astral.StackHeapModel}
 
 Stack-heap models of separation logic.
+
+{2 Frontends}
+
+{!module: Astral.LowLevelSeplog }
+
+Low-level separation logic with block operations, interpreted over bitvectors.

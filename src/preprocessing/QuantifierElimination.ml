@@ -79,6 +79,7 @@ module Instance = struct
         end
         else None
       | Exists (xs, psi) -> continue psi
+      | Pure _ -> None
       | _ -> failwith @@ SL.show psi
 
 end

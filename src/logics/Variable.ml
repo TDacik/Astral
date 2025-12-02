@@ -54,7 +54,7 @@ module Make () = struct
 
   let is_loc var = Sort.is_loc @@ get_sort var
 
-  let smt2_decl (name, sort) = Format.asprintf "%s %s" (ID.show name) (Sort.name sort) (* TODO: escaping *)
+  let smt2_decl (name, sort) = Format.asprintf "%s %s" (escape @@ ID.show name) (Sort.smt2_name sort)
 
   module Self = struct
     type nonrec t = t

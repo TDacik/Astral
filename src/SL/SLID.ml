@@ -81,6 +81,7 @@ let has_builtin_predicates phi =
 let declared_sorts phi structs =
   let sorts = SL.get_all_sorts ~with_nil:false phi in
   sorts @ List.concat_map MemoryModel.StructDef.get_sorts structs
+  |> List.filter (fun sort -> not @@ Sort.is_builtin sort)
   |> Sort.MonoList.unique
 
 let has_user_defined_predicates phi =
