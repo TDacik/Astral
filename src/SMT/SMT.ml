@@ -59,6 +59,7 @@ type view =
   | BitAnd of t list * Sort.t
   | BitOr of t list * Sort.t
   | BitXor of t list * Sort.t
+  | BitPlus of t list * Sort.t
   | BitImplies of t * t
   | BitCompl of t
   | BitShiftLeft of t * t    (* bitvector, integer *)
@@ -119,6 +120,7 @@ let view phi =
     | A.BitAnd sort -> BitAnd (xs, Sort.mk_bitvector sort)
     | A.BitOr sort -> BitOr (xs, Sort.mk_bitvector sort)
     | A.BitXor sort -> BitXor (xs, Sort.mk_bitvector sort)
+    | A.BitPlus sort -> BitPlus (xs, Sort.mk_bitvector sort)
     | A.BitImplies -> BitImplies (List.nth xs 0, List.nth xs 1)
     | A.BitCompl -> BitCompl (List.nth xs 0)
     | A.BitShiftLeft -> BitShiftLeft (List.nth xs 0, List.nth xs 1)
