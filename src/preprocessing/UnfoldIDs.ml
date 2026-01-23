@@ -130,8 +130,8 @@ let apply_toplevel bound_map ctx phi =
     | None -> unfold_default ctx phi
 *)
 
-let apply ?bound_map ctx phi =
+let apply ctx phi =
   if List.is_empty @@ GlobalSID.get_user_defined () then ctx
   else unfold_default ctx phi
 
-let apply_ctx ?bound_map ctx = apply ?bound_map ctx ctx.phi
+let apply_ctx ctx = apply ctx ctx.phi

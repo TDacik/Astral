@@ -132,8 +132,10 @@ let default_bound_map phi =
   BoundMap.of_list @@ List.map (fun p -> (p, dangling)) predicates
 
 let third_phase ?bound_map ctx =
+  (*
   let bound_map = Option.value bound_map ~default:(default_bound_map ctx.phi)in
+  *)
   remove_unused_elements @@ apply_list ctx [
-    UnfoldIDs.apply_ctx ~bound_map, "pred_unfolding";
+    UnfoldIDs.apply_ctx, "pred_unfolding";
     QuantifierElimination.apply_ctx, "q_elim_2";
   ]
