@@ -25,7 +25,7 @@ module Fixpoint = Graph.Fixpoint.Make(G)
       let source = G.E.src e in
       let dst = G.E.dst e in
       match source, G.E.label e with
-        | State (s, _), In (_, psi) -> List.map (fun psi2 -> SL.mk_star [psi; psi2]) data
+        | State s, In (_, psi) -> List.map (fun psi2 -> SL.mk_star [psi; psi2]) data
         | Transition t, _ -> data
   end)
 
@@ -53,6 +53,14 @@ let compute_dangling pred models =
   List.filter (fun v ->
     List.for_all (not_allocated v) non_empty
   ) pred.InductiveDefinition.header
+
+let compute_signature models =
+  let open PredicateInfo in
+  let non_empty = List.filter (fun g -> SL_graph.nb_allocated g > 0) models in
+  List.fold_left (fun acc model ->
+    let domain = List.map SL.Term.get_sort @@ SL_graph.must_alloc model in
+    Signature.add (Sort.Set.of_list domain) acc
+  ) Signature.empty non_empty
 
 (** Call automaton as simple graph *)
 module V = struct include State let hash = Hashtbl.hash end
@@ -106,34 +114,35 @@ let stable_depth aut =
 
 
 (** Bound computation *)
-let unfolding_depth aut =
-  let rec aux visited t =
-    if Transition.Set.mem (t : Transition.t) visited then 0
-    else
-      let visited' = Transition.Set.add t visited in
-      let res =
-        t.output
-        |> List.concat_map (out aut)
-        |> List.map (aux visited')
-        |> (fun xs -> try BatList.max xs with _ -> 0)
-      in
-      res + 1
-  in
-  out aut aut.initial
-  |> List.map (aux Transition.Set.empty)
-  |> (fun xs -> try BatList.max xs with _ ->
-    (* TODO: fix this by doing pointer factoring as preprocessing on SID*)
-    BatList.max @@ List.map (fun psi -> Option.get @@ SL.pointer_size psi) @@ SL.Set.elements aut.initial.accepting_condition)
+let unfolding_depth pred aut others =
+  let open InductiveDefinition in
+  let depth_self = UnfoldingAutomaton.depth aut in
+  Logger.debug "depth(%s): %d\n" (pred.name) depth_self;
+  (* TODO: sort refinement *)
+  let depth_other = BatList.max @@ List.map UnfoldingAutomaton.depth others in
+  if List.for_all (fun aut -> UnfoldingAutomaton.all_accepting aut) others
+  then depth_other + 1 (* implicit sink *)
+  else
+  depth_self + depth_other
+  + 1 (* 1 for implicit sink in other *)
 
-let compute_pred sid pred =
+let check_automaton aut =
+  if GlobalSID.has_unique_footprint_property () then ()
+  else
+    Exceptions.unsupported_fragment
+      ~reason:"non-deterministic SID"
+      ~details:""
+
+let compute_pred sid pred automata =
   let aut = UnfoldingAutomaton.construct_pred sid pred in
-  let init = function UnfoldingAutomaton.Vertex.State (s, _) when State.equal s aut.initial -> [SL.emp] | _ -> [] in
-  let g = as_simple_graph aut in (* TODO: unfold once *)
+  check_automaton aut;
+  let init = function UnfoldingAutomaton.Vertex.State s when State.equal s aut.initial -> [SL.emp] | _ -> [] in
+  let g = as_simple_graph @@ unfold_loops_once aut in (* TODO: unfold once *)
   let res = Fixpoint.analyze init g in
   let cnt = ref 1 in
   let sm = G.fold_vertex (fun s acc -> match s with
-    | State (s, id) ->
-      let data = res (State (s, id)) in
+    | State s ->
+      let data = res (State s) in
       let small_models =
         List.map (fun psi -> SL.mk_star (psi :: SL.Set.elements s.accepting_condition)) data
         |> List.map (SL_graph.compute ~stars:false)
@@ -149,8 +158,10 @@ let compute_pred sid pred =
     allocated = compute_allocated pred sm;
     never_allocated = compute_dangling pred sm;
 
+    signature = compute_signature sm;
+
     stable_depth = stable_depth aut;
-    unfolding_depth = unfolding_depth aut;
+    unfolding_depth = unfolding_depth pred aut automata;
   }
 
 let debug pred info =
@@ -158,11 +169,38 @@ let debug pred info =
     (SL.show @@ InductiveDefinition.mk_call pred @@ List.map SL.Term.of_var pred.header)
     (PredicateInfo.Entry.show info)
 
-let compute sid =
+(*
+let check_fragment infos =
+  let open InductiveDefinition in
+  let open PredicateInfo.Entry in
+  PredicateInfo.bindings infos
+  |> List.for_all (fun (pred, abs) -> )
+  |> List_utils.diagonal_product
+  |> List.iter (fun ((pred1, abs1), (pred2, abs2)) ->
+       if PredicateInfo.Signature.disjoint abs1.signature abs2.signature then ()
+       else if SID_checks.are_field_distinguishable pred1 pred2 then ()
+       else Exceptions.unsupported_fragment
+              ~reason:"System of predicates is not flat"
+              ~details:(Format.asprintf "%s and %s shares signature" pred1.name pred2.name)
+     )
+  *)
+
+let compute_automata sid =
   SID.fold_user_defined (fun pred acc ->
-    if Inlining.can_be_inlined pred.name then acc
-    else
-      let res = compute_pred sid pred in
-      debug pred res;
-      PredicateInfo.add pred res acc
-  ) sid PredicateInfo.empty
+    let aut = UnfoldingAutomaton.construct_pred sid pred in
+    aut :: acc
+  ) sid []
+
+let compute sid =
+  let automata = compute_automata sid in
+  let res =
+    SID.fold_user_defined (fun pred acc ->
+      if Inlining.can_be_inlined pred.name then acc
+      else
+        let res = compute_pred sid pred automata in
+        debug pred res;
+        PredicateInfo.add pred res acc
+    ) sid PredicateInfo.empty
+  in
+  (*check_fragment res;*)
+  res
