@@ -9,7 +9,7 @@ open Encoding_context_sig
 
 open Z3enums
 
-module Logger = Logger.MakeWithDir (struct
+module Logger = Debug.QueryDir (struct
   let name = "Backend:Z3"
   let level = 1
   let dirname = "unfolding_queries"
@@ -277,7 +277,7 @@ module Init () = struct
     | Z3.Solver.SATISFIABLE ->
       if produce_models then
         let model = Option.get @@ Z3.Solver.get_model !solver in
-        let _ = Debug.backend_model @@ Z3.Model.to_string model in
+        (*let _ = Logger.smt_model @@ Z3.Model.to_string model in*)
         SMT_Sat (Some (translate_model context phi_orig model, model))
       else
         SMT_Sat None
@@ -310,7 +310,7 @@ module Init () = struct
   let check_sat phi =
     Z3.Solver.push !solver;
     Z3.Solver.add !solver [translate phi];
-    Logger.dump_string ~filename:(next ()) @@ Z3.Solver.to_string !solver ^ "\n(check-sat)";
+    (*Logger.dump_string ~filename:(next ()) @@ Z3.Solver.to_string !solver ^ "\n(check-sat)";*)
     let start = (Unix.times ()).tms_utime in
     let res = match Z3.Solver.check !solver [] with
       | Z3.Solver.SATISFIABLE -> SMT_Sat None

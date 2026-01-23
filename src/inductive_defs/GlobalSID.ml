@@ -54,7 +54,9 @@ let dependencies ?(original=false) = SID.dependencies (select original)
 
 let dependency_graph () = SID.dependency_graph !sid_updated
 
-let get () = !sid_updated
+let get ?(original=false) () =
+  if original then !sid_original
+  else !sid_updated
 
 let unfold name xs = SID.unfold !sid_updated name xs
 
@@ -116,7 +118,16 @@ let get_structs visited get_continue name = match find name with
 
 let has_unique_footprint name = match find name with
   | Builtin (module B : BUILTIN) -> B.unique_footprint
-  | UserDefined id -> failwith "TODO: SID.unique_fp"
+  | UserDefined id ->
+    (* We assume preprocessed predicates. *)
+    let n = List.length @@ InductiveDefinition.cases id in
+    Int.equal n 1
+
+let has_unique_footprint_property () =
+  SID.fold_user_defined (fun id acc ->
+    let res = has_unique_footprint id.name in
+    res && acc
+  ) !sid_updated true
 
 (** ==== BUILTINS: General ==== *)
 
@@ -166,7 +177,7 @@ let term_bound phi g heap_sort x =
   SID.fold (fun pred acc ->
     let bound = match pred with
       | Builtin (module B : BUILTIN) -> B.term_bound phi heap_sort x
-      | UserDefined id -> 1.0 (* Location bound should be computed on unfolding *)
+      | UserDefined id -> assert false
     in
     max acc bound
   ) !sid_updated Float.one

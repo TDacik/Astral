@@ -2,7 +2,7 @@
  *
  * Author: Tomas Dacik (idacik00@fit.vut.cz), 2025 *)
 
-let is_available = false
+let is_available () = false
 
 module Init () = struct
   include DummyBackend.Make(struct let name = "Bitwuzla-native" end)
