@@ -64,6 +64,10 @@ module StructDef : sig
   val field_value : t -> Field.t -> 'a list -> 'a
 
   val find_field : (Field.t -> bool) -> t -> Field.t
+  (** Find a field satisfying given predicate. *)
+
+  val find_all_fields : (Field.t -> bool) -> t -> Field.t list
+  (** Return list of fields satisfying given predicate. *)
 
   val smt2_decl : t -> string
 
