@@ -195,6 +195,12 @@ let alloc name phi g heap_sort xs = match find name with
     |> List.map (term_bound phi g heap_sort)
     |> BatList.kahan_sum
 
+let get_must_allocated ~params name =
+  PredicateInfo.get_must_allocated ~params @@ (PredicateInfo.find name !cache)
+
+let get_may_dangling ~params name =
+  PredicateInfo.get_must_dangling ~params @@ (PredicateInfo.find name !cache)
+
 (*
 let is_computed () = not @@ PredicateAbstraction.M.is_empty !cache
 
