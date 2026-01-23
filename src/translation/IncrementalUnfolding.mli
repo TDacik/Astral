@@ -7,6 +7,6 @@ open Translation_sig
 
 module Make (Encoding : ENCODING) (Solver : BACKEND) : sig
 
-  val unfold : Context.t -> SMT.t -> SL.t -> SL.t
+  val unfold : Context.t -> SL.t -> SMT.t -> SL.t -> SL.t
 
 end

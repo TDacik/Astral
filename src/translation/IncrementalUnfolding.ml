@@ -179,7 +179,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         | _ -> `Skip
       ) phi
 
-    let unfold input lhs rhs =
+    let unfold input lhs lhs_t rhs =
       let module C = Translation_context.Make(Encoding.Locations)(Encoding.HeapEncoding) in
       Profiler.add "Unfolding";
 
@@ -190,12 +190,13 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       let sl_graph = SL_graph.compute rhs in
 
       let ctx = C.init input in
-      let bound = LocationBounds.sum_of_allocated input.location_bounds in
+      let bound = LocationBounds.sum_of_allocated @@ LocationBounds.compute lhs input.heap_sort input.sl_graph in
+      Logger.debug "%d\n" bound;
       let sid = GlobalSID.get () in
 
-      Backend.push lhs; (* TODO: could adding axioms help? *)
+      Backend.push lhs_t; (* TODO: could adding axioms help? *)
 
-      let res = match Backend.check_sat lhs with
+      let res = match Backend.check_sat lhs_t with
         | SMT_Unsat _ -> Logger.debug "LHS is UNSAT\n"; SL.tt
         | _ ->
           let existentials = S.of_list @@ SL.bound_vars rhs in
