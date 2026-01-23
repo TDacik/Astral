@@ -67,6 +67,7 @@ let solve (input : Context.t) =
     (** Small model should be computed on normalised, but non-preprocessed definition.
         TODO: still true? *)
 
+    GlobalSID.normalise_user_definitions PredicatePreprocessing.normalise;
     GlobalSID.preprocess_user_definitions PredicatePreprocessing.preprocess;
     GlobalSID.cache := PredicateAnalysis.compute @@ GlobalSID.get ~original:true ();
 

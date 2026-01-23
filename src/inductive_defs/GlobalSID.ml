@@ -96,6 +96,15 @@ let builtin_context () =
 
 (** ==== Preprocessing ==== *)
 
+let normalise_user_definitions fn =
+  sid_original :=
+    SID.filter_map (fun id -> match id with
+      | Builtin _ -> Some id
+      | UserDefined id -> match fn id with
+        | None -> None
+        | Some id -> Some (UserDefined id)
+    ) !sid_original
+
 (** Apply the function to each inductive definition *)
 let preprocess_user_definitions fn =
   sid_updated :=
