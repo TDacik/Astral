@@ -87,14 +87,15 @@ let to_formula ?params id = match params with
   | None -> SL.mk_predicate id.name (List.map SL.Term.of_var id.header)
   | Some xs -> SL.mk_predicate id.name xs
 
-let instantiate ~refresh id xs =
+let instantiate ~refresh ?(base_only=false) id xs =
   assert (List.compare_lengths xs id.header == 0);
   let id =
     if refresh
     then refresh_header @@ refresh_existentials id
     else id
   in
-  let phi = SL.mk_or (id.base_cases @ id.inductive_cases) in
+  let cases = if base_only then id.base_cases else id.base_cases @ id.inductive_cases in
+  let phi = SL.mk_or cases in
   SL.substitute_list phi ~vars:id.header ~by:xs
 
 let instantiate_rules id xs =

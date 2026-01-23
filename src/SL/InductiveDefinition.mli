@@ -55,7 +55,7 @@ val to_formula : ?params:SL.Term.t list -> t -> SL.t
     If not parameters are provided, formal parameters will be used *)
 
 
-val instantiate : refresh:bool -> t -> SL.Term.t list -> SL.t
+val instantiate : refresh:bool -> ?base_only:bool -> t -> SL.Term.t list -> SL.t
 
 val instantiate_formals : ?refresh:bool -> t -> SL.t
 
