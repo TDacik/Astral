@@ -17,6 +17,14 @@ let debug_info input = match SL.classify_fragment input.phi with
   | Positive -> Logger.debug "Solving as positive formula\n"
   | Arbitrary -> Logger.debug "Solving as arbitrary formula\n"
 
+let postprocess ctx =
+  if ctx.is_unsound && ctx.status == Some `Unsat then
+    Context.set_result (`Unknown "unsound") ctx
+  else if ctx.is_incomplete && ctx.status == Some `Sat then
+    Context.set_result (`Unknown "incomplete") ctx
+  else ctx
+
+
 (** Apply necessary transformations to input formula and SID.
 
     Note: It is necessary to first initialize SID and predicate dependency
@@ -59,10 +67,10 @@ let solve (input : Context.t) =
     (** Small model should be computed on normalised, but non-preprocessed definition.
         TODO: still true? *)
 
-    GlobalSID.cache := PredicateAnalysis.compute @@ GlobalSID.get ();
+    GlobalSID.preprocess_user_definitions PredicatePreprocessing.preprocess;
+    GlobalSID.cache := PredicateAnalysis.compute @@ GlobalSID.get ~original:true ();
 
     BaseLogic.use_simplification true;
-    GlobalSID.preprocess_user_definitions PredicatePreprocessing.preprocess;
 
     let input = Preprocessor.second_phase input in
 
@@ -85,7 +93,7 @@ let solve (input : Context.t) =
 (* TODO: Do not return just input in case of exception. *)
 let solve input =
   let ctx = Context.init input in
-  try solve ctx with
+  try postprocess @@ solve ctx with
   | Exceptions.Unsat reason ->
     Context.set_result `Unsat ~unsat_core:[] ctx (* TODO: use this or propage through exception?  *)
   | Exceptions.UnknownResult (reason, _) ->

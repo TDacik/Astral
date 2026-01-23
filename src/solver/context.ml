@@ -26,6 +26,8 @@ type t = {
   phi : SL.t;                     (* SL formula after preprocessing *)
   vars : SL.Variable.t list;      (* Location variables after preprocessing *)
 
+  is_unsound : bool;
+  is_incomplete : bool;
   model_adapter : ModelAdapter.t;
 
   expected_status : expected_status;        (* This may differ from raw_input.status *)
@@ -54,6 +56,8 @@ let init input = {
   defs = ParserContext.get_struct_defs input;
   inductive_preds = ParserContext.get_predicates input;
 
+  is_unsound = false;
+  is_incomplete = false;
   model_adapter = ModelAdapter.empty;
 
   expected_status = input.expected_status;

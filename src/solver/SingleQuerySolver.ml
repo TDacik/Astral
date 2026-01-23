@@ -12,9 +12,10 @@ module Make (Encoding : ENCODING) (Backend : BACKEND) = struct
 
   let solve ctx =
     let sl_graph = SL_graph.compute ctx.phi in
-    let bounds = LocationBounds.compute ctx.phi ctx.raw_input.heap_sort sl_graph in
-    Context.add_metadata ctx sl_graph bounds
-    |> Preprocessor.third_phase
+    let ctx' = Context.add_metadata ctx sl_graph LocationBounds.empty in
+    let ctx'' = Preprocessor.third_phase ctx' in
+    let bounds = LocationBounds.compute ctx''.phi ctx''.heap_sort sl_graph in
+    Context.add_metadata ctx'' sl_graph bounds
     |> Translation.solve
 
 end

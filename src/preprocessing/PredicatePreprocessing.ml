@@ -29,20 +29,13 @@ let rec repeat_until_fixpoint ~eq f x =
 
 let normalise (pred : t) =
   let module Logger = (val make_logger pred : Debug_sig.EXTENDED_LOGGER) in
-  (* Before checking, we need to eliminate quantifiers *)
-  if Inlining.can_be_inlined pred.name then
-    let _ = Logger.debug "Removing predicate\n" in
-    None
-  else
-    let _ = Logger.debug "Keeping predicate\n" in
-   let _ = Logger.inductive_predicate pred in
+
 
   let pred = preprocess_cases rewrite_semantics pred in
-  let _ = Logger.inductive_predicate ~name:(pred.name ^ "_3-semantics-rewrite") pred in
+  let _ = Logger.inductive_predicate ~name:(pred.name ^ "_1-semantics-rewrite") pred in
 
-  (*let pred = refresh pred in
-  Logger.dump pred "_2-refresh";
-*)
+  let pred = preprocess_cases Inlining.inline pred in
+  let _ = Logger.inductive_predicate ~name:(pred.name ^ "_2-inlining") pred in
   Some pred
 
 let preprocess (pred : t) =
@@ -59,7 +52,6 @@ let preprocess (pred : t) =
   let pred = RuleAntiunification.apply pred in
   Logger.inductive_predicate ~name:(pred.name ^ "_6_generalisation") pred;
 
-  let forbidden_vars = GlobalSID.existentials pred in
-  let pred = InductiveDefinition.map (repeat_until_fixpoint ~eq:SL.equal @@ IntroduceIfThenElse.apply ~forbidden_vars) pred in
+  let pred = InductiveDefinition.map (repeat_until_fixpoint ~eq:SL.equal @@ IntroduceIfThenElse.apply) pred in
   Logger.inductive_predicate ~name:(pred.name ^ "_7_ite_intro") pred;
   Some pred

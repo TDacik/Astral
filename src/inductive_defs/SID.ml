@@ -131,7 +131,6 @@ let fold_user_defined fn sid acc =
 let get_builtin sid = fold_builtin List.cons sid []
 let get_user_defined sid = fold_user_defined List.cons sid []
 
-
 (** ==== Operations over dependency graph ==== *)
 
 (* TODO *)
