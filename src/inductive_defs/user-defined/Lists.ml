@@ -106,3 +106,17 @@ let nls_two_plus =
         SL.mk_predicate "ls" [n2; z];
         SL.mk_predicate "nls" [t2; y; z];
     ])
+
+(** Singly-linked list defined from backward *)
+let ls_back =
+  let header = SL.Variable.mk_list loc_ls ["x"; "y"] in
+  let [x; y] = List.map SL.Term.of_var header in
+  ID.mk "ls_back" header @@
+    SL.mk_or [
+      SL.mk_eq [x; y];
+      SL.mk_exists' [loc_ls] (fun [p] ->
+        SL.mk_star [
+          SL.mk_distinct [p; y];
+          SL.mk_pto p y;
+          SL.mk_predicate "ls_back" [x; p]
+    ])]
