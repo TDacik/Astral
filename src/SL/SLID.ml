@@ -18,7 +18,8 @@ let rec has_unique_footprint phi = match view phi with
 
 let has_unique_shape _ = failwith "has_unique_shape"
 
-let must_allocated_terms phi =
+let must_allocated_terms phi = failwith "TODO"
+(*
   let get_allocated_atom atom = match SL.view atom with
     | PointsTo (x, _, _) -> [x]
     | Predicate (name, params, _) -> GlobalSID.get_must_allocated name ~params
@@ -26,11 +27,12 @@ let must_allocated_terms phi =
   SL.select_subformulae SL.is_spatial_atom phi
   |> List.concat_map get_allocated_atom
   |> SL.Term.MonoList.unique
-
+*)
 (** Compute semantically dangling variables in formula:
     1. get all localy dangling variables in predicates
     2. remove those that all allocated somewhere         *)
-let may_dangling_terms phi =
+let may_dangling_terms phi = failwith "TODO"
+(*
   let get_dangling_atom atom = match SL.view atom with
     | PointsTo (_, _, ys) -> ys
     | Predicate (name, params, _) -> GlobalSID.get_may_dangling name ~params
@@ -41,6 +43,7 @@ let may_dangling_terms phi =
   |> List.filter (fun v -> not @@ SL.Term.MonoList.mem v allocated)
   |> SL.Term.MonoList.unique
   |> (fun xs -> SL.Term.MonoList.remove xs SL.Term.nil)
+*)
 
 (** SMT-LIB output *)
 
