@@ -2,7 +2,7 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-let use_unicode = ref false
+let use_unicode = ref true
 let use_easter_eggs = ref false
 
 let eq   = ref "="

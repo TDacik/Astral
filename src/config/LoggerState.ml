@@ -20,6 +20,7 @@ let current_query () = !query_counter
 let current_sub_query () = !sub_query_counter
 
 let init () =
+  UnicodeSymbols.init true; (* TODO: read from config *)
   if Config.Interactive.get () && Config.Debug.get () then
     let _ = session := Config.DebugDir.get () in
     FileUtils.mk_dir_force !session

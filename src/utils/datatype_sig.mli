@@ -113,9 +113,13 @@ module type MONO_MAP = sig
 
   (** Copy-pasted signature of classic polymorphic map *)
 
+  val compare : (data -> data -> int) -> t -> t -> int
+
   val empty : t
 
   val is_empty : t -> bool
+
+  val singleton : key -> data -> t
 
   val add : key -> data -> t -> t
 
@@ -126,6 +130,8 @@ module type MONO_MAP = sig
   val iter : (key -> data -> unit) -> t -> unit
 
   val fold : (key -> data -> 'acc -> 'acc) -> t -> 'acc -> 'acc
+
+  val merge : (key -> data option -> data option -> data option) -> t -> t -> t
 
   val union : (key -> data -> data -> data option) -> t -> t -> t
 

@@ -63,7 +63,7 @@ module Make () = struct
 
   let mk name =
     (*debug "Creating identifier %s\n" name;*)
-    let name = if name = "" then "e" else name in
+
     let res =
       try (find_tag name, name)
       with Not_found ->
