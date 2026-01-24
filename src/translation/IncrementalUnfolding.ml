@@ -96,7 +96,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         (* Just collects existentials and continue without decreasing [n]
            as nothing was unfolded. *)
         let existentials = S.union (S.of_list xs) existentials in
-        unfold_rec ~existentials ctx sl_graph n sid body
+        SL.mk_exists xs @@ unfold_rec ~existentials ctx sl_graph n sid body
 
       | Ite (cond, t_branch, e_branch) ->
         if SL.is_ground' cond ~forbidden:(S.elements existentials) then (
