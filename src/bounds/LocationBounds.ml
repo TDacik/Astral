@@ -160,9 +160,6 @@ let rec compute_atomic psi =
   let poly = List.length @@ SL.Term.MonoList.unique @@ SL.get_terms_of_sort Sort.loc_nil psi in
   LocationBounds0.add Sort.loc_nil (SortBound.init 0 poly) res
 
-let compute phi heap_sort g = match SL.classify_fragment phi with
-  | SymbolicHeap_ENTL ->
-    let lhs, rhs = SL.as_entailment phi in
-    if SL.is_atomic lhs then compute_atomic lhs
-    else compute_general phi heap_sort g
-  | _ -> compute_general phi heap_sort g
+let compute phi heap_sort g =
+  if SL.is_atomic phi then compute_atomic phi
+  else compute_general phi heap_sort g
