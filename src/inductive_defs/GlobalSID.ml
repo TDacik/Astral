@@ -176,6 +176,10 @@ end
 
 (** ==== Abstraction of predicates ==== *)
 
+let stable_depth name = match find name with
+  | UserDefined pred -> (PredicateInfo.find pred !cache).stable_depth
+  | _ -> assert false
+
 let unfolding_depth name = match find name with
   | UserDefined pred -> (PredicateInfo.find pred !cache).unfolding_depth
   | _ -> assert false

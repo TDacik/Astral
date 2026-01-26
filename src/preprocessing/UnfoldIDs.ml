@@ -1,69 +1,16 @@
 (* Pass for full unfolding of inductive predicates.
  *
+ * TODO: implement refined bounds
+ *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
 module Logger = Logger.Make(struct let name = "unfolder" let level = 1 end)
 
-(*
-let unfolding_depth lhs g pred_name ys =
-    let _, atoms = SL.as_symbolic_heap lhs in
-    BatList.sum @@ BatList.map (fun atom -> match SL.view atom with
-      | PointsTo _ -> 1
-      | Predicate (name, _, _) -> SID.unfolding
-        begin match SID.distinguisher name with
-          | Field ->
-            if List.for_all (SL_graph.must_neq g SL.Term.nil) ys then SID.stable_depth name
-            else SID.unfolding_depth name
-          | _ -> SID.unfolding_depth name
-        end
-      | _ -> 0
-    ) atoms
-*)
-
-(** Bound on unfolding of lhs when rhs is atomic. *)
-let max_unfold_bound_lhs rhs default = default
-
-(** Bound on unfolding of rhs when lhs is atomic. *)
-let max_unfold_bound_rhs lhs default = default
- (*
-  match SL.pointer_size lhs with
-    | None -> default
-    | Some n -> n
- *)
-
 let unfold_sat sid phi name xs =
-  let bound = GlobalSID.unfolding_depth name in
+  let bound = GlobalSID.stable_depth name in
   Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
     name (SL.Term.show_list xs) (bound);
   SID.unfold sid name xs bound
-
-(*
-let unfold_predicate_lhs sid phi lhs max_bound name xs =
-  Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
-    name (SL.Term.show_list xs) (max_bound);
-  SID.unfold sid name xs (max_bound)
-
-let unfold_lhs sid g heap_sort bound phi lhs rhs = SL.map_view (function
-  | Predicate (name, xs, _) when SID.is_user_defined sid name ->
-    let self = GlobalSID.unfolding_depth name (*phi g name xs*) in
-    let alloc = must_allocate_lhs phi heap_sort lhs g name in
-    let default = (LocationBounds.sum_of_allocated bound) - alloc + self in
-    let bound = max_unfold_bound_lhs rhs default in
-    `Modify (unfold_predicate_lhs sid phi lhs bound name xs)
-  | _ -> `Skip
-) lhs
-*)
-
-let must_allocate_lhs phi heap_sort lhs g name =
-  let _, atoms = SL.as_symbolic_heap lhs in
-  List.map (fun atom -> match SL.view atom with
-    | PointsTo _ -> 1.0
-    | Predicate (name, xs, _) -> GlobalSID.alloc name phi g heap_sort xs
-    | _ -> 0.0
-  ) atoms
-  |> List.map Float.floor
-  |> List.map Float.to_int
-  |> BatList.sum
 
 let unfold_predicate_lhs sid phi lhs name xs =
   let bound = GlobalSID.unfolding_depth name in
@@ -73,13 +20,6 @@ let unfold_predicate_lhs sid phi lhs name xs =
 let unfold_lhs sid g heap_sort phi lhs rhs = SL.map_view (function
   | Predicate (name, xs, _) when SID.is_user_defined sid name ->
     `Modify (unfold_predicate_lhs sid phi lhs name xs)
-    (*
-    let self = GlobalSID.unfolding_depth name (*phi g name xs*) in
-    let alloc = must_allocate_lhs phi heap_sort lhs g name in
-    let default = (LocationBounds.sum_of_allocated bound) - alloc + self in
-    let bound = max_unfold_bound_lhs rhs default in
-    `Modify (unfold_predicate_lhs sid phi lhs bound name xs)
-    *)
   | _ -> `Skip
 ) lhs
 
@@ -97,7 +37,6 @@ let unfold_rhs sid ctx sl_graph lhs rhs =
   let module Encoding = (val ConfigReader.get_encoding () : ENCODING) in
   let module Translation = Translation.Make(Encoding)(Backend) in
   let module Unfolder = IncrementalUnfolding.Make(Encoding)(IncrementalBackend) in
-
 
   let lhs_t = Translation.translate {ctx with phi = lhs} in (* TODO: check*)
   Unfolder.unfold ctx lhs lhs_t rhs
@@ -121,14 +60,6 @@ let unfold_default ctx phi =
       {ctx with phi = SL.mk_gneg lhs rhs; model_adapter = ctx_lhs.model_adapter}
     | False | True -> ctx
     | _ -> assert false (* Should be catched earlier *)
-
-(*
-let apply_toplevel bound_map ctx phi =
-  Logger.debug "Unfolding %s\n" (SL.show phi);
-  match bound_map with
-    | Some bounds -> unfold_instrumented bounds ctx phi
-    | None -> unfold_default ctx phi
-*)
 
 let apply ctx phi =
   if List.is_empty @@ GlobalSID.get_user_defined () then ctx
