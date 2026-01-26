@@ -1,7 +1,7 @@
 (executable
   (name convertor)
   (libraries astral convertor_lib)
-  (flags -open Astral -open Convertor_lib)
+  (flags -open Astral_internal -open Convertor_lib)
 )
 
 (install

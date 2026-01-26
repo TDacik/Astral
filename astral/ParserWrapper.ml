@@ -2,8 +2,6 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
-open Astral
-
 let parse path =
   Profiler.add "Parsing";
   try

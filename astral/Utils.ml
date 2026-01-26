@@ -2,8 +2,6 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2025 *)
 
-open Astral
-
 let print_error fmt =
   Format.kasprintf (fun msg ->
     if Unix.isatty Unix.stderr

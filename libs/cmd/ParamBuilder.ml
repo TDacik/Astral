@@ -104,6 +104,8 @@ module Enum (E : ENUM_IN) = struct
 
   let names = List.map show values
 
+  let values_with_names = List.map (fun x -> (x, show x)) values
+
   let of_string str =
     match List.find_opt (fun v -> String.equal (show v) str) values with
     | Some v -> v

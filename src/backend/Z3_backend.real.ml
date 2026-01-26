@@ -277,7 +277,7 @@ module Init () = struct
     | Z3.Solver.SATISFIABLE ->
       if produce_models then
         let model = Option.get @@ Z3.Solver.get_model !solver in
-        (*let _ = Logger.smt_model @@ Z3.Model.to_string model in*)
+        (*let _ = Debug.backend_model @@ Z3.Model.to_string model in*)
         SMT_Sat (Some (translate_model context phi_orig model, model))
       else
         SMT_Sat None
