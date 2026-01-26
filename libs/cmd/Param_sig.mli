@@ -47,7 +47,11 @@ module type ENUM_IN = sig
   val default : t
 end
 
-module type ENUM = VALUE
+module type ENUM = sig
+  include VALUE
+  val values : t list
+  val values_with_names : (t * string) list
+end
 
 module type ACTION = sig
   include PARAM
