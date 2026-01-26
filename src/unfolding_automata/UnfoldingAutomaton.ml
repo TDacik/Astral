@@ -36,8 +36,8 @@ module State = struct
     Format.asprintf "Call: %s\ninvariant: %s\nalloc: %s\naccept: %s"
       (SL_printer.pretty_symbolic_heap @@ call_formula state)
       (SL_printer.pretty_symbolic_heap @@ SL.mk_star @@ SL.Set.elements state.invariant)
-      (show_acc_cond state)
       (SL.Variable.Set.show state.allocated)
+      (show_acc_cond state)
 
   let compare state1 state2 =
     if SL.(===) (call_formula state1) (call_formula state2)
@@ -68,6 +68,24 @@ module State = struct
     allocated = SL.Variable.Set.empty;
     accepting_condition = SL.Set.of_list @@ InductiveDefinition.cases ~base_only:true predicate;
   }
+
+  let canonicalise state =
+    let new_params =
+      List.mapi (fun i x ->
+        if SL.Variable.MonoList.mem x state.global then x
+        else SL.Variable.mk (Format.asprintf "p%d" (i + 1)) (SL.Variable.get_sort x)
+      ) state.params
+    in
+    {state with
+      params = new_params;
+      existentials = List.filter (fun p -> not @@ SL.Variable.MonoList.mem p state.global) new_params;
+      invariant = SL.Set.map (fun psi ->
+          SL.substitute_list psi ~vars:state.params ~by:(List.map SL.Term.of_var new_params))
+        state.invariant;
+      accepting_condition = SL.Set.map (fun psi ->
+          SL.substitute_list psi ~vars:state.params ~by:(List.map SL.Term.of_var new_params))
+        state.accepting_condition;
+    }
 
   let is_accepting state = not @@ SL.Set.is_empty state.accepting_condition
 
@@ -100,7 +118,7 @@ module State = struct
               (List.map SL.Term.as_var params)
               @@ SL.Set.union state.invariant (SL.Set.of_list pure_atoms)
         in
-        {
+        canonicalise {
           predicate = predicate;
           params = List.map SL.Term.as_var params;
           global = SL.Variable.nil :: state.global;
