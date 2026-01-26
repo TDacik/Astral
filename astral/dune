@@ -2,4 +2,9 @@
   (name main)
   (public_name astral)
   (libraries dune-build-info astral)
+
+  (flags
+    :standard
+    -open Astral_internal
+  )
 )

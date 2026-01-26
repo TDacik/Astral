@@ -2,8 +2,6 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
-open Astral
-
 let register_at_exit () =
   if Config.Profiling.get () then
     Stdlib.at_exit (fun () -> Profiler.finish (); Profiler.report ())

@@ -2,6 +2,8 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2021 *)
 
+module Astral = Astral_internal
+
 open Utils
 
 let run () =
@@ -16,7 +18,7 @@ let run () =
      nil = nil ~> emp. *)
   (if Astral.Config.ImprecisePureAtoms.get () then Astral.BaseLogic.use_simplification false);
 
-  let input = Parser.parse input_file in
+  let input = ParserWrapper.parse input_file in
   let result = Astral.Engine.solve input in
   Astral.Profiler.add "Solver";
 

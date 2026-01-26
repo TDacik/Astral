@@ -4,7 +4,6 @@
 
 open Utils
 
-open Astral
 open Context
 open ThreeValuedLogic
 
@@ -24,7 +23,7 @@ let check_model result =
   then match ModelChecker.check (Option.get result.model) result.phi with
     | Ok true -> Format.printf "Model verified\n"; True
     | Ok false -> print_error "Model is not correct\n"; False
-    | Error (Unsupported msg) -> Utils.warning "%s\n" msg; Unknown
+    | Error (Unsupported msg) -> ReportUtils.warning "%s\n" msg; Unknown
     | Error (Failure (exc, backtrace)) ->
       let msg = Printexc.to_string exc in
       print_error "%s" msg;

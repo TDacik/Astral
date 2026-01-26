@@ -1,0 +1,10 @@
+(library
+  (name astral)
+  (public_name astral)
+
+  (libraries astral_internal)
+)
+
+(include_subdirs unqualified)
+
+(documentation (package astral))

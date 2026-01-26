@@ -1,6 +1,6 @@
 (library
-  (name astral)
-  (public_name astral)
+  (name astral_internal)
+  (public_name astral.internal)
 
   (libraries
     dolmen
