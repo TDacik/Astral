@@ -46,6 +46,8 @@ let find ?(original=false) = SID.find (select original)
 let find_user_defined ?(original=false) = SID.find_user_defined (select original)
 let fold_user_defined ?(original=false) fn = SID.fold_user_defined fn (select original)
 
+let find_first_user_defined ?(original=false) fn = SID.find_first_user_defined (select original) fn
+
 let get_user_defined ?(original=false) () = SID.get_user_defined (select original)
 
 let is_self_recursive pred = SID.is_self_recursive !sid_updated pred

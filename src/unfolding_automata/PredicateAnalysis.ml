@@ -126,18 +126,22 @@ let unfolding_depth pred aut others =
   depth_self + depth_other
   + 1 (* 1 for implicit sink in other *)
 
-let check_automaton aut =
-  if GlobalSID.has_unique_footprint_property () then ()
+let check_predicate pred aut =
+  let open InductiveDefinition in
+  if GlobalSID.has_unique_footprint pred.name then ()
+  else if UnfoldingAutomaton.all_accepting aut then ()
   else
     Exceptions.unsupported_fragment
       ~reason:"non-deterministic SID"
-      ~details:""
+      ~details:(Format.asprintf "non-deterministic predicate:\n%s"
+        (InductiveDefinition.show pred)
+      )
 
 let compute_pred sid pred automata =
   let aut = UnfoldingAutomaton.construct_pred sid pred in
-  check_automaton aut;
+  check_predicate pred aut;
   let init = function UnfoldingAutomaton.Vertex.State s when State.equal s aut.initial -> [SL.emp] | _ -> [] in
-  let g = as_simple_graph @@ unfold_loops_once aut in (* TODO: unfold once *)
+  let g = as_simple_graph aut in (* TODO: unfold once *)
   let res = Fixpoint.analyze init g in
   let cnt = ref 1 in
   let sm = G.fold_vertex (fun s acc -> match s with

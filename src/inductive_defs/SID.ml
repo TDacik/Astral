@@ -97,6 +97,15 @@ let find_builtin sid name = match find sid name with
       ~reason:("No user-defined definition for predicate " ^ name ^ "(built-in exists)")
       ~details:("Registered predicates:\n" ^ show sid)
 
+let find_first_user_defined sid fn =
+  let res = snd @@ M.find_first (fun name ->
+    let id = find sid name in
+    match id with Builtin _ -> false | UserDefined id -> fn name id
+  ) sid.definitions
+  in
+  match res with UserDefined id -> id
+
+
 let is_builtin sid name =
   if not @@ mem name sid then false (* TODO: or raise? *)
   else match find sid name with

@@ -44,6 +44,8 @@ val find_builtin : t -> string -> (module BUILTIN)
 
 val find_user_defined : t -> string -> InductiveDefinition.t
 
+val find_first_user_defined : t -> (string -> InductiveDefinition.t -> bool) -> InductiveDefinition.t
+
 val get_user_defined : t -> InductiveDefinition.t list
 
 val get_builtin : t -> (module BUILTIN) list

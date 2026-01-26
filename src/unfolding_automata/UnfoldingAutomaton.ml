@@ -3,12 +3,12 @@ module Logger = Logger.Make (struct let name = "CallAutomaton" let level = 1 end
 module State = struct
 
   type t = {
-    id : Int.t;
     predicate : InductiveDefinition.t;
     global: SL.Variable.t List.t;
     params: SL.Variable.t List.t;
     existentials: SL.Variable.t List.t;
     invariant: SL.Set.t;
+    allocated: SL.Variable.Set.t;
     accepting_condition : SL.Set.t;
   } [@@deriving compare, equal]
 
@@ -33,17 +33,16 @@ module State = struct
     |> String.concat (" " ^ !UnicodeSymbols.or_ ^ " ")
 
   let show state =
-    Format.asprintf "Call: %s\ninvariant: %s\naccept: %s%s"
+    Format.asprintf "Call: %s\ninvariant: %s\nalloc: %s\naccept: %s"
       (SL_printer.pretty_symbolic_heap @@ call_formula state)
       (SL_printer.pretty_symbolic_heap @@ SL.mk_star @@ SL.Set.elements state.invariant)
       (show_acc_cond state)
-      (if state.id > 0 then Format.asprintf "\n(unfolded #%d)" state.id else "")
+      (SL.Variable.Set.show state.allocated)
 
   let compare state1 state2 =
     if SL.(===) (call_formula state1) (call_formula state2)
        && SL.(===) (invariant state1) (invariant state2)
        && SL.(===) (acc_condition state1) (acc_condition state2)
-       && Int.equal state1.id state2.id
     then 0
     else compare state1 state2
 
@@ -61,12 +60,12 @@ module State = struct
   (** Construction *)
 
   let initial predicate = {
-    id = 0;
     predicate = predicate;
     global = SL.Variable.nil :: predicate.header;
     params = predicate.header;
     existentials = [];
     invariant = SL.Set.empty;
+    allocated = SL.Variable.Set.empty;
     accepting_condition = SL.Set.of_list @@ InductiveDefinition.cases ~base_only:true predicate;
   }
 
@@ -102,12 +101,13 @@ module State = struct
               @@ SL.Set.union state.invariant (SL.Set.of_list pure_atoms)
         in
         {
-          id = 0;
           predicate = predicate;
           params = List.map SL.Term.as_var params;
           global = SL.Variable.nil :: state.global;
           existentials = SL.Variable.MonoList.inter qs (List.map SL.Term.as_var params);
           invariant = invariant;
+          allocated = SL.Variable.Set.inter (SL.Variable.Set.of_list qs)
+            (SL.Variable.Set.of_list @@ List.map SL.Term.as_var params);
           accepting_condition =
             SL.Set.of_list @@
               (InductiveDefinition.cases ~base_only:true ~params:params
@@ -306,67 +306,6 @@ let as_simple_graph aut =
   ) aut.delta G.empty
 
 
-let unfold_loops_once aut =
-  let open Transition in
-  let self_loops = Transition.Set.elements @@ Transition.Set.filter Transition.is_self_loop aut.delta in
-  List.fold_left (fun acc self_loop ->
-    let source = self_loop.input in
-    let duplicated = {source with id = 1} in
-    (* Now copy all transitions from source, substituting source by duplicator in outputs. *)
-    let outgoing = out aut source in
-    let acc = {acc with states = State.Set.add duplicated acc.states} in
-    List.fold_left (fun acc t ->
-      let transient = {t with output = List.map (fun s -> if State.equal s source then duplicated else s) t.output} in
-      let unfolded = {t with input = duplicated; output = List.map (fun s -> if State.equal s source then duplicated else s) t.output} in
-      let delta = Transition.Set.add unfolded @@ Transition.Set.add transient @@ Transition.Set.remove t acc.delta in
-      {acc with delta = delta}
-    ) acc outgoing
-  ) aut self_loops
-(*
-let unfold_transition g t source =
-  let new_id = match state with Vertex.State (_, id) -> id + 1 in
-  let duplicated = Vertex.State {source with id = new_id} in
-  let unfolded_transition = {t with
-    outputs = List.map (fun s -> if State.equal s source then duplicated else s) outputs
-  }
-  in
-  let g0 = G.add_edge_
-
-
-
-
-(* Unfold each loop in automton graph once. *)
-let unfold_once aut =
-  Transition.Set.fold (fun t acc ->
-    let v = Vertex.Transition t in
-    let g = G.add_vertex acc v in
-    (* Add in-edge for a transition *)
-    let g = G.add_edge_e g (Vertex.State (normalise aut t.input, 0), Edge.next_in t.symbol,v) in
-    BatList.fold_lefti (fun acc i o ->
-      if State.equal t.input o then
-        (* Duplicate the state *)
-        let dupl = Vertex.State (normalise aut o, 1) in
-        let unfolded_transition = Vertex.Transition {t with } in
-        let g0 = G.add_edge_e acc (Vertex.State (normalise aut t.input, 0), Edge.next_in t.symbol, ) in
-        let g1 = G.add_edge_e g0 (v, Edge.next_out (), Vertex.State (normalise aut o, 0)) in
-        List.fold_left (fun acc succ ->
-          G.add_edge_e acc (dupl, Edge.next_out (), Vertex.State (normalise aut succ, 0))
-        ) g1 t.output
-      else
-        (* Add an edge us usual. *)
-        G.add_edge_e acc (v, Edge.next_out (), Vertex.State (normalise aut o, 0))
-    ) g t.output
-  ) aut.delta G.empty
-*)
-(** Split the automaton at breakpoints (transitions that allocates named variables
-    or are uniquely determined by named variables). This is realised simply by
-    removing such edges. *)
-let split g =
-  G.fold_vertex (fun v acc ->
-    if Vertex.is_breakpoint v then G.remove_vertex acc v
-    else acc
-  ) g g
-
 (** ===== Construction ===== *)
 
 let rec construct_from_state sid aut state =
@@ -397,7 +336,7 @@ let self_projection aut =
 
 let check_fragment aut =
   let aut = self_projection aut in
-  let rec traverse_and_check visited last_breakpoint t =
+  let rec traverse_and_check visited t =
     if Transition.Set.mem t visited then
       if Transition.is_self_loop t then ()
       else Exceptions.unsupported_fragment ~reason:"System of predicates is not flat" ~details:""
@@ -406,13 +345,12 @@ let check_fragment aut =
       Exceptions.unsupported_fragment ~reason:"System of predicates is not 1-loop" ~details:""
     *)else
       let visited' = Transition.Set.add t visited in
-      let last_breakpoint' = Transition.is_breakpoint t || not @@ exists_selfloop aut t.input in
       t.output
       |> List.concat_map (fun s -> out aut s)
-      |> List.iter (traverse_and_check visited' last_breakpoint')
+      |> List.iter (traverse_and_check visited')
   in
   out aut aut.initial
-  |> List.iter (traverse_and_check Transition.Set.empty false)
+  |> List.iter (traverse_and_check Transition.Set.empty)
   (*
 let postprocessing aut =
   List.fold_left*)
@@ -428,10 +366,6 @@ let output path g =
 let debug aut =
   let pred = aut.initial.predicate in
   Logger.dump output (InductiveDefinition.name pred ^ "-aut.dot") @@ as_graph aut;
-  Logger.dump output (InductiveDefinition.name pred ^ "-self-aut.dot") @@ as_graph @@ self_projection aut;
-  Logger.dump output (InductiveDefinition.name pred ^ "-aut-partition.dot") @@ split @@ as_graph aut;
-  Logger.dump output (InductiveDefinition.name pred ^ "-aut-unfolded.dot") @@ as_graph @@ unfold_loops_once aut;
-  (*Logger.dump SG.output (InductiveDefinition.name pred ^ "-simple-aut.dot") @@ SG.as_graph aut;*)
   ()
 
 let construct_pred sid pred =
