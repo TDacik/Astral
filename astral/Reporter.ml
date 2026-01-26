@@ -10,6 +10,11 @@ let register_at_exit () =
 let print_result result =
   Format.printf "%s\n" (Context.show_status result);
 
+  (if Config.Debug.get () then match result.status with
+    | Some (`Unknown (_, details)) -> Format.printf "Details:\n%s" details
+    | _ -> ()
+  );
+
   if Config.ProduceModels.get () && Option.is_some result.model then
     match Option.get result.status with
       | `Sat -> Format.printf "%s\n" (StackHeapModel.to_smtlib @@ Option.get result.model)

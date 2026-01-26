@@ -22,7 +22,7 @@ val init :
     @param use_builtins_defs Use builtin sorts, structures and inductive definitions
     @param dump_queries Store queries in directory given by the path. *)
 
-val solve : ?timeout:Int.t -> solver -> SL.t -> [ `Sat of StackHeapModel.t option | `Unsat | `Unknown of string ]
+val solve : ?timeout:Int.t -> solver -> SL.t -> [ `Sat of StackHeapModel.t option | `Unsat | `Unknown of string * string ]
 (** Check satisfiability of a formula.
 
     @param timeout Timeout in seconds. When the given limit is reached, return unknown.

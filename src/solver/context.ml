@@ -4,7 +4,7 @@
 
 type expected_status = [ `Sat | `Unsat | `Unknown]
 
-type status = [`Sat | `Unsat | `Unknown of string]
+type status = [`Sat | `Unsat | `Unknown of string * string]
 
 let negate_status = function
   | `Sat -> `Unsat
@@ -126,11 +126,12 @@ let transform_to_entl input = match SL.view input.phi with
 
 (* ==== Pretty-printing ==== *)
 
-let show_status input = match input.status with
+let show_status ?(with_details=false) input = match input.status with
   | None -> "none"
   | Some `Sat -> "sat"
   | Some `Unsat -> "unsat"
-  | Some (`Unknown reason ) -> Format.asprintf "unknown (%s)" reason
+  | Some (`Unknown (reason, _)) when not with_details -> Format.asprintf "unknown (%s)" reason
+  | Some (`Unknown (reason, details)) -> Format.asprintf "unknown (%s, %s)" reason details
 
 let show_expected_status input = match input.expected_status with
   | `Sat -> "sat"

@@ -152,12 +152,12 @@ let solve ?timeout solver phi =
     ignore @@ Unix.alarm timeout;
     let solver = {solver with timeout = Some timeout} in
     try _solve solver phi
-    with Timeout -> `Unknown "astral timeout"
+    with Timeout -> `Unknown ("astral timeout", Format.asprintf "Astral run of time (%ds)" timeout)
 
 let lift res = function
   | `Sat _ -> res
   | `Unsat -> not res
-  | `Unknown reason -> raise @@ UnknownResult reason
+  | `Unknown (reason, _) -> raise @@ UnknownResult reason
 
 let check_sat solver phi = lift true @@ solve solver phi
 

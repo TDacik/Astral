@@ -119,7 +119,7 @@ let timeout_template size init_to call_to expected_reason =
     | Some timeout -> Solver.solve solver ~timeout phi
   in
   assert (match res with
-    | `Unknown reason -> String.equal reason expected_reason
+    | `Unknown (reason, _) -> String.equal reason expected_reason
     | _ -> false
   )
 

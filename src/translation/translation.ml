@@ -663,7 +663,7 @@ let translate_phi (ctx : Context.t) ssl_phi =
     Logger.output_apply "backend_simplified.smt2" Backend.simplify Backend.show_formula backend_translated;
 
     (* Store intermediate statistics *)
-    Stats.stats := Option.some @@ Input.set_result (`Unknown "intermediate") input;
+    Stats.stats := Option.some @@ Input.set_result (`Unknown ("intermediate", "no result yet")) input;
 
     (* Solve *)
     Logger.debug "Running backend SMT solver\n";
@@ -682,7 +682,7 @@ let translate_phi (ctx : Context.t) ssl_phi =
     | SMT_Unsat unsat_core -> Input.set_result `Unsat ~unsat_core:[] input
 
     (* TODO: remove duplicit reason *)
-    | SMT_Unknown reason -> Input.set_result (`Unknown reason) input
+    | SMT_Unknown reason -> Input.set_result (`Unknown (reason, "")) input
 
   (*let solve input =
     try solve input

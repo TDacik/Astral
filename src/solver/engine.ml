@@ -19,9 +19,9 @@ let debug_info input = match SL.classify_fragment input.phi with
 
 let postprocess ctx =
   if ctx.is_unsound && ctx.status == Some `Unsat then
-    Context.set_result (`Unknown "unsound") ctx
+    Context.set_result (`Unknown ("unsound", "TODO")) ctx
   else if ctx.is_incomplete && ctx.status == Some `Sat then
-    Context.set_result (`Unknown "incomplete") ctx
+    Context.set_result (`Unknown ("incomplete", "TODO")) ctx
   else ctx
 
 
@@ -60,7 +60,7 @@ let solve (input : Context.t) =
   if SL_graph.has_contradiction sl_graph then
     Context.set_result `Unsat ~unsat_core:[] input
   else match FragmentChecker.check input, Config.Unsafe.get () with
-  | Error reason, false -> Context.set_result (`Unknown reason) input
+  | Error reason, false -> Context.set_result (`Unknown (reason, "TODO")) input
   | _, _ ->
     Profiler.add "Normalisation";
 
@@ -89,7 +89,7 @@ let solve (input : Context.t) =
       let res' = Context.apply_model_adapter res in
       (match res'.model with None -> () | Some sh -> Debug.sl_model "model" sh);
       res'
-    else Context.set_result (`Unknown "dry run") input
+    else Context.set_result (`Unknown ("dry run", "")) input
 
 (* TODO: Do not return just input in case of exception. *)
 let solve input =
@@ -97,7 +97,7 @@ let solve input =
   try postprocess @@ solve ctx with
   | Exceptions.Unsat reason ->
     Context.set_result `Unsat ~unsat_core:[] ctx (* TODO: use this or propage through exception?  *)
-  | Exceptions.UnknownResult (reason, _) ->
-    Context.set_result (`Unknown reason) ctx
-  | Exceptions.UnsupportedFragment (reason, _) ->
-    Context.set_result (`Unknown ("Unsupported fragment (" ^ reason ^ ")")) ctx
+  | Exceptions.UnknownResult (reason, details) ->
+    Context.set_result (`Unknown (reason, details)) ctx
+  | Exceptions.UnsupportedFragment (reason, details) ->
+    Context.set_result (`Unknown ("Unsupported fragment (" ^ reason ^ ")", details)) ctx
