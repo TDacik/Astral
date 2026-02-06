@@ -203,12 +203,6 @@ let additional_bounds phi =
     | UserDefined id -> acc
   ) !sid_updated LocationBounds0.empty
 
-let alloc name phi g heap_sort xs = match find name with
-  | UserDefined id -> Float.of_int @@ unfolding_depth name (* TODO: check *)
-  | Builtin (module B : BUILTIN) ->
-    B.must_allocated xs
-    |> List.map (term_bound phi g heap_sort)
-    |> BatList.kahan_sum
 
 let nb_must_allocated name =
   List.length @@ (PredicateInfo.find name !cache).allocated
@@ -216,6 +210,13 @@ let nb_must_allocated name =
 let get_may_dangling name =
   let pred = find_user_defined name in
   (List.length pred.header) - nb_must_allocated pred
+
+let alloc name phi g heap_sort xs = match find name with
+  | UserDefined id -> Float.of_int @@ nb_must_allocated id
+  | Builtin (module B : BUILTIN) ->
+    B.must_allocated xs
+    |> List.map (term_bound phi g heap_sort)
+    |> BatList.kahan_sum
 
 (*
 let is_computed () = not @@ PredicateAbstraction.M.is_empty !cache

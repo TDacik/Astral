@@ -291,8 +291,8 @@ let is_pure_smt phi =
 
 let is_low_level = exists_app (function BlockBegin | BlockEnd -> true | _ -> false)
 
-(* TODO: will require normalisation for user-defined *)
 let get_root phi = match view phi with
+  | PointsTo (x, _, _) -> x
   | Predicate (_, x :: _, _) -> x
 
 let get_struct_def phi = match view phi with

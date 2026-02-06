@@ -8,13 +8,14 @@ module Logger = Logger.Make(struct let name = "unfolder" let level = 1 end)
 
 let unfold_sat sid phi name xs =
   let bound = GlobalSID.stable_depth name in
-  Logger.debug "Unfolding predicate %s(%s) up to depth %d\n"
-    name (SL.Term.show_list xs) (bound);
+  Logger.debug "Unfolding predicate %s(%s) up to depth: %s\n"
+    name (SL.Term.show_list xs) (UnfoldingBound.show bound);
   SID.unfold sid name xs bound
 
 let unfold_predicate_lhs sid phi lhs name xs =
   let bound = GlobalSID.unfolding_depth name in
-  Logger.debug "Unfolding predicate %s(%s): %d\n" name (SL.Term.show_list xs) bound;
+  Logger.debug "Unfolding predicate %s(%s): %s\n"
+    name (SL.Term.show_list xs) (UnfoldingBound.show bound);
   SID.unfold sid name xs bound
 
 let unfold_lhs sid g heap_sort phi lhs rhs = SL.map_view (function
@@ -29,7 +30,8 @@ let unfold_sat sid lhs = SL.map_view (function
   | _ -> `Skip
 ) lhs
 
-let unfold_rhs sid ctx sl_graph lhs rhs =
+let unfold_rhs sid ctx bound sl_graph lhs rhs =
+  let open Context in
   let open Backend_sig in
   let open Translation_sig in
   let module Backend = (val ConfigReader.get_backend () : BACKEND) in
@@ -39,7 +41,7 @@ let unfold_rhs sid ctx sl_graph lhs rhs =
   let module Unfolder = IncrementalUnfolding.Make(Encoding)(IncrementalBackend) in
 
   let lhs_t = Translation.translate {ctx with phi = lhs} in (* TODO: check*)
-  Unfolder.unfold ctx lhs lhs_t rhs
+  Unfolder.unfold ctx bound lhs lhs_t rhs
 
 let unfold_default ctx phi =
   let open Context in
@@ -56,7 +58,8 @@ let unfold_default ctx phi =
         let open Context in
         let bounds = LocationBounds.compute lhs ctx.raw_input.heap_sort sl_graph in
         let ctx = {ctx with location_bounds = bounds} in
-      let rhs = unfold_rhs sid ctx sl_graph lhs rhs in
+        let unf_bounds = UnfoldingBound.of_location_bound bounds in
+      let rhs = unfold_rhs sid ctx unf_bounds sl_graph lhs rhs in
       {ctx with phi = SL.mk_gneg lhs rhs; model_adapter = ctx_lhs.model_adapter}
     | False | True -> ctx
     | _ -> assert false (* Should be catched earlier *)

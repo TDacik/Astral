@@ -286,6 +286,45 @@ module G = struct
     end)
 end
 
+module PlainGraph = struct
+
+  module VV = struct
+    include State
+    let hash = Hashtbl.hash
+  end
+
+  module EE =
+    struct include Sort
+    let hash = Hashtbl.hash
+    let default = Sort.loc_nil
+  end
+
+  module Self = Graph.Persistent.Digraph.ConcreteBidirectionalLabeled(VV)(EE)
+  include Self
+  include Graph.Graphviz.Dot
+    (struct
+      include Self
+      let graph_attributes g = []
+      let default_vertex_attributes _ = []
+      let vertex_name v = "\"" ^ State.show v ^ "\""
+      let vertex_attributes _ = []
+
+      let get_subgraph _ = None
+      let edge_attributes e = [`Label (Sort.show @@ E.label e)]
+      let default_edge_attributes _ = []
+    end)
+end
+
+let as_plain_graph aut =
+  let g = PlainGraph.add_vertex PlainGraph.empty (normalise aut aut.initial) in
+  Transition.Set.fold (fun t acc ->
+    let sort = SL.Term.get_sort @@ Transition.get_allocation t in
+    BatList.fold_left
+      (fun acc o ->
+        PlainGraph.add_edge_e acc (t.input, sort, o)
+      ) acc t.output
+  ) aut.delta g
+
 let as_graph aut =
   let g = G.add_vertex G.empty (Vertex.State (normalise aut aut.initial)) in
   Transition.Set.fold (fun t acc ->
@@ -301,16 +340,26 @@ let list_max plus = function
   | xs -> plus + BatList.max xs
 
 let depth aut =
-  let g = as_graph aut in (* TODO *)
+  let g = as_plain_graph aut in (* TODO *)
   let rec traverse visited state =
-    let succs = G.succ g state in
-    match state with
-    | State state ->
-      if State.Set.mem state visited then None
-      else Option.some @@ list_max 0 @@ List.filter_map (traverse @@ State.Set.add state visited) succs
-    | Transition _ -> Option.some @@ list_max 1 @@ List.filter_map (traverse visited) succs
+    if State.Set.mem state visited
+    then UnfoldingBound.empty
+    else
+      PlainGraph.fold_succ_e (fun e acc ->
+        let sort = PlainGraph.E.label e in
+        let sort' = SL.Variable.get_sort @@ InductiveDefinition.get_root @@ (PlainGraph.E.dst e).predicate in
+        if State.equal state (PlainGraph.E.dst e) then UnfoldingBound.empty
+        else
+        let const = UnfoldingBound.singleton (PlainGraph.E.label e) 1 in
+        UnfoldingBound.max
+          acc
+          (UnfoldingBound.plus
+            const
+            (traverse (State.Set.add state visited) (PlainGraph.E.dst e))
+          )
+      ) g state UnfoldingBound.empty
   in
-  Option.get @@ traverse State.Set.empty (State aut.initial)
+  traverse State.Set.empty aut.initial
 
 let as_simple_graph aut =
   Transition.Set.fold (fun t acc ->

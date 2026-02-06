@@ -2,6 +2,10 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
+let min_cmp ~cmp xs = fst @@ BatList.min_max ~cmp xs
+
+let max_cmp ~cmp xs = snd @@ BatList.min_max ~cmp xs
+
 let all_equal eq = function
   | [] -> true
   | x :: xs -> List.for_all (eq x) xs

@@ -34,7 +34,9 @@ let rec candidate_conditions phi = match SL.view phi with
   | Exists (xs, psi) ->
     List.filter (SL.is_ground' ~forbidden:xs) @@ candidate_conditions psi
   | Predicate (pred, xs, []) ->
-    let unfolding = GlobalSID.unfold pred xs 1 in
+    let sort = SL.Term.get_sort @@ List.hd xs in
+    let bound = UnfoldingBound.singleton sort 1 in
+    let unfolding = GlobalSID.unfold pred xs bound in
     candidate_conditions unfolding
   | Or psis ->
     let cs = List.map candidate_conditions psis in

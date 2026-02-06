@@ -2,6 +2,11 @@
 
 open InductiveDefinition
 
+module Logger = Logger.Make (struct
+  let name = "Pred. preproessor"
+  let level = 1
+end)
+
 (** Create Logger module *)
 let make_logger pred =
   let name = name pred in
@@ -51,6 +56,7 @@ let preprocess (pred : t) =
   (* Needs to be last as it introduces disjunctive rules *)
   let pred = RuleAntiunification.apply pred in
   Logger.inductive_predicate ~name:(pred.name ^ "_6_generalisation") pred;
+
 
   let pred = InductiveDefinition.map (repeat_until_fixpoint ~eq:SL.equal @@ IntroduceIfThenElse.apply) pred in
   Logger.inductive_predicate ~name:(pred.name ^ "_7_ite_intro") pred;

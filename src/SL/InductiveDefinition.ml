@@ -10,6 +10,10 @@ let name self = self.name
 
 let header self = self.header
 
+let get_root self =
+  (* Here we rely on the normalisation of predicates. *)
+  List.hd self.header
+
 let show id =
   Format.asprintf "%s(%s) :=\n  %s"
     (id.name)
@@ -94,7 +98,7 @@ let instantiate ~refresh ?(base_only=false) id xs =
     then refresh_header @@ refresh_existentials id
     else id
   in
-  let cases = if base_only then id.base_cases else id.base_cases @ id.inductive_cases in
+  let cases = if base_only then get_base_cases id else id.base_cases @ id.inductive_cases in
   let phi = SL.mk_or cases in
   SL.substitute_list phi ~vars:id.header ~by:xs
 

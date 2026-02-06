@@ -127,6 +127,8 @@ module type MONO_MAP = sig
 
   val find : key -> t -> data
 
+  val find_opt : key -> t -> data option
+
   val iter : (key -> data -> unit) -> t -> unit
 
   val fold : (key -> data -> 'acc -> 'acc) -> t -> 'acc -> 'acc
@@ -140,6 +142,10 @@ module type MONO_MAP = sig
   val cardinal : t -> int
 
   val choose : t -> (key * data)
+
+  val map : (data -> data) -> t -> t
+
+  val mapi : (key -> data -> data) -> t -> t
 
   val filter : (key -> data -> bool) -> t -> t
 

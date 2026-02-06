@@ -146,6 +146,7 @@ let compute_sh_entl phi lhs rhs heap_sort g =
     | Some b, _ | _, Some b -> b
     | None, None -> compute_general phi heap_sort g
 
+(*
 let rec compute_atomic psi =
   let res = match SL.view psi with
     | False -> empty
@@ -159,6 +160,15 @@ let rec compute_atomic psi =
   in
   let poly = List.length @@ SL.Term.MonoList.unique @@ SL.get_terms_of_sort Sort.loc_nil psi in
   LocationBounds0.add Sort.loc_nil (SortBound.init 0 poly) res
+*)
+
+let compute_atomic phi =
+  let sorts = SL.get_all_sorts ~with_nil:false phi in
+  let init = LocationBounds0.add Sort.loc_nil (SortBound.init 0 1) LocationBounds0.empty in
+  List.fold_left (fun acc sort ->
+    let n = List.length @@ SL.get_terms_of_sort sort phi in
+    LocationBounds0.add sort (SortBound.init n n) acc
+  ) init sorts
 
 let compute phi heap_sort g =
   if SL.is_atomic phi then compute_atomic phi

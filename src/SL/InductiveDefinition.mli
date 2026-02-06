@@ -16,6 +16,8 @@ val hash : t -> int
 
 val name : t -> string
 
+val get_root : t -> SL.Variable.t
+
 val header : t -> SL.Variable.t list
 
 val cases : ?refresh:bool -> ?base_only:bool -> ?params:SL.Term.t list -> t -> SL.t list

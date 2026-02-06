@@ -388,9 +388,10 @@ let rec (===) lhs rhs = match lhs, rhs with
     if not @@ Binder.equal b1 b2 then false
     else if List.compare_lengths vs1 vs2 <> 0 then false
     else
-      let fresh = List.map (fun x -> of_var @@ Variable.refresh x) vs1 in
-      let x1' = substitute_list x1 ~vars:vs1 ~by:fresh in
-      let x2' = substitute_list x2 ~vars:vs2 ~by:fresh in
+
+      let rename = List.mapi (fun i x -> mk_var ("__e" ^ string_of_int i) (Variable.get_sort x)) in
+      let x1' = substitute_list x1 ~vars:vs1 ~by:(rename vs1) in
+      let x2' = substitute_list x2 ~vars:vs2 ~by:(rename vs2) in
       x1' === x2'
 
   | _ -> false

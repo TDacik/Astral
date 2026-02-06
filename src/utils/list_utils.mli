@@ -2,6 +2,10 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
+val min_cmp : cmp:('a -> 'a -> int) -> 'a list -> 'a
+
+val max_cmp : cmp:('a -> 'a -> int) -> 'a list -> 'a
+
 val index_of_cmp : ('a -> 'a -> int) -> 'a -> 'a list -> int option
 
 val all_equal : ('a -> 'a -> bool) -> 'a list -> bool

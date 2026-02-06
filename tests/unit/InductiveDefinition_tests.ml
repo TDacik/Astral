@@ -21,16 +21,17 @@ let instantiate_test2 () =
 (** Unfolding tests *)
 
 (* TODO: we could test more properties of unfolded formulas *)
-
 let sid_ls = SID.register_user_defined SID.empty ls
 
 let unfold_test1 () =
-  let actual = SID.unfold sid_ls "ls" [x; y] 0 in
+  let bound = UnfoldingBound.empty in
+  let actual = SID.unfold sid_ls "ls" [x; y] bound in
   let expected = SL.mk_eq [x; y] in
   SL.check_equal actual expected
 
 let unfold_test2 () =
-  let actual = SID.unfold sid_ls "ls" [x; y] 1 in
+  let bound = UnfoldingBound.singleton SL_builtins.loc_ls 1 in
+  let actual = SID.unfold sid_ls "ls" [x; y] bound in
   let expected =
     SL.mk_or [
       SL.mk_eq [x; y];
@@ -44,7 +45,8 @@ let unfold_test2 () =
   SL.check_equal actual expected
 
 let unfold_test3 () =
-  let actual = SID.unfold sid_ls "ls" [x; y] 2 in
+  let bound = UnfoldingBound.singleton SL_builtins.loc_ls 2 in
+  let actual = SID.unfold sid_ls "ls" [x; y] bound in
   let expected =
     SL.mk_or [
       SL.mk_eq [x; y];
@@ -72,7 +74,8 @@ let unfold_test4 () =
 
   let id = InductiveDefinition.map IntroduceIfThenElse.apply ls in
   let sid = SID.register_user_defined SID.empty id in
-  let actual = SID.unfold sid "ls" [x; y] 0 in
+  let bound = UnfoldingBound.empty in
+  let actual = SID.unfold sid "ls" [x; y] bound in
   let expected = SL.mk_eq [x; y] in
   SL.check_equal actual expected
 
@@ -83,7 +86,8 @@ let unfold_test5 () =
 
   let id = InductiveDefinition.map IntroduceIfThenElse.apply ls in
   let sid = SID.register_user_defined SID.empty id in
-  let actual = SID.unfold sid "ls" [x; y] 1 in
+  let bound = UnfoldingBound.singleton SL_builtins.loc_ls 1 in
+  let actual = SID.unfold sid "ls" [x; y] bound in
   let expected =
     SL.mk_ite
       (SL.mk_eq [x; y])
@@ -99,7 +103,8 @@ let unfold_test5 () =
 let unfold_tll_test1 () =
   let open TLL in
   let sid = SID.register_user_defined SID.empty TLL.id in
-  let actual = Simplifier.simplify @@ SID.unfold sid "tll" [x; y; z] 3 in
+  let bound = UnfoldingBound.singleton sort 2 in
+  let actual = Simplifier.simplify @@ SID.unfold sid "tll" [x; y; z] bound in
   let expected =
     SL.mk_or [
       SL.mk_star [

@@ -179,23 +179,35 @@ let of_list xs =
 (** Compute how many locations will the rule allocate. *)
 let case_size rule =
   let _, atoms = SL.as_quantified_symbolic_heap rule in
-  List.length @@ List.filter SL.is_pointer atoms
+  List.fold_left (fun acc atom ->
+    if SL.is_pointer atom then
+      let sort = SL.Term.get_sort @@ SL.get_root atom in
+      UnfoldingBound.increase acc sort 1
+    else acc
+  ) UnfoldingBound.empty atoms
 
 let base_size id = match InductiveDefinition.cases ~base_only:true id with
-  | [] -> 0 (* TODO: check *)
-  | bs -> BatList.min @@ List.map case_size bs
+  | [] -> UnfoldingBound.empty (* TODO: check *)
+  | bs -> List_utils.min_cmp ~cmp:UnfoldingBound.compare @@ List.map case_size bs
 
-let rec unfold_case sid n case =
-  let rest = n - case_size case in
-  if rest < 0 then SL.ff
-  else SL.map_view (function
+let rec unfold_case sid id bound case =
+  let sort = SL.Variable.get_sort @@ InductiveDefinition.get_root id in
+  let bound' = UnfoldingBound.minus bound (case_size case) in
+  (*if UnfoldingBound.is_leq_zero bound' sort then SL.ff
+  else
+  *)SL.map_view (function
     | Predicate (name, ys, _) ->
-      `Modify (unfold_id sid name ys rest)
+      `Modify (unfold_id sid name ys bound')
     | _ -> `Skip
   ) case
 
-and unfold_id sid name xs n =
+and unfold_id sid name xs bound =
   let id = find_user_defined sid name in
+  let sort = SL.Variable.get_sort @@ InductiveDefinition.get_root id in
+  if UnfoldingBound.is_leq_zero bound sort then
+    (* Unfold only bases cases *)
+    InductiveDefinition.instantiate ~refresh:true ~base_only:true id xs
+  else
   let cases = InductiveDefinition.instantiate_rules id xs in
   let fn case =
     let _, atoms = SL.as_quantified_symbolic_heap case in
@@ -205,9 +217,9 @@ and unfold_id sid name xs n =
       |> List.map (fun (name, _) -> find_user_defined sid name)
       |> List.map base_size
       |> (fun xs -> try List.tl xs with _ -> xs) (* TODO: remove systematically *)
-      |> BatList.sum
+      |> List.fold_left UnfoldingBound.plus UnfoldingBound.empty
     in
-    unfold_case sid (n - malus) case
+    unfold_case sid id (UnfoldingBound.minus bound malus) case
   in
   let rec unfold_aux case = match SL.view case with
     | Ite (cond, t, e) -> SL.mk_ite cond (unfold_aux t) (unfold_aux e)

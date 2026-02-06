@@ -97,34 +97,26 @@ end
 
 (** Stable depth is given as the length of the longest path needed to
     reach all states with distinct invariants. *)
-let stable_depth aut =
-  let rec aux visited s =
-    if State.Set.mem s visited then 0
-    else
-      let visited' = State.Set.add s visited in
-      let res =
-        out aut s
-        |> List.concat_map (fun t -> t.output)
-        |> List.map (aux visited')
-        |> (fun xs -> try BatList.max xs with _ -> 0)
-      in
-      res + 1
-  in
-  aux State.Set.empty aut.initial - 1 (* TODO..... *)
-
+let stable_depth aut sorts =
+  (** TODO: this computation could be improved *)
+  UnfoldingAutomaton.depth aut
 
 (** Bound computation *)
-let unfolding_depth pred aut others =
-  let open InductiveDefinition in
+let unfolding_depth pred must_alloc aut others sorts =
   let depth_self = UnfoldingAutomaton.depth aut in
-  Logger.debug "depth(%s): %d\n" (pred.name) depth_self;
   (* TODO: sort refinement *)
   let depth_other = BatList.max @@ List.map UnfoldingAutomaton.depth others in
   if List.for_all (fun aut -> UnfoldingAutomaton.all_accepting aut) others
-  then depth_other + 1 (* implicit sink *)
+  then
+    depth_other
+    |> UnfoldingBound.saturate sorts
+    (*
+    let alloc_sorts = List.map SL.Variable.get_sort must_alloc in
+    UnfoldingBound.of_sorts alloc_sorts sorts
+    *)
   else
-  depth_self + depth_other
-  + 1 (* 1 for implicit sink in other *)
+    UnfoldingBound.plus depth_self depth_other
+    |> UnfoldingBound.saturate sorts  (* +1 for implicit sink in other *)
 
 let check_predicate pred aut =
   let open InductiveDefinition in
@@ -157,15 +149,18 @@ let compute_pred sid pred automata =
       acc @ small_models
     | _ -> acc
   ) g [] in
+  let signature = compute_signature sm in
+  let sorts = PredicateInfo.Signature.flatten signature in
+  let must_allocated = compute_allocated pred sm in
   PredicateInfo.Entry.{
     root = compute_root pred sm;
-    allocated = compute_allocated pred sm;
+    allocated = must_allocated;
     never_allocated = compute_dangling pred sm;
 
-    signature = compute_signature sm;
+    signature = signature;
 
-    stable_depth = stable_depth aut;
-    unfolding_depth = unfolding_depth pred aut automata;
+    stable_depth = stable_depth aut sorts;
+    unfolding_depth = unfolding_depth pred must_allocated aut automata sorts;
   }
 
 let debug pred info =

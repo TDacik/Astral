@@ -78,16 +78,18 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   (** Predicate unfolding
 
       @param existentials     Existential variables introduced during the unfolding process. *)
-  let rec unfold_pred ~existentials ctx sl_graph n sid pred xs =
+  let rec unfold_pred ~existentials ctx sl_graph bound sid pred xs =
     let id = SID.find_user_defined sid pred in
     (* TODO: improve for non-empty base case *)
-    if n = 0 then InductiveDefinition.unfold_finite id xs
+    let sort = SL.Variable.get_sort @@ InductiveDefinition.get_root id in
+    if UnfoldingBound.is_leq_zero bound sort then InductiveDefinition.unfold_finite id xs
     else
       (* TODO: instantiate in SID? *)
       let def = InductiveDefinition.instantiate ~refresh:true id xs in
       let continue_branch guard branch alloc_plus =
         Backend.push guard;
-        let res = unfold_rec ~existentials ctx sl_graph (n-1) sid branch in
+        let bound = UnfoldingBound.decrease bound sort 1 in
+        let res = unfold_rec ~existentials ctx sl_graph bound sid branch in
         Backend.pop 1;
        res
       in
@@ -96,7 +98,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         (* Just collects existentials and continue without decreasing [n]
            as nothing was unfolded. *)
         let existentials = S.union (S.of_list xs) existentials in
-        SL.mk_exists xs @@ unfold_rec ~existentials ctx sl_graph n sid body
+        SL.mk_exists xs @@ unfold_rec ~existentials ctx sl_graph bound sid body
 
       | Ite (cond, t_branch, e_branch) ->
         if SL.is_ground' cond ~forbidden:(S.elements existentials) then (
@@ -141,10 +143,10 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
             end
 
           (* Otherwise, do full unfolding *)
-          else SID.unfold sid pred xs n
+          else SID.unfold sid pred xs bound
         )
         (* Otherwise, do full unfolding *)
-        else SID.unfold sid pred xs n
+        else SID.unfold sid pred xs bound
       | Or cases ->
         (* Continue by only those cases that are feasible on the left-hand side. *)
         List.fold_left (fun acc case ->
@@ -162,7 +164,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         ) SL.ff cases
 
       (* Non-disjunctive definition *)
-      | _ -> unfold_rec ~existentials ctx sl_graph n sid def
+      | _ -> unfold_rec ~existentials ctx sl_graph bound sid def
 
     and unfold_rec ~existentials ctx sl_graph n sid phi =
       SL.map_view (function
@@ -179,7 +181,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         | _ -> `Skip
       ) phi
 
-    let unfold input lhs lhs_t rhs =
+    let unfold input bounds lhs lhs_t rhs =
       let module C = Translation_context.Make(Encoding.Locations)(Encoding.HeapEncoding) in
       Profiler.add "Unfolding";
 
@@ -190,8 +192,11 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
       let sl_graph = SL_graph.compute rhs in
 
       let ctx = C.init input in
+      (*
       let bound = LocationBounds.sum_of_allocated @@ LocationBounds.compute lhs input.heap_sort input.sl_graph in
       Logger.debug "%d\n" bound;
+      *)
+
       let sid = GlobalSID.get () in
 
       Backend.push lhs_t; (* TODO: could adding axioms help? *)
@@ -200,7 +205,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
         | SMT_Unsat _ -> Logger.debug "LHS is UNSAT\n"; SL.tt
         | _ ->
           let existentials = S.of_list @@ SL.bound_vars rhs in
-          unfold_toplevel ~existentials ctx sl_graph bound sid rhs
+          unfold_toplevel ~existentials ctx sl_graph bounds sid rhs
       in
 
       Backend.pop 1;
