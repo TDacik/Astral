@@ -491,7 +491,7 @@ let parse_option ctx opt = match opt.term with
       Freed.register ();
       Context.add_defs ctx (GlobalSID.builtin_context ())
     | opt ->
-      Utils.warning "Ignoring unknown option '%s'" opt;
+      ReportUtils.warning "Ignoring unknown option '%s'" opt;
       ctx
     end
   | _ -> ctx
