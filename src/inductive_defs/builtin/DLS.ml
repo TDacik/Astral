@@ -15,12 +15,12 @@ module Logger = Logger.Make(struct let name = "Translation:DLS" let level = 1 en
 
 (** Memory model *)
 
-let loc_dls = Sort.mk_loc "DLS_t" ~aliases:["RefDll_t"]
+let loc_dls = Sort.mk_loc "Ref_DLS" ~aliases:["RefDll_t"]
 
 let next = Field.mk "field_next" loc_dls
 let prev = Field.mk "field_prev" loc_dls
 
-let struct_dls = StructDef.mk "DLS_t" ~cons:"c_dls" [next; prev]
+let struct_dls = StructDef.mk "DLS" ~cons:"c_dls" [next; prev]
 
 let mk_pto_dls x next prev = SL.mk_pto_struct x struct_dls [next; prev]
 

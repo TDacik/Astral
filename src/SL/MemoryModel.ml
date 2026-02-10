@@ -19,7 +19,7 @@ module StructDef = struct
   let compare s1 s2 = Identifier.compare s1.name s2.name
   let equal s1 s2 = Identifier.equal s1.name s2.name
 
-  let ls = mk "LS_t" ~cons:"c_ls" [Field.mk "field_next" Sort.loc_ls]
+  let ls = mk "LS" ~cons:"c_ls" [Field.mk "field_next" Sort.loc_ls]
 
   let signature def = List.map Field.get_sort def.fields
 
@@ -54,7 +54,7 @@ module StructDef = struct
 
   let get_sorts def =
     List.map Field.get_sort def.fields
-    |> BatList.unique ~eq:Sort.equal
+    |> Sort.MonoList.unique
 
   let show self =
     Format.asprintf "%s := %s(%s)"
