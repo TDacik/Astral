@@ -88,12 +88,19 @@ let second_phase_aux context =
   let vars = remove_useless_vars context.phi context.vars in
   let ctx' = Context.set_preprocessed context context.phi vars in
 
-  apply_list ctx' [
+  let res = apply_list ctx' [
     Simplifier.simplify_ctx, "simplification";
     (*AggresiveSimplifier.apply_ctx, "simplification 2";*)
     QuantifierElimination.apply_ctx, "quantifier_elim";
+    EntailmentSimplifier.apply_ctx, "entailment_simpl";
     GlobalSID.formula_preprocessing_ctx, "builtins";
-  ](*
+  ]
+  in
+  if not @@ SL.is_quantifier_free res.phi
+  then Exceptions.unsupported_fragment ~reason:"Quantifiers" ~details:""
+  else res
+
+  (*
   in
   let sl_graph = SL_graph.compute ctx2.phi in
   let bounds = LocationBounds.compute ctx2.phi ctx2.raw_input.heap_sort sl_graph in
