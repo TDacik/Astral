@@ -15,6 +15,6 @@ val may_dangling_terms : SL.t -> SL.Term.t list
 
 val has_user_defined_predicates : SL.t -> bool
 
-val get_structs : SL.t -> MemoryModel.StructDef.t list
+val get_inductive_definitions : ?original:bool -> SL.t -> InductiveDefinition.t list
 
-val output_benchmark : ?source:string -> ?status:[`Sat | `Unsat | `Unknown] -> ?heap_sort:HeapSort.t -> string -> SL.t -> unit
+val get_structs : SL.t -> MemoryModel.StructDef.t list

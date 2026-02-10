@@ -5,6 +5,8 @@ module type DEBUG_OUTPUT = sig
 
   val sl_formula : ?source:string -> ?status:status -> string -> SL.t -> unit
 
+  val sl_benchmark : ?source:string -> ?status:status -> string -> ParserContext.t -> unit
+
   val inductive_predicate : ?name:string -> InductiveDefinition.t -> unit
 
   val input : ?source:string -> ?status:status -> string -> ParserContext.t -> unit
