@@ -47,6 +47,20 @@ let dls =
           SL.mk_predicate "dls" [n; y; x'; x]
     ])]
 
+(** Three-parameter DLS *)
+let dls_simple =
+  let header = SL.Variable.mk_list loc_dls ["x"; "y"; "yp"] in
+  let [x; y; y'] = List.map SL.Term.of_var header in
+  ID.mk "dls_simple" header @@
+    SL.mk_or [
+      SL.mk_eq2 x y;
+      SL.mk_exists' [SL_builtins.loc_dls] (fun [n] ->
+        SL.mk_star [
+          SL.mk_distinct2 x y;
+          mk_pto_dls x ~next:n ~prev:y';
+          SL.mk_predicate "dls_simple" [n; y; x]
+    ])]
+
 (** Doubly-linked list of length 3+ *)
 let dls_three_plus =
   let header = SL.Variable.mk_list loc_dls ["x"; "y"; "xp"; "yp"] in
