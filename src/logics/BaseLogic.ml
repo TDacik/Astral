@@ -444,7 +444,7 @@ let check_type_prop ~what ~expects pred term =
 
 let check_type ~what sort term =
   let expects = "sort " ^ Sort.show sort in
-  check_type_prop ~what ~expects (Sort.equal sort) term
+  check_type_prop ~what ~expects (Sort.equal_mod_nil sort) term
 
 let check_types ~what sorts terms =
   BatList.iter2i (fun i -> check_type ~what:(Format.asprintf "%s (param #%d)" what (i+1))) sorts terms
