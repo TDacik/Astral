@@ -48,15 +48,21 @@ module Instance = struct
     let show = show
   end)
 
-  let rec compute_determined_value x (ground : SL.Variable.t list) psi =
-    let continue = compute_determined_value x ground in
+  let rec compute_determined_value sl_graph x (ground : SL.Variable.t list) psi =
+    let continue = compute_determined_value sl_graph x ground in
     match SL.view psi with
       | PointsTo (s, def, ys) ->
         let open MemoryModel.StructDef in
         let vars = SL.Term.free_vars s in
         if SL.Variable.Set.subset (SL.Variable.Set.of_list vars) (SL.Variable.Set.of_list ground) then
           let index = List.find_index (fun t -> SL.Term.equal t @@ SL.Term.of_var x) ys in
-          Option.map (fun i -> SL.Term.mk_heap_term (List.nth def.fields i) s) index
+          Option.bind index (fun i ->
+            let base = SL.Term.mk_heap_term (List.nth def.fields i) s in
+            let res = Option.value ~default:base @@ SL_graph.eval_term sl_graph base in
+            if SL.Variable.Set.subset (SL.Variable.Set.of_list @@ SL.Term.free_vars res) (SL.Variable.Set.of_list ground)
+            then Some res
+            else Some base
+            )
         else None
       | Eq es ->
         if BatList.mem_cmp SL.Term.compare (SL.Term.of_var x) es then
@@ -86,7 +92,11 @@ end
 
 let remove_binder sl_graph phi psi (x : SL.Variable.t) =
   let _ = Logger.debug "Eliminating quantifier var %s\n" (SL.Variable.show x) in
-  let vals = Instance.compute_determined_value x (SL.free_vars ~with_pure:true phi) psi in (* TODO *)
+  let ground =
+    SL.free_vars ~with_pure:true phi
+    |> (fun xs -> SL.Variable.MonoList.remove xs x)
+  in
+  let vals = Instance.compute_determined_value sl_graph x ground psi in
   match vals with
     | Some v ->
       let _ = Logger.debug "Eliminated %s using substitution: %s\n" (SL.Variable.show x) (SL.Term.show v) in
@@ -117,5 +127,6 @@ let apply sl_graph phi =
 
 let apply_ctx ctx =
   let open Context in
-  skolemisation ctx
+  let ctx' = if SL_graph.is_empty ctx.sl_graph then {ctx with sl_graph = SL_graph.compute ctx.phi} else ctx in
+  skolemisation ctx'
   |> (fun ctx -> {ctx with phi = apply ctx.sl_graph ctx.phi})
