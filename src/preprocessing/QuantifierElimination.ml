@@ -17,19 +17,31 @@ let skolemisation ctx =
   let ctx' = {ctx with phi = phi'} in
   List.fold_left (Context.add_skolem_var) ctx' skolems
 
-(** Remove binders not contained in quantifier bodies. *)
-let remove_useless phi =
+(** TODO: check that we do not run over finite domain *)
+let is_unconstrained phi var =
+  let phi_no_neqs =
+    SL.map_view (function
+      | Distinct _ -> `Modify SL.tt
+      | _ -> `Skip
+    ) phi
+  in
+  (* TODO: check loc vars using heap sort *)
+  not @@ SL.Variable.MonoList.mem var (SL.free_vars ~with_pure:true phi_no_neqs)
+
+(** Remove quantified variables that does not appear in formula at all, or only
+    appear in disequalities. *)
+let remove_unconstrained phi =
   let filter_fn psi x =
-    (* TODO: check loc vars using heap sort *)
-    let res = BatList.mem_cmp SL.Variable.compare x (SL.free_vars ~with_pure:true psi) in
-    if not res then Logger.debug "Removing unused variable %s\n" (SL.Variable.show x) else ();
-    res
+    if is_unconstrained psi x
+    then let _ = Logger.debug "Removing unused variable %s\n" (SL.Variable.show x) in false
+    else true
   in
   SL.map_view (function
     | Exists (xs, psi) -> `Modify (SL.mk_exists (List.filter (filter_fn psi) xs) psi)
     | Forall (xs, psi) -> `Modify (SL.mk_forall (List.filter (filter_fn psi) xs) psi)
     | _ -> `Skip
   ) phi
+
 
 module Instance = struct
 
@@ -121,7 +133,7 @@ let remove_determined sl_graph phi =
 let apply sl_graph phi =
   if SL.is_quantifier_free phi then phi
   else
-    remove_useless phi
+    remove_unconstrained phi
     |> RemoveVariadic.apply ~symbolic_heap:true (* TODO: is removal needed? *)
     |> remove_determined sl_graph
 
