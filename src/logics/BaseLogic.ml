@@ -422,7 +422,18 @@ let get_operands = function
 
 type type_error = string * string * Sort.t * t
 
+let show_type_error (what, expects, sort, term) =
+  Format.asprintf "%s expects %s, but got term of sort %s:\n %s"
+    what expects (Sort.show sort) (show term)
+
 exception TypeError of type_error
+
+let () =
+  Printexc.register_printer (function
+    | TypeError ((what, expects, sort, term) as e) ->
+      Some (show_type_error e)
+    | _ -> None
+  )
 
 let cnt = ref 0
 
@@ -435,9 +446,8 @@ let check_type ~what sort term =
   let expects = "sort " ^ Sort.show sort in
   check_type_prop ~what ~expects (Sort.equal sort) term
 
-let show_type_error (what, expects, sort, term) =
-  Format.asprintf "%s expects %s (got %s):\n %s"
-    what expects (Sort.show sort) (show term)
+let check_types ~what sorts terms =
+  BatList.iter2i (fun i -> check_type ~what:(Format.asprintf "%s (param #%d)" what (i+1))) sorts terms
 
 let mk_smart_app_aux app neutral anihilator operands =
   let is_neutral x = match neutral with Some n when equal x n -> true | _ -> false in
@@ -780,6 +790,9 @@ module SeparationLogic = struct
   let mk_wand lhs rhs = Boolean.mk_not @@ mk_septraction lhs (Boolean.mk_not rhs)
 
   let mk_pto_struct x s ys =
+    let sorts = List.map Field.get_sort @@ StructDef.get_fields s in
+    let what = Format.asprintf "constructor %s" (StructDef.get_constructor s) in
+    check_types ~what sorts ys;
     let rhs = mk_app (Constructor s) ys in
     mk_app PointsTo [x; rhs]
 
