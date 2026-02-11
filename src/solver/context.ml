@@ -41,6 +41,9 @@ type t = {
   status : status option;
   model : StackHeapModel.t option;
   unsat_core : SL.t list option;
+
+  (* Additional info *)
+  solved_by : string option;
 }
 
 let init input = {
@@ -66,6 +69,8 @@ let init input = {
   status = None;
   model = None;
   unsat_core = None;
+
+  solved_by = None;
 }
 
 let empty = init @@ ParserContext.empty ()
@@ -92,11 +97,12 @@ let set_preprocessed input phi vars = {input with phi = phi; vars = vars}
 
 let set_size input size = {input with size = Some size}
 
-let set_result status ?model ?unsat_core input =
+let set_result status ?model ?unsat_core ?(solved_by="not specified") input =
   {input with
     status = Some status;
     model = model;
     unsat_core = unsat_core;
+    solved_by = Some solved_by;
   }
 
 

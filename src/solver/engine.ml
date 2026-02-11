@@ -50,7 +50,7 @@ let solve (input : Context.t) =
 
   let sl_graph = SL_graph.compute input.phi in
   if SL_graph.has_contradiction sl_graph then
-    Context.set_result `Unsat ~unsat_core:[] input
+    Context.set_result `Unsat ~solved_by:"contradiction" ~unsat_core:[] input
   else match FragmentChecker.check input, Config.Unsafe.get () with
   | Error reason, false -> Context.set_result (`Unknown reason) input
   | _, _ ->
@@ -76,12 +76,15 @@ let solve (input : Context.t) =
     Logger.debug "%s\n" (ModelAdapter.show input.model_adapter);
     debug_info input;
 
-    if not @@ Config.DryRun.get () then
+    if SL.is_false input.phi then
+      Context.set_result `Unsat input ~solved_by:"preprocessor"
+    else if Config.DryRun.get () then
+      Context.set_result (`Unknown "dry run") input
+    else
       let res = run_solver input in
       let res' = Context.apply_model_adapter res in
       (match res'.model with None -> () | Some sh -> Debug.sl_model "model" sh);
       res'
-    else Context.set_result (`Unknown "dry run") input
 
 (* TODO: Do not return just input in case of exception. *)
 let solve input =

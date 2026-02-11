@@ -255,6 +255,10 @@ let is_pure_atom phi = match view phi with
   | Eq _ | Distinct _ | Pure _ -> true
   | _ -> false
 
+let is_false phi = match view phi with
+  | False -> true
+  | _ -> false
+
 let is_emp phi = match view phi with
   | Emp -> true
   | _ -> false

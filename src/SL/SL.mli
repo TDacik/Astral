@@ -216,6 +216,8 @@ val mk_forall' : Sort.t list -> (Term.t list -> t) -> t
 
 (** {2 Properties} *)
 
+val is_false : t -> bool
+
 val is_emp : t -> bool
 
 val is_pointer : t -> bool
