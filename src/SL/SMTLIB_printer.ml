@@ -16,6 +16,7 @@ let used_predicates phi =
     List.concat_map (fun id -> GlobalSID.dependencies ~original:true (InductiveDefinition.name id)) direct
   in
   InductiveDefinition.MonoList.unique (direct @ indirect)
+  |> List.sort (fun p q -> String.compare (InductiveDefinition.name p) (InductiveDefinition.name q))
 
 (** Compute the minimal set of structures that need to be defined:
     1. It appears in a points-to in formula.
@@ -32,8 +33,6 @@ let used_sorts phi structs =
   |> List.filter (fun sort -> not @@ Sort.is_builtin sort)
   |> Sort.MonoList.unique
 
-
-
 (* TODO: how to remove unused? *)
 let generate_definitions phi heap_sort =
   let predicates = used_predicates phi in
@@ -41,7 +40,8 @@ let generate_definitions phi heap_sort =
   let sorts = used_sorts phi structs in
   let heap_sort = HeapSort.restriction sorts heap_sort in
   let (++) x y = x ^ "\n\n" ^ y in
-    (String.concat "\n" @@ List.map declare_sort sorts)
+  "(set-logic SHID)" (* TODO: QF? *)
+  ++ (String.concat "\n" @@ List.map declare_sort sorts)
   ++ (String.concat "\n" @@ List.map declare_struct structs)
   ++ (HeapSort.to_smt2_decl heap_sort)
   ++ (String.concat "\n" @@ List.map declare_pred predicates)
@@ -54,4 +54,5 @@ let output_benchmark ?source ?status path (input : ParserContext.t) =
     if has_builtin_predicates phi then Some "(set-option :use-builtin-definitions)"\n*)
     Option.some @@ generate_definitions phi input.heap_sort
   in
-  output_benchmark ?source ?status ?options path phi
+  let pred_sigs = GlobalSID.get_signatures () in
+  output_benchmark ~pred_sigs ?source ?status ?options path phi

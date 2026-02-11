@@ -36,6 +36,7 @@ module Application = struct
     | Enum of Sort.t | Universe of Sort.t
     (* Arrays *)
     | ConstArray of Sort.t | Select | Store
+    | Cast of Sort.t
     (* Separation logic *)
     | Constructor of StructDef.t
     | Emp | Pure | PointsTo
@@ -73,6 +74,7 @@ module Application = struct
     | Union _ -> "union" | Inter _ -> "inter" | Diff -> "diff" | Compl -> "compl"
     | Enum _ -> "set" | Universe _ -> "universe"
     | ConstArray _ -> "const-arr" | Select -> "select" | Store -> "store"
+    | Cast sort -> Format.asprintf "2%s" (Sort.show sort)
 
     | Pure -> "pure"
     | Emp -> "emp"
@@ -103,6 +105,7 @@ module Application = struct
     | ConstArray sort -> List.nth xs 0
     | Select -> Sort.get_range_sort @@ List.nth xs 0
     | Store -> List.hd xs
+    | Cast sort -> sort
     | BlockBegin | BlockEnd -> List.hd xs
 
     | Constructor def -> failwith "\"constructor\" should not be accessed as a standalone term"
@@ -219,6 +222,11 @@ let rec map fn = function
   | Variable (v, sort) -> fn @@ Variable (v, sort)
   | Application (app, xs) -> fn @@ Application (app, List.map (map fn) xs)
   | Binder (binder, vs, x) -> fn @@ Binder (binder, vs, map fn x)
+
+let map' fn = function
+  | Variable (v, sort) -> fn @@ Variable (v, sort)
+  | Application (app, xs) -> fn @@ Application (app, xs)
+  | Binder (binder, vs, x) -> fn @@ Binder (binder, vs, x)
 
 let map_vars fn = map (function Variable v -> fn v | other -> other)
 
@@ -867,6 +875,7 @@ let binder_var var =
 (* TODO: names *)
 type sexp_action =
   | App of string
+  | Direct of (Sexp.t list -> Sexp.t)
   | Modify of string * t list
   | Skip
 
@@ -876,6 +885,8 @@ let app_to_sexp app xs = match app with
   | Application.GuardedNot -> Modify ("and", [List.hd xs; Boolean.mk_not @@ List.nth xs 1])
   | Application.Pure -> Skip
   | Application.Constructor c -> App (StructDef.show_cons c)
+  | Application.Cast sort ->
+    Direct (fun xs -> Sexp.List [Sexp.Atom "as"; List.hd xs; Sexp.Atom (Sort.name sort)])
 
   | app -> App (Application.show app)
 
@@ -887,6 +898,7 @@ let rec to_sexp = function
       | App app, _ -> List (Sexp.Atom app :: List.map to_sexp xs)
       | Skip, [x] -> to_sexp x
       | Modify (app, xs'), _ -> List (Sexp.Atom app :: List.map to_sexp xs')
+      | Direct fn, xs -> fn @@ List.map to_sexp xs
       | _ -> assert false
     end
   | Binder (binder, xs, phi) ->
@@ -896,14 +908,56 @@ let rec to_sexp = function
 
 let to_smt2 phi = Sexp.to_string_hum @@ to_sexp phi
 
-let to_bench ?source ?status ?options phi =
+(* TODO: points-to LHS *)
+let rec introduce_casts ?(expected=Sort.bool) (pred_sigs: (string * Sort.t list) list) (phi : t) =
+  let recurse expected psi = introduce_casts ~expected pred_sigs psi in
+  map' (fun node -> match node with
+    | Variable v when Variable.is_nil v -> Application (Cast expected, [node])
+    | Variable _ -> node
+    | Application ((Equal | Distinct) as ap, xs) ->
+      let expected =
+        match List.filter (fun sort -> not @@ Sort.is_nil sort) @@ List.map get_sort xs with
+         | [] -> Sort.loc_ls (* All polymorphic, sort is not relevant *)
+         | sort :: _ -> sort
+      in
+      Application (ap, List.map (recurse expected) xs)
+    | Application (Constructor def, xs) ->
+      Application (Constructor def,
+        List.mapi (fun i x ->
+          let expected = Field.get_sort @@ List.nth def.fields i in
+          recurse expected x
+        ) xs
+      )
+    | Application (Predicate (name, instance), xs) when List.mem_assoc (Identifier.show name) pred_sigs ->
+      let name_str = Identifier.show name in
+      Application (Predicate (name, instance),
+        List.mapi (fun i x ->
+          let expected  = List.nth (List.assoc name_str pred_sigs) i in
+          recurse expected x
+        ) xs
+      )
+    | Application (Predicate (p, i), xs) -> Application (Predicate (p, i), xs)
+    | Application (ap, xs) -> Application (ap, List.map (recurse expected) xs)
+    | Binder (binder, xs, psi) -> Binder (binder, xs, recurse expected psi)
+  ) phi
+
+let to_sexp_aux phi =
+  let f sexps = Sexp.to_string_hum @@ Sexp.List sexps in
+  match phi with
+  | Application (GuardedNot, [lhs; rhs]) ->
+    let pre = f [Sexp.Atom "assert"; to_sexp lhs] in
+    let post = f [Sexp.Atom "assert"; to_sexp @@ Boolean.mk_not rhs] in
+    pre ^ "\n\n" ^ post
+  | phi -> f [Sexp.Atom "assert"; to_sexp phi]
+
+let to_bench ?(pred_sigs=[]) ?source ?status ?options phi =
   let header = header true phi source status options in
-  let body = Sexp.to_string_hum @@ Sexp.List [Sexp.Atom "assert"; to_sexp phi] in
+  let body = to_sexp_aux @@ introduce_casts pred_sigs phi in
   header ^ "\n" ^ body
 
-let output_benchmark ?source ?status ?options path phi =
+let output_benchmark ?(pred_sigs=[]) ?source ?status ?options path phi =
   let channel = open_out path in
-  output_string channel @@ to_bench ?source ?status ?options phi;
+  output_string channel @@ to_bench ~pred_sigs ?source ?status ?options phi;
   Out_channel.close channel
 
 (* ----------------------------------------------------------------------------
