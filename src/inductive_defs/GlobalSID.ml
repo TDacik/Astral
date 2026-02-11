@@ -55,6 +55,13 @@ let dependency_graph () = SID.dependency_graph !sid_updated
 
 let get () = !sid_updated
 
+let get_signatures () =
+  SID.fold_user_defined (fun id acc ->
+    let name = InductiveDefinition.name id in
+    let signature = List.map SL.Variable.get_sort @@ InductiveDefinition.header id in
+    (name, signature) :: acc
+  ) !sid_original []
+
 let unfold name xs = SID.unfold !sid_updated name xs
 
 (** ==== Context ==== *)

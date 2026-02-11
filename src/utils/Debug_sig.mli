@@ -15,6 +15,8 @@ module type DEBUG_OUTPUT = sig
 
   val result : Context.t -> unit
 
+  val sl_graph : string -> SL_graph.t -> unit
+
   val smt_formula : ?source:string -> ?status:status -> string -> SMT.t -> unit
 
   val sl_model : string -> StackHeapModel.t -> unit

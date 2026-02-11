@@ -80,6 +80,9 @@ module Builder (Params : S) = struct
   let smt_model name model =
     debug_output ~name ~suffix:".out" SMT.Model.dump model
 
+  let sl_graph name graph =
+    debug_output ~name ~suffix:".dot" SL_graph.output_file graph
+
   let result result =
     debug_output ~name:"result" ~suffix:".json" Json_output.output result
 
