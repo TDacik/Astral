@@ -48,6 +48,11 @@ let solve (input : Context.t) =
   Logger.debug "Normalisation\n";
   let input = normalise input in
 
+  let input =
+    if SL.is_quantifier_free input.phi then input
+    else {input with quantifiers = Some "yes"}
+  in
+
   let sl_graph = SL_graph.compute input.phi in
   if SL_graph.has_contradiction sl_graph then
     Context.set_result `Unsat ~solved_by:"contradiction" ~unsat_core:[] input

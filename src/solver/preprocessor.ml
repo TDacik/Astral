@@ -88,24 +88,18 @@ let second_phase_aux context =
   let vars = remove_useless_vars context.phi context.vars in
   let ctx' = Context.set_preprocessed context context.phi vars in
 
-  let res = apply_list ctx' [
+  apply_list ctx' [
     Simplifier.simplify_ctx, "simplification";
     (*AggresiveSimplifier.apply_ctx, "simplification 2";*)
     QuantifierElimination.apply_ctx, "quantifier_elim";
+    (*Simplifier.normalise_heap_terms, "simplification2";*)
     EntailmentSimplifier.apply_ctx, "entailment_simpl";
     GlobalSID.formula_preprocessing_ctx, "builtins";
   ]
-  in
-  if not @@ SL.is_quantifier_free res.phi
-  then Exceptions.unsupported_fragment ~reason:"Quantifiers" ~details:""
-  else res
-
-  (*
-  in
+  (*in
   let sl_graph = SL_graph.compute ctx2.phi in
   let bounds = LocationBounds.compute ctx2.phi ctx2.raw_input.heap_sort sl_graph in
-  let ctx2 = {ctx2 with location_bounds = bounds} in (* TODO: take min? *)
-  *)
+  let ctx2 = {ctx2 with location_bounds = bounds} in (* TODO: take min? *)*)
 
 let second_phase context =
   if Config.Preprocessing.get ()
@@ -123,7 +117,13 @@ let default_bound_map phi =
 
 let third_phase ?bound_map ctx =
   let bound_map = Option.value bound_map ~default:(default_bound_map ctx.phi)in
-  remove_unused_elements @@ apply_list ctx [
+  let res = remove_unused_elements @@ apply_list ctx [
     UnfoldIDs.apply_ctx ~bound_map, "pred_unfolding";
     QuantifierElimination.apply_ctx, "q_elim_2";
   ]
+  in
+  if not @@ SL.is_quantifier_free res.phi
+  then {res with quantifiers = Some "yes"}
+  else if Option.is_some res.quantifiers
+  then {res with quantifiers = Some "eliminated"}
+  else res

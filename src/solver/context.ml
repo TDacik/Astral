@@ -44,6 +44,7 @@ type t = {
 
   (* Additional info *)
   solved_by : string option;
+  quantifiers : string option;
 }
 
 let init input = {
@@ -71,6 +72,7 @@ let init input = {
   unsat_core = None;
 
   solved_by = None;
+  quantifiers = None;
 }
 
 let empty = init @@ ParserContext.empty ()
