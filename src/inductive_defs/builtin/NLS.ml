@@ -23,8 +23,6 @@ let next = Field.mk "field_next" loc_ls
 
 let struct_nls = StructDef.mk "NLS" ~cons:"c_nls" [top; next]
 
-let mk_pto_nls x top next = SL.mk_pto_struct x struct_nls [top; next]
-
 (** Helper functions *)
 
 (** Return sorts corresponding 'NLS_t' and 'LS_t'. *)
