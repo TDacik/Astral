@@ -876,21 +876,22 @@ let declare_var var =
   Format.asprintf "(declare-const %s)" (Variable.smt2_decl var)
 
 let header with_decls phi source status options =
+  let open PrintUtils in
   let source = match source with
     | None -> ""
-    | Some source -> F.asprintf "(set-info :source %s)\n" source
+    | Some source -> F.asprintf "(set-info :source %s)" source
   in
   let status = match status with
-    | None | Some `Unknown -> "(set-info :status unknown)\n"
-    | Some `Sat -> "(set-info :source sat)\n"
-    | Some `Unsat -> "(set-info :source unsat)\n"
+    | None | Some `Unknown -> "(set-info :status unknown)"
+    | Some `Sat -> "(set-info :source sat)"
+    | Some `Unsat -> "(set-info :source unsat)"
   in
   let options = match options with
     | None -> ""
-    | Some options -> "\n" ^ options ^ "\n"
+    | Some options -> options
   in
   let vars = String.concat "\n" @@ List.map declare_var (BatList.remove (free_vars phi) Variable.nil) in
-  source ^ status ^ options ^ vars ^ "\n\n"
+  source ++ status +++ options +++ vars
 
 let binder_var var =
   Sexp.List [Sexp.Atom (Variable.show var); Sexp.Atom (Sort.name @@ Variable.get_sort var)]
@@ -976,7 +977,7 @@ let to_sexp_aux phi =
 let to_bench ?(pred_sigs=[]) ?source ?status ?options phi =
   let header = header true phi source status options in
   let body = to_sexp_aux @@ introduce_casts pred_sigs phi in
-  header ^ "\n" ^ body
+  PrintUtils.(+++) header body
 
 let output_benchmark ?(pred_sigs=[]) ?source ?status ?options path phi =
   let channel = open_out path in

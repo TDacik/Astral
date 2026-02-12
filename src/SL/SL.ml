@@ -203,7 +203,9 @@ let rec negate_pure phi = match view phi with
   | Eq xs -> mk_distinct xs
   | Star xs -> mk_or @@ List.map negate_pure xs (* Treat star as classical conjunction *)
 
-(** Simplify to emp, instead of true *)
+(** Simplify to emp, instead of true
+
+    TODO: It could be more elegant to have Eq and SL_eq? *)
 let mk_eq xs =
   if !BaseLogic.do_simplification then match mk_eq xs with
     | res when BaseLogic.equal res tt -> emp

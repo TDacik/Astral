@@ -4,7 +4,7 @@ open SLID
 
 let declare_sort = Sort.smt2_decl
 let declare_struct = MemoryModel.StructDef.smt2_decl
-let declare_pred pred = "(define-fun-rec " ^ (InductiveDefinition.smt2_decl pred) ^ "\n)"
+let declare_pred pred = InductiveDefinition.smt2_decl pred
 
 
 (** Compute the minimal set of predicates that need to be defined:
@@ -33,18 +33,26 @@ let used_sorts phi structs =
   |> List.filter (fun sort -> not @@ Sort.is_builtin sort)
   |> Sort.MonoList.unique
 
-(* TODO: how to remove unused? *)
+let generate_logic_string phi =
+  let qf = if SL.is_quantifier_free phi then "" else "QF_" in
+  let id = if SLID.has_user_defined_predicates phi then "ID" else "" in
+  Format.asprintf "(set-logic %s)" (qf ^ "SH" ^ id)
+
+let declare_heap_sort heap_sort =
+  if HeapSort.is_empty heap_sort then ""
+  else HeapSort.to_smt2_decl heap_sort
+
 let generate_definitions phi heap_sort =
+  let open PrintUtils in
   let predicates = used_predicates phi in
   let structs = used_structures phi predicates in
   let sorts = used_sorts phi structs in
   let heap_sort = HeapSort.restriction sorts heap_sort in
-  let (++) x y = x ^ "\n\n" ^ y in
-  "(set-logic SHID)" (* TODO: QF? *)
-  ++ (String.concat "\n" @@ List.map declare_sort sorts)
-  ++ (String.concat "\n" @@ List.map declare_struct structs)
-  ++ (HeapSort.to_smt2_decl heap_sort)
-  ++ (String.concat "\n" @@ List.map declare_pred predicates)
+  (generate_logic_string phi)
+  +++ (String.concat "\n" @@ List.map declare_sort sorts)
+  +++ (String.concat "\n" @@ List.map declare_struct structs)
+  +++ (declare_heap_sort heap_sort)
+  +++ (String.concat "\n" @@ List.map declare_pred predicates)
   (*++ "(set-option :use-freed-predicate)"*)
 
 let output_benchmark ?source ?status path (input : ParserContext.t) =
