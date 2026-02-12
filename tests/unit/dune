@@ -39,7 +39,7 @@
     ;Property_tests
 
     ;; Frontends
-    LowLevelSeplog
+    ;; LowLevelSeplog
   )
 
   (modules_without_implementation testable_sig)
