@@ -449,6 +449,13 @@ let check_type ~what sort term =
 let check_types ~what sorts terms =
   BatList.iter2i (fun i -> check_type ~what:(Format.asprintf "%s (param #%d)" what (i+1))) sorts terms
 
+let check_same_type ~what = function
+  | [] -> ()
+  | x :: xs ->
+    let sort = get_sort x in
+    List.iteri (fun i t -> check_type ~what:(Format.asprintf "%s (param #%d)" what (i+2)) sort t) xs
+
+
 let mk_smart_app_aux app neutral anihilator operands =
   let is_neutral x = match neutral with Some n when equal x n -> true | _ -> false in
   let is_anihilator x = match anihilator with Some a when equal x a -> true | _ -> false in
@@ -491,12 +498,15 @@ end
 module Equality = struct
 
   let mk_eq xs =
+    check_same_type ~what:"=" xs;
     if !do_simplification then match xs with
       | xs when List_utils.all_equal equal xs -> Boolean0.tt
       | xs -> mk_app Equal xs
     else mk_app Equal xs
 
-  let mk_distinct = mk_app Distinct
+  let mk_distinct xs =
+    check_same_type ~what:"distinct" xs;
+    mk_app Distinct xs
 
   let mk_eq2 x y = mk_eq [x; y]
   let mk_distinct2 x y = mk_distinct [x; y]
