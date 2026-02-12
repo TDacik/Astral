@@ -6,6 +6,12 @@ end
 include T
 include Builder.Make(T)
 
-let x = BaseLogic.mk_var "x" Sort.int
-let y = BaseLogic.mk_var "y" Sort.int
-let z = BaseLogic.mk_var "z" Sort.int
+module Var = struct
+  let x = Variable.mk "x" Sort.loc_ls
+  let y = Variable.mk "y" Sort.loc_ls
+  let z = Variable.mk "z" Sort.loc_ls
+end
+
+let x = BaseLogic.of_var Var.x
+let y = BaseLogic.of_var Var.y
+let z = BaseLogic.of_var Var.z
