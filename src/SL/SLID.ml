@@ -22,6 +22,7 @@ let must_allocated_terms phi =
   let get_allocated_atom atom = match SL.view atom with
     | PointsTo (x, _, _) -> [x]
     | Predicate (name, params, _) -> GlobalSID.get_must_allocated name ~params
+    | Emp -> []
   in
   SL.select_subformulae SL.is_spatial_atom phi
   |> List.concat_map get_allocated_atom
@@ -34,6 +35,7 @@ let may_dangling_terms phi =
   let get_dangling_atom atom = match SL.view atom with
     | PointsTo (_, _, ys) -> ys
     | Predicate (name, params, _) -> GlobalSID.get_may_dangling name ~params
+    | Emp -> []
   in
   let allocated = must_allocated_terms phi in
   SL.select_subformulae SL.is_spatial_atom phi
