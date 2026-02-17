@@ -21,10 +21,10 @@ class Config:
     verify_model: bool = False
 
     timeout: int = 10
-    backend: str = "bitwuzla-cmd"
+    backend: str = "bitwuzla"
     encoding: str = "bitvectors"
     qf_encoding: str = "direct"
-    separation: str = "weak"
+    strong_separation: bool = False
 
     @classmethod
     def from_file(cls, path, default):
@@ -53,9 +53,9 @@ class Config:
             "--backend", self.backend,
             "--encoding", self.encoding,
             "--qf-encoding", self.qf_encoding,
-            "--separation", self.separation,
             "--json-output", TMP + name + ".json",
         ]
+        + (["--strong-separation"] if self.strong_separation else [])
         + (["--verify-model", "--produce-models"] if self.verify_model else [])
         + [path])
         # fmt: on
