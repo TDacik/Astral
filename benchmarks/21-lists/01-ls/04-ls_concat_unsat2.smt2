@@ -1,10 +1,10 @@
 (set-info :source Astral)
-(set-info :status sat)
+(set-info :status unsat)
 
 ; def-begin
 
 ;; Included from 00-definition.smt2 (modify there and run scripts/include_definitions.py)
-; Singly-linked list defined by unfolding from the end
+; Singly-linked list
 
 (declare-sort Ref_LS 0)
 
@@ -12,14 +12,14 @@
 
 (declare-heap (Ref_LS LS))
 
-(define-fun-rec ls_back ((x Ref_LS) (y Ref_LS)) Bool
+(define-fun-rec ls ((x Ref_LS) (y Ref_LS)) Bool
   (or
     (= x y)
-    (exists ((p Ref_LS))
+    (exists ((n Ref_LS))
       (sep
         (distinct x y)
-	(pto p (c_LS y))
-	(ls_back x p)
+        (pto x (c_LS n))
+        (ls n y)
       )
     )
   )
@@ -30,8 +30,16 @@
 
 (declare-const x Ref_LS)
 (declare-const y Ref_LS)
+(declare-const z Ref_LS)
 
-(assert (ls_back x y))
+(assert
+  (sep
+    (ls x y)
+    (ls y z)
+    (ls z nil)
+  )
+)
+
+(assert (not (ls x nil)))
 
 (check-sat)
-
