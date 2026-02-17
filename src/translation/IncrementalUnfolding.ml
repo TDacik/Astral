@@ -5,6 +5,8 @@
 module TVL = ThreeValuedLogic
 open ThreeValuedLogic
 
+let used_lookahead = ref false
+
 module Logger = Logger.Make(struct
   let name = "Incremental unfolding"
   let level = 1
@@ -20,6 +22,7 @@ let compute_lookahaed sl_graph ground heap_sort var =
     | None -> None
     | Some target ->
       let path = SL_graph.find_path g var target in
+      used_lookahead := true;
       Logger.debug "Look-ahead: %s -[%s]-> %s\n"
         (SL.Term.show var) (MemoryModel.Field.show_list path) (SL.Term.show target);
       Some (path, target)

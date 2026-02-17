@@ -122,7 +122,7 @@ let third_phase ?bound_map ctx =
     QuantifierElimination.apply_ctx, "q_elim_2";
   ]
   in
-  if not @@ SL.is_quantifier_free res.phi
+  if (not @@ SL.is_quantifier_free res.phi) || !IncrementalUnfolding.used_lookahead
   then {res with quantifiers = Some "yes"}
   else if Option.is_some res.quantifiers
   then {res with quantifiers = Some "eliminated"}

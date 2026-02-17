@@ -49,7 +49,8 @@ let solve (input : Context.t) =
   let input = normalise input in
 
   let input =
-    if SL.is_quantifier_free input.phi then input
+    if SL.is_quantifier_free input.phi then
+      input
     else {input with quantifiers = Some "yes"}
   in
 

@@ -5,6 +5,8 @@
 open Backend_sig
 open Translation_sig
 
+val used_lookahead : bool ref
+
 module Make (Encoding : ENCODING) (Solver : BACKEND) : sig
 
   val unfold : Context.t -> SMT.t -> SL.t -> SL.t
