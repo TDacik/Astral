@@ -35,11 +35,11 @@ let check_connectivity psi =
 let check_id_case name psi =
   (*if not @@ SL.is_symbolic_heap psi then Result.error @@
     Format.asprintf "Predicate %s: case %s is not a symbolic heap" name (SL.show psi)
-  else*) if not @@ check_progress psi then Result.error @@
-    Format.asprintf "Predicate %s: case %s does not satisfy progress property" name (SL.show psi)
-  else if not @@ check_connectivity psi then Result.error @@
+  else*)
+  if not @@ check_connectivity psi then Result.error @@
     Format.asprintf "Predicate %s: case %s is not connected" name (SL.show psi)
-  else Result.ok ()
+  else
+    check_progress name psi
 
 let check_id id =
   List.fold_left (fun acc case ->

@@ -105,6 +105,7 @@ let unfold_tll_test1 () =
   let sid = SID.register_user_defined SID.empty TLL.id in
   let bound = UnfoldingBound.singleton sort 2 in
   let [x; y; z] = List.map SL.Term.of_var @@ SL.Variable.mk_list sort ["x"; "y"; "z"] in
+  let actual = SID.unfold sid "tll" [x; y; z] bound in
   let expected =
     SL.mk_or [
       SL.mk_star [

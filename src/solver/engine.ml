@@ -93,7 +93,7 @@ let solve (input : Context.t) =
     if SL.is_false input.phi then
       Context.set_result `Unsat input ~solved_by:"preprocessor"
     else if Config.DryRun.get () then
-      Context.set_result (`Unknown "dry run") input
+      Context.set_result (`Unknown ("dry run", "")) input
     else
       let res = run_solver input in
       let res' = Context.apply_model_adapter res in

@@ -97,27 +97,22 @@ let second_phase_aux context =
     GlobalSID.formula_preprocessing_ctx, "builtins";
   ]
 
-let second_phase context = match Options_base.preprocessing () with
-  | `None -> context, None
-  | `Default -> second_phase_aux false context
-  | `Aggresive -> second_phase_aux true context
-
 let second_phase context =
   if Config.Preprocessing.get ()
   then second_phase_aux context
   else context
 
 (** ==== 3rd phase ==== *)
-
+(*
   let module BoundMap = SL.MonoMap(SL.Term.MonoList) in
   let dangling = SLID.may_dangling_terms phi in
   Logger.debug "Globally syntactically dangling terms: %a\n" SL.Term.pp_list dangling;
   let predicates = SL.select_subformulae SL.is_predicate phi in
   BoundMap.of_list @@ List.map (fun p -> (p, dangling)) predicates
-
+*)
 let third_phase ?bound_map ctx =
   let res = remove_unused_elements @@ apply_list ctx [
-    UnfoldIDs.apply_ctx ~bound_map, "pred_unfolding";
+    UnfoldIDs.apply_ctx, "pred_unfolding";
     QuantifierElimination.apply_ctx, "q_elim_2";
   ]
   in
