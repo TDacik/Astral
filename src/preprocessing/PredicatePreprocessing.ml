@@ -29,13 +29,6 @@ let rec repeat_until_fixpoint ~eq f x =
 
 let normalise (pred : t) =
   let module Logger = (val make_logger pred : Debug_sig.EXTENDED_LOGGER) in
-  (* Before checking, we need to eliminate quantifiers *)
-  if Inlining.can_be_inlined pred.name then
-    let _ = Logger.debug "Removing predicate\n" in
-    None
-  else
-    let _ = Logger.debug "Keeping predicate\n" in
-   let _ = Logger.inductive_predicate pred in
 
   let pred = preprocess_cases rewrite_semantics pred in
   let _ = Logger.inductive_predicate ~name:(pred.name ^ "_3-semantics-rewrite") pred in
@@ -48,6 +41,9 @@ let normalise (pred : t) =
 
 let preprocess (pred : t) =
   let module Logger = (val make_logger pred : Debug_sig.EXTENDED_LOGGER) in
+
+  let pred = InductiveDefinition.map Inlining.inline pred in
+  Logger.inductive_predicate ~name:(pred.name ^ "_3_inlining") pred;
 
   let qelim case = QuantifierElimination.apply (SL_graph.compute case) case in
   let pred = preprocess_cases qelim pred in
