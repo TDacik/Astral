@@ -43,8 +43,11 @@ module Init () = struct
       let now = Unix.gettimeofday () in
       Float.compare (now -. start) limit >= 0
 
+  (* TODO: produce models only on demand *)
   let init ?timeout () =
-    solver := BW.Solver.create @@ Options.default ()
+    let options = Options.default () in
+    Options.set options Options.Produce_models true;
+    solver := BW.Solver.create options
 
   (* === Translation === *)
 
@@ -161,14 +164,42 @@ module Init () = struct
         ~reason:"[Bitwuzla wrapper] unknown term"
         ~details:(SMT.show t)
 
-  let translate_model _ _ _ = ()
+  (* ==== Model translation ==== *)
+
+  let bitvector_to_const (bv : BW.Term.t) =
+    Constant.mk_bitvector_of_string @@ BW.Term.to_string bv
+
+  let rec array_to_const (arr : BW.Term.t) =
+    match BW.Term.kind (arr : BW.Term.t) with
+    | Const_array ->
+      let default = bitvector_to_const @@ BW.Term.get arr 0 in
+      Constant.mk_array ~default []
+    | Store ->
+      let arr' = array_to_const @@ BW.Term.get arr 0 in
+      let index = bitvector_to_const @@ BW.Term.get arr 1 in
+      let value = bitvector_to_const @@ BW.Term.get arr 2 in
+      Constant.array_add_binding arr' index value
+
+  let translate_model solver phi =
+    (* Bitwuzla does not provide model explicitly *)
+    let vars = SMT.free_vars phi in
+    List.fold_left (fun acc var ->
+      let value = BW.Solver.get_value solver @@ translate_var var in
+      let c = match SMT.Variable.get_sort var with
+        | Bitvector _ -> bitvector_to_const value
+        | Array _ -> array_to_const value
+      in
+      SMT.Model.add var c acc
+    ) SMT.Model.empty vars
 
   (* ==== Solver ==== *)
 
   let solve context phi_orig produce_models options =
-    let solver = BW.Solver.create @@ Options.default () in
+    let options = Options.default () in
+    Options.set options Options.Produce_models true;
+    let solver = BW.Solver.create options in
     match BW.Solver.check_sat ~assumptions:[|translate phi_orig|] solver with
-      | Sat -> SMT_Sat None
+      | Sat -> SMT_Sat (Option.some (translate_model solver phi_orig, ())) (* TODO: do this on-demand *)
       | Unsat -> SMT_Unsat []
       | Unknown -> SMT_Unknown ""
 

@@ -163,7 +163,19 @@ let unfold_finite id xs : SL.t =
   SL.substitute_list unfolding ~vars:id.header ~by:xs
 
 let smt2_decl id =
-  Format.asprintf "%s (%s) Bool\n%s"
-    id.name
-    (String.concat " " @@ List.map (fun v -> "(" ^ SL.Variable.smt2_decl v ^ ")") id.header)
-    (SL.to_smt2 @@ SL.mk_or @@ cases id)
+  let open Sexplib in
+  let decl_to_sexp var =
+    Sexp.List [
+      Sexp.Atom (SL.Variable.show var);
+      Sexp.Atom (Sort.name @@ SL.Variable.get_sort var)
+    ]
+  in
+  let sexp = Sexp.List [
+    Sexp.Atom "define-fun-rec";
+    Sexp.Atom id.name;
+    Sexp.List (List.map decl_to_sexp id.header);
+    Sexp.Atom "Bool";
+    SL.to_sexp @@ SL.mk_or @@ cases id
+  ]
+  in
+  Sexp.to_string_hum sexp

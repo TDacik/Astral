@@ -203,7 +203,9 @@ let rec negate_pure phi = match view phi with
   | Eq xs -> mk_distinct xs
   | Star xs -> mk_or @@ List.map negate_pure xs (* Treat star as classical conjunction *)
 
-(** Simplify to emp, instead of true *)
+(** Simplify to emp, instead of true
+
+    TODO: It could be more elegant to have Eq and SL_eq? *)
 let mk_eq xs =
   if !BaseLogic.do_simplification then match mk_eq xs with
     | res when BaseLogic.equal res tt -> emp
@@ -248,11 +250,15 @@ let free_vars ?(with_nil=true) ?(with_pure=false) phi =
 
 
 let is_atom phi = match view phi with
-  | Eq _ | Distinct _ | PointsTo _ | Predicate _ | Emp -> true
+  | Eq _ | Distinct _ | Pure _ | PointsTo _ | Predicate _ | Emp -> true
   | _ -> false
 
 let is_pure_atom phi = match view phi with
-  | Eq _ | Distinct _ -> true
+  | Eq _ | Distinct _ | Pure _ -> true
+  | _ -> false
+
+let is_false phi = match view phi with
+  | False -> true
   | _ -> false
 
 let is_emp phi = match view phi with
@@ -306,7 +312,7 @@ let get_fields phi =
 let get_terms phi =
   let subformulae = select_subformulae is_atom phi in
   let get_terms_aux psi = match view psi with
-    | Emp -> []
+    | Emp | Pure _ -> []
     | Distinct xs | Eq xs | Predicate (_, xs, _) -> xs
     | PointsTo (x, _, ys) -> x :: ys
   in

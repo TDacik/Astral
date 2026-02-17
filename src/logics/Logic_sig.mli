@@ -161,13 +161,21 @@ module type LOGIC = sig
   val to_smt2 : t -> string
   (** Human readable SMT-LIB string. *)
 
+  val to_sexp : t -> Sexplib.Sexp.t
+  (** S-expression representation used to generate SMT-LIB string.
+      Usefull when printing a formula embeded in a larger s-expr. *)
+
+  type pred_sigs := (string * Sort.t list) list
+
   val to_bench :
+    ?pred_sigs:pred_sigs ->
     ?source:string ->
     ?status:[< `Sat | `Unsat | `Unknown] ->
     ?options:string ->
     t -> string
 
   val output_benchmark :
+    ?pred_sigs:pred_sigs ->
     ?source:string ->
     ?status:[< `Sat | `Unsat | `Unknown] ->
     ?options:string ->

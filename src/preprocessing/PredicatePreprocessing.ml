@@ -35,16 +35,16 @@ let rec repeat_until_fixpoint ~eq f x =
 let normalise (pred : t) =
   let module Logger = (val make_logger pred : Debug_sig.EXTENDED_LOGGER) in
 
-
   let pred = preprocess_cases rewrite_semantics pred in
   let _ = Logger.inductive_predicate ~name:(pred.name ^ "_1-semantics-rewrite") pred in
 
-  let pred = preprocess_cases Inlining.inline pred in
-  let _ = Logger.inductive_predicate ~name:(pred.name ^ "_2-inlining") pred in
   Some pred
 
 let preprocess (pred : t) =
   let module Logger = (val make_logger pred : Debug_sig.EXTENDED_LOGGER) in
+
+  let pred = InductiveDefinition.map Inlining.inline pred in
+  Logger.inductive_predicate ~name:(pred.name ^ "_3_inlining") pred;
 
   let qelim case = QuantifierElimination.apply (SL_graph.compute case) case in
   let pred = preprocess_cases qelim pred in

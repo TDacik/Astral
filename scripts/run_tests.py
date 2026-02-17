@@ -104,7 +104,7 @@ class Runner:
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("--ids", action="store_true")
-    parser.add_argument("--backend", default="bitwuzla-cmd") # TODO: what should be default?
+    parser.add_argument("--backend", default="bitwuzla") # TODO: what should be default?
     return parser.parse_args()
 
 def main():

@@ -36,6 +36,7 @@ module Application = struct
     | Enum of Sort.t | Universe of Sort.t
     (* Arrays *)
     | ConstArray of Sort.t | Select | Store
+    | Cast of Sort.t
     (* Separation logic *)
     | Constructor of StructDef.t
     | Emp | Pure | PointsTo
@@ -73,6 +74,7 @@ module Application = struct
     | Union _ -> "union" | Inter _ -> "inter" | Diff -> "diff" | Compl -> "compl"
     | Enum _ -> "set" | Universe _ -> "universe"
     | ConstArray _ -> "const-arr" | Select -> "select" | Store -> "store"
+    | Cast sort -> Format.asprintf "2%s" (Sort.show sort)
 
     | Pure -> "pure"
     | Emp -> "emp"
@@ -103,6 +105,7 @@ module Application = struct
     | ConstArray sort -> List.nth xs 0
     | Select -> Sort.get_range_sort @@ List.nth xs 0
     | Store -> List.hd xs
+    | Cast sort -> sort
     | BlockBegin | BlockEnd -> List.hd xs
 
     | Constructor def -> failwith "\"constructor\" should not be accessed as a standalone term"
@@ -219,6 +222,11 @@ let rec map fn = function
   | Variable (v, sort) -> fn @@ Variable (v, sort)
   | Application (app, xs) -> fn @@ Application (app, List.map (map fn) xs)
   | Binder (binder, vs, x) -> fn @@ Binder (binder, vs, map fn x)
+
+let map' fn = function
+  | Variable (v, sort) -> fn @@ Variable (v, sort)
+  | Application (app, xs) -> fn @@ Application (app, xs)
+  | Binder (binder, vs, x) -> fn @@ Binder (binder, vs, x)
 
 let map_vars fn = map (function Variable v -> fn v | other -> other)
 
@@ -415,7 +423,18 @@ let get_operands = function
 
 type type_error = string * string * Sort.t * t
 
+let show_type_error (what, expects, sort, term) =
+  Format.asprintf "%s expects %s, but got term of sort %s:\n %s"
+    what expects (Sort.show sort) (show term)
+
 exception TypeError of type_error
+
+let () =
+  Printexc.register_printer (function
+    | TypeError ((what, expects, sort, term) as e) ->
+      Some (show_type_error e)
+    | _ -> None
+  )
 
 let cnt = ref 0
 
@@ -426,11 +445,17 @@ let check_type_prop ~what ~expects pred term =
 
 let check_type ~what sort term =
   let expects = "sort " ^ Sort.show sort in
-  check_type_prop ~what ~expects (Sort.equal sort) term
+  check_type_prop ~what ~expects (Sort.equal_mod_nil sort) term
 
-let show_type_error (what, expects, sort, term) =
-  Format.asprintf "%s expects %s (got %s):\n %s"
-    what expects (Sort.show sort) (show term)
+let check_types ~what sorts terms =
+  BatList.iter2i (fun i -> check_type ~what:(Format.asprintf "%s (param #%d)" what (i+1))) sorts terms
+
+let check_same_type ~what = function
+  | [] -> ()
+  | x :: xs ->
+    let sort = get_sort x in
+    List.iteri (fun i t -> check_type ~what:(Format.asprintf "%s (param #%d)" what (i+2)) sort t) xs
+
 
 let mk_smart_app_aux app neutral anihilator operands =
   let is_neutral x = match neutral with Some n when equal x n -> true | _ -> false in
@@ -474,12 +499,15 @@ end
 module Equality = struct
 
   let mk_eq xs =
+    check_same_type ~what:"=" xs;
     if !do_simplification then match xs with
       | xs when List_utils.all_equal equal xs -> Boolean0.tt
       | xs -> mk_app Equal xs
     else mk_app Equal xs
 
-  let mk_distinct = mk_app Distinct
+  let mk_distinct xs =
+    check_same_type ~what:"distinct" xs;
+    mk_app Distinct xs
 
   let mk_eq2 x y = mk_eq [x; y]
   let mk_distinct2 x y = mk_distinct [x; y]
@@ -773,6 +801,9 @@ module SeparationLogic = struct
   let mk_wand lhs rhs = Boolean.mk_not @@ mk_septraction lhs (Boolean.mk_not rhs)
 
   let mk_pto_struct x s ys =
+    let sorts = List.map Field.get_sort @@ StructDef.get_fields s in
+    let what = Format.asprintf "constructor %s" (StructDef.get_constructor s) in
+    check_types ~what sorts ys;
     let rhs = mk_app (Constructor s) ys in
     mk_app PointsTo [x; rhs]
 
@@ -846,21 +877,22 @@ let declare_var var =
   Format.asprintf "(declare-const %s)" (Variable.smt2_decl var)
 
 let header with_decls phi source status options =
+  let open PrintUtils in
   let source = match source with
     | None -> ""
-    | Some source -> F.asprintf "(set-info :source %s)\n" source
+    | Some source -> F.asprintf "(set-info :source %s)" source
   in
   let status = match status with
-    | None | Some `Unknown -> "(set-info :status unknown)\n"
-    | Some `Sat -> "(set-info :source sat)\n"
-    | Some `Unsat -> "(set-info :source unsat)\n"
+    | None | Some `Unknown -> "(set-info :status unknown)"
+    | Some `Sat -> "(set-info :source sat)"
+    | Some `Unsat -> "(set-info :source unsat)"
   in
   let options = match options with
     | None -> ""
-    | Some options -> "\n" ^ options ^ "\n"
+    | Some options -> options
   in
   let vars = String.concat "\n" @@ List.map declare_var (BatList.remove (free_vars phi) Variable.nil) in
-  source ^ status ^ options ^ vars ^ "\n\n"
+  source ++ status +++ options +++ vars
 
 let binder_var var =
   Sexp.List [Sexp.Atom (Variable.show var); Sexp.Atom (Sort.name @@ Variable.get_sort var)]
@@ -868,6 +900,7 @@ let binder_var var =
 (* TODO: names *)
 type sexp_action =
   | App of string
+  | Direct of (Sexp.t list -> Sexp.t)
   | Modify of string * t list
   | Skip
 
@@ -877,6 +910,8 @@ let app_to_sexp app xs = match app with
   | Application.GuardedNot -> Modify ("and", [List.hd xs; Boolean.mk_not @@ List.nth xs 1])
   | Application.Pure -> Skip
   | Application.Constructor c -> App (StructDef.show_cons c)
+  | Application.Cast sort ->
+    Direct (fun xs -> Sexp.List [Sexp.Atom "as"; List.hd xs; Sexp.Atom (Sort.name sort)])
 
   | app -> App (Application.show app)
 
@@ -888,6 +923,7 @@ let rec to_sexp = function
       | App app, _ -> List (Sexp.Atom app :: List.map to_sexp xs)
       | Skip, [x] -> to_sexp x
       | Modify (app, xs'), _ -> List (Sexp.Atom app :: List.map to_sexp xs')
+      | Direct fn, xs -> fn @@ List.map to_sexp xs
       | _ -> assert false
     end
   | Binder (binder, xs, phi) ->
@@ -897,14 +933,56 @@ let rec to_sexp = function
 
 let to_smt2 phi = Sexp.to_string_hum @@ to_sexp phi
 
-let to_bench ?source ?status ?options phi =
-  let header = header true phi source status options in
-  let body = Sexp.to_string_hum @@ Sexp.List [Sexp.Atom "assert"; to_sexp phi] in
-  header ^ "\n" ^ body
+(* TODO: points-to LHS *)
+let rec introduce_casts ?(expected=Sort.bool) (pred_sigs: (string * Sort.t list) list) (phi : t) =
+  let recurse expected psi = introduce_casts ~expected pred_sigs psi in
+  map' (fun node -> match node with
+    | Variable v when Variable.is_nil v -> Application (Cast expected, [node])
+    | Variable _ -> node
+    | Application ((Equal | Distinct) as ap, xs) ->
+      let expected =
+        match List.filter (fun sort -> not @@ Sort.is_nil sort) @@ List.map get_sort xs with
+         | [] -> Sort.loc_ls (* All polymorphic, sort is not relevant *)
+         | sort :: _ -> sort
+      in
+      Application (ap, List.map (recurse expected) xs)
+    | Application (Constructor def, xs) ->
+      Application (Constructor def,
+        List.mapi (fun i x ->
+          let expected = Field.get_sort @@ List.nth def.fields i in
+          recurse expected x
+        ) xs
+      )
+    | Application (Predicate (name, instance), xs) when List.mem_assoc (Identifier.show name) pred_sigs ->
+      let name_str = Identifier.show name in
+      Application (Predicate (name, instance),
+        List.mapi (fun i x ->
+          let expected  = List.nth (List.assoc name_str pred_sigs) i in
+          recurse expected x
+        ) xs
+      )
+    | Application (Predicate (p, i), xs) -> Application (Predicate (p, i), xs)
+    | Application (ap, xs) -> Application (ap, List.map (recurse expected) xs)
+    | Binder (binder, xs, psi) -> Binder (binder, xs, recurse expected psi)
+  ) phi
 
-let output_benchmark ?source ?status ?options path phi =
+let to_sexp_aux phi =
+  let f sexps = Sexp.to_string_hum @@ Sexp.List sexps in
+  match phi with
+  | Application (GuardedNot, [lhs; rhs]) ->
+    let pre = f [Sexp.Atom "assert"; to_sexp lhs] in
+    let post = f [Sexp.Atom "assert"; to_sexp @@ Boolean.mk_not rhs] in
+    pre ^ "\n\n" ^ post
+  | phi -> f [Sexp.Atom "assert"; to_sexp phi]
+
+let to_bench ?(pred_sigs=[]) ?source ?status ?options phi =
+  let header = header true phi source status options in
+  let body = to_sexp_aux @@ introduce_casts pred_sigs phi in
+  PrintUtils.(+++) header body
+
+let output_benchmark ?(pred_sigs=[]) ?source ?status ?options path phi =
   let channel = open_out path in
-  output_string channel @@ to_bench ?source ?status ?options phi;
+  output_string channel @@ to_bench ~pred_sigs ?source ?status ?options phi;
   Out_channel.close channel
 
 (* ----------------------------------------------------------------------------

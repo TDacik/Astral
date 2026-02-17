@@ -61,6 +61,7 @@ def main():
         "21-lists",
         "22-trees",
         "23-non_unique_footprints",
+        "24-backwards_unfolding",
     ]
     for b in benchmarks:
         bench_path = os.path.join("benchmarks", b)

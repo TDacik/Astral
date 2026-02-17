@@ -19,7 +19,7 @@ module StructDef = struct
   let compare s1 s2 = Identifier.compare s1.name s2.name
   let equal s1 s2 = Identifier.equal s1.name s2.name
 
-  let ls = mk "LS_t" ~cons:"c_ls" [Field.mk "field_next" Sort.loc_ls]
+  let ls = mk "LS" ~cons:"c_ls" [Field.mk "field_next" Sort.loc_ls]
 
   let signature def = List.map Field.get_sort def.fields
 
@@ -56,7 +56,7 @@ module StructDef = struct
 
   let get_sorts def =
     List.map Field.get_sort def.fields
-    |> BatList.unique ~eq:Sort.equal
+    |> Sort.MonoList.unique
 
   let show self =
     Format.asprintf "%s := %s(%s)"
@@ -66,12 +66,27 @@ module StructDef = struct
 
   let show_cons self = Identifier.show self.cons
 
-  let smt2_decl self =
-    Format.asprintf "(declare-datatype %s ((%s %s)))"
-      (Identifier.show self.name)
+  let decl_aux self =
+    Format.asprintf "((%s %s))"
       (Identifier.show self.cons)
       (String.concat " " @@
        List.map (fun f -> Format.asprintf "(%s)" (Field.smt2_decl f)) self.fields)
+
+  let smt2_decl self =
+    Format.asprintf "(declare-datatype %s %s)"
+      (Identifier.show self.name)
+      (decl_aux self)
+
+  let smt2_decl_group = function
+    | [] -> ""
+    | [x] -> smt2_decl x
+    | group ->
+      let decl_header def = Format.asprintf "(%s 0)" (Identifier.show def.name) in
+      let group_header = String.concat "\n    " @@ List.map decl_header group in
+      let group_decls = String.concat "\n    " @@ List.map decl_aux group in
+      Format.asprintf "(declare-datatypes\n  (\n    %s\n  )\n  (\n    %s\n  )\n)"
+        group_header
+        group_decls
 
   module Self = struct
     type nonrec t = t

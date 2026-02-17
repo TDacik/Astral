@@ -48,6 +48,16 @@ let empty = {
 
 let dependency_graph sid = sid.graph
 
+let show sid =
+  M.bindings sid.definitions
+  |> List.map (fun (_, pred) -> ID.show pred)
+  |> String.concat ",\n"
+
+let show_names sid =
+  M.bindings sid.definitions
+  |> List.map (fun (name, _) -> name)
+  |> String.concat ","
+
 let register sid name id =
   assert (not @@ M.mem name sid.definitions);
   {sid with definitions = M.add name id sid.definitions}
@@ -61,11 +71,6 @@ let update_user_defined sid id =
   let name = InductiveDefinition.name id in
   let sid' = {sid with definitions = M.remove name sid.definitions} in
   register_user_defined sid' id
-
-let show sid =
-  M.bindings sid.definitions
-  |> List.map (fun (_, pred) -> ID.show pred)
-  |> String.concat ",\n"
 
 module Self = struct
   type nonrec t = t
@@ -81,21 +86,21 @@ let find sid name =
   with Not_found ->
     Exceptions.internal_error
       ~reason:("No definition for predicate " ^ name)
-      ~details:("Registered predicates:\n" ^ show sid)
+      ~details:("Registered predicates:\n" ^ show_names sid)
 
 let find_user_defined sid name = match find sid name with
   | UserDefined id -> id
   | _ ->
     Exceptions.internal_error
       ~reason:("No user-defined definition for predicate " ^ name ^ "(built-in exists)")
-      ~details:("Registered predicates:\n" ^ show sid)
+      ~details:("Registered predicates:\n" ^ show_names sid)
 
 let find_builtin sid name = match find sid name with
   | Builtin (module B : BUILTIN) -> (module B : BUILTIN)
   | _ ->
     Exceptions.internal_error
       ~reason:("No user-defined definition for predicate " ^ name ^ "(built-in exists)")
-      ~details:("Registered predicates:\n" ^ show sid)
+      ~details:("Registered predicates:\n" ^ show_names sid)
 
 let find_first_user_defined sid fn =
   let res = snd @@ M.find_first (fun name ->

@@ -36,12 +36,12 @@ let dls =
 let dnls =
   let sort = Sort.mk_loc "RefDNLS" in
   let def = StructDef.mk "DNLS" [Field.mk "next" sort; Field.mk "prev" sort; Field.mk "down" loc_ls] in
-  let header = SL.Variable.mk_list sort ["x"; "y"; "x'"; "y'"; "z"] in
+  let header = SL.Variable.mk_list sort ["x"; "y"; "x'"; "y'"] @ [SL.Variable.mk "z" loc_ls] in
   let [x; y; x'; y'; z] = List.map SL.Term.of_var header in
   ID.mk "dnls" header @@
     SL.mk_or [
       SL.mk_and [SL.mk_eq2 x y; SL.mk_eq2 x' y'];
-      SL.mk_exists' [loc_dls; loc_ls] (fun [n; d] ->
+      SL.mk_exists' [sort; loc_ls] (fun [n; d] ->
         SL.mk_star [
           SL.mk_distinct2 x y;
           SL.mk_distinct2 x' y';

@@ -23,11 +23,23 @@ let check_progress name psi =
   else if n > 1 then Result.error @@ Format.asprintf "Predicate %s: case %s has more than 1 points-to assertion" name (SL.show psi)
   else Result.ok ()
 
+let check_connectivity psi =
+  let pto = List.hd @@ SL.select_subformulae SL.is_pointer psi in
+  let ys = match SL.view pto with PointsTo (_, _, ys) -> ys in
+  let calls = SL.select_subformulae SL.is_predicate psi in
+  List.for_all (fun call ->
+    let root = SL.get_root call in
+    SL.Term.MonoList.mem root ys (* TODO: propagate eqs *)
+  ) calls
+
 let check_id_case name psi =
   (*if not @@ SL.is_symbolic_heap psi then Result.error @@
     Format.asprintf "Predicate %s: case %s is not a symbolic heap" name (SL.show psi)
-  else*)
-  check_progress name psi
+  else*) if not @@ check_progress psi then Result.error @@
+    Format.asprintf "Predicate %s: case %s does not satisfy progress property" name (SL.show psi)
+  else if not @@ check_connectivity psi then Result.error @@
+    Format.asprintf "Predicate %s: case %s is not connected" name (SL.show psi)
+  else Result.ok ()
 
 let check_id id =
   List.fold_left (fun acc case ->

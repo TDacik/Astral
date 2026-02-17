@@ -6,11 +6,13 @@ open SL_builtins
 open SL_testable
 
 let check_sat_test1 () =
+  GlobalSID.reset ();
   let solver = Solver.init () in
   let phi = SL.mk_star [SL_builtins.mk_ls x ~sink:y; SL_builtins.mk_ls x ~sink:nil] in
   assert (Solver.check_sat solver phi)
 
 let check_sat_test2 () =
+  GlobalSID.reset ();
   let solver = Solver.init () in
   let phi = SL.mk_star [
     SL_builtins.mk_ls x ~sink:y;
@@ -20,6 +22,7 @@ let check_sat_test2 () =
   assert (not @@ Solver.check_sat solver phi)
 
 let corner_case_test1 () =
+  GlobalSID.reset ();
   let solver = Solver.init () in
   let phi = SL_builtins.mk_ls nil ~sink:nil in
   assert (Solver.check_sat solver phi)
@@ -33,6 +36,7 @@ let root' = SL.Term.mk_var "root_" loc_dls
 let sink' = SL.Term.mk_var "sink_" loc_dls
 
 let dls_test1 () =
+  GlobalSID.reset ();
   let solver = Solver.init () in
   let phi = SL.mk_star [
     SL.mk_distinct [root; root'; sink; sink'];
@@ -43,6 +47,7 @@ let dls_test1 () =
   assert (not @@ Solver.check_sat solver phi)
 
 let dls_test2 () =
+  GlobalSID.reset ();
   let solver = Solver.init () in
   let phi = mk_dls nil ~root':nil ~sink:nil ~sink':nil in
   assert (Solver.check_sat solver phi)
@@ -54,11 +59,13 @@ let sink = SL.Term.mk_var "sink" loc_nls
 let bottom = SL.Term.mk_var "bottom" loc_nls
 
 let nls_test1 () =
+  GlobalSID.reset ();
   let solver = Solver.init () in
   let phi = mk_nls root ~sink ~bottom in
   assert (Solver.check_sat solver phi)
 
 let nls_test2 () =
+  GlobalSID.reset ();
   let solver = Solver.init () in
   let phi = mk_nls nil ~sink:nil ~bottom:nil in
   assert (Solver.check_sat solver phi)
@@ -66,6 +73,7 @@ let nls_test2 () =
 (** Freed *)
 
 let freed_test1 () =
+  GlobalSID.reset ();
   let solver = Solver.init () in
   let phi = SL_builtins.mk_freed x in
   assert (Solver.check_sat solver phi)
@@ -74,6 +82,7 @@ let freed_test1 () =
 
 let memory_model_test () =
   let open MemoryModel in
+  GlobalSID.reset ();
   let tree_sort = Sort.mk_loc "Tree" in
   let left = Field.mk "left" tree_sort in
   let right = Field.mk "right" tree_sort in
@@ -87,6 +96,7 @@ let memory_model_test () =
 
 let combined_memory_model_test () =
   let open MemoryModel in
+  GlobalSID.reset ();
   let tree_sort = Sort.mk_loc "Tree" in
   let left = Field.mk "left" tree_sort in
   let right = Field.mk "right" tree_sort in

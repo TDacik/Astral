@@ -7,6 +7,8 @@ include Datatype_sig.PRINTABLE with type t := t
 val empty : t
 (** Create an empty heap sort. *)
 
+val is_empty : t -> bool
+
 val union : t list -> t
 
 val restriction : Sort.t list -> t -> t

@@ -6,8 +6,6 @@ open Context
 
 let size context = match context.size with Some x -> string_of_int x | None -> "-"
 
-let solved_by context = match context.size with Some x -> "translation" | None -> "sl-graph"
-
 let input_path () =
   if Config.Interactive.get () then "- (interactive mode)"
   else Config.InputFile.get ()
@@ -25,7 +23,8 @@ let input_to_json context =
 let json_repr context =
   `Assoc [
     "Input",                input_to_json context;
-    "Solved by",            `String (solved_by context);
+    "Solved by",            `String (Option.value ~default:"?" context.solved_by);
+    "Quantifiers",          `String (Option.value ~default:"no" context.quantifiers);
     "Bounds",               LocationBounds.to_json context.location_bounds;
     "Formula size",         `String (size context);
     "Status",               `String (Context.show_status context);

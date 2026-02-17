@@ -40,7 +40,7 @@ let mk_sum sorts = Sum sorts
 let mk_loc ?(aliases=[]) name =
   Loc (ID.mk name, List.map ID.mk aliases)
 
-let loc_ls  = mk_loc "Loc" ~aliases:["LS_t"; "RefSll_t"]
+let loc_ls  = mk_loc "Ref_LS" ~aliases:["Loc"; "RefSll_t"]
 let loc_nil = mk_loc "nil_t" ~aliases:[]
 
 let is_builtin = function

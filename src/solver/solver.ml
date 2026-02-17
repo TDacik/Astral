@@ -126,7 +126,8 @@ let _solve solver phi =
     let input = Input.declare_heap_sort input heap_sort in
     Input.add_vars input vars
   in
-  Debug.input "input" ?source:solver.source input;
+  (*Debug.input "input" ?source:solver.source input;*)
+  Debug.sl_benchmark "input" ?source:solver.source input;
   let result = Engine.solve input in
   Profiler.finish ();
   Debug.result result;

@@ -92,30 +92,15 @@ let second_phase_aux context =
     Simplifier.simplify_ctx, "simplification";
     (*AggresiveSimplifier.apply_ctx, "simplification 2";*)
     QuantifierElimination.apply_ctx, "quantifier_elim";
+    (*Simplifier.normalise_heap_terms, "simplification2";*)
+    EntailmentSimplifier.apply_ctx, "entailment_simpl";
     GlobalSID.formula_preprocessing_ctx, "builtins";
-  ](*
-  in
-<<<<<<< HEAD
-  let ctx3 = apply_list ctx2 [
-    GlobalSID.formula_preprocessing_ctx, "builtins";
-    UnfoldIDs.apply_ctx, "pred_unfolding";
-    QuantifierElimination.apply_ctx, "q_elim_2";
   ]
-  in
-  let sl_graph = SL_graph.compute ctx3.phi in
-  let bounds = LocationBounds.compute ctx3.phi ctx3.raw_input.heap_sort sl_graph in
-  let ctx = {ctx3 with location_bounds = bounds} in (* TODO: take min? *)
-  remove_unused_elements ctx, (Some bounds)
 
 let second_phase context = match Options_base.preprocessing () with
   | `None -> context, None
   | `Default -> second_phase_aux false context
   | `Aggresive -> second_phase_aux true context
-=======
-  let sl_graph = SL_graph.compute ctx2.phi in
-  let bounds = LocationBounds.compute ctx2.phi ctx2.raw_input.heap_sort sl_graph in
-  let ctx2 = {ctx2 with location_bounds = bounds} in (* TODO: take min? *)
-  *)
 
 let second_phase context =
   if Config.Preprocessing.get ()
@@ -124,7 +109,6 @@ let second_phase context =
 
 (** ==== 3rd phase ==== *)
 
-let default_bound_map phi =
   let module BoundMap = SL.MonoMap(SL.Term.MonoList) in
   let dangling = SLID.may_dangling_terms phi in
   Logger.debug "Globally syntactically dangling terms: %a\n" SL.Term.pp_list dangling;
@@ -132,10 +116,13 @@ let default_bound_map phi =
   BoundMap.of_list @@ List.map (fun p -> (p, dangling)) predicates
 
 let third_phase ?bound_map ctx =
-  (*
-  let bound_map = Option.value bound_map ~default:(default_bound_map ctx.phi)in
-  *)
-  remove_unused_elements @@ apply_list ctx [
-    UnfoldIDs.apply_ctx, "pred_unfolding";
+  let res = remove_unused_elements @@ apply_list ctx [
+    UnfoldIDs.apply_ctx ~bound_map, "pred_unfolding";
     QuantifierElimination.apply_ctx, "q_elim_2";
   ]
+  in
+  if (not @@ SL.is_quantifier_free res.phi) || !IncrementalUnfolding.used_lookahead
+  then {res with quantifiers = Some "yes"}
+  else if Option.is_some res.quantifiers
+  then {res with quantifiers = Some "eliminated"}
+  else res

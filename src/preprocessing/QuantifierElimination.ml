@@ -17,19 +17,31 @@ let skolemisation ctx =
   let ctx' = {ctx with phi = phi'} in
   List.fold_left (Context.add_skolem_var) ctx' skolems
 
-(** Remove binders not contained in quantifier bodies. *)
-let remove_useless phi =
+(** TODO: check that we do not run over finite domain *)
+let is_unconstrained phi var =
+  let phi_no_neqs =
+    SL.map_view (function
+      | Distinct _ -> `Modify SL.tt
+      | _ -> `Skip
+    ) phi
+  in
+  (* TODO: check loc vars using heap sort *)
+  not @@ SL.Variable.MonoList.mem var (SL.free_vars ~with_pure:true phi_no_neqs)
+
+(** Remove quantified variables that does not appear in formula at all, or only
+    appear in disequalities. *)
+let remove_unconstrained phi =
   let filter_fn psi x =
-    (* TODO: check loc vars using heap sort *)
-    let res = BatList.mem_cmp SL.Variable.compare x (SL.free_vars ~with_pure:true psi) in
-    if not res then Logger.debug "Removing unused variable %s\n" (SL.Variable.show x) else ();
-    res
+    if is_unconstrained psi x
+    then let _ = Logger.debug "Removing unused variable %s\n" (SL.Variable.show x) in false
+    else true
   in
   SL.map_view (function
     | Exists (xs, psi) -> `Modify (SL.mk_exists (List.filter (filter_fn psi) xs) psi)
     | Forall (xs, psi) -> `Modify (SL.mk_forall (List.filter (filter_fn psi) xs) psi)
     | _ -> `Skip
   ) phi
+
 
 module Instance = struct
 
@@ -48,15 +60,21 @@ module Instance = struct
     let show = show
   end)
 
-  let rec compute_determined_value x (ground : SL.Variable.t list) psi =
-    let continue = compute_determined_value x ground in
+  let rec compute_determined_value sl_graph x (ground : SL.Variable.t list) psi =
+    let continue = compute_determined_value sl_graph x ground in
     match SL.view psi with
       | PointsTo (s, def, ys) ->
         let open MemoryModel.StructDef in
         let vars = SL.Term.free_vars s in
         if SL.Variable.Set.subset (SL.Variable.Set.of_list vars) (SL.Variable.Set.of_list ground) then
           let index = List.find_index (fun t -> SL.Term.equal t @@ SL.Term.of_var x) ys in
-          Option.map (fun i -> SL.Term.mk_heap_term (List.nth def.fields i) s) index
+          Option.bind index (fun i ->
+            let base = SL.Term.mk_heap_term (List.nth def.fields i) s in
+            let res = Option.value ~default:base @@ SL_graph.eval_term sl_graph base in
+            if SL.Variable.Set.subset (SL.Variable.Set.of_list @@ SL.Term.free_vars res) (SL.Variable.Set.of_list ground)
+            then Some res
+            else Some base
+            )
         else None
       | Eq es ->
         if BatList.mem_cmp SL.Term.compare (SL.Term.of_var x) es then
@@ -86,7 +104,11 @@ end
 
 let remove_binder sl_graph phi psi (x : SL.Variable.t) =
   let _ = Logger.debug "Eliminating quantifier var %s\n" (SL.Variable.show x) in
-  let vals = Instance.compute_determined_value x (SL.free_vars ~with_pure:true phi) psi in (* TODO *)
+  let ground =
+    SL.free_vars ~with_pure:true phi
+    |> (fun xs -> SL.Variable.MonoList.remove xs x)
+  in
+  let vals = Instance.compute_determined_value sl_graph x ground psi in
   match vals with
     | Some v ->
       let _ = Logger.debug "Eliminated %s using substitution: %s\n" (SL.Variable.show x) (SL.Term.show v) in
@@ -111,11 +133,12 @@ let remove_determined sl_graph phi =
 let apply sl_graph phi =
   if SL.is_quantifier_free phi then phi
   else
-    remove_useless phi
+    remove_unconstrained phi
     |> RemoveVariadic.apply ~symbolic_heap:true (* TODO: is removal needed? *)
     |> remove_determined sl_graph
 
 let apply_ctx ctx =
   let open Context in
-  skolemisation ctx
+  let ctx' = if SL_graph.is_empty ctx.sl_graph then {ctx with sl_graph = SL_graph.compute ctx.phi} else ctx in
+  skolemisation ctx'
   |> (fun ctx -> {ctx with phi = apply ctx.sl_graph ctx.phi})

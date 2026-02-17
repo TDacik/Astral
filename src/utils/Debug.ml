@@ -50,8 +50,11 @@ module Builder (Params : S) = struct
     else ()
 
   let sl_formula ?source ?status name phi =
-    debug_output ~name ~suffix:".smt2" (SL.output_benchmark ?source ?status) phi;
+    debug_output ~name ~suffix:".asmt2" (SL.output_benchmark ?source ?status) phi;
     debug_output_apply ~name ~suffix:".dot" SL.to_ast SL.output_ast phi
+
+  let sl_benchmark ?source ?status name input =
+    debug_output ~name ~suffix:".smt2" (SMTLIB_printer.output_benchmark ?source ?status) input
 
   let inductive_predicate ?(name : string option) pred =
     let name = Option.value ~default:(InductiveDefinition.name pred) name in
@@ -76,6 +79,9 @@ module Builder (Params : S) = struct
 
   let smt_model name model =
     debug_output ~name ~suffix:".out" SMT.Model.dump model
+
+  let sl_graph name graph =
+    debug_output ~name ~suffix:".dot" SL_graph.output_file graph
 
   let result result =
     debug_output ~name:"result" ~suffix:".json" Json_output.output result

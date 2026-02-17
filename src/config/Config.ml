@@ -194,7 +194,7 @@ module QuantifierEncoding = Enum(struct
   let short_name = None
   let help = "Encoding of quantifiers"
   type t = [`Direct | `Enum] [@@deriving show, enum]
-  let default = `Enum
+  let default = `Direct
 end)
 
 module Encoding = Enum(struct

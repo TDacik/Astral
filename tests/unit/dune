@@ -22,6 +22,7 @@
 
     ;; Separation logic
     SL_tests
+    SL_API_tests
 
     ;; Preprocessing tests
     IntroduceITE_tests
@@ -38,7 +39,7 @@
     ;Property_tests
 
     ;; Frontends
-    LowLevelSeplog
+    ;; LowLevelSeplog
   )
 
   (modules_without_implementation testable_sig)

@@ -23,13 +23,12 @@ let ls =
 let ls_two_plus =
   let header = SL.Variable.mk_list loc_ls ["x"; "y"] in
   let [x; y] = List.map SL.Term.of_var header in
-  ID.mk "ls_2_plus" header @@
-    SL.mk_exists' [loc_ls; loc_ls] (fun [n; m] ->
+  ID.mk "ls_2plus" header @@
+    SL.mk_exists' [loc_ls] (fun [n] ->
       SL.mk_star [
         SL.mk_pto x n;
-        SL.mk_pto n m;
-        SL.mk_distinct [x; n; m; y];
-        SL.mk_predicate "ls" [m; y];
+        SL.mk_distinct [x; n; y];
+        SL.mk_predicate "ls" [n; y];
     ])
 
 (** Doubly-linked list *)
@@ -47,18 +46,45 @@ let dls =
           SL.mk_predicate "dls" [n; y; x'; x]
     ])]
 
+(** Three-parameter DLS *)
+let dls_simple =
+  let header = SL.Variable.mk_list loc_dls ["x"; "y"; "yp"] in
+  let [x; y; y'] = List.map SL.Term.of_var header in
+  ID.mk "dls_simple" header @@
+    SL.mk_or [
+      SL.mk_eq2 x y;
+      SL.mk_exists' [SL_builtins.loc_dls] (fun [n] ->
+        SL.mk_star [
+          SL.mk_distinct2 x y;
+          mk_pto_dls x ~next:n ~prev:y';
+          SL.mk_predicate "dls_simple" [n; y; x]
+    ])]
+
+(** Three-parameter DLS *)
+let dls_simple_two_plus =
+  let header = SL.Variable.mk_list loc_dls ["x"; "y"; "yp"] in
+  let [x; y; y'] = List.map SL.Term.of_var header in
+  ID.mk "dls_simple_2plus" header @@
+      SL.mk_exists' [SL_builtins.loc_dls] (fun [n] ->
+        SL.mk_star [
+          SL.mk_distinct [x; y; n];
+          mk_pto_dls x ~next:n ~prev:y';
+          SL.mk_predicate "dls_simple" [n; y; x]
+      ])
+
 (** Doubly-linked list of length 3+ *)
 let dls_three_plus =
   let header = SL.Variable.mk_list loc_dls ["x"; "y"; "xp"; "yp"] in
   let [x; y; x'; y'] = List.map SL.Term.of_var header in
-  ID.mk "dls_3_plus" header @@
-    SL.mk_exists' [loc_dls; loc_dls; loc_dls] (fun [n1; n2; n3] ->
+  ID.mk "dls_3plus" header @@
+    SL.mk_exists' [loc_dls] (fun [n] ->
       SL.mk_star [
-        mk_pto_dls x ~next:n1 ~prev:y';
-        mk_pto_dls n1 ~next:n2 ~prev:x;
-        mk_pto_dls n2 ~next:n3 ~prev:n1;
-        SL.mk_distinct [x; n1; n2; n3; y];
-        SL.mk_predicate "dls" [n3; y; x'; n2];
+        mk_pto_dls x ~next:n ~prev:y';
+        SL.mk_distinct2 x y;
+        SL.mk_distinct2 x' y';
+        SL.mk_distinct2 n y;
+        SL.mk_distinct2 x x';
+        SL.mk_predicate "dls" [n; y; x'; x];
     ])
 
 (* Nested singly-linked list *)
@@ -76,35 +102,17 @@ let nls =
           SL.mk_predicate "ls" [next; z];
     ])]
 
-(* Nested singly-linked list *)
-let nls_one_plus =
-  let header = SL.Variable.mk_list loc_nls ["x"; "y"] @ [SL.Variable.mk "z" loc_ls] in
-  let [x; y; z] = List.map SL.Term.of_var header in
-  ID.mk "nls_one_plus" header @@
-    SL.mk_or [
-      mk_pto_nls x ~top:y ~next:z;
-      SL.mk_exists' [loc_nls; loc_ls;] (fun [top; next] ->
-        SL.mk_star [
-          SL.mk_distinct [x; y];
-          mk_pto_nls x ~top ~next;
-          SL.mk_predicate "nls" [top; y; z];
-          SL.mk_predicate "ls" [next; z];
-    ])]
-
 (* Nested singly-linked list of length 2+ *)
 let nls_two_plus =
   let header = SL.Variable.mk_list loc_nls ["x"; "y"] @ [SL.Variable.mk "z" loc_ls] in
   let [x; y; z] = List.map SL.Term.of_var header in
-  ID.mk "nls_two_plus" header @@
-    SL.mk_exists' [loc_nls; loc_nls; loc_ls; loc_ls] (fun [t1; t2; n1; n2] ->
+  ID.mk "nls_2plus" header @@
+    SL.mk_exists' [loc_nls; loc_ls] (fun [t; n] ->
       SL.mk_star [
-        mk_pto_nls x ~top:t1 ~next:n1;
-        mk_pto_nls t1 ~top:t2 ~next:n2;
-        SL.mk_distinct [x; t1; t2; y];
-        SL.mk_distinct [n1; n2; z];
-        SL.mk_predicate "ls" [n1; z];
-        SL.mk_predicate "ls" [n2; z];
-        SL.mk_predicate "nls" [t2; y; z];
+        mk_pto_nls x ~top:t ~next:n;
+        SL.mk_distinct [x; y; t];
+        SL.mk_predicate "nls" [t; y; z];
+        SL.mk_predicate "ls" [n; z];
     ])
 
 (** Singly-linked list defined from backward *)
