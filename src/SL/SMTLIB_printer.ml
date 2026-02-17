@@ -50,9 +50,10 @@ let generate_definitions phi heap_sort =
   let heap_sort = HeapSort.restriction sorts heap_sort in
   (generate_logic_string phi)
   +++ (String.concat "\n" @@ List.map declare_sort sorts)
-  +++ (String.concat "\n" @@ List.map declare_struct structs)
+  (*+++ String.concat "\n" @@ List.map declare_struct structs*)
+  +++ (MemoryModel.StructDef.smt2_decl_group structs)
   +++ (declare_heap_sort heap_sort)
-  +++ (String.concat "\n" @@ List.map declare_pred predicates)
+  +++ (String.concat "\n\n" @@ List.map declare_pred predicates)
   (*++ "(set-option :use-freed-predicate)"*)
 
 let output_benchmark ?source ?status path (input : ParserContext.t) =

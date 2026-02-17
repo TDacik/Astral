@@ -65,7 +65,7 @@ let has_builtin_predicates phi =
   in
   not @@ List.is_empty uids
 
-let get_inductive_definitions ?(original=false) phi =
+let get_inductive_definitions ?(original=true) phi =
   SL.select_subformulae (fun phi -> match SL.view phi with
       | Predicate (name, _, _) -> GlobalSID.is_user_defined name
       | _ -> false

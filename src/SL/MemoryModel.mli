@@ -67,6 +67,8 @@ module StructDef : sig
 
   val smt2_decl : t -> string
 
+  val smt2_decl_group : t list -> string
+
   val show_cons : t -> string
 
   include PRINTABLE with type t := t
