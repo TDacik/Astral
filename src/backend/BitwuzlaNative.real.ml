@@ -196,10 +196,11 @@ module Init () = struct
 
   let solve context phi_orig produce_models options =
     let options = Options.default () in
-    Options.set options Options.Produce_models true;
+    (if produce_models then Options.set options Options.Produce_models true);
     let solver = BW.Solver.create options in
     match BW.Solver.check_sat ~assumptions:[|translate phi_orig|] solver with
-      | Sat -> SMT_Sat (Option.some (translate_model solver phi_orig, ())) (* TODO: do this on-demand *)
+      | Sat when produce_models -> SMT_Sat (Option.some (translate_model solver phi_orig, ()))
+      | Sat -> SMT_Sat None
       | Unsat -> SMT_Unsat []
       | Unknown -> SMT_Unknown ""
 
