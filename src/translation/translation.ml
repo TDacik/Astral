@@ -134,12 +134,13 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     (** TODO: should be axiom of freed. *)
     let target_not_freed =
       if Freed.is_present ctx.phi then
-        Boolean.mk_and @@ List.map (fun field ->
-          Boolean.mk_distinct [HeapEncoding.mk_succ ctx.heap field x; Locations.mk_var ctx.locs "freed"]
-          ) fields
+        List.filter Field.is_pointer fields
+        |> List.map (fun field ->
+            Boolean.mk_distinct [HeapEncoding.mk_succ ctx.heap field x; Locations.mk_var ctx.locs "freed"]
+          )
+        |> Boolean.mk_and
       else Boolean.tt
     in
-
 
     let semantics = Boolean.mk_and [domain_def; pointer; target_not_freed] in
     (semantics, axioms, footprints)

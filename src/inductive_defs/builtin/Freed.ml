@@ -62,8 +62,18 @@ module Self =  struct
       let fields =
         MemoryModel.StructDef.get_fields @@ HeapSort.find_target (SL.Term.get_sort xt) ctx.heap_sort
       in
+
+      (* All pointer fields are pointing to loc_freed. Non-pointer fields are unconstrained.
+         TODO:
+                This can cause problems for int pointer x in formula:
+
+                    x -> 0 |= freed(x).
+
+                To fix this, we need to add some valid array and rework whole freed...
+      *)
       let field_semantics =
-        List.map (fun f -> SMT.mk_eq [HeapEncoding.mk_succ ctx.heap f x; freed]) fields
+        List.filter MemoryModel.Field.is_pointer fields
+        |> List.map (fun f -> SMT.mk_eq [HeapEncoding.mk_succ ctx.heap f x; freed])
       in
       let semantics = Boolean.mk_and @@ Sets.mk_eq_singleton domain x :: field_semantics in
       let axioms =
