@@ -8,7 +8,10 @@ open Utils
 
 let run () =
   Astral.Profiler.add "Start";
+
+  (* Parse and check command line *)
   let input_file = Astral.Config.parse_cmdline ~version:(BuildInfo.version ()) () in
+  Config.check ();
 
   Astral.LoggerState.init (); (* Debug initialisation needs to be called after options' parsing *)
   Printexc.record_backtrace (Astral.Config.Debug.get ());
@@ -30,8 +33,7 @@ let () =
   with
     | Astral.Exceptions.InternalError (trace, reason, details) ->
       Astral.Exceptions.pretty_internal_error reason ~trace ~details
-    | Astral.Config.CmdOptionError msg ->
-      user_error "%s\n" msg
+    | Astral.ConfigError.ConfigError (msg, hint) -> cmdline_error msg ~hint
     | Astral.BaseLogic.TypeError error ->
       Format.eprintf "Unhandled type error: %s\n" (Astral.BaseLogic.show_type_error error);
       Printexc.print_backtrace stderr

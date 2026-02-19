@@ -51,6 +51,8 @@ module type ENUM = sig
   include VALUE
   val values : t list
   val values_with_names : (t * string) list
+
+  val add_check : (string -> unit) -> unit
 end
 
 module type ACTION = sig

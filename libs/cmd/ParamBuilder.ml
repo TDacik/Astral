@@ -117,6 +117,9 @@ module Enum (E : ENUM_IN) = struct
   let set_string str = set @@ of_string str
   let get_string () = show @@ get ()
 
+  (* Checks *)
+
+  let add_check (fn : string -> unit) = CommandLine.register_check (fun () -> fn @@ show !value)
 
   let () = CommandLine.register ~help ?short_name name (String {set = set_string; get = get_string})
 

@@ -2,6 +2,8 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2025 *)
 
+open ConfigError
+
 type kind =
   | Native of string   (* name of opam package *)
   | External of string (* name of binary *)
@@ -45,6 +47,17 @@ let print_aux cond b =
       | External binary -> Format.asprintf "- (add binary %s to path)" binary
   in
   if cond then Format.printf "  - %s: %s\n" b.name (status b) else ()
+
+let show_err = function
+  | Native package -> Format.asprintf "OCaml package %s is not installed" package
+  | External binary -> Format.asprintf "Binary %s is not in path" binary
+
+let check_available = function
+  | "auto" -> ()
+  | name ->
+    let b = List.find (fun b -> String.equal name b.name) !backends in
+    if b.check_available () then ()
+    else raise @@ ConfigError (show_err b.kind, "run astral --backend-help for list of available backends")
 
 let print () =
   Format.printf "Native backends:\n";

@@ -8,4 +8,6 @@ val print_error : ('a, Format.formatter, unit) format -> 'a
 val user_error : ('a, Format.formatter, unit, 'b) format4 -> 'a
 (** Print an error message and exit with return code 2. *)
 
+val cmdline_error : ?hint:string -> string -> _
+
 val internal_error : ?backtrace:bool -> exit_code:int -> string -> _

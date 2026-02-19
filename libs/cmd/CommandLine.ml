@@ -23,8 +23,13 @@ type param = {
 (** List of registered parameters *)
 let params = ref []
 
+let checks = ref []
+
 let register ?short_name ?help name kind =
   params := {kind; name; short_name; help = help} :: !params
+
+let register_check fn =
+  checks := fn :: !checks
 
 (** Init *)
 
@@ -85,6 +90,9 @@ let print () =
       | String {get; _} -> Format.printf "%s: %s\n" param.name (get ())
       | _ -> ()
   ) !params
+
+let check () =
+  List.iter (fun check -> check ()) !checks
 
 let to_json () =
   `Assoc (

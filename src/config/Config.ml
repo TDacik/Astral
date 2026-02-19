@@ -4,8 +4,6 @@
 
 open ParamBuilder
 
-exception CmdOptionError = ParamBuilder.OptionError
-
 let _version = ref ""
 
 module Version = Action(struct
@@ -141,6 +139,8 @@ module Backend = Enum(struct
   let default = `Auto
 end)
 
+let () = Backend.add_check BackendConfig.check_available
+
 module BackendOptions = String(struct
   let name = "--backend-options"
   let short_name = None
@@ -163,6 +163,8 @@ module IncrementalBackend = Enum(struct
   type t = [`Auto | `Bitwuzla | `Z3] [@@deriving show, enum]
   let default = `Auto
 end)
+
+let () = IncrementalBackend.add_check BackendConfig.check_available
 
 module IncrementalTimeout = PositiveInt(struct
   let name = "--incr-timeout"
@@ -258,7 +260,7 @@ let take_file_once =
 
 let usage = "astral [options] [input-file]"
 
-let check () = () (* TODO *)
+let check () = CommandLine.check ()
 
 let parse_cmdline ?version () =
   (match version with Some v -> _version := v | None -> ());

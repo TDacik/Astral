@@ -4,8 +4,6 @@
 
 open Param_sig
 
-exception CmdOptionError of string
-
 val check : unit -> unit
 
 val parse_cmdline : ?version:string -> unit -> string
