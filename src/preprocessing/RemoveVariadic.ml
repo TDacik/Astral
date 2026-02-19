@@ -13,19 +13,20 @@ let process_distinct = function
     |> List.map (fun (x, y) -> SL.mk_distinct [x; y])
     |> SL.mk_and
 
-let rec process_variadic fn = function
-  | [x] -> fn [x] (* TODO: why? *)
+let rec process_variadic fn neutral = function
+  | [] -> neutral
+  | [x] -> x
   | [x1; x2] -> fn [x1; x2]
-  | x1 :: x2 :: xs -> fn [fn [x1; x2]; process_variadic fn xs]
+  | x1 :: x2 :: xs -> fn [fn [x1; x2]; process_variadic fn neutral xs]
 
 let rec apply ?(symbolic_heap=false) phi =
   let res =
     SL.map_view (fun psi -> match psi with
       | SL.Eq xs -> `Modify (process_eq xs)
       | SL.Distinct xs -> `Modify (process_distinct xs)
-      | SL.And psis -> `Modify (process_variadic SL.mk_and psis)
-      | SL.Or psis -> `Modify (process_variadic SL.mk_or psis)
-      | SL.Star psis -> `Modify (process_variadic SL.mk_star psis)
+      | SL.And psis -> `Modify (process_variadic SL.mk_and SL.tt psis)
+      | SL.Or psis -> `Modify (process_variadic SL.mk_or SL.ff psis)
+      | SL.Star psis -> `Modify (process_variadic SL.mk_star SL.emp psis)
 
       | SL.Exists ([x], psi) -> `Modify (SL.mk_exists [x] psi)
       | SL.Forall ([x], psi) -> `Modify (SL.mk_forall [x] psi)
