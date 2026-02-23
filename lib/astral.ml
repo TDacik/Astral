@@ -21,3 +21,5 @@ module SMT = SMT
 module Solver = Solver
 
 module AstralConfig = Config
+
+module LowLevelSeplog = LowLevelSeplog
