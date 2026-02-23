@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"><head><title>PathBound (astral.Astral_internal.PathBound)</title><meta charset="utf-8"/><link rel="stylesheet" href="../../../odoc.support/odoc.css"/><meta name="generator" content="odoc 3.1.0"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/><script src="../../../odoc.support/highlight.pack.js"></script><script>hljs.initHighlightingOnLoad();</script></head><body class="odoc"><nav class="odoc-nav"><a href="../index.html">Up</a> – <a href="../../../index.html">Index</a> &#x00BB; <a href="../../index.html">astral</a> &#x00BB; <a href="../index.html">Astral_internal</a> &#x00BB; PathBound</nav><header class="odoc-preamble"><h1>Module <code><span>Astral_internal.PathBound</span></code></h1></header><div class="odoc-content"><div class="odoc-spec"><div class="spec module anchored" id="module-TermSet"><a href="#module-TermSet" class="anchor"></a><code><span><span class="keyword">module</span> TermSet</span><span> = <a href="../SL/Term/Set/index.html">SL.Term.Set</a></span></code></div></div><div class="odoc-spec"><div class="spec module anchored" id="module-Logger"><a href="#module-Logger" class="anchor"></a><code><span><span class="keyword">module</span> <a href="Logger/index.html">Logger</a></span><span> : <a href="../Logger_sig/module-type-LOGGER/index.html">Logger_sig.LOGGER</a></span></code></div></div><div class="odoc-spec"><div class="spec exception anchored" id="exception-NoPath"><a href="#exception-NoPath" class="anchor"></a><code><span><span class="keyword">exception</span> </span><span><span class="exception">NoPath</span></span></code></div></div><div class="odoc-spec"><div class="spec module anchored" id="module-M"><a href="#module-M" class="anchor"></a><code><span><span class="keyword">module</span> <a href="M/index.html">M</a></span><span> : <span class="keyword">sig</span> ... <span class="keyword">end</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-bound_cache"><a href="#val-bound_cache" class="anchor"></a><code><span><span class="keyword">val</span> bound_cache : <span><span><span>(int * int)</span> <a href="M/index.html#type-t">M.t</a></span> <span class="xref-unresolved">Stdlib</span>.ref</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-cache_add"><a href="#val-cache_add" class="anchor"></a><code><span><span class="keyword">val</span> cache_add : 
+  <span><span>(<a href="../SL/Term/index.html#type-t">SL.Term.t</a> * <a href="../SL/Term/index.html#type-t">SL.Term.t</a> * <a href="../MemoryModel/Field/index.html#type-t">MemoryModel.Field.t</a>)</span> <span class="arrow">&#45;&gt;</span></span>
+  <span><span>(int * int)</span> <span class="arrow">&#45;&gt;</span></span>
+  unit</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-cache_find"><a href="#val-cache_find" class="anchor"></a><code><span><span class="keyword">val</span> cache_find : <span><span>(<a href="../SL/Term/index.html#type-t">SL.Term.t</a> * <a href="../SL/Term/index.html#type-t">SL.Term.t</a> * <a href="../MemoryModel/Field/index.html#type-t">MemoryModel.Field.t</a>)</span> <span class="arrow">&#45;&gt;</span></span> int * int</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-cache_reset"><a href="#val-cache_reset" class="anchor"></a><code><span><span class="keyword">val</span> cache_reset : <span>unit <span class="arrow">&#45;&gt;</span></span> unit</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-path_lower_bound"><a href="#val-path_lower_bound" class="anchor"></a><code><span><span class="keyword">val</span> path_lower_bound : 
+  <span><a href="../SL_graph0/index.html#type-t">SL_graph0.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../MemoryModel/Field/index.html#type-t">MemoryModel.Field.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL/Term/index.html#type-t">SL.Term.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL/Term/index.html#type-t">SL.Term.t</a> <span class="arrow">&#45;&gt;</span></span>
+  int</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-path_upper_bound"><a href="#val-path_upper_bound" class="anchor"></a><code><span><span class="keyword">val</span> path_upper_bound : 
+  <span><a href="../SL_graph0/G/index.html#type-t">SL_graph0.G.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../MemoryModel/Field/index.html#type-t">MemoryModel.Field.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL/Term/index.html#type-t">SL.Term.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL/Term/index.html#type-t">SL.Term.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span>int <span class="arrow">&#45;&gt;</span></span>
+  int</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-partial_path"><a href="#val-partial_path" class="anchor"></a><code><span><span class="keyword">val</span> partial_path : 
+  <span><a href="../SL_graph0/G/index.html#type-t">SL_graph0.G.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../MemoryModel/Field/index.html#type-t">MemoryModel.Field.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL/Term/index.html#type-t">SL.Term.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL/Term/index.html#type-t">SL.Term.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL_graph0/G/index.html#type-vertex">SL_graph0.G.vertex</a> list</span></span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-root_weight"><a href="#val-root_weight" class="anchor"></a><code><span><span class="keyword">val</span> root_weight : 
+  <span><a href="../SL_graph0/G/index.html#type-t">SL_graph0.G.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL/index.html#type-t">SL.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../HeapSort/index.html#type-t">HeapSort.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL_graph0/G/index.html#type-vertex">SL_graph0.G.vertex</a> <span class="arrow">&#45;&gt;</span></span>
+  int</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-alloc_bound"><a href="#val-alloc_bound" class="anchor"></a><code><span><span class="keyword">val</span> alloc_bound : 
+  <span><a href="../SL_graph0/G/index.html#type-t">SL_graph0.G.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL/index.html#type-t">SL.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../HeapSort/index.html#type-t">HeapSort.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../MemoryModel/Field/index.html#type-t">MemoryModel.Field.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL_graph0/G/index.html#type-vertex">Astral_internal.SL_graph.G.vertex</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL/Term/index.html#type-t">SL.Term.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span>int <span class="arrow">&#45;&gt;</span></span>
+  int</span></code></div></div><div class="odoc-spec"><div class="spec value anchored" id="val-compute"><a href="#val-compute" class="anchor"></a><code><span><span class="keyword">val</span> compute : 
+  <span><a href="../SL_graph0/G/index.html#type-t">SL_graph0.G.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL/index.html#type-t">SL.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../HeapSort/index.html#type-t">HeapSort.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../MemoryModel/Field/index.html#type-t">MemoryModel.Field.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL/Term/index.html#type-t">SL.Term.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span><a href="../SL/Term/index.html#type-t">SL.Term.t</a> <span class="arrow">&#45;&gt;</span></span>
+  <span>int <span class="arrow">&#45;&gt;</span></span>
+  int * int</span></code></div></div></div></body></html>
