@@ -59,16 +59,15 @@ jobs:
   deploy-doc:
     runs-on: ubuntu-latest
 
-    if: github.ref == 'refs/heads/dev'
+    # Avoid publishing PR branches
+    if: github.event_name == "push"
 
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
 
     permissions:
-      contents: read
-      id-token: write
-      pages: write
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -89,14 +88,10 @@ jobs:
       - name: Build documentation
         run: opam exec -- dune build @doc
 
-      - name: Set-up Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Deploy docs
+        uses: peaceiris/actions-gh-pages@v3
         with:
-          path: _build/default/_doc/_html
-
-      - name: Deploy odoc to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _build/default/_doc/_html
+          destination_dir: ${{ github.ref_name }}
+          keep_files: true
