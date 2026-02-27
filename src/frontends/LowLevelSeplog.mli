@@ -1,6 +1,12 @@
 
 type width := int
 
+module type CONFIG = sig
+  val width : width
+end
+
+module Make (_ : CONFIG) () : sig
+
 (** {2 Variables} *)
 
 module Variable : sig
@@ -32,6 +38,10 @@ module Term : sig
   val mk_var : width -> string -> t
 
   val mk_fresh_var : width -> string -> t
+
+  val mk_ptr_var : string -> t
+
+  val mk_fresh_ptr_var : string -> t
 
   val mk_const : size:width -> int -> t
   (** Create a constant term representing integer at given width. *)
@@ -98,4 +108,6 @@ val mk_exists : Variable.t list -> t -> t
 
 (** {2 Satisfiability} *)
 
-val check_sat : address_width:width -> t -> [`Sat | `Unsat | `Unknown]
+val check_sat : t -> [`Sat | `Unsat | `Unknown]
+
+end
