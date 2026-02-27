@@ -316,7 +316,6 @@ module Make(C : CONFIG) () = struct
       blocks_do_not_overlap ctx block_terms;
     ]
 
-  (* TODO: get address width from formula *)
   let check_sat phi =
     let module Backend = BitwuzlaNative.Init () in
     let ctx = Context.init () in
