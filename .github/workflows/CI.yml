@@ -95,4 +95,10 @@ jobs:
           publish_dir: _build/default/_doc/_html
           destination_dir: branches/${{ github.ref_name }}
           keep_files: true
-          force_modify: true
+
+      - name: Deploy root index
+        uses: peaceiris/actions-gh-pages@v3
+          publish_dir: .github/workflows
+          publish_path: index.html
+          destination_dir: .
+          keep_files: true
