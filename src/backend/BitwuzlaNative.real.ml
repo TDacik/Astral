@@ -131,7 +131,7 @@ module Init () = struct
 
     | SMT.BitXor ([bv1; bv2], sort) -> BW.mk_term2 Bv_xor (translate bv1) (translate bv2)
     | SMT.BitImplies (bv1, bv2) -> BW.mk_term2 Bv_or (BW.mk_term1 Bv_not (translate bv1)) (translate bv2)
-    | SMT.BitCompl bv -> BW.mk_term1 Bv_not (translate bv)
+    | SMT.BitNot bv -> BW.mk_term1 Bv_not (translate bv)
     | SMT.BitShiftLeft (bv, rotate) -> BW.mk_term2 Bv_shl (translate bv) (translate rotate)
     | SMT.BitShiftRight (bv, rotate) -> BW.mk_term2 Bv_shr (translate bv) (translate rotate)
 

@@ -62,9 +62,9 @@ let mk_inter sets sort = Bitvector.mk_and (Sort.get_width sort) sets
 
 let mk_diff set1 set2 =
   let width = Bitvector.get_width set1 in
-  Bitvector.mk_and width [set1; Bitvector.mk_compl set2]
+  Bitvector.mk_and width [set1; Bitvector.mk_not set2]
 
-let mk_compl set = Bitvector.mk_compl set
+let mk_compl set = Bitvector.mk_not set
 
 let mk_eq_empty set = Bitvector.mk_eq [set; mk_empty (get_sort set)]
 

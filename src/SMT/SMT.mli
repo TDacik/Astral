@@ -57,12 +57,13 @@ type view =
   (* Bitvectors *)
   | BitConst of Bitvector.t
   | BitCheck of t * t
+  | BitNot of t
   | BitAnd of t list * Sort.t
   | BitOr of t list * Sort.t
   | BitXor of t list * Sort.t
   | BitPlus of t list * Sort.t
   | BitImplies of t * t
-  | BitCompl of t
+  | BitNeg of t
   | BitShiftLeft of t * t    (* bitvector, integer *)
   | BitShiftRight of t * t   (* bitvector, integer *)
   | BitLesser of t * t
@@ -249,7 +250,9 @@ module Bitvector : sig
   val mk_xor : int -> t list -> t
 
   val mk_implies : t -> t -> t
-  val mk_compl : t -> t
+
+  val mk_neg : t -> t
+  (** Two's complement, i.e. unary minus. *)
 
   (* TODO: labels? *)
   val mk_shift_left : t -> t -> t

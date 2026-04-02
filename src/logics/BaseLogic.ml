@@ -27,10 +27,10 @@ module Application = struct
     (* Arithmetic *)
     | Plus | Minus | Mult | Lesser | LesserEqual
     (* Bitvectors *)
-    | BitPlus of Int.t
+    | BitPlus of Int.t | BitNeg
     | BitCheck | BitNot | BitAnd of Int.t | BitOr of Int.t | BitXor of Int.t
     | BitUnsignedLesser | BitUnsignedLesserEqual
-    | BitImplies | BitCompl | BitShiftLeft | BitShiftRight
+    | BitImplies | BitShiftLeft | BitShiftRight
     (* Sets *)
     | Membership | Subset | Disjoint | Union of Sort.t | Inter of Sort.t | Diff | Compl
     | Enum of Sort.t | Universe of Sort.t
@@ -62,12 +62,13 @@ module Application = struct
 
     | Plus -> "+" | Minus -> "-" | Mult -> "*"
     | BitPlus _ -> "bvadd"
+    | BitNeg -> "bvneg"
     | BitCheck -> "bit-check"
     | BitNot -> "bit-not"
     | BitAnd _ -> "bit-and"
     | BitOr _ -> "bit-or"
     | BitXor _ -> "bit-xor"
-    | BitImplies -> "bit-implies" | BitCompl -> "bit-compl"
+    | BitImplies -> "bit-implies"
     | BitShiftLeft -> ">>" | BitShiftRight -> "<<"
 
     | Membership -> "mem" | Subset -> "subset" | Disjoint -> "disjoint"
@@ -99,7 +100,7 @@ module Application = struct
     | Union sort | Inter sort | Enum sort | Universe sort -> sort
     | Diff | Compl -> List.hd xs
     | BitPlus width | BitAnd width | BitOr width | BitXor width -> Sort.mk_bitvector width
-    | BitNot | BitShiftLeft | BitShiftRight | BitImplies | BitCompl -> List.hd xs
+    | BitNot | BitShiftLeft | BitShiftRight | BitImplies | BitNeg -> List.hd xs
     | HeapTerm (field) -> Field.get_sort field
     | IfThenElse -> List.nth xs 1
     | ConstArray sort -> List.nth xs 0
@@ -718,6 +719,12 @@ module Bitvector = struct
     let neutral = mk_full_ones width in
     mk_smart_app ~neutral (BitPlus width) xs
 
+  let mk_neg bv = mk_app BitNeg [bv]
+
+  let mk_minus lhs rhs =
+    let width = get_width lhs in
+    mk_plus width [lhs; mk_neg rhs]
+
   let mk_and width =
     let neutral = mk_full_ones width in
     let anihilator = mk_full_zeros width in
@@ -730,7 +737,6 @@ module Bitvector = struct
 
   let mk_xor width = mk_app (BitXor width)
   let mk_implies lhs rhs = mk_app BitImplies [lhs; rhs]
-  let mk_compl bv = mk_app BitCompl [bv]
 
   let mk_shift_left bv shift = mk_app BitShiftLeft [bv; shift]
   let mk_shift_right bv shift = mk_app BitShiftRight [bv; shift]

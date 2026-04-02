@@ -67,6 +67,8 @@ module Make(C : CONFIG) () = struct
       | BlockBegin t | BlockEnd t -> get_width t
       | Application (app, args) -> Operation.get_width app @@ List.map get_width args
 
+    let null = Const (Bitvector.of_int 0 C.width)
+
     let mk_var size name = Var (Variable.mk size name)
 
     let mk_fresh_var size name = Var (Variable.mk_fresh size name)
@@ -136,7 +138,7 @@ module Make(C : CONFIG) () = struct
       let c_str = match c with None -> "?" | Some b -> Bitvector.show b in
       Format.asprintf "%s -> %s[%s]" (Term.show x) c_str (Term.show size)
     | Star xs -> String.concat " * " @@ List.map show xs
-    | _ -> failwith "TODO"
+    | _ -> "TODO"
 
   (** Constructors *)
 
@@ -205,7 +207,12 @@ module Make(C : CONFIG) () = struct
     | BlockBegin t -> SMT.Array.mk_select ctx.begin_arr (translate_term ctx t)
     | BlockEnd t -> SMT.Array.mk_select ctx.end_arr (translate_term ctx t)
     | Application (Plus, xs) -> SMT.Bitvector.mk_plus (get_width @@ List.hd xs) @@ List.map (translate_term ctx) xs
-    | Application (Minus, [x; y]) -> failwith "TODO" (* SMT.Bitvector.mk_minus (translate_term ctx x) (translate_term ctx y)*)
+    | Application (Minus, [x; y]) ->
+      (* TODO: we may want to use mk_minus which is transformed later *)
+      SMT.Bitvector.mk_plus (get_width x) [
+        (translate_term ctx x);
+        SMT.Bitvector.mk_not (translate_term ctx y);
+      ]
 
   let rec translate ctx = function
     | Emp -> SMT.Boolean.tt
