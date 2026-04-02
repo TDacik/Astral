@@ -35,6 +35,8 @@ module Term : sig
 
   (** {3 Constructors} *)
 
+  val null : t
+
   val mk_var : width -> string -> t
 
   val mk_fresh_var : width -> string -> t

@@ -24,6 +24,8 @@ let test_check_unsat phi =
   let msg = Format.asprintf "UNSAT: %s" (LL.show phi) in
   Alcotest.check' Alcotest.bool ~msg ~actual:(LL.check_sat phi = `Sat) ~expected:false
 
+(** Sanity tests *)
+
 let emp_sat () =
   let phi = LL.emp in
   test_check_sat phi
@@ -31,6 +33,21 @@ let emp_sat () =
 let distinct_unsat () =
   let phi = LL.mk_distinct [x; x] in
   test_check_unsat phi
+
+let pointsto_from_nil () =
+  let phi = LL.mk_pto LL.Term.null LL.Term.null in
+  test_check_unsat phi
+
+(** Arithmetic *)
+let arithmetic_test1 () =
+  let t = LL.Term.mk_plus x c16 in
+  let phi = LL.mk_pto t LL.Term.null in
+  test_check_sat phi
+
+let arithmetic_test2 () =
+  let t = LL.Term.mk_minus x c16 in
+  let phi = LL.mk_pto t LL.Term.null in
+  test_check_sat phi
 
 (** Blocks *)
 
@@ -67,8 +84,15 @@ let array_ptrs_sat () =
 let () =
   run "Low-level SL" [
     "Basic", [
-      test_case "SAT(emp)"      `Quick emp_sat;
-      test_case "UNSAT(x = x)"  `Quick distinct_unsat;
+      test_case "SAT(emp)"              `Quick emp_sat;
+      test_case "UNSAT(x = x)"          `Quick distinct_unsat;
+      test_case "UNSAT(null |-> null)"  `Quick pointsto_from_nil;
+    ];
+    "Arithmetic", [
+      test_case "plus"      `Quick arithmetic_test1;
+      test_case "minus"     `Quick arithmetic_test2;
+    ];
+    "Blocks", [
       test_case "UNSAT(...)"    `Quick block_test1;
       test_case "SAT(...)"      `Quick block_test2;
       test_case "UNSAT(..)"     `Quick block_test3;

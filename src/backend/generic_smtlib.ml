@@ -70,8 +70,10 @@ let rec translate_std translate translate_sort term = match SMT.view term with
     Format.asprintf "(bvxor %s %s)" (translate bv1) (translate bv2)
   | SMT.BitImplies (bv1, bv2) ->
     Format.asprintf "(bvor (bvnot %s) %s)" (translate bv1) (translate bv2)
-  | SMT.BitCompl bv ->
+  | SMT.BitNot bv ->
     Format.asprintf "(bvnot %s)" (translate bv)
+  | SMT.BitNeg bv ->
+    Format.asprintf "(bvneg %s)" (translate bv)
   | SMT.BitShiftLeft (bv, rotate) ->
     Format.asprintf "(bvshl %s %s)" (translate bv) (translate rotate)
   | SMT.BitShiftRight (bv, rotate) ->
