@@ -37,7 +37,8 @@ module Make(C : CONFIG) () = struct
   module Operation = struct
 
     type t =
-      | Plus | Minus (* TODO ... *)
+      | Plus | Minus
+      (* TODO ... *)
 
     let arity = function
       | Plus -> None
@@ -117,6 +118,8 @@ module Make(C : CONFIG) () = struct
     | True
     | Eq of Term.t list
     | Distinct of Term.t list
+    | Lesser of Term.t * Term.t
+    | LesserEqual of Term.t * Term.t
     | PointsTo of Term.t * Term.t
     | PointsToArr of Term.t * Bitvector.t option * Term.t
     | Star of t list
@@ -133,6 +136,8 @@ module Make(C : CONFIG) () = struct
     | Distinct [x; y] -> Format.asprintf "%s != %s" (Term.show x) (Term.show y)
     | Eq xs -> aux "eq" xs Term.show
     | Distinct xs -> aux "distinct" xs Term.show
+    | Lesser (x, y) -> Format.asprintf "%s < %s" (Term.show x) (Term.show y)
+    | LesserEqual (x, y) -> Format.asprintf "%s <= %s" (Term.show x) (Term.show y)
     | PointsTo (x, y) -> Format.asprintf "%s -> %s" (Term.show x) (Term.show y)
     | PointsToArr (x, c, size) ->
       let c_str = match c with None -> "?" | Some b -> Bitvector.show b in
@@ -166,6 +171,14 @@ module Make(C : CONFIG) () = struct
     Distinct terms
 
   let mk_distinct2 x y = mk_distinct [x; y]
+
+  let mk_lesser x y = Lesser (x, y)
+
+  let mk_lesser_or_eq x y = LesserEqual (x, y)
+
+  let mk_greater x y = mk_lesser y x
+
+  let mk_greater_or_eq x y = mk_lesser_or_eq y x
 
   let mk_pto x y = PointsTo (x, y)
 
@@ -206,7 +219,8 @@ module Make(C : CONFIG) () = struct
     | Const c -> SMT.Bitvector.mk_const c
     | BlockBegin t -> SMT.Array.mk_select ctx.begin_arr (translate_term ctx t)
     | BlockEnd t -> SMT.Array.mk_select ctx.end_arr (translate_term ctx t)
-    | Application (Plus, xs) -> SMT.Bitvector.mk_plus (get_width @@ List.hd xs) @@ List.map (translate_term ctx) xs
+    | Application (Plus, xs) ->
+      SMT.Bitvector.mk_plus (get_width @@ List.hd xs) @@ List.map (translate_term ctx) xs
     | Application (Minus, [x; y]) ->
       (* TODO: we may want to use mk_minus which is transformed later *)
       SMT.Bitvector.mk_plus (get_width x) [
@@ -219,6 +233,8 @@ module Make(C : CONFIG) () = struct
     | True -> SMT.Boolean.tt
     | Eq terms -> SMT.Boolean.mk_eq @@ List.map (translate_term ctx) terms
     | Distinct terms -> SMT.Boolean.mk_distinct @@ List.map (translate_term ctx) terms
+    | Lesser (x, y) -> SMT.Bitvector.mk_lesser (translate_term ctx x) (translate_term ctx y)
+    | LesserEqual (x, y) -> SMT.Bitvector.mk_lesser_eq (translate_term ctx x) (translate_term ctx y)
     | PointsTo (source, target) -> SMT.Boolean.tt
     | PointsToArr (source, const, size) -> SMT.Boolean.tt
     | Star psis -> SMT.Boolean.mk_and @@ List.map (translate ctx) psis
@@ -229,7 +245,7 @@ module Make(C : CONFIG) () = struct
     | Range of SMT.t * SMT.t
 
   let rec collect_ptos ctx = function
-    | Emp | True | Eq _ | Distinct _ -> []
+    | Emp | True | Eq _ | Distinct _ | Lesser _ | LesserEqual _ -> []
     | PointsTo (source, _) -> [Singleton (translate_term ctx source)]
     | PointsToArr (source, _, size) -> [Range (translate_term ctx source, translate_term ctx size)]
     | Exists (_, psi) -> collect_ptos ctx psi
@@ -238,7 +254,8 @@ module Make(C : CONFIG) () = struct
   let rec collect_block_terms = function
     | Emp | True -> []
     | Eq terms | Distinct terms -> List.concat_map Term.collect_block_terms terms
-    | PointsTo (source, target) -> List.concat_map Term.collect_block_terms [source; target]
+    | PointsTo (x, y) | Lesser (x, y) | LesserEqual (x, y) ->
+      List.concat_map Term.collect_block_terms [x; y]
     | PointsToArr (source, _, _) -> Term.collect_block_terms source
     | Exists (_, psi) -> collect_block_terms psi
     | Star psis -> List.concat_map collect_block_terms psis

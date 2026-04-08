@@ -94,6 +94,14 @@ val mk_distinct2 : Term.t -> Term.t -> t
 
     @raises SortError when arguments do not have the same width. *)
 
+val mk_lesser : Term.t -> Term.t -> t
+
+val mk_lesser_or_eq : Term.t -> Term.t -> t
+
+val mk_greater : Term.t -> Term.t -> t
+
+val mk_greater_or_eq : Term.t -> Term.t -> t
+
 val mk_pto : Term.t -> Term.t -> t
 (** [mk_pto x y] creates a poinst-to assertion {m x \mapsto y}. *)
 
