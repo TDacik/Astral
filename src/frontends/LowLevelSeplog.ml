@@ -300,10 +300,21 @@ module Make(C : CONFIG) () = struct
   (** Memory model axioms *)
 
   let blocks_have_positive_size ctx terms =
-    let generator t =
+    let non_null t =
       SMT.Bitvector.mk_lesser
         (SMT.Array.mk_select ctx.begin_arr t)
         (SMT.Array.mk_select ctx.end_arr t)
+    in
+    let generator t =
+      SMT.Boolean.mk_or [
+        non_null t;
+        SMT.Boolean.mk_eq [
+          t;
+          SMT.Array.mk_select ctx.begin_arr t;
+          SMT.Array.mk_select ctx.end_arr t;
+          ctx.null;
+        ]
+      ]
     in
     List.map generator terms
     |> SMT.Boolean.mk_and

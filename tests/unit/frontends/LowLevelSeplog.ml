@@ -73,6 +73,21 @@ let block_test3 () =
   let phi = LL.mk_star [LL.mk_distinct2 bx by; LL.mk_eq2 ex ey] in
   test_check_unsat phi
 
+let block_test_null () =
+  let phi = LL.mk_eq [
+    LL.Term.null;
+    LL.Term.mk_block_begin LL.Term.null;
+    LL.Term.mk_block_end LL.Term.null;
+  ] in
+  test_check_sat phi
+
+let block_test_empty_block () =
+  let phi = LL.mk_star [
+    LL.mk_distinct2 x LL.Term.null;
+    LL.mk_eq2 bx ex;
+  ] in
+  test_check_unsat phi
+
 (** Array pointers *)
 
 let array_ptr_sat () =
@@ -108,6 +123,8 @@ let () =
       test_case "UNSAT(...)"    `Quick block_test1;
       test_case "SAT(...)"      `Quick block_test2;
       test_case "UNSAT(..)"     `Quick block_test3;
+      test_case "SAT(0 = end(0) = begin(0))"        `Quick block_test_null;
+      test_case "UNSAT(x != 0 * begin(x) = end(x))" `Quick block_test_empty_block;
       test_case "SAT(x -> ?[4])"  `Quick array_ptr_sat;
       test_case "SAT(x -> ?[4] * x + 4 -> ?[100])" `Quick array_ptrs_sat;
       test_case "UNSAT(x -> ?[100] * x + 1 -> ?[100])" `Quick array_ptrs_unsat;
