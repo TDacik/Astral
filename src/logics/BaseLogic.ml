@@ -28,6 +28,7 @@ module Application = struct
     | Plus | Minus | Mult | Lesser | LesserEqual
     (* Bitvectors *)
     | BitPlus of Int.t | BitNeg
+    | BitMult of Int.t
     | BitCheck | BitNot | BitAnd of Int.t | BitOr of Int.t | BitXor of Int.t
     | BitUnsignedLesser | BitUnsignedLesserEqual
     | BitImplies | BitShiftLeft | BitShiftRight
@@ -62,6 +63,7 @@ module Application = struct
 
     | Plus -> "+" | Minus -> "-" | Mult -> "*"
     | BitPlus _ -> "bvadd"
+    | BitMult _ -> "bvmul"
     | BitNeg -> "bvneg"
     | BitCheck -> "bit-check"
     | BitNot -> "bit-not"
@@ -99,7 +101,8 @@ module Application = struct
     | Plus | Minus | Mult -> Sort.int
     | Union sort | Inter sort | Enum sort | Universe sort -> sort
     | Diff | Compl -> List.hd xs
-    | BitPlus width | BitAnd width | BitOr width | BitXor width -> Sort.mk_bitvector width
+    | BitPlus width | BitAnd width | BitOr width | BitXor width | BitMult width ->
+      Sort.mk_bitvector width
     | BitNot | BitShiftLeft | BitShiftRight | BitImplies | BitNeg -> List.hd xs
     | HeapTerm (field) -> Field.get_sort field
     | IfThenElse -> List.nth xs 1
@@ -716,8 +719,12 @@ module Bitvector = struct
   let mk_not bv = mk_app BitNot [bv]
 
   let mk_plus width xs =
-    let neutral = mk_full_ones width in
+    let neutral = mk_full_zeros width in
     mk_smart_app ~neutral (BitPlus width) xs
+
+  let mk_mult width xs =
+    let neutral = mk_const_of_int 1 width in
+    mk_smart_app ~neutral (BitMult width) xs
 
   let mk_neg bv = mk_app BitNeg [bv]
 

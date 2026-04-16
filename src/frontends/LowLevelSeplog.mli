@@ -56,6 +56,8 @@ module Term : sig
 
   val mk_minus : t -> t -> t
 
+  val mk_mult : t -> t -> t
+
   val show : t -> string
 
 end

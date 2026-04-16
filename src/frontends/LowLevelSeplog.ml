@@ -37,19 +37,22 @@ module Make(C : CONFIG) () = struct
   module Operation = struct
 
     type t =
-      | Plus | Minus
+      | Plus
+      | Minus
+      | Mult
       (* TODO ... *)
 
     let arity = function
-      | Plus -> None
+      | Plus | Mult -> None
       | Minus -> Some 2
 
     let get_width = function
-      | Plus | Minus -> List.hd
+      | Plus | Minus | Mult -> List.hd
 
     let show = function
       | Plus -> "+"
       | Minus -> "-"
+      | Mult -> "*"
 
   end
 
@@ -87,6 +90,8 @@ module Make(C : CONFIG) () = struct
     let mk_plus x y = Application (Plus, [x; y])
 
     let mk_minus x y = Application (Minus, [x; y])
+
+    let mk_mult x y = Application (Mult, [x; y])
 
     let rec collect_vars = function
       | Var v -> [v]
@@ -221,6 +226,8 @@ module Make(C : CONFIG) () = struct
     | BlockEnd t -> SMT.Array.mk_select ctx.end_arr (translate_term ctx t)
     | Application (Plus, xs) ->
       SMT.Bitvector.mk_plus (get_width @@ List.hd xs) @@ List.map (translate_term ctx) xs
+    | Application (Mult, xs) ->
+      SMT.Bitvector.mk_mult (get_width @@ List.hd xs) @@ List.map (translate_term ctx) xs
     | Application (Minus, [x; y]) ->
       (* TODO: we may want to use mk_minus which is transformed later *)
       SMT.Bitvector.mk_plus (get_width x) [

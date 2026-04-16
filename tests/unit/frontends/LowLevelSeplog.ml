@@ -59,6 +59,26 @@ let arithmetic_test4 () =
   let phi = LL.mk_lesser_or_eq LL.Term.null t in
   test_check_sat phi
 
+let arithmetic_test5 () =
+  let t = LL.Term.mk_mult x c16 in
+  let phi = LL.mk_lesser_or_eq LL.Term.null t in
+  test_check_sat phi
+
+let arithmetic_test6 () =
+  let t = LL.Term.mk_mult x c16 in
+  let phi = LL.mk_greater_or_eq LL.Term.null t in
+  test_check_sat phi
+
+let arithmetic_test7 () =
+  let t1 = LL.Term.mk_mult x c16 in
+  let t2 = LL.Term.mk_mult y c16 in
+  let phi = LL.mk_star [
+    LL.mk_pto t1 LL.Term.null;
+    LL.mk_pto t2 LL.Term.null;
+  ]
+  in
+  test_check_sat phi
+
 (** Blocks *)
 
 let block_test1 () =
@@ -118,6 +138,9 @@ let () =
       test_case "minus"     `Quick arithmetic_test2;
       test_case "SAT(null <  x - 16)"   `Quick arithmetic_test3;
       test_case "SAT(null <= x - 16)"   `Quick arithmetic_test4;
+      test_case "SAT(null <= x * 16)"   `Quick arithmetic_test5;
+      test_case "SAT(null >= x * 16)"   `Quick arithmetic_test6;
+      test_case "SAT(...)"              `Quick arithmetic_test7;
     ];
     "Blocks", [
       test_case "UNSAT(...)"    `Quick block_test1;

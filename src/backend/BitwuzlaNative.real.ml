@@ -138,6 +138,9 @@ module Init () = struct
     | SMT.BitPlus ([x; y], _) -> BW.mk_term2 Bv_add (translate x) (translate y)
     | SMT.BitPlus (x :: xs, width) -> BW.mk_term2 Bv_add (translate x) (translate @@ SMT.Bitvector.mk_plus (Sort.get_width width) xs)
 
+    | SMT.BitMult ([x; y], _) -> BW.mk_term2 Bv_mul (translate x) (translate y)
+    | SMT.BitMult (x :: xs, width) -> BW.mk_term2 Bv_mul (translate x) (translate @@ SMT.Bitvector.mk_mult (Sort.get_width width) xs)
+
     | SMT.Select (a, i) -> BW.mk_term2 Select (translate a) (translate i)
     | SMT.ConstArr (const, dom_sort) ->
       let sort = Sort.mk_array dom_sort (SMT.get_sort const) in

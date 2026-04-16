@@ -60,6 +60,8 @@ let rec translate_std translate translate_sort term = match SMT.view term with
       (translate bv)
       width
 
+  (* TODO | SMT.BitPlus ( *)
+
   | SMT.BitAnd ([bv1; bv2], sort) ->
     Format.asprintf "(bvand %s %s)" (translate bv1) (translate bv2)
   | SMT.BitOr (bvs, Sort.Bitvector n) ->

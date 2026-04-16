@@ -62,6 +62,7 @@ type view =
   | BitOr of t list * Sort.t
   | BitXor of t list * Sort.t
   | BitPlus of t list * Sort.t
+  | BitMult of t list * Sort.t
   | BitImplies of t * t
   | BitNeg of t
   | BitShiftLeft of t * t    (* bitvector, integer *)
@@ -242,6 +243,8 @@ module Bitvector : sig
   val mk_bit_check : t -> t -> t
 
   val mk_plus : int -> t list -> t
+
+  val mk_mult : int -> t list -> t
 
   val mk_not : t -> t
 
