@@ -13,21 +13,20 @@ module Logger = Logger.Make(struct
 end)
 
 let compute_lookahaed sl_graph ground heap_sort var =
+  let (let*) = Option.bind in
   let sort = SL.Term.get_sort var in
-  if not @@ Sort.is_loc sort then None
-  else
-    let def = HeapSort.find_target sort heap_sort in
-    let field = MemoryModel.StructDef.find_field (fun f -> Sort.equal sort @@ MemoryModel.Field.get_sort f) def in
-    let g = SL_graph.projection_pointer @@ SL_graph.projection_field field sl_graph in
-    let target = SL_graph.find_reachable g var ground in
-    match target with
-      | None -> None
-      | Some target ->
-        let path = SL_graph.find_path g var target in
-        used_lookahead := true;
-        Logger.debug "Look-ahead: %s -[%s]-> %s\n"
-          (SL.Term.show var) (MemoryModel.Field.show_list path) (SL.Term.show target);
-        Some (path, target)
+  let* def = HeapSort.find_target_opt sort heap_sort in
+  let* field = MemoryModel.StructDef.find_field_opt (fun f -> Sort.equal sort @@ MemoryModel.Field.get_sort f) def in
+  let g = SL_graph.projection_pointer @@ SL_graph.projection_field field sl_graph in
+  let target = SL_graph.find_reachable g var ground in
+  match target with
+    | None -> None
+    | Some target ->
+      let path = SL_graph.find_path g var target in
+      used_lookahead := true;
+      Logger.debug "Look-ahead: %s -[%s]-> %s\n"
+        (SL.Term.show var) (MemoryModel.Field.show_list path) (SL.Term.show target);
+      Some (path, target)
 
 module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND) = struct
 
