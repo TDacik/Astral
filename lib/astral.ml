@@ -14,6 +14,7 @@ module NLS = NLS
 module Freed = Freed
 module Lists = Lists
 module GlobalSID = GlobalSID
+module InductiveDefinition = InductiveDefinition
 
 module Constant = Constant
 module SMT = SMT
