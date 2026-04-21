@@ -142,8 +142,7 @@ let complex1 () =
     LL.mk_lesser_or_eq x2 c5;
   ]
   in
-  test_check_sat phi;
-  failwith @@ LL.show phi
+  test_check_sat phi
 
 let () =
   run "Low-level SL" [
