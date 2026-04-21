@@ -65,6 +65,8 @@ module StructDef : sig
 
   val find_field : (Field.t -> bool) -> t -> Field.t
 
+  val find_field_opt : (Field.t -> bool) -> t -> Field.t option
+
   val smt2_decl : t -> string
 
   val smt2_decl_group : t list -> string

@@ -20,6 +20,8 @@ val to_list : t -> (Sort.t * StructDef.t) list
 val find_target : Sort.t -> t -> StructDef.t
 (** Find target struct for a location sort. *)
 
+val find_target_opt : Sort.t -> t -> StructDef.t option
+
 val find_target_unwrapped : Sort.t -> t -> Sort.t
 (** Find target sort for a classical sort wrapped into struct. *)
 

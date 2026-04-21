@@ -52,6 +52,8 @@ module StructDef = struct
 
   let find_field fn def = List.find fn def.fields
 
+  let find_field_opt fn def = List.find_opt fn def.fields
+
   let get_sorts def =
     List.map Field.get_sort def.fields
     |> Sort.MonoList.unique

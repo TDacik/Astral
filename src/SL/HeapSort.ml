@@ -22,6 +22,7 @@ let union =
   List.fold_left (M.union (fun _ _ _ -> raise @@ Invalid_argument "Heap sorts are not disjoint")) empty
 
 let find_target sort self = M.find sort self
+let find_target_opt sort self = M.find_opt sort self
 
 let find_target_unwrapped sort self =
   let target = find_target sort self in
