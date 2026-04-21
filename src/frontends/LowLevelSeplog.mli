@@ -3,6 +3,7 @@ type width := int
 
 module type CONFIG = sig
   val width : width
+  val print_sorts : bool
 end
 
 module Make (_ : CONFIG) () : sig

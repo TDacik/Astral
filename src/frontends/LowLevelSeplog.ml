@@ -4,6 +4,7 @@ type width = Int.t [@@warning "-34"]
 
 module type CONFIG = sig
   val width : width
+  val print_sorts : bool
 end
 
 module Make(C : CONFIG) () = struct
@@ -30,7 +31,9 @@ module Make(C : CONFIG) () = struct
 
     let get_sort v = V.get_sort v
 
-    let show = V.show
+    let show v =
+      if not @@ C.print_sorts then V.show v
+      else Format.asprintf "%s:BitVec<%d>" (V.show v) (get_width v)
 
   end
 

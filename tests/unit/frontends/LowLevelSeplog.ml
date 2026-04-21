@@ -2,7 +2,7 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2025 *)
 
-module LL = LowLevelSeplog.Make(struct let width = 16 end)()
+module LL = LowLevelSeplog.Make(struct let width = 16 let print_sorts = true end)()
 
 let x = LL.Term.mk_ptr_var "x"
 let y = LL.Term.mk_ptr_var "y"
@@ -13,6 +13,8 @@ let ex = LL.Term.mk_block_end x
 let by = LL.Term.mk_block_begin y
 let ey = LL.Term.mk_block_end y
 
+let _c2 = LL.Term.mk_const ~size:16 2
+let c5 = LL.Term.mk_const ~size:16 5
 let c16 = LL.Term.mk_const ~size:16 16
 let c1600 = LL.Term.mk_const ~size:16 1600
 
@@ -126,6 +128,23 @@ let array_ptrs_sat () =
   let phi = LL.mk_star [LL.mk_pto_array arr1 ~size:c16; LL.mk_pto_array arr2 ~size:c1600] in
   test_check_sat phi
 
+(** Complex *)
+
+let complex1 () =
+  let x1 = LL.Term.mk_ptr_var "1" in
+  let x2 = LL.Term.mk_ptr_var "2" in
+  let x3 = LL.Term.mk_ptr_var "3" in
+  let phi = LL.mk_star [
+    LL.mk_pto_array x1 ~size:x2;
+    LL.mk_eq2 x1 x3;
+    LL.mk_eq2 (LL.Term.mk_block_begin x1) x1;
+    LL.mk_eq2 (LL.Term.mk_block_end x1) (LL.Term.mk_plus x1 x2);
+    LL.mk_lesser_or_eq x2 c5;
+  ]
+  in
+  test_check_sat phi;
+  failwith @@ LL.show phi
+
 let () =
   run "Low-level SL" [
     "Basic", [
@@ -152,4 +171,8 @@ let () =
       test_case "SAT(x -> ?[4] * x + 4 -> ?[100])" `Quick array_ptrs_sat;
       test_case "UNSAT(x -> ?[100] * x + 1 -> ?[100])" `Quick array_ptrs_unsat;
     ];
+    "Complex", [
+      test_case "complex 1" `Quick complex1;
+    ];
+
   ]
