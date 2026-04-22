@@ -12,6 +12,15 @@ module Make(C : CONFIG) () = struct
   (** Sort used for address variables *)
   let sort = Sort.mk_bitvector C.width
 
+  exception SortError of string
+
+  let assert_same_width_generic get_width = function
+    | [] -> ()
+    | x :: xs ->
+      let w = get_width x in
+      if List.for_all (fun t -> Int.equal w (get_width t)) xs then ()
+      else raise @@ SortError "Width missmatch"
+
   module Variable = struct
     module V = Variable.Make()
 
@@ -74,6 +83,8 @@ module Make(C : CONFIG) () = struct
       | BlockBegin t | BlockEnd t -> get_width t
       | Application (app, args) -> Operation.get_width app @@ List.map get_width args
 
+    let assert_same_width = assert_same_width_generic get_width
+
     let null = Const (Bitvector.of_int 0 C.width)
 
     let mk_var size name = Var (Variable.mk size name)
@@ -90,11 +101,17 @@ module Make(C : CONFIG) () = struct
 
     let mk_block_end t = BlockEnd t
 
-    let mk_plus x y = Application (Plus, [x; y])
+    let mk_plus x y =
+      assert_same_width [x; y];
+      Application (Plus, [x; y])
 
-    let mk_minus x y = Application (Minus, [x; y])
+    let mk_minus x y =
+      assert_same_width [x; y];
+      Application (Minus, [x; y])
 
-    let mk_mult x y = Application (Mult, [x; y])
+    let mk_mult x y =
+      assert_same_width [x; y];
+      Application (Mult, [x; y])
 
     let rec collect_vars = function
       | Var v -> [v]
@@ -155,14 +172,7 @@ module Make(C : CONFIG) () = struct
 
   (** Constructors *)
 
-  exception SortError of string
-
-  let assert_same_width = function
-    | [] -> ()
-    | x :: xs ->
-      let w = get_width x in
-      if List.for_all (fun t -> Int.equal w (get_width t)) xs then ()
-      else raise @@ SortError "Width missmatch"
+  let assert_same_width = assert_same_width_generic get_width
 
   let emp = Emp
 
