@@ -19,7 +19,10 @@ let show self =
   |> (fun s -> "(" ^ s ^ ")")
 
 let union =
-  List.fold_left (M.union (fun _ _ _ -> raise @@ Invalid_argument "Heap sorts are not disjoint")) empty
+  List.fold_left (M.union (fun sort def1 def2 ->
+    if StructDef.equal def1 def2 then Some def1
+    else raise @@ Invalid_argument ("Incompatiable structures for sort " ^ Sort.show sort)
+  )) empty
 
 let find_target sort self = M.find sort self
 
