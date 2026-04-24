@@ -32,6 +32,7 @@ module Application = struct
     | BitCheck | BitNot | BitAnd of Int.t | BitOr of Int.t | BitXor of Int.t
     | BitUnsignedLesser | BitUnsignedLesserEqual
     | BitImplies | BitShiftLeft | BitShiftRight
+    | BitExtraction of Int.t * Int.t | BitExtensionZero of Int.t | BitExtensionSign of Int.t
     (* Sets *)
     | Membership | Subset | Disjoint | Union of Sort.t | Inter of Sort.t | Diff | Compl
     | Enum of Sort.t | Universe of Sort.t
@@ -72,6 +73,9 @@ module Application = struct
     | BitXor _ -> "bit-xor"
     | BitImplies -> "bit-implies"
     | BitShiftLeft -> ">>" | BitShiftRight -> "<<"
+    | BitExtraction (low, high) -> Format.sprintf "bv-extraction<%d, %d>" low high
+    | BitExtensionZero width -> Format.sprintf "bv-extension-zero<%d>" width
+    | BitExtensionSign width -> Format.sprintf "bv-extension-sign<%d>" width
 
     | Membership -> "mem" | Subset -> "subset" | Disjoint -> "disjoint"
     | Union _ -> "union" | Inter _ -> "inter" | Diff -> "diff" | Compl -> "compl"
@@ -104,6 +108,8 @@ module Application = struct
     | BitPlus width | BitAnd width | BitOr width | BitXor width | BitMult width ->
       Sort.mk_bitvector width
     | BitNot | BitShiftLeft | BitShiftRight | BitImplies | BitNeg -> List.hd xs
+    | BitExtraction (left, right) -> Sort.mk_bitvector (left - right + 1)
+    | BitExtensionZero width | BitExtensionSign width -> Sort.mk_bitvector width
     | HeapTerm (field) -> Field.get_sort field
     | IfThenElse -> List.nth xs 1
     | ConstArray sort -> List.nth xs 0
@@ -750,6 +756,14 @@ module Bitvector = struct
 
   let mk_lesser bv1 bv2 = mk_app BitUnsignedLesser [bv1; bv2]
   let mk_lesser_eq bv1 bv2 = mk_app BitUnsignedLesserEqual [bv1; bv2]
+
+  (** Casts *)
+
+  let mk_extraction ~left ~right bv = mk_app (BitExtraction (left, right)) [bv]
+
+  let mk_zero_extension width bv = mk_app (BitExtensionZero width) [bv]
+
+  let mk_sign_extension width bv = mk_app (BitExtensionSign width) [bv]
 
 end
 

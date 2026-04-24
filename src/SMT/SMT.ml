@@ -68,6 +68,9 @@ type view =
   | BitShiftRight of t * t   (* bitvector, integer *)
   | BitLesser of t * t
   | BitLesserEqual of t * t
+  | BitExtraction of int * int * t
+  | BitExtensionZero of int * t
+  | BitExtensionSign of int * t
 
   (* Arrays *)
   | ConstArr of t * Sort.t   (* \lambda x : sort. t *)
@@ -131,6 +134,9 @@ let view phi =
     | A.BitShiftRight -> BitShiftRight (List.nth xs 0, List.nth xs 1)
     | A.BitUnsignedLesser -> BitLesser (List.nth xs 0, List.nth xs 1)
     | A.BitUnsignedLesserEqual -> BitLesserEqual (List.nth xs 0, List.nth xs 1)
+    | A.BitExtraction (left, right) -> BitExtraction (left, right, List.nth xs 0)
+    | A.BitExtensionZero width -> BitExtensionZero (width, List.nth xs 0)
+    | A.BitExtensionSign width -> BitExtensionSign (width, List.nth xs 0)
 
 
     | A.ConstArray sort -> ConstArr (List.nth xs 0, sort)

@@ -69,6 +69,9 @@ type view =
   | BitShiftRight of t * t   (* bitvector, integer *)
   | BitLesser of t * t
   | BitLesserEqual of t * t
+  | BitExtraction of int * int * t
+  | BitExtensionZero of int * t
+  | BitExtensionSign of int * t
 
   (* Arrays *)
   | ConstArr of t * Sort.t   (* \lambda x : sort. t *)
@@ -263,6 +266,10 @@ module Bitvector : sig
 
   val mk_lesser : t -> t -> t
   val mk_lesser_eq : t -> t -> t
+
+  val mk_extraction : left:int -> right:int -> t -> t
+  val mk_zero_extension : int -> t -> t
+  val mk_sign_extension : int -> t -> t
 
   val get_width : t -> int
 
