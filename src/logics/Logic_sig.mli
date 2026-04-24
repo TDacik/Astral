@@ -127,6 +127,8 @@ module type LOGIC = sig
 
   val map : (t -> t) -> t -> t
 
+  val map_terms : (term -> term) -> t -> t
+
   (*val map_view : (view -> t) -> t -> t*)
 
   val get_vars : t -> Variable.t list
