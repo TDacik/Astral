@@ -223,6 +223,8 @@ let rec map fn = function
   | Application (app, xs) -> fn @@ Application (app, List.map (map fn) xs)
   | Binder (binder, vs, x) -> fn @@ Binder (binder, vs, map fn x)
 
+let map_terms = map
+
 let map' fn = function
   | Variable (v, sort) -> fn @@ Variable (v, sort)
   | Application (app, xs) -> fn @@ Application (app, xs)
