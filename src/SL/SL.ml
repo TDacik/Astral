@@ -397,6 +397,15 @@ let as_entailment phi = match view phi with
   | GuardedNeg (lhs, rhs) -> (lhs, rhs)
   | _ -> raise @@ Invalid_argument ("Not an entailment " ^ show phi)
 
+let find_pto_target phi source field =
+  select_subformulae (is_pointer) phi
+  |> List.map as_pointer
+  |> List.find_map (fun (src, c, dsts) ->
+       if Term.equal src source then
+         Option.some @@ StructDef.field_value c field dsts
+       else None
+     )
+
 type fragment =
   | SymbolicHeap_SAT
   | SymbolicHeap_ENTL

@@ -61,6 +61,10 @@ module Term : sig
   val is_ground' : forbidden:Variable.t list -> t -> bool
   (** True if the term does not contatin any of provided variables. *)
 
+  val substitute : t -> var:Variable.t -> by:t -> t
+
+  val substitute_list : t -> vars:Variable.t list -> by:t list -> t
+
   (** TODO: logic_sig? *)
 
   include Logic_sig.SORTED with type t := t and module Sort = Sort
@@ -301,6 +305,10 @@ val get_root : t -> Term.t
 (** {2 Operations requiring the sort of heap *)
 
 val get_loc_terms : ?with_free_vars:bool -> t -> HeapSort.t -> Term.t list
+
+(** *)
+
+val find_pto_target : t -> Term.t -> Field.t -> Term.t option
 
 module Infix : sig
 
