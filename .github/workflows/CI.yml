@@ -29,6 +29,9 @@ jobs:
       - name: Install Astral
         run: opam exec -- dune build
 
+      - name: List backend configuration
+        run: astral --backend-help
+
       - name: Run unit tests
         run: opam exec -- dune runtest
 
