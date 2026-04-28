@@ -5,15 +5,17 @@
 open SL_builtins
 open SL_testable
 
+let init_solver () = Solver.init ~backend:`Bitwuzla ()
+
 let check_sat_test1 () =
   GlobalSID.reset ();
-  let solver = Solver.init () in
+  let solver = init_solver () in
   let phi = SL.mk_star [SL_builtins.mk_ls x ~sink:y; SL_builtins.mk_ls x ~sink:nil] in
   assert (Solver.check_sat solver phi)
 
 let check_sat_test2 () =
   GlobalSID.reset ();
-  let solver = Solver.init () in
+  let solver = init_solver () in
   let phi = SL.mk_star [
     SL_builtins.mk_ls x ~sink:y;
     SL_builtins.mk_ls x ~sink:z;
@@ -23,10 +25,9 @@ let check_sat_test2 () =
 
 let corner_case_test1 () =
   GlobalSID.reset ();
-  let solver = Solver.init () in
+  let solver = init_solver () in
   let phi = SL_builtins.mk_ls nil ~sink:nil in
   assert (Solver.check_sat solver phi)
-
 
 (** DLS *)
 
@@ -37,7 +38,7 @@ let sink' = SL.Term.mk_var "sink_" loc_dls
 
 let dls_test1 () =
   GlobalSID.reset ();
-  let solver = Solver.init () in
+  let solver = init_solver () in
   let phi = SL.mk_star [
     SL.mk_distinct [root; root'; sink; sink'];
     mk_dls root ~sink ~root' ~sink';
@@ -48,7 +49,7 @@ let dls_test1 () =
 
 let dls_test2 () =
   GlobalSID.reset ();
-  let solver = Solver.init () in
+  let solver = init_solver () in
   let phi = mk_dls nil ~root':nil ~sink:nil ~sink':nil in
   assert (Solver.check_sat solver phi)
 
@@ -60,13 +61,13 @@ let bottom = SL.Term.mk_var "bottom" loc_nls
 
 let nls_test1 () =
   GlobalSID.reset ();
-  let solver = Solver.init () in
+  let solver = init_solver () in
   let phi = mk_nls root ~sink ~bottom in
   assert (Solver.check_sat solver phi)
 
 let nls_test2 () =
   GlobalSID.reset ();
-  let solver = Solver.init () in
+  let solver = init_solver () in
   let phi = mk_nls nil ~sink:nil ~bottom:nil in
   assert (Solver.check_sat solver phi)
 
@@ -74,7 +75,7 @@ let nls_test2 () =
 
 let freed_test1 () =
   GlobalSID.reset ();
-  let solver = Solver.init () in
+  let solver = init_solver () in
   let phi = SL_builtins.mk_freed x in
   assert (Solver.check_sat solver phi)
 
@@ -91,7 +92,7 @@ let memory_model_test () =
   let phi = SL.mk_pto_struct x tree_struct [x; x] in
 
   let heap_sort = HeapSort.of_list [(tree_sort, tree_struct)] in
-  let solver = Solver.init () |> Solver.set_heap_sort heap_sort in
+  let solver = init_solver () |> Solver.set_heap_sort heap_sort in
   assert (Solver.check_sat solver phi)
 
 let combined_memory_model_test () =
@@ -116,7 +117,7 @@ let combined_memory_model_test () =
 
 let timeout_template size init_to call_to expected_reason =
   let solver = match init_to with
-    | None -> Solver.init ()
+    | None -> init_solver ()
     | Some timeout -> Solver.init ~timeout ()
   in
   let phi = SL.mk_not @@ SL.mk_and [
