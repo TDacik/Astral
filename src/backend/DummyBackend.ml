@@ -19,16 +19,20 @@ module Make (P : PARAMS)  = struct
   let supports_sets = false
   let supports_quantifiers = false
 
-  let init ?(timeout=0) _ = failwith "Not available"
-  let translate _ = failwith "Not available"
-  let solve _ = failwith "Not available"
-  let simplify _ = failwith "Not available"
-  let show_formula _ = failwith "Not available"
-  let show_model _ = failwith "Not available"
-  let to_smtlib _ = failwith "Not available"
+  let error_not_available () =
+    let reason = Format.sprintf "Backend %s is not available" P.name in
+    Exceptions.internal_error ~reason ~details:""
 
-  let push _ = failwith "Not available"
-  let pop _ = failwith "Not available"
-  let check_sat _ = failwith "Not available"
+  let init ?(timeout=0) _ = error_not_available ()
+  let translate _ = error_not_available ()
+  let solve _ = error_not_available ()
+  let simplify _ = error_not_available ()
+  let show_formula _ = error_not_available ()
+  let show_model _ = error_not_available ()
+  let to_smtlib _ = error_not_available ()
+
+  let push _ = error_not_available ()
+  let pop _ = error_not_available ()
+  let check_sat _ = error_not_available ()
 
 end

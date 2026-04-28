@@ -25,7 +25,7 @@ let get_backend_aux = function
 (* TODO: backend options should be also handled here. *)
 
 let get_backend () = get_backend_aux @@ Config.Backend.get ()
-let get_incremental_backend () = get_backend_aux @@ Config.Backend.get ()
+let get_incremental_backend () = get_backend_aux @@ Config.IncrementalBackend.get ()
 
 let get_encoding () =
   let module L = (val get_location_encoding () : LOCATIONS) in
