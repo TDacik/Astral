@@ -24,7 +24,7 @@ jobs:
         run: opam install -y --deps-only --with-test .
 
       - name: Install bitwuzla
-        run: opam install bitwuzla
+        run: opam install bitwuzla-cxx
 
       - name: Install Astral
         run: opam exec -- dune build
@@ -51,7 +51,7 @@ jobs:
         run: opam install -y --deps-only --with-test .
 
       - name: Install bitwuzla
-        run: opam install bitwuzla
+        run: opam install bitwuzla-cxx
 
       - name: Install Astral
         run: opam exec -- dune build
@@ -84,9 +84,6 @@ jobs:
 
       - name: Install dependencies
         run: opam install -y --deps-only --with-test --with-doc .
-
-      - name: Install bitwuzla
-        run: opam install bitwuzla
 
       - name: Build documentation
         run: opam exec -- dune build @doc
