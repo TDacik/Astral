@@ -242,11 +242,7 @@ module Make(C : CONFIG) () = struct
     | Application (Mult, xs) ->
       SMT.Bitvector.mk_mult (get_width @@ List.hd xs) @@ List.map (translate_term ctx) xs
     | Application (Minus, [x; y]) ->
-      (* TODO: we may want to use mk_minus which is transformed later *)
-      SMT.Bitvector.mk_plus (get_width x) [
-        (translate_term ctx x);
-        SMT.Bitvector.mk_not (translate_term ctx y);
-      ]
+      SMT.Bitvector.mk_minus (translate_term ctx x) (translate_term ctx y)
 
   let rec translate ctx = function
     | Emp -> SMT.Boolean.tt

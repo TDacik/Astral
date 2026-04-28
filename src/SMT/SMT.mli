@@ -247,6 +247,8 @@ module Bitvector : sig
 
   val mk_plus : int -> t list -> t
 
+  val mk_minus : t -> t -> t
+
   val mk_mult : int -> t list -> t
 
   val mk_not : t -> t
