@@ -41,7 +41,7 @@ let inline name xs =
 
 let inline phi =
   SL.map_view (function
-    | Predicate (name, xs, []) when GlobalSID.is_user_defined name && can_be_inlined name ->
+    | Predicate (name, xs, 0, []) when GlobalSID.is_user_defined name && can_be_inlined name ->
       `Modify (inline name xs)
     | _ -> `Skip
   ) phi

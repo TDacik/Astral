@@ -21,7 +21,7 @@ module Self =  struct
 
   let is_present phi =
     SL.exists (fun psi -> match SL.view psi with
-      | Predicate (name, _, _) when String.equal name "freed" -> true
+      | Predicate (name, _, _, _) when String.equal name "freed" -> true
       | _ -> false
     ) phi
 
@@ -34,7 +34,7 @@ module Self =  struct
   let rules _ = []
 
   let count_freed phi =
-    let is_freed phi = match SL.view phi with Predicate ("freed", _, _) -> true | _ -> false in
+    let is_freed phi = match SL.view phi with Predicate ("freed", _, _, _) -> true | _ -> false in
     SL.select_subformulae is_freed phi
     |> List.length
 

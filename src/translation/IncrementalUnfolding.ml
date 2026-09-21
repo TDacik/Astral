@@ -170,14 +170,14 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     and unfold_rec ~existentials ctx sl_graph n sid phi =
       SL.map_view (function
-        | Predicate (name, xs, _) when GlobalSID.is_user_defined name ->
+        | Predicate (name, xs, 0, _) when GlobalSID.is_user_defined name ->
           `Modify (unfold_pred ~existentials ctx sl_graph n sid name xs)
         | _ -> `Skip
       ) phi
 
     let unfold_toplevel ~existentials ctx sl_graph bound sid phi =
       SL.map_view (function
-        | Predicate (name, xs, _) when GlobalSID.is_user_defined name ->
+        | Predicate (name, xs, 0, _) when GlobalSID.is_user_defined name ->
           (* TODO: unsound, check FP *)
           `Modify (unfold_pred ~existentials ctx sl_graph bound sid name xs)
         | _ -> `Skip

@@ -80,7 +80,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     | SL.Septraction (psi1, psi2) -> translate_septraction ctx domain phi psi1 psi2
     | SL.Eq xs -> translate_eq ctx domain xs
     | SL.Distinct xs -> translate_distinct ctx domain xs
-    | SL.Predicate (id, xs, defs) -> translate_predicate ctx domain id xs defs
+    | SL.Predicate (id, xs, 0, defs) -> translate_predicate ctx domain id xs defs
     | SL.Not (psi) -> translate_not ctx domain psi
     | SL.GuardedNeg (psi1, psi2) -> translate_guarded_neg ctx domain psi1 psi2
     | SL.Ite (cond, then_, else_) -> translate_ite ctx domain cond then_ else_

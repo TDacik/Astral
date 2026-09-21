@@ -33,7 +33,7 @@ let remove_unused_elements ?(with_vars=false) ctx =
   let is_used_def d = BatList.mem_cmp MemoryModel.StructDef.compare d (SLID.get_structs ctx.phi) in
   let is_used_pred p =
     SL.exists (fun phi -> match SL.view phi with
-      | Predicate (name, _, _) -> String.equal name p
+      | Predicate (name, _, _ ,_) -> String.equal name p
       | _ -> false
     ) ctx.phi
   in

@@ -25,7 +25,7 @@ let pretty_atom psi = match SL.view psi with
   | Eq xs -> pretty_eq xs
   | Distinct xs -> pretty_distinct xs
   | PointsTo (x, _, ys) -> pretty_pointsto x ys
-  | Predicate (name, xs, _) ->
+  | Predicate (name, xs, 0, _) ->
     Format.asprintf "%s(%s)" name (SL.Term.show_list xs)
 
 let pretty_binder = function
@@ -110,7 +110,7 @@ let print_atom p phi =
   | PointsTo (x, def, ys) ->
     (var x) ++ p.pto ++ (p.print_struct def)
       ++ p.struct_begin ++ show_list var ~sep:p.struct_separator ys ++ p.struct_end
-  | Predicate (name, xs, _) ->
+  | Predicate (name, xs, 0, []) ->
     name ++ "(" ++ show_list var ~sep:p.struct_separator xs ++ ")"
   | Emp -> p.emp
   | _ -> failwith @@ SL.show phi

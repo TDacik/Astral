@@ -97,7 +97,7 @@ type view =
   | Eq of Term.t list
   | Distinct of Term.t list
   | PointsTo of Term.t * StructDef.t * Term.t list
-  | Predicate of string * Term.t list * StructDef.t list
+  | Predicate of string * Term.t list * int * StructDef.t list
 
   (* Boolean connectives *)
   | And of t list
@@ -134,7 +134,7 @@ let view phi =
             ~reason: "Unexpected pointer expression in SL formula"
             ~details: (show phi)
       end
-    | A.Predicate (p, defs) -> Predicate (Identifier.show p, xs, defs)
+    | A.Predicate (p, defs, n) -> Predicate (Identifier.show p, xs, n, defs)
     | A.And -> And xs
     | A.GuardedNot -> GuardedNeg (List.nth xs 0, List.nth xs 1)
     | A.Or -> Or xs
@@ -299,7 +299,7 @@ let is_low_level = exists_app (function BlockBegin | BlockEnd -> true | _ -> fal
 
 (* TODO: will require normalisation for user-defined *)
 let get_root phi = match view phi with
-  | Predicate (_, x :: _, _) -> x
+  | Predicate (_, x :: _, _,_) -> x
 
 let get_struct_def phi = match view phi with
   | PointsTo (_, def, _) -> def
@@ -308,12 +308,13 @@ let get_fields phi =
   select_subformulae is_pointer phi
   |> List.map get_struct_def
   |> List.concat_map StructDef.get_fields
+  |> Field.MonoList.unique
 
 let get_terms phi =
   let subformulae = select_subformulae is_atom phi in
   let get_terms_aux psi = match view psi with
     | Emp | Pure _ -> []
-    | Distinct xs | Eq xs | Predicate (_, xs, _) -> xs
+    | Distinct xs | Eq xs | Predicate (_, xs, _, _) -> xs
     | PointsTo (x, _, ys) -> x :: ys
   in
   let terms = List.concat_map get_terms_aux subformulae in
@@ -367,7 +368,7 @@ let as_pointer phi = match view phi with
   | _ -> raise @@ Invalid_argument "Not a pointer"
 
 let as_predicate phi = match view phi with
-  | Predicate (name, ys, _) -> (name, ys)
+  | Predicate (name, ys, n, defs) -> (name, ys, n, defs)
   | _ -> raise @@ Invalid_argument "Not a predicate"
 
 let as_symbolic_heap phi = match view phi with

@@ -113,7 +113,7 @@ type view =
   | Eq of Term.t list
   | Distinct of Term.t list
   | PointsTo of Term.t * StructDef.t * Term.t list
-  | Predicate of string * Term.t list * StructDef.t list
+  | Predicate of string * Term.t list * int * StructDef.t list
   | And of t list
   | Or of t list
   | Not of t
@@ -163,7 +163,7 @@ val mk_pto_tuple : Term.t -> Term.t list -> t
 val mk_pto : Term.t -> Term.t -> t
 (** Create a term representing a pointer with a single target location. *)
 
-val mk_predicate : string -> ?structs:StructDef.t list -> Term.t list -> t
+val mk_predicate : string -> ?structs:StructDef.t list -> ?min_depth:int -> Term.t list -> t
 (** Create an instance of an inductive predicate with given name. This instance can be
     parametrised by a list of structures. For example, Astral's built-in list-segment
     predicate can be parametrised by any structure with a single field with sort same
@@ -272,7 +272,7 @@ val as_equality : t -> Term.t list option
 
 val as_pointer : t -> Term.t * StructDef.t * Term.t list
 
-val as_predicate : t -> string * Term.t list
+val as_predicate : t -> string * Term.t list * int * StructDef.t list
 
 val as_query : t -> query
 

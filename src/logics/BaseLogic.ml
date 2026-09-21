@@ -40,7 +40,7 @@ module Application = struct
     (* Separation logic *)
     | Constructor of StructDef.t
     | Emp | Pure | PointsTo
-    | Predicate of Identifier.t * (StructDef.t List.t)
+    | Predicate of Identifier.t * (StructDef.t List.t) * Int.t
     | HeapTerm of MemoryModel0.Field.t | BlockBegin | BlockEnd
     | GuardedNot | Star | Septraction
   [@@ deriving equal, compare]
@@ -82,7 +82,8 @@ module Application = struct
     | HeapTerm field -> Format.asprintf "%s[.]" (MemoryModel0.Field.show field)
     | Constructor def -> StructDef.show def
     | PointsTo -> "pto"
-    | Predicate (id, _) -> Identifier.show id
+    | Predicate (id, _, 0) -> Format.sprintf "%s" (Identifier.show id)
+    | Predicate (id, _, n) -> Format.sprintf "%s_%d+" (Identifier.show id) n
     | BlockBegin -> "begin"
     | BlockEnd -> "end"
 
@@ -826,7 +827,7 @@ module SeparationLogic = struct
   let mk_pto_nls x n t = mk_pto_struct x StructDef.nls [n; t]
   *)
 
-  let mk_predicate name ?(structs=[]) xs = mk_app (Predicate (ID.mk name, structs)) xs
+  let mk_predicate name ?(structs=[]) ?(min_depth=0) xs = mk_app (Predicate (ID.mk name, structs, min_depth)) xs
   let mk_ls x y = mk_predicate "ls" [x; y]
   let mk_dls x y f l = mk_predicate "dls" [x; y; f; l]
   let mk_nls x y z = mk_predicate "nls" [x; y; z]
@@ -960,15 +961,15 @@ let rec introduce_casts ?(expected=Sort.bool) (pred_sigs: (string * Sort.t list)
           recurse expected x
         ) xs
       )
-    | Application (Predicate (name, instance), xs) when List.mem_assoc (Identifier.show name) pred_sigs ->
+    | Application (Predicate (name, instance, n), xs) when List.mem_assoc (Identifier.show name) pred_sigs ->
       let name_str = Identifier.show name in
-      Application (Predicate (name, instance),
+      Application (Predicate (name, instance, n),
         List.mapi (fun i x ->
           let expected  = List.nth (List.assoc name_str pred_sigs) i in
           recurse expected x
         ) xs
       )
-    | Application (Predicate (p, i), xs) -> Application (Predicate (p, i), xs)
+    | Application (Predicate (p, i, n), xs) -> Application (Predicate (p, i, n), xs)
     | Application (ap, xs) -> Application (ap, List.map (recurse expected) xs)
     | Binder (binder, xs, psi) -> Binder (binder, xs, recurse expected psi)
   ) phi
@@ -1098,8 +1099,8 @@ let pretty_node_name = function
     Continue (StructDef.show_cons def)
     (*Stop (Format.asprintf "%s(%s)" (StructDef.show_cons def) (show_list xs))*)
 
-  | Application (Predicate (name, _), xs) when List.for_all is_var xs ->
-    Stop (Format.asprintf "%s(%s)" (Identifier.show name) (show_list xs))
+  | Application (Predicate (name, _, n), xs) when List.for_all is_var xs ->
+    Stop (Format.asprintf "%s_%d(%s)" (Identifier.show name) n (show_list xs))
 
   | Application (Not, [Application (Emp, [])]) ->
     Stop (Format.asprintf "%s emp" !U.not)

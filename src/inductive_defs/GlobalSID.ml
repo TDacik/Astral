@@ -187,7 +187,7 @@ let rec existentials ?(visited=[]) id =
     let rec_calls =
       SL.select_subformulae SL.is_predicate unfolding
       |> List.map SL.as_predicate
-      |> List.map fst
+      |> List.map (fun (name, _, _, _) -> name)
     in
     SL.bound_vars unfolding @ List.concat_map (existentials ~visited:(id::visited)) (List.map find_user_defined rec_calls)
 
@@ -201,7 +201,7 @@ let compute_aux phi g id x a =
   let lhs, _ = SL.as_entailment phi in
   let _, atoms = SL.as_symbolic_heap lhs in
   let c = false && List.for_all (fun atom -> match SL.view atom with
-    | Predicate (name, y :: ys, _) when String.equal name id.name ->
+    | Predicate (name, y :: ys, 0, []) when String.equal name id.name ->
       if SL.Term.equal x y then (* TODO *)
         List.for_all (SL_graph0.must_neq g SL.Term.nil) ys
       else true
@@ -237,8 +237,9 @@ let additional_bounds phi =
   ) !sid_updated LocationBounds0.empty
 
 (** TODO: compute some must-relations *)
-let sl_graph name instance = match find name with
-  | Builtin (module B : BUILTIN) -> B.sl_graph instance
+(** TODO: depth handling *)
+let sl_graph name (xs, 0, defs) = match find name with
+  | Builtin (module B : BUILTIN) -> B.sl_graph (xs, defs)
   | UserDefined id -> SL_graph0.empty
 
 let unfolding_depth phi g name xs = match find name with
