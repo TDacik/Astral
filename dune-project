@@ -18,6 +18,7 @@
     ocamlgraph
     sexplib
     yojson
+    (ppx_blob :build)
     (ppx_compare :build)
     (ppx_deriving :build)
 

@@ -47,6 +47,14 @@ let rec sublists = function
     let subs = sublists xs in
     subs @ List.map (fun l -> x :: l) subs
 
+let min' (f : 'a -> int) (xs : 'a list) =
+  List.map f xs
+  |> BatList.min
+
+let argmin (f : 'a -> int) (xs : 'a list) =
+  let best_val = min' f xs in
+  List.filter (fun x -> Int.equal (f x ) best_val) xs
+
 module Relation (X : Datatype_sig.COMPARISON) = struct
 
   module X = struct

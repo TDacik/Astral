@@ -32,6 +32,7 @@ val set_heap_sort : HeapSort.t -> solver -> solver
 
 val add_heap_sort : HeapSort.t -> solver -> solver
 
+val get_heap_sort : solver -> HeapSort.t
 
 val query_id: unit -> int
 

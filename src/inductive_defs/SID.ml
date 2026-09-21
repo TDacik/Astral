@@ -163,6 +163,7 @@ let compute_graph sid =
 
 (** ==== Unfolding ==== *)
 
+let cases sid name params = InductiveDefinition.cases ~params (find_user_defined sid name)
 
 (** {2 Unfolding of inductive definitions} *)
 

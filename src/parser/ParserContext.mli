@@ -36,7 +36,11 @@ val is_declared_struct : t -> string -> bool
 
 val declare_pred : t -> string -> t
 
+val is_declared_var : t -> string -> bool
+
 val is_declared_pred : t -> string -> bool
+
+val is_declared_field : t -> string -> bool
 
 val find_var : ?loc:loc -> t -> string -> SL.Variable.t
 
@@ -68,6 +72,8 @@ val get_phi : t -> SL.t
 val get_sorts : t -> Sort.t list
 
 val get_struct_defs : t -> StructDef.t list
+
+val get_fields : t -> Field.t list
 
 val get_heap_sort : t -> HeapSort.t
 

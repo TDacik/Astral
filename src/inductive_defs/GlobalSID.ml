@@ -64,6 +64,8 @@ let get_signatures () =
 
 let unfold name xs = SID.unfold !sid_updated name xs
 
+let cases name params = SID.cases !sid_original name params
+
 (** ==== Context ==== *)
 
 module S = Stdlib.Set.Make(String)
@@ -167,6 +169,7 @@ let is_computed () = not @@ PredicateAbstraction.M.is_empty !cache
 let abstraction name = match find name with
   | UserDefined id -> PredicateAbstraction.M.find id !cache
 
+let cases name params = SID.cases !sid_original name params
 let get_must_allocated ~params name = match find name with
   | UserDefined _ -> PredicateAbstraction.get_must_allocated ~params @@ abstraction name
   | Builtin (module B : BUILTIN) -> B.must_allocated params

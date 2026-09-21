@@ -29,7 +29,16 @@
   )
 
   (preprocess
-    (pps ppx_compare ppx_deriving.enum ppx_deriving.show)
+    (pps
+      ppx_blob
+      ppx_compare
+      ppx_deriving.enum
+      ppx_deriving.show)
+  )
+
+  (preprocessor_deps
+   (file synthesis/bias_template.pl)
+   (file synthesis/bk_template.pl)
   )
 
   (modules_without_implementation
