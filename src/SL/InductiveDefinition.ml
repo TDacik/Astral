@@ -109,7 +109,7 @@ let instantiate_formals ?(refresh=false) id =
 let dependencies id =
   id.inductive_cases
   |> List.concat_map (SL.select_subformulae SL.is_predicate)
-  |> List.map (fun psi -> match SL.view psi with Predicate (name, _, _) -> name)
+  |> List.map (fun psi -> match SL.view psi with Predicate (name, _, _, _) -> name)
 
 let fields id = SL.get_fields @@ instantiate_formals id
 

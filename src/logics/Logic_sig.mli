@@ -56,6 +56,8 @@ module type VARIABLE = sig
 
   val refresh : t -> t
 
+  val get_id : t -> int
+
   val get_name : t -> string
 
   val describe : t -> string * Sort.t
@@ -126,6 +128,8 @@ module type LOGIC = sig
   val compare : t -> t -> int
 
   val map : (t -> t) -> t -> t
+
+  val map_terms : (term -> term) -> t -> t
 
   (*val map_view : (view -> t) -> t -> t*)
 

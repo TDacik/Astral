@@ -236,6 +236,8 @@ val is_atom : t -> bool
 
 val is_nil : t -> bool
 
+val is_distinct : t -> bool
+
 val is_predicate : t -> bool
 
 val is_atomic : t -> bool
@@ -301,6 +303,8 @@ val get_root : t -> Term.t
 (** {2 Operations requiring the sort of heap *)
 
 val get_loc_terms : ?with_free_vars:bool -> t -> HeapSort.t -> Term.t list
+
+val find_pto_target : t -> Term.t -> Field.t -> Term.t option
 
 module Infix : sig
 

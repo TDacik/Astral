@@ -7,7 +7,6 @@
     batteries
     ocamlgraph
     yojson
-    ppx_deriving
     sexplib
 
     astral_cmd

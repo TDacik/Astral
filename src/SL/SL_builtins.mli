@@ -2,11 +2,19 @@
 
     Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
+open MemoryModel
+
 (** {1 Built-in sorts} *)
 
 val loc_ls : Sort.t
 val loc_dls : Sort.t
 val loc_nls : Sort.t
+
+(** {2 - Built-in structures} *)
+
+val struct_ls : StructDef.t
+val struct_dls : StructDef.t
+val struct_nls : StructDef.t
 
 
 (** {1 Built-in pointers} *)

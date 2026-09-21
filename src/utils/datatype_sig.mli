@@ -56,6 +56,8 @@ module type COMPARABLE = sig
 
   val equal : t -> t -> bool
 
+  val opt_equal : t option -> t option -> bool
+
 end
 
 module type MONO_LIST = sig
