@@ -56,7 +56,11 @@ val fold_user_defined : (InductiveDefinition.t -> 'a -> 'a) -> t -> 'a -> 'a
 
 (** {2 Unfolding} *)
 
+val cases : t -> string -> SL.Term.t list -> SL.t list
+
 val unfold : t -> string -> SL.Term.t list -> int -> SL.t
+
+val unfold_non_empty : t -> string -> SL.Term.t list -> int -> SL.t
 
 (** {2 Predicate dependencies} *)
 

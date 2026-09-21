@@ -73,7 +73,15 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
           let res = SL.mk_eq2 move target in
           let hint = SL.mk_eq2 x y in
           (res, hint)
-        | SL.Eq _ -> failwith "TODO"
+        (* TODO: refactor *)
+        | SL.Eq [x; y] when SL.Term.MonoList.mem x to_remove ->
+          let n = Option.get @@ List.find_index (SL.Term.equal x) to_remove in
+          let path, target = List.nth lookaheads n in
+          let move = List.fold_left (fun acc f -> SL.Term.mk_heap_term f acc) y path in
+          let res = SL.mk_eq2 move target in
+          let hint = SL.mk_eq2 x y in
+          (res, hint)
+        | SL.Eq _ -> failwith @@ SL.show atom
         | _ -> assert false
     ) atoms
     in

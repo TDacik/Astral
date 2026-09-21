@@ -28,6 +28,7 @@
     IntroduceITE_tests
     QuantifierElimination_tests
     NegationNormalisation_tests
+    PreUnfolding_tests
 
     ;Simplifier_tests
     RemoveVariadic_tests

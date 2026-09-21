@@ -176,29 +176,31 @@ let base_size id = match InductiveDefinition.cases ~base_only:true id with
   | [] -> 0 (* TODO: check *)
   | bs -> BatList.min @@ List.map case_size bs
 
-let rec unfold_case sid n case =
+let rec unfold_case ~filter ~base_pred sid n case =
   let rest = n - case_size case in
-  if rest < 0 then SL.ff
+  if rest < 1 && base_pred then case
+  else if rest < 0 then SL.ff
   else SL.map_view (function
-    | Predicate (name, ys, _) ->
-      `Modify (unfold_id sid name ys rest)
+    | Predicate (name, ys, 0, _) ->
+      `Modify (unfold_id ~filter ~base_pred sid name ys rest)
     | _ -> `Skip
   ) case
 
-and unfold_id sid name xs n =
+and unfold_id ?(filter=(fun _ -> true)) ?(base_pred=false) sid name xs n =
   let id = find_user_defined sid name in
   let cases = InductiveDefinition.instantiate_rules id xs in
+  let cases = List.filter filter cases in
   let fn case =
     let _, atoms = SL.as_quantified_symbolic_heap case in
     let malus =
       List.filter SL.is_predicate atoms
       |> List.map SL.as_predicate
-      |> List.map (fun (name, _) -> find_user_defined sid name)
+      |> List.map (fun (name, _, _, _) -> find_user_defined sid name)
       |> List.map base_size
       |> (fun xs -> try List.tl xs with _ -> xs) (* TODO: remove systematically *)
       |> BatList.sum
     in
-    unfold_case sid (n - malus) case
+    unfold_case ~filter ~base_pred sid (n - malus) case
   in
   let rec unfold_aux case = match SL.view case with
     | Ite (cond, t, e) -> SL.mk_ite cond (unfold_aux t) (unfold_aux e)
@@ -206,4 +208,6 @@ and unfold_id sid name xs n =
   in
   SL.mk_or @@ List.map unfold_aux cases
 
-let unfold = unfold_id
+let unfold sid name xs n = unfold_id sid name xs n
+
+let unfold_non_empty = unfold_id ~filter:(fun phi -> not @@ SL.is_pure phi) ~base_pred:true
