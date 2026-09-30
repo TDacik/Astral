@@ -1,0 +1,8 @@
+(library
+ (name ppx_alcotest)
+ (public_name astral.ppx_alcotest)
+ (kind ppx_rewriter)
+ (libraries ppxlib)
+ (ppx_runtime_libraries astral.ppx_alcotest.registry)
+ (preprocess (pps ppxlib.metaquot))
+)
