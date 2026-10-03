@@ -27,6 +27,7 @@ let normalise input =
   GlobalSID.preprocess_user_definitions PredicatePreprocessing.normalise;
   GlobalSID.compute_graph ();
   let input = Preprocessor.first_phase input in
+  Profiler.add "Normalisation";
   input
 
 let run_solver ctx =
@@ -43,29 +44,11 @@ let run_solver ctx =
       let module S = SingleQuerySolver.Make(Encoding)(Backend) in
       S.solve ctx
 
-
-let solve (input : Context.t) =
-  Logger.debug "Normalisation\n";
-  let input = normalise input in
-
-  let input =
-    if SL.is_quantifier_free input.phi then
-      input
-    else {input with quantifiers = Some "yes"}
-  in
-
-  let sl_graph = SL_graph.compute input.phi in
-  if SL_graph.has_contradiction sl_graph then
-    Context.set_result `Unsat ~solved_by:"contradiction" ~unsat_core:[] input
-  else match FragmentChecker.check input, Config.Unsafe.get () with
+let solve_translation (input : Context.t) =
+  match FragmentChecker.check input, Config.Unsafe.get () with
   | Error reason, false -> Context.set_result (`Unknown reason) input
   | _, _ ->
-    Profiler.add "Normalisation";
-
     (** Small model should be computed on normalised, but non-preprocessed definition *)
-
-    (** TODO: following is a hack for interactive mode *)
-    (if Config.Interactive.get () then GlobalSID.reset_results () else ());
     let distinguishers = SID_checks.compute_distinguishers @@ GlobalSID.dependency_graph () in
     let sm = SmallModels.compute input.phi distinguishers in
     Profiler.add "Small-models";
@@ -91,6 +74,27 @@ let solve (input : Context.t) =
       let res' = Context.apply_model_adapter res in
       (match res'.model with None -> () | Some sh -> Debug.sl_model "model" sh);
       res'
+
+let solve (input : Context.t) =
+  Logger.debug "Normalisation\n";
+  let input = normalise input in
+
+  let input =
+    if SL.is_quantifier_free input.phi then
+      input
+    else {input with quantifiers = Some "yes"}
+  in
+
+  let sl_graph = SL_graph.compute input.phi in
+  if SL_graph.has_contradiction sl_graph then
+    Context.set_result `Unsat ~solved_by:"contradiction" ~unsat_core:[] input
+  else (
+    (** TODO: following is a hack for interactive mode *)
+    (if Config.Interactive.get () then GlobalSID.reset_results () else ());
+    match Config.Solver.get () with
+    | `Translation -> solve_translation input
+    | `Cyclic_prover -> failwith "TODO"
+    | `Auto -> failwith "TODO")
 
 (* TODO: Do not return just input in case of exception. *)
 let solve input =

@@ -92,7 +92,10 @@ module IncrementalUnfolding : BOOL
 
 module UnfoldingLookahead : BOOL
 
-(** Solver strategies *)
+(** Solvers and strategies *)
+
+module Solver : ENUM
+  with type t = [`Auto | `Translation | `Cyclic_prover]
 
 module SolverStrategy : ENUM
   with type t = [`Auto | `SingleQuery | `MultiQuery]
