@@ -117,7 +117,7 @@ module Init () = struct
       Z3.BitVector.mk_xor !context (translate bv1) (translate bv2)
     | SMT.BitImplies (bv1, bv2) ->
       Z3.BitVector.mk_or !context (Z3.BitVector.mk_not !context (translate bv1)) (translate bv2)
-    | SMT.BitCompl bv -> Z3.BitVector.mk_not !context (translate bv)
+    | SMT.BitNot bv -> Z3.BitVector.mk_not !context (translate bv)
     | SMT.BitShiftLeft (bv, rotate) ->
       Z3.BitVector.mk_shl !context (translate bv) (translate rotate)
     | SMT.BitShiftRight (bv, rotate) ->
