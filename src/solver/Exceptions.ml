@@ -2,11 +2,20 @@
  *
  * Author: Tomas Dacik (idacik00@fit.vut.cz), 2025 *)
 
+(** Fatal exceptions. *)
+
+exception UserError of string * string
+
+exception InternalError of Printexc.raw_backtrace * string * string
+
+exception NotImplemented of string
+
+(** Internal exceptions. *)
+
 exception UnknownResult of string * string
 
 exception UnsupportedFragment of string * string
 
-exception InternalError of Printexc.raw_backtrace * string * string
 
 let unsupported_fragment ~reason ?(details="") =
   raise @@ UnsupportedFragment (reason, details)
@@ -17,6 +26,9 @@ let unknown_result ~reason ?(details="") =
 let internal_error ~reason ?(details="") =
   let trace = Printexc.get_callstack 1000 in
   raise @@ InternalError (trace, reason, details)
+
+let user_error ~reason ?(details="") =
+  raise @@ UserError (reason, details)
 
 (** Pretty printers *)
 let pretty_internal_error ?trace reason ~details =
