@@ -232,7 +232,12 @@ let map' fn = function
   | Application (app, xs) -> fn @@ Application (app, xs)
   | Binder (binder, vs, x) -> fn @@ Binder (binder, vs, x)
 
-let map_vars fn = map (function Variable v -> fn v | other -> other)
+let map_vars fn =
+  map (function
+    | Variable v -> Variable (fn v)
+    | Binder (binder, vs, x) -> Binder (binder, List.map fn vs, x)
+    | other -> other
+  )
 
 let rec map_app fn = function
   | Variable (v, sort) -> Variable (v, sort)
@@ -332,8 +337,8 @@ let rename_var old_name new_name =
   map_vars (fun var ->
     let name, sort = Variable.describe var in
     if String.equal name old_name
-    then mk_var new_name sort
-    else of_var var
+    then Variable.mk new_name sort
+    else var
   )
 
 (** Subformulae *)
@@ -508,9 +513,11 @@ module Equality = struct
       | xs -> mk_app Equal xs
     else mk_app Equal xs
 
-  let mk_distinct xs =
-    check_same_type ~what:"distinct" xs;
-    mk_app Distinct xs
+  let mk_distinct xs = match xs with
+    | [] | [_] -> Boolean0.tt
+    | xs ->
+      check_same_type ~what:"distinct" xs;
+      mk_app Distinct xs
 
   let mk_eq2 x y = mk_eq [x; y]
   let mk_distinct2 x y = mk_distinct [x; y]
@@ -884,6 +891,12 @@ module F = Format
 let declare_var var =
   Format.asprintf "(declare-const %s)" (Variable.smt2_decl var)
 
+let rec sort_to_sexp sort = match sort with
+  | Sort.Bitvector n -> Sexp.List [Sexp.Atom "_"; Sexp.Atom "BitVec"; Sexp.Atom (string_of_int n)]
+  | Set dom -> Sexp.List [Sexp.Atom "Set"; sort_to_sexp dom]
+  | Array (dom, range) -> Sexp.List [Sexp.Atom "Array"; sort_to_sexp dom; sort_to_sexp range]
+  | other -> Sexp.Atom (Sort.smt2_name other)
+
 let header with_decls phi source status options =
   let open PrintUtils in
   let source = match source with
@@ -903,7 +916,7 @@ let header with_decls phi source status options =
   source ++ status +++ options +++ vars
 
 let binder_var var =
-  Sexp.List [Sexp.Atom (Variable.show var); Sexp.Atom (Sort.name @@ Variable.get_sort var)]
+  Sexp.List [Sexp.Atom (Variable.show var); sort_to_sexp @@ Variable.get_sort var]
 
 (* TODO: names *)
 type sexp_action =

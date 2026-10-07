@@ -58,8 +58,13 @@ module Term = struct
     | Var var -> Variable.is_nil var
     | _ -> false
 
+  let is_sl_var t = match view t with Var _ -> true | _ -> false
   let is_heap_term t = match view t with HeapTerm _ -> true | _ -> false
   let is_smt_term t = match view t with SmtTerm _ -> true | _ -> false
+
+  let is_constant t = match view t with
+    | SmtTerm t -> SMT.is_constant t
+    | Var v -> Variable.is_nil v
 
   let as_var t = match view t with Var v -> v
 
@@ -205,12 +210,16 @@ let rec negate_pure phi = match view phi with
 
 (** Simplify to emp, instead of true
 
-    TODO: It could be more elegant to have Eq and SL_eq? *)
+    TODO: It could be more elegant to have (N)Eq and SL_(n)eq? *)
 let mk_eq xs =
   if !BaseLogic.do_simplification then match mk_eq xs with
     | res when BaseLogic.equal res tt -> emp
     | res -> res
   else mk_eq xs
+
+let mk_distinct = function
+  | [] | [_] -> emp
+  | xs -> mk_distinct xs
 
 let mk_ite cond b_then b_else =
   if !BaseLogic.do_simplification then begin
@@ -403,6 +412,7 @@ let as_entailment phi = match view phi with
   | _ -> raise @@ Invalid_argument ("Not an entailment " ^ show phi)
 
 let find_pto_target phi source field =
+  assert (is_symbolic_heap phi);
   select_subformulae (is_pointer) phi
   |> List.map as_pointer
   |> List.find_map (fun (src, c, dsts) ->

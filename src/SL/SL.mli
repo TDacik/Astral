@@ -27,6 +27,8 @@ module Term : sig
 
   val is_nil : t -> bool
 
+  val is_sl_var : t -> bool
+
   val is_heap_term : t -> bool
 
   val as_heap_term : t -> Field.t * t
@@ -48,6 +50,10 @@ module Term : sig
   val mk_block_end : t -> t
 
   val of_var : Variable.t -> t
+
+  val is_constant : t -> bool
+
+  val map_vars : (Variable.t -> Variable.t) -> t -> t
 
   val get_subterm : t -> t
   (** Assumes that the term is not a variable. *)
