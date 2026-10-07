@@ -6,17 +6,17 @@ module ID = InductiveDefinition
 include ID
 
 (** Singly-linked list *)
-let ls =
-  let header = SL.Variable.mk_list loc_ls ["x"; "y"] in
+let ls ?(sort=loc_ls) ?(structure=struct_ls) ?(name="ls") () =
+  let header = SL.Variable.mk_list sort ["x"; "y"] in
   let [x; y] = List.map SL.Term.of_var header in
-  ID.mk "ls" header @@
+  ID.mk name header @@
     SL.mk_or [
       SL.mk_eq [x; y];
-      SL.mk_exists' [loc_ls] (fun [n] ->
+      SL.mk_exists' [sort] (fun [n] ->
         SL.mk_star [
           SL.mk_distinct [x; y];
-          SL.mk_pto x n;
-          SL.mk_predicate "ls" [n; y]
+          SL.mk_pto_struct x structure [n];
+          SL.mk_predicate name [n; y]
     ])]
 
 (** Singly-linked list of length 2+ *)
@@ -32,32 +32,32 @@ let ls_two_plus =
     ])
 
 (** Doubly-linked list *)
-let dls =
-  let header = SL.Variable.mk_list loc_dls ["x"; "y"; "xp"; "yp"] in
+let dls ?(sort=loc_dls) ?(structure=struct_dls) ?(name="dls") () =
+  let header = SL.Variable.mk_list sort ["x"; "y"; "xp"; "yp"] in
   let [x; y; x'; y'] = List.map SL.Term.of_var header in
-  ID.mk "dls" header @@
+  ID.mk name header @@
     SL.mk_or [
       SL.mk_and [SL.mk_eq2 x y; SL.mk_eq2 x' y'];
-      SL.mk_exists' [SL_builtins.loc_dls] (fun [n] ->
+      SL.mk_exists' [sort] (fun [n] ->
         SL.mk_star [
           SL.mk_distinct2 x y;
           SL.mk_distinct2 x' y';
-          mk_pto_dls x ~next:n ~prev:y';
-          SL.mk_predicate "dls" [n; y; x'; x]
+          SL.mk_pto_struct x structure [n; y'];
+          SL.mk_predicate name [n; y; x'; x]
     ])]
 
 (** Three-parameter DLS *)
-let dls_simple =
-  let header = SL.Variable.mk_list loc_dls ["x"; "y"; "yp"] in
+let dls_simple ?(sort=loc_dls) ?(structure=struct_dls) ?(name="dls_simple") () =
+  let header = SL.Variable.mk_list sort ["x"; "y"; "yp"] in
   let [x; y; y'] = List.map SL.Term.of_var header in
-  ID.mk "dls_simple" header @@
+  ID.mk name header @@
     SL.mk_or [
       SL.mk_eq2 x y;
-      SL.mk_exists' [SL_builtins.loc_dls] (fun [n] ->
+      SL.mk_exists' [sort] (fun [n] ->
         SL.mk_star [
           SL.mk_distinct2 x y;
-          mk_pto_dls x ~next:n ~prev:y';
-          SL.mk_predicate "dls_simple" [n; y; x]
+          SL.mk_pto_struct x structure [n; y'];
+          SL.mk_predicate name [n; y; x]
     ])]
 
 (** Three-parameter DLS *)
@@ -88,18 +88,22 @@ let dls_three_plus =
     ])
 
 (* Nested singly-linked list *)
-let nls =
-  let header = SL.Variable.mk_list loc_nls ["x"; "y"] @ [SL.Variable.mk "z" loc_ls] in
+let nls ?(nls_sort=loc_nls) ?(ls_sort=loc_ls) ?(nls_struct=struct_nls) ?(ls_struct=struct_ls)
+  ?(nls_name="nls")
+  ?(ls_name="ls")
+  ()
+=
+  let header = SL.Variable.mk_list nls_sort ["x"; "y"] @ [SL.Variable.mk "z" ls_sort] in
   let [x; y; z] = List.map SL.Term.of_var header in
-  ID.mk "nls" header @@
+  ID.mk nls_name header @@
     SL.mk_or [
       SL.mk_eq [x; y];
-      SL.mk_exists' [loc_nls; loc_ls;] (fun [top; next] ->
+      SL.mk_exists' [nls_sort; ls_sort] (fun [top; next] ->
         SL.mk_star [
           SL.mk_distinct [x; y];
-          mk_pto_nls x ~top ~next;
-          SL.mk_predicate "nls" [top; y; z];
-          SL.mk_predicate "ls" [next; z];
+          SL.mk_pto_struct x nls_struct [top; next];
+          SL.mk_predicate nls_name [top; y; z];
+          SL.mk_predicate ls_name [next; z];
     ])]
 
 (* Nested singly-linked list of length 2+ *)
