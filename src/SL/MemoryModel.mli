@@ -32,6 +32,7 @@ module StructDef : sig
     name : Identifier.t;
     cons : Identifier.t;
     fields : Field.t list;
+    lifted : bool;
   }
 
   val mk : string -> ?cons:string -> Field.t list -> t
@@ -45,10 +46,12 @@ module StructDef : sig
 
       For internal usage only. *)
 
-  val lift_sort : Sort.t -> t
+  val lift_sort : ?field_name:string -> Sort.t -> t
   (** Creates a structure consisting of single "next" field of provided sort.
 
       For internal usage only. *)
+
+  val is_lifted : t -> bool
 
   val ls : t
 
