@@ -50,6 +50,8 @@ module Self = struct
 
       nil = "null";
 
+      show_fields = false;
+
       print_var = convert_var;
       print_struct = StructDef.get_name;
     }
