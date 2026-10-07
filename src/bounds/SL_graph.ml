@@ -171,14 +171,15 @@ let of_pointer x struct_def ys =
     else g
   ) G.empty fields ys
 
-let rec compute stars phi =
-  let compute = compute stars in
+let rec compute predicates stars phi =
+  let compute = compute predicates stars in
   match SL.view phi with
   | SL.Emp | SL.Pure _ | SL.True | SL.False -> G.empty
   | SL.Eq xs -> all_equal xs
   | SL.Distinct xs -> all_distinct xs
   | SL.PointsTo (x, s, ys) -> of_pointer x s ys
-  | SL.Predicate (id, xs, n, defs) -> GlobalSID.sl_graph id (xs, n, defs)
+  | SL.Predicate (id, xs, n, defs) when predicates -> GlobalSID.sl_graph id (xs, n, defs)
+  | SL.Predicate _ -> G.empty
 
   | SL.Star psis -> disjoint_union ~stars (List.map compute psis)
   | SL.And psis -> List.fold_left G.union G.empty (List.map compute psis)
@@ -226,9 +227,9 @@ let has_contradiction g =
 
 let do_normalise = normalise
 
-let compute ?(normalise=true) ?(stars=true) phi =
+let compute ?(predicates=true) ?(normalise=true) ?(stars=true) phi =
   let g =
-    compute stars phi
+    compute predicates stars phi
     |> saturate_heap_terms phi
   in
   if normalise then do_normalise g else g
