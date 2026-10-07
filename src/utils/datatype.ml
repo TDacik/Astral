@@ -10,9 +10,10 @@ module Printable (M : SHOW) = struct
 
   let pp fmt x = Format.fprintf fmt "%s" (M.show x)
 
-  let print ?(prefix="") x =
+  let print ?(prefix="") ?(suffix="") x =
     let prefix = if prefix = "" then prefix else prefix ^ " " in
-    Format.printf "%s%s\n" prefix (M.show x)
+    let suffix = if suffix = "" then suffix else " " ^ suffix in
+    Format.printf "%s%s%s\n" prefix (M.show x) suffix
 
   let print_option ?(prefix="") = function
     | None -> Format.printf "%sNone\n" prefix
@@ -25,7 +26,7 @@ module Printable (M : SHOW) = struct
 
   let show_option = function
     | None -> "None"
-    | Some x -> "Some" ^ show x
+    | Some x -> "Some " ^ show x
 
   let show_list ?(separator=", ") = function
     | [] -> "[]"
@@ -106,6 +107,8 @@ module Collections (M : COMPARISON) = struct
       | [] -> raise @@ Invalid_argument "Intersection of empty list"
       | [xs] -> xs
       | xs :: rest -> inter xs @@ inter_list rest
+
+    let are_disjoint xs1 xs2 = List.is_empty @@ inter xs1 xs2
 
   end
 

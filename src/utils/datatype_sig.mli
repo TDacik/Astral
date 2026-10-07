@@ -18,7 +18,7 @@ module type PRINTABLE = sig
   val pp : Format.formatter -> t -> unit
   (** Output to formatter *)
 
-  val print : ?prefix:string -> t -> unit
+  val print : ?prefix:string -> ?suffix:string -> t -> unit
   (** Output to stdout. *)
 
   val show_option : t option -> string
@@ -84,6 +84,8 @@ module type MONO_LIST = sig
   (** Does not preserve element's ordering. *)
 
   val inter_list : t list -> t
+
+  val are_disjoint : t -> t -> bool
 
 end
 
