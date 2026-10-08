@@ -6,6 +6,13 @@ open Param_sig
 
 exception OptionError of string
 
+let pretty_list ?(sep=", ") ?last_sep xs =
+  let last_sep = Option.value ~default:sep last_sep in
+  match List.rev xs with
+  | last :: prefix when not @@ List.is_empty prefix ->
+    Format.sprintf "%s%s%s" (String.concat sep @@ List.rev prefix) last_sep last
+  | _ -> String.concat sep xs
+
 let raise_value_error ~name ~value ~expected =
   let msg =
     Format.asprintf "Option %s got invalid value %s (expected %s)"
@@ -109,7 +116,7 @@ module Enum (E : ENUM_IN) = struct
   let of_string str =
     match List.find_opt (fun v -> String.equal (show v) str) values with
     | Some v -> v
-    | None -> raise_value_error ~name ~value:str ~expected:(String.concat ", " names)
+    | None -> raise_value_error ~name ~value:str ~expected:(pretty_list ~sep:", " ~last_sep:", or " names)
 
   let set const = value := const
   let get () = !value

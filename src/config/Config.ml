@@ -229,6 +229,14 @@ end)
 
 (** Solver strategies *)
 
+module Solver = Enum(struct
+  let name = "--solver"
+  let short_name = Some 's'
+  let help = ""
+  type t = [`Auto | `Translation | `Cyclic_prover] [@@deriving show, enum]
+  let default = `Translation
+end)
+
 module SolverStrategy = Enum(struct
   let name = "--solver-strategy"
   let short_name = None
