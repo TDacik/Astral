@@ -4,9 +4,9 @@
 
 (** Fatal exceptions. *)
 
-exception InternalError of Printexc.raw_backtrace * string * string
+exception UserError of string * string
 
-exception NotImplemented of string
+exception InternalError of Printexc.raw_backtrace * string * string
 
 (** Internal exceptions. *)
 
