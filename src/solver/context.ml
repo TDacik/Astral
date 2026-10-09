@@ -87,7 +87,6 @@ let add_metadata input sl_graph bounds =
 
 (** Model adapter *)
 
-let add_skolem_var ctx var = {ctx with model_adapter = ModelAdapter.add_skolem_var ctx.model_adapter var}
 let apply_model_adapter ctx = {ctx with model = Option.map (ModelAdapter.apply ctx.model_adapter) ctx.model}
 
 

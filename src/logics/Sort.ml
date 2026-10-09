@@ -128,6 +128,13 @@ let cardinality = function
   | Int -> None
   | Loc _ -> None
 
+let rec is_infinite = function
+  | Bool | Int | Finite _ | Bitvector _ -> false
+  | Set sort | Sequence sort -> is_infinite sort
+  | Array (dom, range) -> is_infinite dom && is_infinite range
+  | Tupple sorts -> List.exists is_infinite sorts
+  | Loc _ | Uninterpreted _ -> true
+
 let get_dom_sort = function
   | Set dom_sort -> dom_sort
   | Sequence dom_sort -> dom_sort

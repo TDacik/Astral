@@ -1,5 +1,6 @@
 (library
- (name ppx_alcotest_registry)
- (public_name astral.ppx_alcotest.registry)
- (libraries alcotest)
+  (name ppx_alcotest_registry)
+  (public_name astral.ppx_alcotest.registry)
+  (libraries alcotest)
+  (enabled_if %{lib-available:alcotest})
 )

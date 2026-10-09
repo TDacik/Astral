@@ -59,7 +59,7 @@ let is_bitvector_model self =
 
 let to_smt2 self =
   M.bindings self
-  |> List.map (fun (dom, range) -> Format.asprintf "(%s %s)" (Sort.name dom) (StructDef.get_name range))
+  |> List.map (fun (dom, range) -> Format.asprintf "(%s %s)" (Sort.smt2_name dom) (StructDef.get_name range))
   |> String.concat " "
 
 let to_smt2_decl self =

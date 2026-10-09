@@ -32,6 +32,8 @@ val all_names : t -> string list
 (** In case of location sort, return its name and all defined aliases. For other sorts,
     return a singleton list with a name. *)
 
+val is_infinite : t -> bool
+
 val cardinality : t -> int option
 (** For finite sorts, return their cardinality *)
 

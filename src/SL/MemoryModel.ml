@@ -8,13 +8,31 @@ module StructDef = struct
     name : Identifier.t;
     cons : Identifier.t;
     fields : Field.t list;
+    lifted : bool;
   }
 
   let mk name ?cons fields = {
     name = ID.mk name;
     cons = ID.mk (Option.value cons ~default:name);
     fields = fields;
+    lifted = false;
   }
+
+  let show self =
+    Format.asprintf "%s := %s(%s)"
+      (Identifier.show self.name)
+      (Identifier.show self.cons)
+      (Field.show_list self.fields)
+
+  module Self = struct
+    type nonrec t = t
+    let show = show
+    let compare = compare
+  end
+
+  include Datatype.Printable(Self)
+  include Datatype.Comparable(Self)
+  include Datatype.Collections(Self)
 
   let compare s1 s2 = Identifier.compare s1.name s2.name
 
@@ -29,18 +47,25 @@ module StructDef = struct
     let fields = List.init n (fun i -> Field.mk ("f_" ^ string_of_int i) sort) in
     mk name ~cons fields
 
-  let lift_sort sort =
+  let lift_sort ?(field_name="next") sort =
     let sort_name = Sort.name sort in
     let name = Format.asprintf "%s_wrapper" sort_name in
     let cons = sort_name ^ "_c" in
-    let field = Field.mk ("next") sort in (* TODO: should be qualified? *)
-    mk name ~cons [field]
+    let field = Field.mk field_name sort in (* TODO: should be qualified? *)
+    {
+      name = ID.mk name;
+      cons = ID.mk cons;
+      fields = [field];
+      lifted = true;
+    }
 
   let get_name def = Identifier.show def.name
 
   let get_constructor def = Identifier.show def.cons
 
   let get_fields def = def.fields
+
+  let is_lifted def = def.lifted
 
   let field_index def field =
     Option.get @@ List.find_index (Field.equal field) def.fields
@@ -56,12 +81,6 @@ module StructDef = struct
   let get_sorts def =
     List.map Field.get_sort def.fields
     |> Sort.MonoList.unique
-
-  let show self =
-    Format.asprintf "%s := %s(%s)"
-      (Identifier.show self.name)
-      (Identifier.show self.cons)
-      (Field.show_list self.fields)
 
   let show_cons self = Identifier.show self.cons
 
@@ -86,15 +105,5 @@ module StructDef = struct
       Format.asprintf "(declare-datatypes\n  (\n    %s\n  )\n  (\n    %s\n  )\n)"
         group_header
         group_decls
-
-  module Self = struct
-    type nonrec t = t
-    let show = show
-    let compare = compare
-  end
-
-  include Datatype.Printable(Self)
-  include Datatype.Comparable(Self)
-  include Datatype.Collections(Self)
 
 end

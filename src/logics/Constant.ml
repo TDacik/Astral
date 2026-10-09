@@ -84,3 +84,9 @@ let rec map fn = function
   | Tupple (name, elems) -> Tupple (name, List.map (map fn) elems)
   | Set (elems) -> Set (List.map (map fn) elems)
   | Array _ -> failwith "TODO: map array"
+
+(** Lazily enumerate all constants of the given sort. *)
+let enumerate : Sort.t -> t Seq.t = function
+  | Sort.Bool -> List.to_seq [tt; ff]
+  | Int -> Seq.map mk_int @@ Seq.ints 0
+  | Bitvector width -> Seq.map (fun i -> mk_bitvector_of_int i width) @@ Seq.ints 0

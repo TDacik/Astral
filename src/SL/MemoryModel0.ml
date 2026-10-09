@@ -31,7 +31,7 @@ module Field = struct
   let smt2_decl (id, sort) =
     Format.asprintf "%s %s"
       (Identifier.show id)
-      (Sort.name sort)
+      (Sort.smt2_name sort)
 
   module Self = struct
     type nonrec t = t

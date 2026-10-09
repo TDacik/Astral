@@ -14,8 +14,8 @@ end)
 let skolemisation ctx =
   let open Context in
   let phi', skolems = SL.skolemisation ctx.phi in
-  let ctx' = {ctx with phi = phi'} in
-  List.fold_left (Context.add_skolem_var) ctx' skolems
+  let model_adapter = ModelAdapter.add_skolem_vars ctx.model_adapter @@ SL.Variable.Set.of_list skolems in
+  {ctx with phi = phi'; model_adapter}
 
 (** TODO: check that we do not run over finite domain *)
 let is_unconstrained phi var =
@@ -97,7 +97,7 @@ module Instance = struct
         end
         else None
       | Exists (xs, psi) -> continue psi
-      | Pure _ -> None
+      | Pure _ | True -> None
       | _ -> failwith @@ SL.show psi
 
 end

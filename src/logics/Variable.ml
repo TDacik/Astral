@@ -42,6 +42,8 @@ module Make () = struct
 
   let of_description (name, sort) = mk name sort
 
+  let rename fn (name, sort) = mk (fn @@ ID.show name) sort
+
   let refresh (name, sort) = mk_fresh (ID.base_name name) sort
 
   let show var = get_name var
