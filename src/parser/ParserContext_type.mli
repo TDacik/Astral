@@ -29,4 +29,8 @@ type t = {
 
   (* Assertions *)
   assertions : SL.t list;
+
+  (** Abstraction synthesis *)
+  positive_examples : SL.t list;
+  negative_examples : SL.t list;
 }

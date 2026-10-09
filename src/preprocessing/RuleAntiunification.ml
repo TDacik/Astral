@@ -90,7 +90,7 @@ let rec anti_unify rule1 rule2 =
   match SL.view rule1, SL.view rule2 with
   | PointsTo (x1, s1, ys1), PointsTo (x2, s2, ys2) when MemoryModel.StructDef.equal s1 s2 ->
     anti_unify_terms (x1 :: ys1) (x2 :: ys2)
-  | Predicate (pred1, xs1, []), Predicate (pred2, xs2, []) when String.equal pred1 pred2 ->
+  | Predicate (pred1, xs1, 0, []), Predicate (pred2, xs2, 0, []) when String.equal pred1 pred2 ->
     anti_unify_terms xs1 xs2
   | Eq xs1, Eq xs2 -> anti_unify_terms xs1 xs2
   | Distinct xs1, Distinct xs2 -> anti_unify_terms xs1 xs2

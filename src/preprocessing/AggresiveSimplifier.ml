@@ -13,7 +13,7 @@ module Logger = Logger.Make (struct
 let get_roots phi =
   let get_root psi = match SL.view psi with
     | PointsTo (x, _, _) -> Some x
-    | Predicate ("ls", [x; y], _) when not @@ SL.Term.equal x y -> Some x
+    | Predicate ("ls", [x; y], 0, _) when not @@ SL.Term.equal x y -> Some x
     | _ -> None
   in
   SL.select_subformulae SL.is_spatial_atom phi

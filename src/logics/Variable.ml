@@ -24,6 +24,8 @@ module Make () = struct
 
   let get_sort = snd
 
+  let get_id (id, _) = ID.tag id
+
   let has_sort sort var = Sort.equal sort @@ get_sort var
 
   let equal (name1, sort1) (name2, sort2) = ID.equal name1 name2
@@ -63,6 +65,7 @@ module Make () = struct
   end
 
   include Datatype.Printable(Self)
+  include Datatype.Comparable(Self)
   include Datatype.Collections(Self)
 
 end

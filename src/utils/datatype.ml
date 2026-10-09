@@ -43,6 +43,8 @@ module Comparable (M : COMPARISON) = struct
 
   let equal lhs rhs = compare lhs rhs == 0
 
+  let opt_equal lhs rhs = Option.equal equal lhs rhs
+
 end
 
 let show_map_aux show_key show_val = function

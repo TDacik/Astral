@@ -33,7 +33,7 @@ let rec candidate_conditions phi = match SL.view phi with
   | Star psis | And psis -> List.concat_map candidate_conditions psis
   | Exists (xs, psi) ->
     List.filter (SL.is_ground' ~forbidden:xs) @@ candidate_conditions psi
-  | Predicate (pred, xs, []) ->
+  | Predicate (pred, xs, 0, []) ->
     let unfolding = GlobalSID.unfold pred xs 1 in
     candidate_conditions unfolding
   | Or psis ->

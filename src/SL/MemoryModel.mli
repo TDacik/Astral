@@ -7,12 +7,16 @@ module Field : sig
 
   val mk : string -> Sort.t -> t
 
+  val get_name : t -> string
+
   val next : t
   (** Built-in next field of sort Loc. *)
 
   val is_pointer : t -> bool
 
   val smt2_decl : t -> string
+
+  val show_namespace : t -> string
 
   include SORTED with type t := t and module Sort := Sort
 

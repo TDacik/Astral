@@ -23,6 +23,8 @@ val zip3 : 'a list -> 'b list -> 'c list -> ('a * 'b * 'c) list
 
 val sublists : 'a list -> 'a list list
 
+val argmin : ('a -> int) -> 'a list -> 'a list
+
 
 (** {2 Relations as lists} *)
 

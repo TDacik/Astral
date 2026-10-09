@@ -172,4 +172,5 @@ module Self = struct
 end
 
 include Datatype.Printable(Self)
+include Datatype.Comparable(Self)
 include Datatype.Collections(Self)

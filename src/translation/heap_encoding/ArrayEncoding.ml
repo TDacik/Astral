@@ -37,7 +37,7 @@ module Make (Locations : LOCATIONS) = struct
     Field.Map.keys self.field_map
 
   let mk_field suffix heap_sort field locs =
-    let name = Format.asprintf "%s%s" (Field.show field) suffix in
+    let name = Format.asprintf "%s%s" (Field.show_namespace field) suffix in
     let sort = Field.get_sort field in
     let encoding_sort =
       if HeapSort.is_loc_sort heap_sort sort

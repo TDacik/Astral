@@ -43,6 +43,7 @@ module Location = struct
   end
 
   include Datatype.Printable(Self)
+  include Datatype.Comparable(Self)
   include Datatype.Collections(Self)
 
 end
@@ -99,7 +100,9 @@ module Stack = struct
 
   let eval stack term =
     try M.find term stack.stack
-    with Not_found -> match SL.Term.view term with SmtTerm t -> Location.mk_smt @@ SMT.Model.eval stack.model t
+    with Not_found -> match SL.Term.view term with
+      | SmtTerm t -> Location.mk_smt @@ SMT.Model.eval stack.model t
+      | _ -> M.find SL.Term.nil stack.stack (* TODO: fix properly *)
 
   let add x y s = {s with stack = M.add x y s.stack}
 
@@ -180,6 +183,10 @@ let init ?(footprints=SL.Map.empty) ?(heaps=SL.Map.empty) s h = {
 }
 
 let eval sh l = Stack.eval sh.stack l
+
+let eval_var sh v = eval sh (SL.Term.of_var v)
+
+let get_nil sh = eval_var sh SL.Variable.nil
 
 let filter_vars fn self = {self with stack = Stack.filter fn self.stack}
 

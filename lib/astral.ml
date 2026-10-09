@@ -13,8 +13,12 @@ module DLS = DLS
 module NLS = NLS
 module Freed = Freed
 module Lists = Lists
+
 module GlobalSID = GlobalSID
 module InductiveDefinition = InductiveDefinition
+
+module QuantifierElimination = QuantifierElimination
+module HeapTermElimination = HeapTermElimination
 
 module Constant = Constant
 module SMT = SMT

@@ -8,7 +8,7 @@ let must_allocate_lhs phi heap_sort lhs g name =
   let _, atoms = SL.as_symbolic_heap lhs in
   List.map (fun atom -> match SL.view atom with
     | PointsTo _ -> 1.0
-    | Predicate (name, xs, _) -> GlobalSID.alloc name phi g heap_sort xs
+    | Predicate (name, xs, 0, _) -> GlobalSID.alloc name phi g heap_sort xs
     | _ -> 0.0
   ) atoms
   |> List.map Float.floor
@@ -55,7 +55,7 @@ let unfold_sat sid phi name xs =
   SID.unfold sid name xs bound
 
 let unfold_lhs sid g heap_sort bound phi lhs rhs = SL.map_view (function
-  | Predicate (name, xs, _) when SID.is_user_defined sid name ->
+  | Predicate (name, xs, 0, _) when SID.is_user_defined sid name ->
     let self = GlobalSID.unfolding_depth phi g name xs in
     let alloc = must_allocate_lhs phi heap_sort lhs g name in
     let default = (LocationBounds.sum_of_allocated bound) - alloc + self in
@@ -65,7 +65,7 @@ let unfold_lhs sid g heap_sort bound phi lhs rhs = SL.map_view (function
 ) lhs
 
 let unfold_sat sid lhs = SL.map_view (function
-  | Predicate (name, xs, _) when SID.is_user_defined sid name ->
+  | Predicate (name, xs, 0, _) when SID.is_user_defined sid name ->
     `Modify (unfold_sat sid lhs name xs)
   | _ -> `Skip
 ) lhs

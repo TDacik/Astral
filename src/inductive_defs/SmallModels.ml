@@ -70,7 +70,7 @@ module Hyperedge = struct
   let show (id, xs) = Format.asprintf "%s(%s)" (InductiveDefinition.name id) (SL.Term.show_list xs)
 
   let of_formula phi = match SL.view phi with
-    | SL.Predicate (name, xs, _) -> (GlobalSID.find_user_defined ~original:true name, xs)
+    | SL.Predicate (name, xs, 0, _) -> (GlobalSID.find_user_defined ~original:true name, xs)
     | _ -> failwith @@ SL.show phi
 
   let match_id id self = Identifier.equal_with_string id (InductiveDefinition.name (fst self))
@@ -232,7 +232,7 @@ module Derivation = struct
       let _, atoms = SL.as_quantified_symbolic_heap rhs in
       List.filter_map (fun atom -> match SL.view atom with
         | PointsTo _ -> Some atom
-        | Predicate (name', _, _) when String.equal name name' -> Some atom
+        | Predicate (name', _, 0, _) when String.equal name name' -> Some atom
         | _ -> None
       ) atoms
     | _ -> failwith @@ SL.show phi

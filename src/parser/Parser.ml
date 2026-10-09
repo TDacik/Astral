@@ -49,8 +49,15 @@ let pretty_error (loc, ctx, error) = match error with
 
 
 module Extension = struct
+  let mk_string_attribute loc attr_name =
+    Term.{
+      term = Symbol (Id.{name = Name.simple attr_name; ns = Namespace.Attr});
+      attr = [];
+      loc = loc;
+    }
+
   let statement str = match str with
-    | "declare-heap" ->
+    | "declare-heap" | "compute-abstraction" ->
       Some (fun ?(loc=Loc.no_loc) terms ->
         let name = Id.create Id.decl (Name.simple str) in
         {
@@ -59,6 +66,14 @@ module Extension = struct
           attrs = [];
           loc = loc;
         })
+    (*| "positive-examples" | "negative-examples" ->
+      Some (fun ?(loc=Loc.no_loc) examples ->
+        {
+          id = None;
+          descr = Clause examples;
+          attrs = [mk_string_attribute loc str];
+          loc = loc;
+        })*)
     | other -> None
 end
 
@@ -109,6 +124,21 @@ let mk_smt name fn args = SMT (fn @@ List.map (get_smt name) args)
 
 (** Parsing of symbol just prints it. *)
 let parse_id id = Format.asprintf "%a" Id.print id
+
+(*
+let parse_attr_list_as_strings attrs =
+  List.map (function
+    | {term = Symbol {name = Simple s; _}; _} -> s
+    | _ -> assert false
+  ) attrs*)
+
+let has_attribute term attr =
+  List.exists (function
+    | {term = Symbol {name = Simple s; _}; _} ->
+        Logger.debug "attr: %s" s;
+        String.equal s attr
+    | _ -> false
+  ) term.attr
 
 (*** ==== Sorts ==== *)
 
@@ -542,9 +572,27 @@ let parse_extension ctx extension = match parse_id extension.name with
     let mapping = List.map (parse_heap_sort ctx) extension.args in
     Logger.debug "Heap sort: %s\n" (HeapSort.show @@ HeapSort.of_list mapping);
     Context.declare_heap_sort ctx mapping
+  | "compute-abstraction" ->
+    Synthesiser.compute_abstraction ctx
   | other ->
     ParserException.raise_syntax_error None ("Unknown extension '" ^ other ^ "'")
 
+let parse_clause ctx stmt phis = (*match parse_attr_list_as_strings stmt.attrs with
+  | ["positive-examples"] ->
+    let examples = List.map (parse_formula ctx) phis in
+    {ctx with positive_examples = ctx.positive_examples @ examples}
+  | ["negative-examples"] ->
+    let examples = List.map (parse_formula ctx) phis in
+    {ctx with negative_examples = ctx.negative_examples @ examples}
+  | _ ->*)
+    (* Should not happen for SMT-LIB *)
+    ParserException.raise_not_supported (Some stmt.loc) "Clause statement"
+
+let parse_example ctx example ~positive =
+  let example = parse_formula ctx example in
+  if positive
+  then {ctx with positive_examples = example :: ctx.positive_examples}
+  else {ctx with negative_examples = example :: ctx.negative_examples}
 
 let parse ctx path =
   let _, stmts = Parser.parse_all (`File path) in
@@ -558,7 +606,10 @@ let parse ctx path =
       | Decls decls -> parse_declarations ctx decls
       | Other extension -> parse_extension ctx extension
       | Defs defs -> parse_definition ctx defs
+      | Antecedent phi when has_attribute phi ":positive-example" -> parse_example ctx phi ~positive:true
+      | Antecedent phi when has_attribute phi ":negative-example" -> parse_example ctx phi ~positive:false
       | Antecedent phi -> parse_assertion ctx phi
+      | Clause phis -> parse_clause ctx stmt phis
       | Get_model -> Context.set_produce_models ctx true
       | _ ->
         Logger.debug "Ignoring statement %a\n" Statement.print stmt;

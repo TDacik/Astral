@@ -25,6 +25,9 @@ let empty ?(sorts=M.empty) ?(struct_defs=M.empty) ?(heap_sort=HeapSort.empty) ?(
 
     produce_models = false;
     assertions = [];
+
+    positive_examples = [];
+    negative_examples = [];
   }
 
 
@@ -46,6 +49,8 @@ let add_defs ctx1 ctx2 =
     attributes = ctx1.attributes;
     produce_models = ctx1.produce_models;
     assertions = ctx1.assertions @ ctx2.assertions;
+    positive_examples = [];
+    negative_examples = [];
   }
 
 
@@ -65,6 +70,8 @@ let find_var ?loc ctx var =
   try (SL.Variable.mk var @@ M.find var ctx.vars)
   with Not_found -> ParserException.raise_not_declared loc ctx Variable var
 
+let is_declared_var ctx var = M.mem var ctx.vars
+
 let type_of_var ?loc ctx var =
   try M.find var ctx.vars
   with Not_found -> ParserException.raise_not_declared loc ctx Variable var
@@ -81,6 +88,13 @@ let declare_struct ?loc ctx name cons fields =
     let def = StructDef.mk name ~cons fields in
     {ctx with struct_defs = M.add cons def ctx.struct_defs}
 
+let is_declared_field ctx name =
+  (* TODO: may store declared fields directly inside ctx? *)
+  M.exists (fun _ def ->
+    let fields = StructDef.get_fields def in
+    List.exists (fun f -> String.equal name @@ Field.get_name f) fields
+  ) ctx.struct_defs
+
 let find_struct_def_by_cons ?loc ctx cs_name =
   try M.find cs_name ctx.struct_defs
   with Not_found -> ParserException.raise_not_declared loc ctx Constructor cs_name
@@ -91,6 +105,7 @@ let find_struct_def_by_name ?loc ctx name =
     |> List.find (fun (_, s) -> String.equal (StructDef.get_name s) name)
     |> snd
   with Not_found -> ParserException.raise_not_declared loc ctx Structure name
+
 
 let declare_heap_sort ctx mapping =
   {ctx with heap_sort = HeapSort.of_list mapping}
@@ -136,6 +151,11 @@ let get_sorts ctx =
 let get_struct_defs ctx =
   M.bindings ctx.struct_defs
   |> List.map snd
+
+let get_fields ctx =
+  get_struct_defs ctx
+  |> List.concat_map StructDef.get_fields
+  |> Field.MonoList.unique
 
 let get_heap_sort ctx = ctx.heap_sort
 

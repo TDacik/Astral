@@ -106,6 +106,8 @@ let init
 let set_heap_sort heap_sort solver =
   {solver with heap_sort = heap_sort}
 
+let get_heap_sort solver = solver.heap_sort
+
 let add_heap_sort heap_sort solver =
   {solver with heap_sort = HeapSort.union [heap_sort; solver.heap_sort]}
 

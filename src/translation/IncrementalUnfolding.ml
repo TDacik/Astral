@@ -73,7 +73,15 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
           let res = SL.mk_eq2 move target in
           let hint = SL.mk_eq2 x y in
           (res, hint)
-        | SL.Eq _ -> failwith "TODO"
+        (* TODO: refactor *)
+        | SL.Eq [x; y] when SL.Term.MonoList.mem x to_remove ->
+          let n = Option.get @@ List.find_index (SL.Term.equal x) to_remove in
+          let path, target = List.nth lookaheads n in
+          let move = List.fold_left (fun acc f -> SL.Term.mk_heap_term f acc) y path in
+          let res = SL.mk_eq2 move target in
+          let hint = SL.mk_eq2 x y in
+          (res, hint)
+        | SL.Eq _ -> failwith @@ SL.show atom
         | _ -> assert false
     ) atoms
     in
@@ -170,14 +178,14 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     and unfold_rec ~existentials ctx sl_graph n sid phi =
       SL.map_view (function
-        | Predicate (name, xs, _) when GlobalSID.is_user_defined name ->
+        | Predicate (name, xs, 0, _) when GlobalSID.is_user_defined name ->
           `Modify (unfold_pred ~existentials ctx sl_graph n sid name xs)
         | _ -> `Skip
       ) phi
 
     let unfold_toplevel ~existentials ctx sl_graph bound sid phi =
       SL.map_view (function
-        | Predicate (name, xs, _) when GlobalSID.is_user_defined name ->
+        | Predicate (name, xs, 0, _) when GlobalSID.is_user_defined name ->
           (* TODO: unsound, check FP *)
           `Modify (unfold_pred ~existentials ctx sl_graph bound sid name xs)
         | _ -> `Skip

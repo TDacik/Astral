@@ -23,6 +23,7 @@ module Location : sig
 
   include PRINTABLE with type t := t
   include COMPARABLE with type t := t
+  include COLLECTIONS with type t := t
 
   include Logic_sig.SORTED with type t := t and module Sort := Sort
 
@@ -39,7 +40,9 @@ end
 
 module Value : sig
 
-  type t
+  type t =
+    | Struct of StructDef.t * Location.t List.t
+    | Data of Constant.t
 
   val mk_struct : StructDef.t -> Location.t list -> t
 
@@ -98,7 +101,11 @@ val init :
   ?heaps: Heap.t SL.Map.t ->
   Stack.t -> Heap.t -> t
 
+val eval_var : t -> SL.Variable.t -> Location.t
+
 val eval : t -> SL.Term.t -> Location.t
+
+val get_nil :t -> Location.t
 
 val filter_vars : (SL.Variable.t -> bool) -> t -> t
 
