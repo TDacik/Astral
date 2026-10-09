@@ -40,6 +40,4 @@ module Solver = Solver
 module AstralConfig = Config
 
 module Abstraction = Abstraction
-module SymbolicHeap = SymbolicHeap
-
 module LowLevelSeplog = LowLevelSeplog
