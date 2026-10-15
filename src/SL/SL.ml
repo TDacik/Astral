@@ -22,6 +22,13 @@ module Variable = struct
 
   let is_pure var = not @@ Sort.is_loc @@ Variable.get_sort var
 
+  let translate_to_smt var =
+    let sort = match get_sort var with
+      | Loc (name, _) -> Sort.mk_uninterpreted @@ Identifier.show name
+      | sort -> sort
+    in
+    SMT.Variable.mk (get_name var) sort
+
 end
 
 module Term = struct
@@ -297,13 +304,15 @@ let is_atomic =
   )
 
 (** Note: emp is not pure as it restricts the heap *)
-let is_pure psi = match psi with
-  | Variable v -> Variable.is_pure v
+let _is_pure ?(ignore_vars=false) psi = match psi with
+  | Variable v -> ignore_vars || Variable.is_pure v
   | _ ->
     for_all_apps (function
       | Predicate _ | PointsTo | Star | Septraction | Emp -> false
       | _ -> true
     ) psi
+
+let is_pure psi = _is_pure psi
 
 let is_pure_smt phi =
   is_pure phi && List.for_all (Variable.is_pure) (free_vars phi)
@@ -458,6 +467,10 @@ let as_query phi =
       Arbitrary phi
   else
     Arbitrary phi
+
+let translate_to_smt phi =
+  if _is_pure ~ignore_vars:true phi then to_smt phi
+  else raise @@ Invalid_argument "SL.translate_to_smt: input must be pure"
 
 let translate_pure_with_heap_term (fn : Term.t -> SMT.t) phi =
   to_base_logic phi
