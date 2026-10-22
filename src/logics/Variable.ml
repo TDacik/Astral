@@ -12,11 +12,12 @@ type t = Identifier.t * Sort.t
 module Make () = struct
 
   module ID = Identifier.Make()
-  module Sort = Sort
 
   let debug = ID.debug_repr
 
   type nonrec t = t
+
+  type sort = Sort.t
 
   let hash (id, _) = ID.tag id
 
@@ -25,8 +26,6 @@ module Make () = struct
   let get_sort = snd
 
   let get_id (id, _) = ID.tag id
-
-  let has_sort sort var = Sort.equal sort @@ get_sort var
 
   let equal (name1, sort1) (name2, sort2) = ID.equal name1 name2
 
@@ -50,8 +49,6 @@ module Make () = struct
 
   let show_debug (name, _) = ID.show_debug @@ name
 
-  let show_with_sort var = Format.asprintf "%s : %s" (show var) (Sort.show @@ get_sort var)
-
   let nil = mk "nil" Sort.loc_nil
 
   let is_nil var = equal nil var
@@ -64,10 +61,14 @@ module Make () = struct
     type nonrec t = t
     let show = show
     let compare = compare
+
+    module Sort = Sort
+    let get_sort = get_sort
   end
 
   include Datatype.Printable(Self)
   include Datatype.Comparable(Self)
   include Datatype.Collections(Self)
+  include SortedBuilder.Make(Self)
 
 end

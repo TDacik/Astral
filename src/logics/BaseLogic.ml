@@ -177,10 +177,6 @@ let rec get_sort = function
   | Application (app, xs) -> Application.get_sort app (List.map get_sort xs)
   | Binder (binder, _, x) -> Binder.get_sort binder (get_sort x)
 
-let has_sort sort x = Sort.equal sort (get_sort x)
-
-let show_with_sort x = Format.asprintf "%s : %s" (show x) (Sort.show @@ get_sort x)
-
 let rec is_quantifier_free = function
   | Variable _ -> true
   | Application (_, xs) -> List.for_all is_quantifier_free xs
@@ -192,11 +188,15 @@ module Self = struct
   type nonrec t = t
   let show = show
   let compare = compare
+
+  module Sort = Sort
+  let get_sort = get_sort
 end
 
 include Datatype.Printable(Self)
 include Datatype.Comparable(Self)
 include Datatype.Collections(Self)
+include SortedBuilder.Make(Self)
 
 let hash = Hashtbl.hash
 

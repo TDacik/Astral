@@ -7,7 +7,7 @@ open Datatype_sig
 open MemoryModel
 
 module Variable : sig
-  include VARIABLE with module Sort = Sort
+  include VARIABLE with type sort = Sort.t
 
   val nil : t
 
@@ -73,7 +73,7 @@ module Term : sig
 
   (** TODO: logic_sig? *)
 
-  include Logic_sig.SORTED with type t := t and module Sort = Sort
+  include Logic_sig.SORTED with type t := t and type sort = Sort.t
 
   include Datatype_sig.COMPARABLE with type t := t   (** @closed *)
   include Datatype_sig.PRINTABLE with type t := t    (** @closed *)
@@ -111,9 +111,9 @@ val to_term : t -> Term.t
 
 include LOGIC
   with type t := t
-   and type term := Term.t
    and module Sort = Sort
    and module Variable := Variable
+   and type term := Term.t
 
 type view =
   | Emp

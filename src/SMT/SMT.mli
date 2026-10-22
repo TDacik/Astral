@@ -84,11 +84,11 @@ type view =
   | Compl of t
   | Enumeration of t list * Sort.t
 
-include Logic_sig.LOGIC with
-  type t := t
-  and module Sort = Sort
-  and type Variable.t = var
-  and type term := t
+include Logic_sig.LOGIC
+  with type t := t
+   and module Sort = Sort
+   and type Variable.t = var
+   and type term := t
 
 include Logic_sig.WITH_VIEW with
   type t := t

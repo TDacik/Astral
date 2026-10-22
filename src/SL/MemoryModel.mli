@@ -18,7 +18,7 @@ module Field : sig
 
   val show_namespace : t -> string
 
-  include SORTED with type t := t and module Sort := Sort
+  include SORTED with type t := t and type sort := Sort.t
 
   include PRINTABLE with type t := t
   include COMPARABLE with type t := t

@@ -36,6 +36,8 @@ module Term = struct
   include BaseLogic
   include BaseLogic.SeparationLogic
 
+  type sort = Sort.t
+
   let mk_smt = SMT.to_base_logic
 
   type view =

@@ -25,7 +25,7 @@ module Location : sig
   include COMPARABLE with type t := t
   include COLLECTIONS with type t := t
 
-  include Logic_sig.SORTED with type t := t and module Sort := Sort
+  include Logic_sig.SORTED with type t := t and type sort := Sort.t
 
 end
 

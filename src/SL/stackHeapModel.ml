@@ -28,23 +28,23 @@ module Location = struct
 
   let get_sort = snd
 
-  let has_sort sort loc = Sort.equal sort (get_sort loc)
-
   let show (loc, _) = match loc with
     | Implicit i -> string_of_int i
     | SMT const -> Constant.show const
-
-  let show_with_sort ((loc, sort) as l) = Format.asprintf "%s : %s" (show l)  (Sort.show sort)
 
   module Self = struct
     type nonrec t = t
     let show = show
     let compare = compare
+
+    module Sort = Sort
+    let get_sort = get_sort
   end
 
   include Datatype.Printable(Self)
   include Datatype.Comparable(Self)
   include Datatype.Collections(Self)
+  include SortedBuilder.Make(Self)
 
 end
 
