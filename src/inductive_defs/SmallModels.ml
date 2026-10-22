@@ -339,8 +339,7 @@ end
 let rec compute_fixpoint ?(n=1) phi distinguishers pred res =
   (if n > 100 then
     let _ = Derivation.debug pred res in
-    Exceptions.unsupported_fragment
-      ~reason:"incomplete small model search"
+    Exceptions.unsupported_fragment "Incomplete small model search"
       ~details:"The fixpoint computation does not terminated after 100 steps"
   );
   let open InductiveDefinition in

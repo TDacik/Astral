@@ -154,11 +154,9 @@ module Translation (E : Translation_sig.ENCODING) = struct
         B.Bound.compute context.sl_graph context.phi instance context.location_bounds in
       T.translate context instance domain sxs bound
     | UserDefined id ->
-      let reason =
-        Format.asprintf "User-defined inductive predicate %s is not unfolded before translation to SMT"
-          (id.name)
-      in
-      Exceptions.internal_error ~reason ~details:(InductiveDefinition.show id)
+      Exceptions.internal_error
+        "User-defined inductive predicate %s is not unfolded before translation to SMT" id.name
+        ~details:(InductiveDefinition.show id)
 end
 
 

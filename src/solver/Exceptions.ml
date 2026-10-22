@@ -9,6 +9,7 @@ exception UserError of string * string
 exception InternalError of Printexc.raw_backtrace * string * string
 
 exception NotImplemented of string
+ [@@warning "-38"]
 
 (** Internal exceptions. *)
 
@@ -17,18 +18,18 @@ exception UnknownResult of string * string
 exception UnsupportedFragment of string * string
 
 
-let unsupported_fragment ~reason ?(details="") =
-  raise @@ UnsupportedFragment (reason, details)
+let unsupported_fragment ?(details="") =
+  Format.kasprintf (fun s -> raise @@ UnsupportedFragment (s, details))
 
-let unknown_result ~reason ?(details="") =
-  raise @@ UnknownResult (reason, details)
+let unknown_result ?(details="") =
+  Format.kasprintf (fun s -> raise @@ UnknownResult (s, details))
 
-let internal_error ~reason ?(details="") =
+let internal_error ?(details="") =
   let trace = Printexc.get_callstack 1000 in
-  raise @@ InternalError (trace, reason, details)
+  Format.kasprintf (fun s -> raise @@ InternalError (trace, s, details))
 
-let user_error ~reason ?(details="") =
-  raise @@ UserError (reason, details)
+let user_error ?(details="") =
+  Format.kasprintf (fun s -> raise @@ UserError (s, details))
 
 (** Pretty printers *)
 let pretty_internal_error ?trace reason ~details =

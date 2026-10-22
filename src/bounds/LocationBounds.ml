@@ -91,8 +91,7 @@ let rec garbage_chunk_bound phi = match SL.view phi with
   | Exists (_, psi) -> garbage_chunk_bound psi
   | Eq _ | Distinct _ | Pure _ | True | False -> 1 (* TODO: can be improved if not under negation? *)
   | _ ->
-    Exceptions.internal_error
-      ~reason: "Unexpected SL formula when computing location bound"
+    Exceptions.internal_error "Unexpected SL formula when computing location bound"
       ~details: (SL.show phi)
 
 let add_chunk_size bounds phi =

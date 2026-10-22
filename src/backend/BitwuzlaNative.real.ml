@@ -155,14 +155,11 @@ module Init () = struct
       List.fold_left (fun acc y -> BW.mk_term2 Forall y acc) acc0 xs
 
     | SMT.Forall2 _ | SMT.Exists2 _ ->
-      Exceptions.internal_error
-        ~reason:"Second order quantifier was not removed before backend translation"
+      Exceptions.internal_error "Second order quantifier was not removed before backend translation"
         ~details:(SMT.show t)
 
     | _ ->
-      Exceptions.internal_error
-        ~reason:"[Bitwuzla wrapper] unknown term"
-        ~details:(SMT.show t)
+      Exceptions.internal_error "[Bitwuzla wrapper] unknown term" ~details:(SMT.show t)
 
   (* ==== Model translation ==== *)
 

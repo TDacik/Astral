@@ -29,15 +29,15 @@ module Make (Locations : LOCATIONS_BASE) = struct
 
   let internal_error self reason =
     let details = Format.asprintf "Location encoding:\n%s" (show self) in
-    Exceptions.internal_error ~reason ~details
+    Exceptions.internal_error reason ~details
 
   let get_encoding locs sort =
     try Sort.Map.find sort locs.sort_encoding
-    with Not_found -> internal_error locs ("Sort encoding of " ^ Sort.show sort ^ " not found")
+    with Not_found -> internal_error locs "Sort encoding of %a not found" Sort.pp sort
 
   let get_mapper locs sort =
     try Sort.Map.find sort locs.mapping
-    with Not_found -> internal_error locs ("Mapping of sort " ^ Sort.show sort ^ " not found")
+    with Not_found -> internal_error locs "Mapping of sort %a not found" Sort.pp sort
 
   let sort_encoding locs sort = fst @@ get_encoding locs sort
 
@@ -75,7 +75,7 @@ module Make (Locations : LOCATIONS_BASE) = struct
       try
         let mapper = fst @@ get_mapper locs sort in
         SMT.Array.mk_select mapper term
-      with Not_found -> internal_error locs ("No mapper for SMT sort " ^ Sort.show sort)
+      with Not_found -> internal_error locs "No mapper for SMT sort %a" Sort.pp sort
 
   (** Typing *)
 
@@ -105,14 +105,14 @@ module Make (Locations : LOCATIONS_BASE) = struct
 
   let get_index self loc = match List_utils.index_of_cmp SMT.compare loc self.constants with
     | Some index -> index
-    | None -> internal_error self (Format.sprintf "Index of location %s" (SMT.show loc))
+    | None -> internal_error self "Index of location %a" SMT.pp loc
 
   let inverse_translate_sort self loc =
     try
       Sort.Map.bindings self.sort_encoding
       |> List.find (fun (_, (_, locs)) -> BatList.mem_cmp SMT.compare loc locs)
       |> fst
-    with Not_found -> internal_error self ("No sort of location " ^ SMT.show loc)
+    with Not_found -> internal_error self "No sort of location %a" SMT.pp loc
 
 
   let inverse_translate_aux self model loc =

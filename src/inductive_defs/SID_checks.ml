@@ -100,9 +100,8 @@ let check_id_pair res (id1, id2) =
 
 let check_partial_order pred_graph =
   if DependencyGraph.has_nontrivial_cycle pred_graph then
-    Exceptions.unsupported_fragment
-      ~reason:"SID is not partially ordered"
-      ~details:"TODO: report the cycle" (* TODO *)
+    Exceptions.unsupported_fragment "SID is not partially ordered"
+      ~details:"TODO: report the cycle"
   else ()
 
 let compute_distinguishers pred_graph =

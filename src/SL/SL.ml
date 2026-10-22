@@ -142,8 +142,7 @@ let view phi =
       begin match xs with
         | [x; B.Application (A.Constructor s, ys)] -> PointsTo (x, s, ys)
         |  _ ->
-          Exceptions.internal_error
-            ~reason: "Unexpected pointer expression in SL formula"
+          Exceptions.internal_error "Unexpected pointer expression in SL formula"
             ~details: (show phi)
       end
     | A.Predicate (p, defs, n) -> Predicate (Identifier.show p, xs, n, defs)
@@ -167,8 +166,7 @@ let view phi =
   | B.Binder (Exists None, vs, x) -> Exists (vs, x)
   | B.Binder (Forall None, vs, x) -> Forall (vs, x)
   |  _ ->
-    Exceptions.internal_error
-      ~reason: "Unexpected construction in SL formula"
+    Exceptions.internal_error "Unexpected construction in SL formula"
       ~details: (show phi)
 
 let rec map_view fn phi =

@@ -87,10 +87,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
     | SL.Pure term -> translate_pure ctx domain term
     | SL.Exists ([x], psi) -> translate_exists ctx domain x psi
     | SL.Exists (x :: xs, psi) -> translate_exists ctx domain x (SL.mk_exists xs psi)
-    | _ ->
-      Exceptions.internal_error
-        ~reason: "Translation: unexpected formula"
-        ~details: (SL.show phi)
+    | _ -> Exceptions.internal_error "Translation: unexpected formula" ~details:(SL.show phi)
 
   and translate_true ctx domain =
     (Boolean.tt, Boolean.tt, Footprints.singleton @@ Sets.mk_empty ctx.fp_sort)
@@ -363,7 +360,7 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
 
     if ctx.can_skolemise
     then translate_septraction_skolemised ctx domain witness_heap phi psi1 psi2
-    else Exceptions.unsupported_fragment ~reason:"magic wand/negative septraction" ~details:""
+    else Exceptions.unsupported_fragment "Magic wand/negative septraction"
 
   and translate_septraction_skolemised ctx domain witness_heap phi psi1 psi2 =
     let fp1 = formula_footprint ctx psi1 in
@@ -591,7 +588,6 @@ let translate_phi (ctx : Context.t) ssl_phi =
     let s = translate_stack ctx model in
     let h = HeapEncoding.inverse_translate ctx.heap model domain in
     StackHeapModel.init s h
-
 
   let log (input : Input.t) ctx =
     Logger.debug "Translating:
