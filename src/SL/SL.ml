@@ -22,12 +22,18 @@ module Variable = struct
 
   let is_pure var = not @@ Sort.is_loc @@ Variable.get_sort var
 
-  let translate_to_smt var =
-    let sort = match get_sort var with
-      | Loc (name, _) -> Sort.mk_uninterpreted @@ Identifier.show name
+  let translate_to_smt ?sort_of_nil var =
+    let translate_sort = function
+      | Sort.Loc (sort_name, _) -> Sort.mk_uninterpreted @@ Identifier.show sort_name
       | sort -> sort
     in
-    SMT.Variable.mk (get_name var) sort
+    let name = get_name var in
+    let sort = match is_nil var, sort_of_nil with
+      | false, _ -> get_sort var
+      | true, Some sort -> sort
+      | true, None -> raise @@ Invalid_argument "SL.Variable.translate_to_smt: input is nil and no sort was provided"
+    in
+    SMT.Variable.mk name sort
 
 end
 
@@ -467,10 +473,6 @@ let as_query phi =
       Arbitrary phi
   else
     Arbitrary phi
-
-let translate_to_smt phi =
-  if _is_pure ~ignore_vars:true phi then to_smt phi
-  else raise @@ Invalid_argument "SL.translate_to_smt: input must be pure"
 
 let translate_pure_with_heap_term (fn : Term.t -> SMT.t) phi =
   to_base_logic phi

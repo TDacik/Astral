@@ -17,9 +17,10 @@ module Variable : sig
 
   val is_pure : t -> bool
 
-  val translate_to_smt : t -> SMT.Variable.t
+  val translate_to_smt : ?sort_of_nil:Sort.t -> t -> SMT.Variable.t
   (** Translate a variable to SMT variable. If it has a location sort, this
-      sort is converted to an uninterpreted sort of the same name. *)
+      sort is converted to an uninterpreted sort of the same name. If the
+      variable is nil, its sort must be provide. *)
 
 end
 
@@ -355,12 +356,6 @@ end
 val as_symbolic_heap : t -> t list * t list
 
 val as_quantified_symbolic_heap : t -> Variable.t list * t list
-
-val translate_to_smt : t -> SMT.t
-(** Translate a pure formula to an equivalent formula in SMT. Variables
-    are translated using {!val:Variable.translate_to_smt}.
-
-    @raise Invalid_argument if the input is not pure. *)
 
 val translate_pure_with_heap_term : (Term.t -> SMT.t) -> t -> SMT.t
 
