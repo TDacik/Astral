@@ -10,6 +10,7 @@ module SL = struct
   module Printer = SL_printer
 end
 
+module SLID = SLID
 
 module SL_builtins = SL_builtins
 
