@@ -172,6 +172,7 @@ module Init () = struct
     | Sort.Bitvector n -> Z3.BitVector.mk_sort !context n
     | Sort.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
     | Sort.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
+    | Sort.Uninterpreted name -> Z3.Sort.mk_uninterpreted_s name
     | Sort.Finite (name, constants) ->
       begin match !enum_sort with
         | Some sort -> sort
