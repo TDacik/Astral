@@ -77,3 +77,23 @@ let get_inductive_definitions ?(original=true) phi =
 let has_user_defined_predicates phi =
   not @@ List.is_empty @@ get_inductive_definitions phi
 
+let expected_sort_of_nil_in_atom atom pos =
+  let raise_out_of_bound () =
+    invalid_arg @@ Format.asprintf "expected_sort_of_nil_in_atom: position out of range"
+  in
+  match SL.view atom with
+  | Eq xs | Distinct xs ->
+    List.map SL.Term.get_sort xs
+    |> List.find_opt (fun s -> not @@ Sort.is_nil s)
+  | PointsTo (_, def, _) ->
+    if pos = 0 then None (* 0-th position is source *)
+    else (
+      try Option.some @@ List.nth (MemoryModel.StructDef.signature def) (pos+1)
+      with Invalid_argument _ -> raise_out_of_bound ()
+    )
+  | Predicate (name, _, _, _) -> (
+      try Option.some @@ List.nth (GlobalSID.get_signature name) pos
+      with Invalid_argument _ -> raise_out_of_bound ()
+    )
+  | Emp -> raise_out_of_bound ()
+  | _-> invalid_arg "expected_sort_of_nil_in_atom: formula is not SL atom"

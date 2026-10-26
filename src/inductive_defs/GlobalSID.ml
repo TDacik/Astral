@@ -41,6 +41,8 @@ let update_user_defined id =
 let is_builtin pred = SID.is_builtin !sid_original pred
 let is_user_defined pred = SID.is_user_defined !sid_original pred
 
+let get_signature pred = SID.get_signature !sid_original pred
+
 let find ?(original=false) = SID.find (select original)
 let find_user_defined ?(original=false) = SID.find_user_defined (select original)
 let fold_user_defined ?(original=false) fn = SID.fold_user_defined fn (select original)

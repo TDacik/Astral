@@ -5,6 +5,16 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
+val expected_sort_of_nil_in_atom : SL.t -> int -> Sort.t option
+(** [expected_sort_of_nil_in_atom atom pos] returns the sort which should nil variable
+    have at the position [pos] in [atom].
+
+    @return None is returned if the sort cannot be uniquely determined. This is the case
+            for atoms with determined boolean value such as nil = nil or nil |-> <...>.
+
+    @raises Invalid argument if [atom] is not an atomic formula or [pos] is out of range
+            of arguments of [atom]. *)
+
 val has_unique_footprint : SL.t -> bool
 
 val has_unique_shape : SL.t -> bool

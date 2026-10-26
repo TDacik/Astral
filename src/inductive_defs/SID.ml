@@ -114,6 +114,10 @@ let is_user_defined sid name =
     | Builtin _ -> false
     | UserDefined _ -> true
 
+let get_signature sid name = match find sid name with
+  | Builtin (module B : BUILTIN) -> B.signature
+  | UserDefined def -> InductiveDefinition.signature def
+
 (** TODO: modify graph accordingly *)
 let filter_map fn sid =
   {sid with definitions = M.filter_map (fun _ pred -> fn pred) sid.definitions}
