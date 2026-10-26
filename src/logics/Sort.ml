@@ -99,9 +99,11 @@ let rec show_kind = function
   | Int -> "int"
   | Loc (name, _) -> "loc_" ^ (Identifier.show name)
   | Finite (name, _) -> "finite_" ^ (Identifier.show name)
-  | Array (dom, range) -> "array_" ^ (show_kind dom) ^ "_" ^ (show_kind range)
+  | Array (dom, range) -> "array_" ^ (show_kind dom) ^ "2" ^ (show_kind range)
   | Bitvector width -> "bitvector_" ^ string_of_int width
   | Uninterpreted name -> "uninterpreted_" ^ (Identifier.show name)
+  | Set (elem_sort) -> "set_" ^ (show_kind elem_sort)
+  | Sequence (elem_sort) -> "seq_" ^ (show_kind elem_sort)
 
 let name = function
   | Loc (name, _) -> Identifier.show name

@@ -57,11 +57,11 @@ module Init () = struct
   (* === Translation === *)
 
   let rec translate_var var =
-    Z3.Expr.mk_const_s !context (SMT.Variable.show var) (translate_sort @@ SMT.Variable.get_sort var)
+    Z3.Expr.mk_const_s !context (BackendUtils.var_unique_name var) (translate_sort @@ SMT.Variable.get_sort var)
 
   and translate t = match SMT.view t with
     | SMT.Constant (name, sort) -> find_const name sort
-    | SMT.Variable var ->  translate_var var
+    | SMT.Variable var -> translate_var var
 
     | SMT.True -> Z3.Boolean.mk_true !context
     | SMT.False -> Z3.Boolean.mk_false !context
