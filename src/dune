@@ -46,8 +46,7 @@
     SMT_sig
     backend_sig
     translation_sig
-    debug_sig
-    logger_sig
+    logging_sig
     SetEncoding_sig
     location_sig
     encoding_context_sig
