@@ -21,7 +21,7 @@ module Variable = struct
   include Variable
 
   let is_pure var = not @@ Sort.is_loc @@ Variable.get_sort var
-
+  
   let translate_to_smt ?sort_of_nil var =
     let translate_sort = function
       | Sort.Loc (sort_name, _) -> Sort.mk_uninterpreted @@ Identifier.show sort_name
@@ -41,6 +41,8 @@ module Term = struct
 
   include BaseLogic
   include BaseLogic.SeparationLogic
+
+  type sort = Sort.t
 
   let mk_smt = SMT.to_base_logic
 
@@ -148,8 +150,7 @@ let view phi =
       begin match xs with
         | [x; B.Application (A.Constructor s, ys)] -> PointsTo (x, s, ys)
         |  _ ->
-          Exceptions.internal_error
-            ~reason: "Unexpected pointer expression in SL formula"
+          Exceptions.internal_error "Unexpected pointer expression in SL formula"
             ~details: (show phi)
       end
     | A.Predicate (p, defs, n) -> Predicate (Identifier.show p, xs, n, defs)
@@ -173,8 +174,7 @@ let view phi =
   | B.Binder (Exists None, vs, x) -> Exists (vs, x)
   | B.Binder (Forall None, vs, x) -> Forall (vs, x)
   |  _ ->
-    Exceptions.internal_error
-      ~reason: "Unexpected construction in SL formula"
+    Exceptions.internal_error "Unexpected construction in SL formula"
       ~details: (show phi)
 
 let rec map_view fn phi =
@@ -327,6 +327,7 @@ let is_low_level = exists_app (function BlockBegin | BlockEnd -> true | _ -> fal
 
 (* TODO: will require normalisation for user-defined *)
 let get_root phi = match view phi with
+  | PointsTo (x, _, _) -> x
   | Predicate (_, x :: _, _,_) -> x
 
 let get_struct_def phi = match view phi with
@@ -362,6 +363,15 @@ let get_loc_terms ?(with_free_vars=true) phi heap_sort =
 let get_terms_of_sort sort phi =
   get_terms phi
   |> List.filter (has_sort sort)
+
+let rec find_atoms_by_root phi root =
+  let find phi = find_atoms_by_root phi root in
+  match view phi with
+  | Exists (_, phi) -> find phi
+  | Star psis -> List.concat_map find psis
+  | Emp | Pure _ | Eq _ | Distinct _ -> []
+  | PointsTo (x, _, _) | Predicate (_, x :: _, _, _) ->
+    if Term.equal root x then [phi] else []
 
 let rec is_symbolic_heap phi = match phi with
   | Variable _ -> true
@@ -473,6 +483,10 @@ let as_query phi =
       Arbitrary phi
   else
     Arbitrary phi
+
+let translate_to_smt phi =
+  if _is_pure ~ignore_vars:true phi then to_smt phi
+  else raise @@ Invalid_argument "SL.translate_to_smt: input must be pure"
 
 let translate_pure_with_heap_term (fn : Term.t -> SMT.t) phi =
   to_base_logic phi

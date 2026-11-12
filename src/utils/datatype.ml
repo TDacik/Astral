@@ -101,6 +101,7 @@ module Collections (M : COMPARISON) = struct
 
     let sort = List.sort M.compare
     let unique = BatList.unique ~eq:C.equal
+    let diff lhs rhs = BatList.filter (fun x -> not @@ mem x rhs) lhs
     let inter xs1 xs2 = Set.(elements @@ (inter (of_list xs1) (of_list xs2)))
 
     let rec inter_list = function

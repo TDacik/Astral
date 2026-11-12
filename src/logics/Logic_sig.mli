@@ -20,39 +20,53 @@ module type SORT = sig
 
 end
 
-module type SORTED = sig
+(** Minimal signature of object equipped with sort information. *)
+module type SORTED_BASE = sig
 
   module Sort : SORT
 
   type t
 
+  val show : t -> string
+
   val get_sort : t -> Sort.t
-
-  val has_sort : Sort.t -> t -> bool
-
-  val show_with_sort : t -> string
 
 end
 
 
+module type SORTED = sig
+
+  type t
+
+  type sort
+
+  val get_sort : t -> sort
+
+  val has_sort : sort -> t -> bool
+
+  val show_with_sort : t -> string
+
+  val pp_with_sort : Format.formatter -> t -> unit
+
+end
 
 module type VARIABLE = sig
 
   type t
 
-  module Sort : SORT
+  type sort
 
   include PRINTABLE with type t := t   (** @closed *)
   include COMPARABLE with type t := t  (** @closed *)
   include COLLECTIONS with type t := t (** @closed *)
 
-  include SORTED with type t := t and module Sort := Sort
+  include SORTED with type t := t and type sort := sort
 
-  val mk : string -> Sort.t -> t
+  val mk : string -> sort -> t
 
-  val mk_fresh : string -> Sort.t -> t
+  val mk_fresh : string -> sort -> t
 
-  val mk_list : Sort.t -> string list -> t list
+  val mk_list : sort -> string list -> t list
 
   val rename : (string -> string) -> t -> t
 
@@ -62,9 +76,11 @@ module type VARIABLE = sig
 
   val get_name : t -> string
 
-  val describe : t -> string * Sort.t
+  val escaped_name : t -> string
 
-  val of_description : string * Sort.t -> t
+  val describe : t -> string * sort
+
+  val of_description : string * sort -> t
 
   val show : t -> string
 
@@ -82,12 +98,12 @@ end
 
 module type LOGIC = sig
 
-  module Sort : SORT
-  module Variable : VARIABLE with module Sort = Sort
-
   type t
 
   type term
+
+  module Sort : SORT
+  module Variable : VARIABLE with type sort := Sort.t
 
   (*type view
 
@@ -98,7 +114,7 @@ module type LOGIC = sig
   include COMPARABLE with type t := t  (** @closed *)
   include COLLECTIONS with type t := t (** @closed *)
 
-  include SORTED with type t := t and module Sort := Sort
+  include SORTED with type t := t and type sort := Sort.t
 
   val hash : t -> int
 

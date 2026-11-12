@@ -25,7 +25,7 @@ module Location : sig
   include COMPARABLE with type t := t
   include COLLECTIONS with type t := t
 
-  include Logic_sig.SORTED with type t := t and module Sort := Sort
+  include Logic_sig.SORTED with type t := t and type sort := Sort.t
 
 end
 
@@ -114,6 +114,10 @@ val succ_field : t -> Field.t -> Location.t -> Location.t
 val domain : t -> Footprint.t
 
 val to_smtlib : t -> string
+
+val get_roots : t -> Location.t list
+
+val stack_inverse : t -> Location.t -> SL.Term.t list
 
 val has_path : ?field:Field.t -> t -> src:Location.t -> dst:Location.t -> bool
 

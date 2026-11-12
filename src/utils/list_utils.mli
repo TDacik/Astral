@@ -25,6 +25,7 @@ val sublists : 'a list -> 'a list list
 
 val argmin : ('a -> int) -> 'a list -> 'a list
 
+val split_common : ('a -> 'a -> int) -> ('a -> bool) -> 'a list list -> 'a list * 'a list list
 
 (** {2 Relations as lists} *)
 

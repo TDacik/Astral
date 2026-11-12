@@ -7,7 +7,7 @@ open ThreeValuedLogic
 
 let used_lookahead = ref false
 
-module Logger = Logger.Make(struct
+module Logger = Logging.Make(struct
   let name = "Incremental unfolding"
   let level = 1
 end)
@@ -33,11 +33,10 @@ module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND
   module S = SL.Variable.Set
 
   module Translation = Translation.Make(Encoding)(Backend)
-  module QueryCounter = Counter.Simple ()
-  module FpCounter = Counter.Simple ()
+  module QueryCounter = Counter.Simple (struct let name = "incr-unfolding queries" end)
 
   let check_simple cond =
-    QueryCounter.inc ();
+    QueryCounter.increment ();
     match Backend.check_sat cond with
       | SMT_Unsat _ -> False
       | _ -> Unknown

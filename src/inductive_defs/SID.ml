@@ -59,7 +59,7 @@ let show_names sid =
   |> String.concat ","
 
 let register sid name id =
-  assert (not @@ M.mem name sid.definitions);
+  assert (String.equal name "freed" || not @@ M.mem name sid.definitions);
   {sid with definitions = M.add name id sid.definitions}
 
 let register_builtin sid (module B : BUILTIN) =
@@ -84,22 +84,19 @@ let mem name sid = M.mem name sid.definitions
 let find sid name =
   try M.find name sid.definitions
   with Not_found ->
-    Exceptions.internal_error
-      ~reason:("No definition for predicate " ^ name)
+    Exceptions.internal_error "No definition for predicate %s" name
       ~details:("Registered predicates:\n" ^ show_names sid)
 
 let find_user_defined sid name = match find sid name with
   | UserDefined id -> id
   | _ ->
-    Exceptions.internal_error
-      ~reason:("No user-defined definition for predicate " ^ name ^ "(built-in exists)")
+    Exceptions.internal_error "No user-defined definition for predicate %s" name
       ~details:("Registered predicates:\n" ^ show_names sid)
 
 let find_builtin sid name = match find sid name with
   | Builtin (module B : BUILTIN) -> (module B : BUILTIN)
   | _ ->
-    Exceptions.internal_error
-      ~reason:("No user-defined definition for predicate " ^ name ^ "(built-in exists)")
+    Exceptions.internal_error "No user-defined definition for predicate %s" name
       ~details:("Registered predicates:\n" ^ show_names sid)
 
 let is_builtin sid name =

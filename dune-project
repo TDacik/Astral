@@ -11,7 +11,7 @@
   (name astral)
   (synopsis "Solver for separation logic(s) based on translation to SMT")
   (depends
-    (ocaml (>= 5.1.0))
+    (ocaml (>= 5.5.0))
     dune-build-info
     batteries
     (dolmen (= 0.10))

@@ -165,3 +165,7 @@ let pretty phi =
   }
   in
   print_symbolic_heap ~variadic:true ~p phi
+
+let pretty_list ?(sep=",") phis =
+  List.map pretty phis
+  |> String.concat sep

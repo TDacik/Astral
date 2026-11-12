@@ -126,7 +126,8 @@ let get_structs visited get_continue name = match find name with
 
 let has_unique_footprint name = match find name with
   | Builtin (module B : BUILTIN) -> B.unique_footprint
-  | UserDefined id -> failwith "TODO: SID.unique_fp"
+  | UserDefined id ->
+    List.length (InductiveDefinition.cases id) <= 1
 
 (** ==== BUILTINS: General ==== *)
 
@@ -156,11 +157,9 @@ module Translation (E : Translation_sig.ENCODING) = struct
         B.Bound.compute context.sl_graph context.phi instance context.location_bounds in
       T.translate context instance domain sxs bound
     | UserDefined id ->
-      let reason =
-        Format.asprintf "User-defined inductive predicate %s is not unfolded before translation to SMT"
-          (id.name)
-      in
-      Exceptions.internal_error ~reason ~details:(InductiveDefinition.show id)
+      Exceptions.internal_error
+        "User-defined inductive predicate %s is not unfolded before translation to SMT" id.name
+        ~details:(InductiveDefinition.show id)
 end
 
 

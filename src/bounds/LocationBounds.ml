@@ -9,14 +9,9 @@
 open SL
 open SortBound
 
-module Logger = Logger.Make(struct let name = "Bounds" let level = 2 end)
+module Logger = Logging.Make(struct let name = "Bounds" let level = 2 end)
 
 include LocationBounds0
-
-let to_json bounds =
-  bindings bounds
-  |> List.map (fun (sort, bound) -> (Sort.show sort, `String (SortBound.show bound)))
-  |> (fun xs -> `Assoc xs)
 
 (** Representation of location bounds *)
 
@@ -91,8 +86,7 @@ let rec garbage_chunk_bound phi = match SL.view phi with
   | Exists (_, psi) -> garbage_chunk_bound psi
   | Eq _ | Distinct _ | Pure _ | True | False -> 1 (* TODO: can be improved if not under negation? *)
   | _ ->
-    Exceptions.internal_error
-      ~reason: "Unexpected SL formula when computing location bound"
+    Exceptions.internal_error "Unexpected SL formula when computing location bound"
       ~details: (SL.show phi)
 
 let add_chunk_size bounds phi =

@@ -4,6 +4,13 @@
 
 open MemoryModel
 
+
+val ls_next : Field.t
+val dls_next : Field.t
+val dls_prev : Field.t
+val nls_top : Field.t
+val nls_next : Field.t
+
 (** {1 Built-in sorts} *)
 
 val loc_ls : Sort.t

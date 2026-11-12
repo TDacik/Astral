@@ -2,27 +2,31 @@ module Field = struct
 
   module ID = Identifier.Make ()
 
-  type t = Identifier.t * Sort.t
+  type t = Identifier.t * Sort.t [@@deriving compare, equal]
 
-  (* TODO: compare also sorts? *)
-  let compare (id1, sort1) (id2, sort2) = Identifier.compare id1 id2
+  let show (id, _) = Identifier.show id
+
+  let get_sort = snd
+
+  module Self = struct
+    type nonrec t = t
+    let show = show
+    let compare = compare
+
+    module Sort = Sort
+    let get_sort = get_sort
+  end
+
+  include Datatype.Printable(Self)
+  include Datatype.Comparable(Self)
+  include Datatype.Collections(Self)
+  include SortedBuilder.Make(Self)
 
   let mk name sort = (ID.mk name, sort)
 
   let get_name (id, _) = ID.show id
 
-  let get_sort = snd
-
-  let show (id, _) = Identifier.show id
-
-  let has_sort sort1 (_, sort2) = Sort.equal sort1 sort2
-
   let is_pointer (_, sort) = Sort.is_loc sort
-
-  let show_with_sort (id, sort) =
-    Format.asprintf "%s : %s"
-      (Identifier.show id)
-      (Sort.show sort)
 
   let next = mk "next" Sort.loc_ls
 
@@ -32,15 +36,5 @@ module Field = struct
     Format.asprintf "%s %s"
       (Identifier.show id)
       (Sort.smt2_name sort)
-
-  module Self = struct
-    type nonrec t = t
-    let show = show
-    let compare = compare
-  end
-
-  include Datatype.Printable(Self)
-  include Datatype.Comparable(Self)
-  include Datatype.Collections(Self)
 
 end

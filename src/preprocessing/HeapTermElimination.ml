@@ -8,7 +8,7 @@
 
 open MemoryModel
 
-module Logger = Logger.Make (struct let name = "Heap-term elim" let level = 3 end)
+module Logger = Logging.Make (struct let name = "Heap-term elim" let level = 3 end)
 
 (** Exception raised when the input is not self-framed *)
 exception NotSelfFramed of SL.Term.t
@@ -29,7 +29,7 @@ let find_equivalent g term =
 let rec elim_heap_term phi g term : SL.Term.t = match SL.Term.view term with
   | HeapTerm (field, base) ->
     let base' = elim_heap_term phi g base in
-    Logger.debug "Base for %a: %a" SL.Term.pp term SL.Term.pp base';
+    Logger.debug "Base for %a: %a\n" SL.Term.pp term SL.Term.pp base';
     SL.select_subformulae (SL.is_pointer) phi
     |> List.map SL.as_pointer
     |> List.find_map (fun (src, c, dsts) ->

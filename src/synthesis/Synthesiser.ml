@@ -1,14 +1,15 @@
 open ParserContext_type
 
-module Logger = Debug.SubQueryDir (struct
-  let dirname = "synthesis"
+module Logger = Logging.WithOutput (struct
   let name = "Synthesis"
   let level = 1
+  let path = `CurrentSubquery "synthesis"
 end)
 
 module ID = Identifier.Make()
 
 let get_example ctx phi =
+  SL.print ~prefix:"Target" phi;
   let res = Engine.solve {ctx with assertions = [phi]; produce_models = true} in
   match res.model with
   | Some model -> model
@@ -29,19 +30,6 @@ let common_and_rest (lists : 'a list list) : 'a list * 'a list list =
         lists
     in
     (common, rest)
-
-(* TODO: think more about what is relevant... *)
-let get_relevant_vars phi =
-  let qf, atoms = SL.as_quantified_symbolic_heap phi in
-  let atoms = List.filter (fun a -> not @@ SL.is_distinct a) atoms in
-  let phi = SL.mk_exists qf @@ SL.mk_star atoms in
-  SL.free_vars ~with_nil:false phi
-  |> SL.Variable.MonoList.unique
-
-(*
-let reduce_models models =
-  let decompositions = List.map StackHeapModel.chunk_decomposition models in
-*)
 
 let split3 (l : ('a * 'b * 'c) list) : 'a list * 'b list * 'c list =
   List.fold_right
@@ -76,21 +64,31 @@ let compute_abstraction_aux ctx =
   List.iteri (fun i sh -> Logger.sl_formula (Format.asprintf "positive_%d" i) sh) pexamples_;
   List.iteri (fun i sh -> Logger.sl_model (Format.asprintf "positive_%d" i) sh) pexamples;
 
-  Logger.debug "Converting models to prolog\n";
+  let synth_ctx = SynthesisContext.init ctx.positive_examples ctx.negative_examples pexamples [] in
+  Logger.debug "%s" (SynthesisContext.show synth_ctx);
 
-  let vars = get_relevant_vars @@ SL.mk_star pexamples_ in
-  SL.Variable.print_list ~prefix:"Vars for synthesis" vars;
+  (* Generate popper files *)
+  let knowledge, examples = PrologConvertor.convert synth_ctx in
+  let bias = BiasGenerator.generate synth_ctx in
 
-  let name = ID.show @@ ID.mk_fresh "pred" in
-  let name = BatString.nreplace ~str:name ~sub:"!" ~by:"" in
+  (* Run popper *)
+  let ok, response = PopperDriver.synthesize ~bias ~knowledge ~examples () in
+  if not ok
+  then Exceptions.internal_error "Popper failed" ~details:response
+  else
+    let res = SolutionConvertor.convert ctx synth_ctx response in
+    match res with
+      | None -> None
+      | Some res -> (
+        (if not @@ SynthesisResult.is_precise res then
+          ReportUtils.warning "Synthesis result is only approximate (precision: %0.1f, recall: %0.1f)\n"
+            res.precision
+            res.recall
+        );
+        Some (frame, res))
 
-  let res = List.fold_left2 (PrologConvertor.convert name vars) PrologConvertor.Result.empty pexamples ctx.positive_examples in
 
-  Logger.debug "Generating Popper files\n";
-
-  let fields = SL.get_fields @@ List.hd ctx.positive_examples in
-  let knowledge = PrologConvertor.Result.generate_knowledge (GlobalSID.get_user_defined ~original:true ()) res fields in
-  let examples = PrologConvertor.Result.generate_examples res in
+  (*
 
   let arity = List.length vars in
   let signature = List.map SL.Variable.get_sort vars in (* TODO: what is the correct order? *)
@@ -98,26 +96,7 @@ let compute_abstraction_aux ctx =
   let bias = BiasGenerator.generate predicates name arity fields in
 
   Logger.debug "Running Popper\n";
-
-  let ok, response = PopperDriver.synthesize ~bias ~knowledge ~examples () in
-  if not ok
-  then Exceptions.internal_error ~reason:"Popper" ~details:response
-  else
-    let res = SolutionConvertor.convert ctx vars signature response in
-    match res with
-      | None -> Format.printf "unsat"; None
-      | Some res ->
-      (
-        (if res.precision <> 1.0 || res.recall <> 1.0 then
-          ReportUtils.warning "Synthesis result is only approximate (precision: %0.1f, recall: %0.1f)\n"
-            res.precision
-            res.recall
-        );
-
-      List.iter (fun def -> Format.printf "%s\n" (InductiveDefinition.smt2_decl def)) res.predicates;
-
-      Some (frame, res)
-      )
+  *)
 
 let compute_abstraction ctx =
   let _ = compute_abstraction_aux ctx in

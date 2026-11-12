@@ -2,7 +2,7 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
-module Logger = Logger.Make(struct let name = "unfolder" let level = 1 end)
+module Logger = Logging.Make(struct let name = "unfolder" let level = 1 end)
 
 let must_allocate_lhs phi heap_sort lhs g name =
   let _, atoms = SL.as_symbolic_heap lhs in

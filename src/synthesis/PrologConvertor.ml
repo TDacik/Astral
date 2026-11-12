@@ -4,9 +4,16 @@
 
 open MemoryModel
 open StackHeapModel
+open SynthesisContext
 
 open Value
 open Location
+
+module Logger = Logging.WithOutput (struct
+  let name = "Synthesis:popper-parser"
+  let level = 3
+  let path = `Query "popper-parser"
+end)
 
 let cnt : int ref = ref (-1)
 
@@ -43,7 +50,12 @@ let id_to_prolog id =
       | Distinct [x; y] -> Some (Format.sprintf "neq(%s, %s)" (term_to_string x) (term_to_string y))
       | PointsTo (x, def, ys) -> Some (
           let fields = StructDef.get_fields def in
-          String.concat ", " @@ List.mapi (fun i f -> Format.sprintf "%s(%s, %s)" (Field.show f) (term_to_string x) (term_to_string @@ List.nth ys i)) fields
+          String.concat ", " @@ List.mapi (fun i f ->
+            Format.sprintf "%s(%s, %s)"
+              (PopperEncoding.field f)
+              (term_to_string x)
+              (term_to_string @@ List.nth ys i)
+            ) fields
         )
       | Predicate (name, xs, 0, []) -> Some (Format.sprintf "%s(%s)" name (tuple term_to_string xs))
       | _ -> failwith @@ SL.show a
@@ -73,13 +85,16 @@ module Result = struct
   let replace ~sub ~by str = snd @@ BatString.replace ~sub ~by ~str
 
   let gen_fields fields =
-    String.concat "\n" @@ List.map (fun f ->
-      let disc = Format.sprintf ":- discontiguous %s/2." (MemoryModel.Field.show f) in
-      Format.sprintf "%s\n%s_is_nil(X) :- %s(X, Y), is_null(Y)."
-        disc
-        (MemoryModel.Field.show f)
-        (MemoryModel.Field.show f)
-    ) fields
+    let field_predicates f =
+      let field = PopperEncoding.field f in
+      [
+        Format.sprintf "%s_is_nil(X) :- %s(X, Y), is_null(Y)." field field
+      ]
+    in
+    List.map field_predicates fields
+    |> BatList.transpose
+    |> List.map (String.concat "\n")
+    |> String.concat "\n\n"
 
   let gen_preds preds =
     String.concat "\n\n" @@ List.map id_to_prolog preds
@@ -100,7 +115,8 @@ end
 
 (** Conversions *)
 
-let rename str = Format.asprintf "loc%s_%d" str !cnt
+let unique_name loc =
+  Format.asprintf "loc%s_%d" (Location.show loc) !cnt
 
 let convert_loc loc = match fst loc with
   | Implicit n -> Format.asprintf "loc%d_%d" n !cnt
@@ -115,7 +131,7 @@ let convert_value = function
 let generate_one source =
   List.map (fun (field, target) ->
     Format.asprintf "%s(%s, %s)."
-      (Field.show field)
+      (PopperEncoding.field field)
       (convert_loc source)
       (convert_loc target)
   )
@@ -125,18 +141,23 @@ let generate_ptr sh loc value res =
   Result.add_knowledges res @@ generate_one loc v
 
 let generate_descr name res sh phi vars =
-  let locs =
-    List.map (StackHeapModel.eval_var sh) vars
-    |> List.map Location.show
-    |> List.map rename
-    |> String.concat ", "
-  in
-  Result.add_example res @@ Format.asprintf "pos(%s(%s))." name locs
+  let locs = List.map (StackHeapModel.eval_var sh) vars in
+  let params = String.concat ", " @@ List.map unique_name locs in
+  let example = Format.asprintf "pos(%s(%s))." name params in
+  Result.add_example res example
 
-let convert name vars res sh phi =
+let convert_model ctx res phi sh =
   next ();
   let nil = StackHeapModel.get_nil sh in
   let res = Result.add_knowledges res [Format.sprintf "is_null(%s)." (convert_loc nil)] in
   let res = Heap.fold (generate_ptr sh) sh.heap res in
-  let res = generate_descr name res sh phi vars in
+  let res = generate_descr ctx.pred res sh phi ctx.vars in
   res
+
+let convert ctx =
+  let res0 = Result.empty in
+  let res = List.fold_left2 (convert_model ctx) res0 ctx.pos_examples ctx.pos_models in
+
+  let knowledge = Result.generate_knowledge ctx.predicates res ctx.fields in
+  let examples = Result.generate_examples res in
+  (knowledge, examples)

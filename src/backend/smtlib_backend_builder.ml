@@ -9,7 +9,7 @@ module Make (Backend : SMTLIB_BACKEND) = struct
 
   include Backend
 
-  module Logger = Logger.Make(struct let name = Backend.name ^ "-backend" let level = 2 end)
+  module Logger = Logging.Make(struct let name = Backend.name ^ "-backend" let level = 2 end)
 
   (** Formula is represented as string in SMT-LIB format. *)
   type formula = string
@@ -123,11 +123,7 @@ module Make (Backend : SMTLIB_BACKEND) = struct
           else SMT_Sat None
         | "unsat" -> SMT_Unsat [] (* TODO: unsat core *)
         | "unknown" -> SMT_Unknown reason_unknown
-        | error ->
-          Exceptions.internal_error
-            ~reason:(Format.asprintf "%s backend error" Backend.name)
-            ~details:error
-
+        | error -> Exceptions.internal_error "%s backend error" Backend.name ~details:error
 
   let solve context phi produce_models options =
     let smt_query = generate_query phi produce_models options in

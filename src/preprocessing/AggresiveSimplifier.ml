@@ -2,7 +2,7 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2023 *)
 
-module Logger = Logger.Make (struct
+module Logger = Logging.Make (struct
     let name = "Simplifier 2"
     let level = 2
   end)

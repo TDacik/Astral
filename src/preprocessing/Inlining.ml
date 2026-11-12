@@ -4,7 +4,7 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
-module Logger = Logger.Make (struct let name = "Inlining" let level = 2 end)
+module Logger = Logging.Make (struct let name = "Inlining" let level = 2 end)
 
 let can_be_inlined name =
   try

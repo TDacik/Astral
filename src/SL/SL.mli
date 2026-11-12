@@ -7,7 +7,7 @@ open Datatype_sig
 open MemoryModel
 
 module Variable : sig
-  include VARIABLE with module Sort = Sort
+  include VARIABLE with type sort = Sort.t
 
   val nil : t
 
@@ -74,7 +74,7 @@ module Term : sig
 
   (** TODO: logic_sig? *)
 
-  include Logic_sig.SORTED with type t := t and module Sort = Sort
+  include Logic_sig.SORTED with type t := t and type sort = Sort.t
 
   include Datatype_sig.COMPARABLE with type t := t   (** @closed *)
   include Datatype_sig.PRINTABLE with type t := t    (** @closed *)
@@ -112,9 +112,9 @@ val to_term : t -> Term.t
 
 include LOGIC
   with type t := t
-   and type term := Term.t
    and module Sort = Sort
    and module Variable := Variable
+   and type term := Term.t
 
 type view =
   | Emp
@@ -311,6 +311,10 @@ val get_terms_of_sort : Sort.t -> t -> Term.t list
 
 val get_root : t -> Term.t
 
+val find_atoms_by_root : t -> Term.t -> t list
+(** For a symbolic heap phi, this functions returns all spatial atoms
+    with the given root. *)
+
 (** {2 Operations requiring the sort of heap *)
 
 val get_loc_terms : ?with_free_vars:bool -> t -> HeapSort.t -> Term.t list
@@ -356,6 +360,12 @@ end
 val as_symbolic_heap : t -> t list * t list
 
 val as_quantified_symbolic_heap : t -> Variable.t list * t list
+
+val translate_to_smt : t -> SMT.t
+(** Translate a pure formula to an equivalent formula in SMT. Variables
+    are translated using {!val:Variable.translate_to_smt}.
+
+    @raise Invalid_argument if the input is not pure. *)
 
 val translate_pure_with_heap_term : (Term.t -> SMT.t) -> t -> SMT.t
 

@@ -1,9 +1,8 @@
 
-let (++) path1 path2 =
+let (/) path1 path2 =
   if String.equal path1 "" then path2
   else if String.equal path2 "" then path1
   else path1 ^ "/" ^ path2
-
 
 (** Recursively remove a directory *)
 let rec rm path =
@@ -13,6 +12,16 @@ let rec rm path =
     Sys.rmdir path
   end
   else Sys.remove path
+
+let mk_dir path =
+  Unix.mkdir path 0o775
+
+let rec mk_dir_p path =
+  if Sys.file_exists path then ()
+  else (
+    mk_dir_p @@ Filename.dirname path;
+    mk_dir path
+  )
 
 (** Initialize debug model *)
 let mk_dir_force path =

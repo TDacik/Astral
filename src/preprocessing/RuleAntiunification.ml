@@ -21,7 +21,7 @@
 
 open SL
 
-module Logger = Logger.Make(struct let name = "RuleGeneralisation" let level = 2 end)
+module Logger = Logging.Make(struct let name = "RuleGeneralisation" let level = 2 end)
 
 module Substition = struct
 

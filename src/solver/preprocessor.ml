@@ -5,10 +5,10 @@
 open SL
 open Context
 
-module Logger = Debug.QueryDir(struct
-  let dirname = "preprocessor"
+module Logger = Logging.WithOutput (struct
   let name = "preprocesssor"
   let level = 1
+  let path = `CurrentSubquery "preprocessing"
 end)
 
 let counter = ref 0

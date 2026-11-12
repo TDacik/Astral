@@ -35,10 +35,7 @@ let of_string str =
   let width_factor = match BatString.get str 1 with
     | 'b' | 'B' -> 1
     | 'x' | 'X' -> 4
-    | c ->
-      Exceptions.internal_error
-        ~reason:(Format.asprintf "Unknown symbol %c in bitvector '%s'" c str)
-        ~details:""
+    | c -> Exceptions.internal_error "Unknown symbol %c in bitvector %s" c str
   in
   (int_of_string str, width_factor * (String.length str - 2))
 

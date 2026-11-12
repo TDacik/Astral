@@ -12,7 +12,7 @@
 
 open SL
 
-module Logger = Logger.Make(struct let name = "Precise <-> Imprecise" let level = 3 end)
+module Logger = Logging.Make(struct let name = "Precise <-> Imprecise" let level = 3 end)
 
 (** Precise -> Imprecise *)
 

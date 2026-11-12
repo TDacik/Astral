@@ -13,6 +13,8 @@ open Dolmen_smtlib2.Script.Latest
 open Term
 open Statement
 
+module Logger = Logging.Make(struct let name = "parser" let level = 5 end)
+
 let rec show_what = function
   | ParserException.Builtin b -> "builtin " ^ (show_what b)
   | Variable -> "variable"
@@ -78,8 +80,6 @@ module Extension = struct
 end
 
 module Parser = Make(Loc)(Id)(Term)(Statement)(Extension)
-
-module Logger = Logger.Make (struct let name = "parser" let level = 3 end)
 
 (** Parser AST *)
 
@@ -192,8 +192,10 @@ and parse_constant_term ctx term id =
   | "nil" | "sep.nil" -> Term SL.Term.nil
   | numeral when Str.string_match (Str.regexp "[0-9]+") numeral 0 ->
     SMT (SMT.Arithmetic.mk_const (int_of_string numeral))
-  | bv_hex when Str.string_match (Str.regexp "0x([0-9]|[A-F])+") bv_hex 0 ->
-    SMT (SMT.Bitvector.mk_const_of_string bv_hex)
+  | bv when String.starts_with ~prefix:"#" bv ->
+    SMT (SMT.Bitvector.mk_const_of_string bv)
+  | bv_bin when Str.string_match (Str.regexp "#b[0-1]+") bv_bin 0 ->
+    SMT (SMT.Bitvector.mk_const_of_string bv_bin)
   | var ->
     let sort = Context.type_of_var ~loc:term.loc ctx var in
     if Sort.is_loc sort (* TODO *)
@@ -572,8 +574,7 @@ let parse_extension ctx extension = match parse_id extension.name with
     let mapping = List.map (parse_heap_sort ctx) extension.args in
     Logger.debug "Heap sort: %s\n" (HeapSort.show @@ HeapSort.of_list mapping);
     Context.declare_heap_sort ctx mapping
-  | "compute-abstraction" ->
-    Synthesiser.compute_abstraction ctx
+  | "compute-abstraction" -> Abstraction.compute_and_print ctx
   | other ->
     ParserException.raise_syntax_error None ("Unknown extension '" ^ other ^ "'")
 

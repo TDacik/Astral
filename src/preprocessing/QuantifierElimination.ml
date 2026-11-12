@@ -4,10 +4,10 @@
 
 open SL
 
-module Logger = Debug.QueryDir (struct
+module Logger = Logging.WithOutput (struct
   let name = "Quantifier elimination"
   let level = 2
-  let dirname = "qelim"
+  let path = `CurrentSubquery "qelim"
 end)
 
 (** Run skolemisation and add skolem variables into model adapter. *)

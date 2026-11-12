@@ -26,3 +26,17 @@ let internal_error ?(backtrace=true) ~exit_code msg =
       (Printexc.raw_backtrace_to_string stack)
   end;
   exit exit_code
+
+let print_details = function
+  | "" -> ()
+  | msg -> Format.fprintf Format.err_formatter "%s\n" msg
+
+let print_trace trace = match trace, Config.Debug.get () with
+  | Some t, true -> Format.eprintf "%s" (Printexc.raw_backtrace_to_string t)
+  | _ -> ()
+
+let internal_error_from_lib ?trace reason ~details =
+  Format.eprintf "%s[Internal error]%s %s\n" Colors.red Colors.white reason;
+  print_details details;
+  print_trace trace;
+  exit 125

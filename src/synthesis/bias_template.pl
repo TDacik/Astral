@@ -77,4 +77,4 @@ has_eq_neq_pair(Cb, Ci) :-
     body_literal(Cb, eq, 2, (X, Y)),
     body_literal(Ci, neq, 2, (Y, X)).
 
-%:- base_case(B), inductive_case(I), not has_eq_neq_pair(B, I).
+:- base_case(B), inductive_case(I), not has_eq_neq_pair(B, I).

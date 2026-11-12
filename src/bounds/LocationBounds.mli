@@ -15,8 +15,6 @@ val term_bound : HeapSort.t -> SL_graph0.t -> SL.t -> SL.Term.t -> float
 
 val compute : SL.t -> HeapSort.t -> SL_graph0.t -> t
 
-val to_json : t -> Yojson.Basic.t
-
 val sum : t -> int
 
 val sum_of_allocated : t -> int

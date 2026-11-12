@@ -2,8 +2,9 @@ open Logic_sig
 
 module Make ( ) : sig
 
-  include VARIABLE with module Sort = Sort
-                    and type t = Identifier.t * Sort.t
+  include VARIABLE
+    with type t = Identifier.t * Sort.t
+     and type sort = Sort.t
   (** @inline *)
 
   (* TODO: why is this necessary? *)

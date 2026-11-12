@@ -3,7 +3,7 @@
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2022 *)
 
 let escape name =
-  if String.contains name ' '
+  if ((String.contains name ' ' || String.contains name '!' || String.contains name '#' || String.contains name '$') && not @@ BatString.starts_with "|" name)
   then "|" ^ name ^ "|"
   else name
 
@@ -12,11 +12,12 @@ type t = Identifier.t * Sort.t
 module Make () = struct
 
   module ID = Identifier.Make()
-  module Sort = Sort
 
   let debug = ID.debug_repr
 
   type nonrec t = t
+
+  type sort = Sort.t
 
   let hash (id, _) = ID.tag id
 
@@ -26,17 +27,15 @@ module Make () = struct
 
   let get_id (id, _) = ID.tag id
 
-  let has_sort sort var = Sort.equal sort @@ get_sort var
-
   let equal (name1, sort1) (name2, sort2) = ID.equal name1 name2
 
   let compare v1 v2 = if equal v1 v2 then 0 else Stdlib.compare v1 v2
 
-  let mk name sort = (ID.mk @@ escape name, sort)
+  let mk name sort = (ID.mk name, sort)
 
   let mk_list sort names = List.map (fun name -> mk name sort) names
 
-  let mk_fresh name sort = (ID.mk_fresh @@ escape name, sort)
+  let mk_fresh name sort = (ID.mk_fresh name, sort)
 
   let describe (name, sort) = (ID.show name, sort)
 
@@ -50,13 +49,13 @@ module Make () = struct
 
   let show_debug (name, _) = ID.show_debug @@ name
 
-  let show_with_sort var = Format.asprintf "%s : %s" (show var) (Sort.show @@ get_sort var)
-
   let nil = mk "nil" Sort.loc_nil
 
   let is_nil var = equal nil var
 
   let is_loc var = Sort.is_loc @@ get_sort var
+
+  let escaped_name (name, _) = escape @@ ID.show name
 
   let smt2_decl (name, sort) = Format.asprintf "%s %s" (escape @@ ID.show name) (Sort.smt2_name sort)
 
@@ -64,10 +63,14 @@ module Make () = struct
     type nonrec t = t
     let show = show
     let compare = compare
+
+    module Sort = Sort
+    let get_sort = get_sort
   end
 
   include Datatype.Printable(Self)
   include Datatype.Comparable(Self)
   include Datatype.Collections(Self)
+  include SortedBuilder.Make(Self)
 
 end

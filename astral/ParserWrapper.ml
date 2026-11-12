@@ -4,10 +4,7 @@
 
 let parse path =
   Profiler.add "Parsing";
-  try
-    let input = Parser.parse_file path in
-    Debug.input "input" input;
-    input
+  try Parser.parse_file path
   with ParserException.ParserError pe ->
     Parser.pretty_error pe;
     Stdlib.exit 1

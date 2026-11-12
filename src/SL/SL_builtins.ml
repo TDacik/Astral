@@ -2,6 +2,12 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
+let ls_next = LS.next
+let dls_next = DLS.next
+let dls_prev = DLS.prev
+let nls_top = NLS.top
+let nls_next = NLS.next
+
 let loc_ls = LS.loc_ls
 let loc_dls = DLS.loc_dls
 let loc_nls = NLS.loc_nls

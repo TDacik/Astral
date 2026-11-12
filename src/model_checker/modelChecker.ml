@@ -10,7 +10,7 @@ open MemoryModel
 module SH = StackHeapModel
 open SH
 
-module Print = Logger.Make(struct let name = "Model checker" let level = 2 end)
+module Print = Logging.Make(struct let name = "Model checker" let level = 2 end)
 
 type error =
   | Unsupported of string      (* Formula is in unsupported fragment *)

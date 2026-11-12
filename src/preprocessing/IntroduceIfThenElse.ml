@@ -4,7 +4,7 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
-module Logger = Logger.Make (struct
+module Logger = Logging.Make (struct
   let name = "ITE intro"
   let level = 2
 end)

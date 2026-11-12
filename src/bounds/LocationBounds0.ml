@@ -1,5 +1,10 @@
 include Sort.MonoMap(SortBound)
 
+let to_json bounds =
+  bindings bounds
+  |> List.map (fun (sort, bound) -> (Sort.show sort, `String (SortBound.show bound)))
+  |> (fun xs -> `Assoc xs)
+
 let init_sort sort alloc total =
   add sort (SortBound.init alloc total) empty
 

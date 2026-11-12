@@ -10,6 +10,10 @@ val mk : SL.Term.t -> sink:SL.Term.t -> root':SL.Term.t -> sink':SL.Term.t -> SL
 val loc_dls : Sort.t
 (** Sort of locations is doubly-linked lists. *)
 
+val next : Field.t
+
+val prev : Field.t
+
 val struct_dls : StructDef.t
 
 val register : unit -> unit

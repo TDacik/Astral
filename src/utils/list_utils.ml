@@ -51,9 +51,18 @@ let min' (f : 'a -> int) (xs : 'a list) =
   List.map f xs
   |> BatList.min
 
-let argmin (f : 'a -> int) (xs : 'a list) =
-  let best_val = min' f xs in
-  List.filter (fun x -> Int.equal (f x ) best_val) xs
+let argmin (f : 'a -> int) (xs : 'a list) = match xs with
+  | [] -> []
+  | xs ->
+    let best_val = min' f xs in
+    List.filter (fun x -> Int.equal (f x ) best_val) xs
+
+let split_common cmp p lists = match lists with
+  | [] -> ([], [])
+  | first :: others ->
+    let common = List.filter (fun x -> p x && List.for_all (BatList.mem_cmp cmp x) others) first in
+    let rest = List.map (List.filter (fun x -> not (BatList.mem_cmp cmp x common))) lists in
+    (common, rest)
 
 module Relation (X : Datatype_sig.COMPARISON) = struct
 

@@ -6,13 +6,13 @@ open InductiveDefinition
 let make_logger pred =
   let name = name pred in
   let module Logger =
-    Debug.QueryDir(struct
-      let dirname = "preds/" ^ name
+    Logging.WithOutput(struct
       let name = name
       let level = 2
+      let path = `CurrentSubquery ("predicate_preprocessing/" ^ name)
     end)
   in
-  (module Logger : Debug_sig.EXTENDED_LOGGER)
+  (module Logger : Logging_sig.LOGGER_WITH_OUTPUT)
 
 
 let preprocess_cases fn pred = InductiveDefinition.map_cases fn pred
@@ -28,7 +28,7 @@ let rec repeat_until_fixpoint ~eq f x =
   else repeat_until_fixpoint ~eq f x'
 
 let normalise (pred : t) =
-  let module Logger = (val make_logger pred : Debug_sig.EXTENDED_LOGGER) in
+  let module Logger = (val make_logger pred : Logging_sig.LOGGER_WITH_OUTPUT) in
 
   let pred = preprocess_cases rewrite_semantics pred in
   let _ = Logger.inductive_predicate ~name:(pred.name ^ "_3-semantics-rewrite") pred in
@@ -40,7 +40,7 @@ let normalise (pred : t) =
   Some pred
 
 let preprocess (pred : t) =
-  let module Logger = (val make_logger pred : Debug_sig.EXTENDED_LOGGER) in
+  let module Logger = (val make_logger pred : Logging_sig.LOGGER_WITH_OUTPUT) in
 
   let pred = InductiveDefinition.map Inlining.inline pred in
   Logger.inductive_predicate ~name:(pred.name ^ "_3_inlining") pred;
