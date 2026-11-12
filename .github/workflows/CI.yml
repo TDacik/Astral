@@ -17,7 +17,7 @@ jobs:
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: 5.1.0
+          ocaml-compiler: 5.5.0
           dune-cache: true
 
       - name: Install dependencies
@@ -76,7 +76,7 @@ jobs:
       - name: Set-up OCaml
         uses: ocaml/setup-ocaml@v3
         with:
-          ocaml-compiler: 5.1.0
+          ocaml-compiler: 5.5.0
           dune-cache: true
 
       - name: Install dependencies
