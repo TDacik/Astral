@@ -192,8 +192,10 @@ and parse_constant_term ctx term id =
   | "nil" | "sep.nil" -> Term SL.Term.nil
   | numeral when Str.string_match (Str.regexp "[0-9]+") numeral 0 ->
     SMT (SMT.Arithmetic.mk_const (int_of_string numeral))
-  | bv_hex when Str.string_match (Str.regexp "0x([0-9]|[A-F])+") bv_hex 0 ->
-    SMT (SMT.Bitvector.mk_const_of_string bv_hex)
+  | bv when String.starts_with ~prefix:"#" bv ->
+    SMT (SMT.Bitvector.mk_const_of_string bv)
+  | bv_bin when Str.string_match (Str.regexp "#b[0-1]+") bv_bin 0 ->
+    SMT (SMT.Bitvector.mk_const_of_string bv_bin)
   | var ->
     let sort = Context.type_of_var ~loc:term.loc ctx var in
     if Sort.is_loc sort (* TODO *)
