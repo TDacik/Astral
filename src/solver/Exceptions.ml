@@ -30,12 +30,3 @@ let internal_error ?(details="") =
 
 let user_error ?(details="") =
   Format.kasprintf (fun s -> raise @@ UserError (s, details))
-
-(** Pretty printers *)
-let pretty_internal_error ?trace reason ~details =
-  Format.eprintf "%s[Internal error]%s %s\n" Colors.red Colors.white reason;
-  if true then (Format.fprintf Format.err_formatter "\n%s\n" details);
-  begin match trace with
-    | None -> ()
-    | Some trace -> Format.eprintf "\nBacktrace:\n%s" (Printexc.raw_backtrace_to_string trace)
-  end

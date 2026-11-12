@@ -16,5 +16,3 @@ val unknown_result : ?details:string -> ('a, Format.formatter, unit, _) format4 
 val unsupported_fragment : ?details:string -> ('a, Format.formatter, unit, _) format4 -> 'a
 
 val internal_error : ?details:string -> ('a, Format.formatter, unit, _) format4 -> 'a
-
-val pretty_internal_error : ?trace:Printexc.raw_backtrace -> string -> details:string -> unit
