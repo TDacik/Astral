@@ -1,16 +1,28 @@
 open MemoryModel
+open SynthesisContext
 
-module Logger = Debug.SubQueryDir (struct
-  let dirname = "synthesis"
+module Logger = Logging.WithOutput (struct
   let name = "Synthesis:popper-parser"
   let level = 3
+  let path = `Query "popper-parser"
 end)
 
-module HT = Hashtbl.Make(Int)
+module HT = struct
+  include Hashtbl.Make(Int)
+
+  let find ht var =
+    try find ht var
+    with Not_found ->
+      Format.printf "Hashtable:\n";
+      iter (fun id sort -> Format.printf " %d -> %s\n" id (Sort.show sort)) ht;
+      failwith @@ Format.asprintf "Cannot find %d" var
+
+end
+
 
 let existentials : Sort.t HT.t ref = ref @@ HT.create 113
 
-module Context = struct
+module Result = struct
 
   type t = {
     input : ParserContext_type.t;
@@ -22,27 +34,34 @@ module Context = struct
     rest : SL.t list;
   }
 
-  let init input signature = {
-    input = input;
-    signature = signature;
-    root = SL.Term.mk_var "V0" (List.hd signature);
-    field_values = MemoryModel.Field.Map.empty;
-    rest = [];
-  }
-
-  (*let is_var ctx str = List.exists (fun v -> String.equal str @@ SL.Variable.get_name v) ctx.vars*)
+  let init input ctx =
+    let signature = List.map SL.Variable.get_sort ctx.vars in
+    {
+      input = input;
+      signature = signature;
+      root = SL.Term.mk_var "V0" @@ List.hd signature;
+      field_values = MemoryModel.Field.Map.empty;
+      rest = [];
+    }
 
   let add_field_value ctx field (v : string) =
     let fields = ParserContext.get_fields ctx.input in
-    let field = List.find (fun f -> String.equal field @@ Field.get_name f) fields in
+    Format.printf "Looking for: %s\n" field;
+    Format.printf "In: %s\n" (String.concat ", " @@ List.map PopperEncoding.field fields);
+    let field = List.find
+      (fun f -> String.equal (Field.show f) field) fields in
 
-    let n = int_of_string @@ BatString.lchop v in
-    let sort = Field.get_sort field in
-    (if n >= List.length ctx.signature && not @@ String.equal v "nil" then
-      HT.add !existentials n sort);
+    let v =
+      if String.equal v "nil" then SL.Term.nil
+      else
+        let n = int_of_string @@ BatString.lchop v in
+        let sort = Field.get_sort field in
+        (if n >= List.length ctx.signature && not @@ String.equal v "nil" then
+          HT.add !existentials n sort);
+        SL.Term.mk_var v sort
+    in
 
-    let v = if String.equal v "nil" then SL.Term.nil else SL.Term.mk_var v sort in
-
+    Format.printf "Adding term %s learned from field %s" (SL.Term.show_with_sort v) (Field.show field);
     {ctx with field_values = MemoryModel.Field.Map.add field v ctx.field_values}
 
   let add_atom ctx atom = {ctx with rest = atom :: ctx.rest}
@@ -58,27 +77,21 @@ module Context = struct
         try MemoryModel.Field.Map.find f ctx.field_values
         with Not_found -> failwith @@ Format.sprintf "Fail for field %s" (Field.show f)
       ) fields in
-      let pto = SL.mk_pto_struct ctx.root struct_def values in
-      let es =
-        HT.fold
-          (fun n sort acc -> (SL.Variable.mk (Format.asprintf "V%d" n) sort) :: acc)
-          !existentials []
-      in
-      SL.Variable.print_list es;
-      SL.mk_exists es @@ SL.mk_star (pto :: ctx.rest)
+      Format.printf "Going to create pointer of type: %a\n" StructDef.pp struct_def;
+    Format.printf "  root: %a\n" SL.Term.pp_with_sort ctx.root;
+    Format.printf "  params: %a\n" SL.Term.pp_with_sort (List.hd values);
+    let pto = SL.mk_pto_struct ctx.root struct_def values in
+    let es =
+      HT.fold
+        (fun n sort acc -> (SL.Variable.mk (Format.asprintf "V%d" n) sort) :: acc)
+        !existentials []
+    in
+    SL.mk_exists es @@ SL.mk_star (pto :: ctx.rest)
 
 end
 
-open Context
+open Result
 
-type solution = {
-  precision : float;
-  recall : float;
-  concrete_vars : SL.Variable.t list;
-  predicates : InductiveDefinition.t list;
-}
-
-let is_precise solution = not (solution.precision <> 1.0 || solution.recall <> 1.0)
 
 let check_types what terms =
   let sorts = List.map SL.Term.get_sort terms in
@@ -96,7 +109,7 @@ let parse_var ctx name =
   let sort =
     if n < List.length ctx.signature
     then List.nth ctx.signature n
-    else let _ = Format.printf "%d\n" n in HT.find !existentials n
+    else HT.find !existentials n
   in
   SL.Term.mk_var name sort
 
@@ -107,52 +120,50 @@ let parse_call header =
   | [name; params] -> name, String.split_on_char ',' params
   | _ -> failwith header
 
-let is_field_nil ctx str =
-  match String.split_on_char '_' str with
-  | [field; "is"; "nil"] -> ParserContext.is_declared_field ctx.input field
-  | _ -> false
-
 let parse_atom ctx atom =
   let name, vars = parse_call atom in
   match name with
   | "eq" ->
     let vars = List.map (parse_var ctx) vars in
     if check_types "eq" vars
-    then Context.add_atom ctx @@ SL.mk_eq vars
+    then Result.add_atom ctx @@ SL.mk_eq vars
     else ctx
   | "neq" ->
     let vars = List.map (parse_var ctx) vars in
     if check_types "neq" vars
-    then Context.add_atom ctx @@ SL.mk_distinct vars
+    then Result.add_atom ctx @@ SL.mk_distinct vars
     else ctx
-  | field when ParserContext.is_declared_field ctx.input field ->
+  | field when PopperEncoding.is_declared_field ctx.input field ->
+    let field = PopperEncoding.decode_field field in
     let target = List.nth vars 1 in
     Logger.debug "Adding target %s for %s\n" target field;
-    Context.add_field_value ctx field target
-  | field when is_field_nil ctx field ->
-    let field = List.hd @@ String.split_on_char '_' field in
+    Result.add_field_value ctx field target
+  | field when PopperEncoding.is_declared_field_nil ctx.input field ->
+    let field = PopperEncoding.decode_field field in
     Logger.debug "Adding target nil for %s\n" field;
-    Context.add_field_value ctx field "nil"
+    Result.add_field_value ctx field "nil"
 
   | pred when String.starts_with pred ~prefix:"pred" || ParserContext.is_declared_pred ctx.input pred ->
     (*let params = BatList.take (List.length vars - 1) vars in*)
-    Context.add_atom ctx @@ SL.mk_predicate name @@ List.map (parse_var ctx) vars
+    Result.add_atom ctx @@ SL.mk_predicate name @@ List.map (parse_var ctx) vars
   | atom ->
-    Logger.debug "Ignoring %s during conversion\n" atom;
+    Logger.warning "Ignoring %s during conversion\n" atom;
     ctx
 
 let parse_body ctx params body =
-  Logger.debug "Parsing body: %s\n" body;
+  Format.printf "Parsing body: %s\n" body;
   let weight s =
-    if ParserContext.is_declared_field ctx.input s || is_field_nil ctx s then 1
-    else 0
+    if PopperEncoding.is_declared_field ctx.input s
+       || PopperEncoding.is_declared_field_nil ctx.input s
+    then 0
+    else 1
   in
   let aux_cmp s1 s2 = Int.compare (weight s1) (weight s2) in
   BatString.split_on_string ~by:")," body
   |> List.map (fun s -> if not @@ String.ends_with ~suffix:")" s then s ^ ")" else s)
   |> List.sort aux_cmp
   |> List.fold_left parse_atom ctx
-  |> Context.gen_body
+  |> Result.gen_body
 
 let parse_predicate ctx line =
   Logger.debug "Parsing predicate clause: %s\n" line;
@@ -183,7 +194,8 @@ let parse_predicates ctx lines =
 let parse_stats stats =
   Scanf.sscanf stats "Precision:%f Recall:%f" (fun precision recall -> precision, recall)
 
-let convert input concrete_vars signature popper_out =
+let convert input ctx popper_out =
+  Format.printf "%s" popper_out;
   if BatString.exists popper_out "NO SOLUTION" then None
   else
     let _ = HT.clear !existentials in
@@ -192,6 +204,6 @@ let convert input concrete_vars signature popper_out =
     let solution = Str.matched_group 1 popper_out in
     let lines = String.split_on_char '\n' solution in
     let precision, recall = parse_stats @@ List.hd lines in
-    let ctx = Context.init input signature in
-    let predicates = parse_predicates ctx @@ List.tl lines in
-    Some {precision; recall; concrete_vars; predicates}
+    let res = Result.init input ctx in
+    let predicates = parse_predicates res @@ List.tl lines in
+    Some SynthesisResult.{precision; recall; concrete_vars = ctx.vars; predicates}

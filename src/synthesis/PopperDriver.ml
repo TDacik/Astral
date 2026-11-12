@@ -1,17 +1,22 @@
-module Logger = Debug.SubQueryDir (struct
-  let dirname = "synthesis"
+
+module Logger = Logging.WithOutput (struct
   let name = "Synthesis"
   let level = 1
+  let path = `Query "popper_query"
 end)
 
-  let write temp_dir name what =
+let write temp_dir name what =
   let c = Out_channel.open_text (temp_dir ^ "/" ^ name) in
   Out_channel.output_string c what;
   Out_channel.close c
 
 let synthesize ~bias ~knowledge ~examples () =
   let temp_dir = Filename.temp_dir "popper_query" "" in
-  ReportUtils.warning "Working directory: %s\n" temp_dir;
+  Logger.debug "Working directory: %s\n" temp_dir;
+  Logger.output "bias.pl" Fun.id bias;
+  Logger.output "bk.pl" Fun.id knowledge;
+  Logger.output "exs.pl" Fun.id examples;
+
   write temp_dir "bias.pl" bias;
   write temp_dir "bk.pl" knowledge;
   write temp_dir "exs.pl" examples;

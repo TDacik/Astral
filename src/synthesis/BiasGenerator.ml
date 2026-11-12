@@ -1,4 +1,4 @@
-open MemoryModel
+open SynthesisContext
 
 let concat sep = function
   | [x] -> Format.sprintf "%s," x
@@ -26,7 +26,7 @@ let body_predicate_defs predicates =
 
 let fields_defs fields =
   String.concat "\n" @@ List.map (fun f ->
-    let f = Field.show f in
+    let f = PopperEncoding.field f in
         Format.asprintf "body_pred(%s,2)." f
     +++ Format.asprintf "type(%s, (node, node))." f
     +++ Format.asprintf "direction(%s, (in, out))." f
@@ -39,7 +39,7 @@ let fields_defs fields =
 
 let field_constraints name n fields =
   let gen field =
-    let f = Field.show field in
+    let f = PopperEncoding.field field in
     let root_vars = String.concat ", " @@ ("T" :: List.init (n-1) (fun _ -> "_")) in
     Format.asprintf ":- inductive_case(R), #count{P, Vars : body_literal(R, P, _, Vars), %s_class(P)} != 1." f
     (* Fields are only defined for root *)
@@ -49,7 +49,7 @@ let field_constraints name n fields =
   String.concat "\n" @@ List.map gen fields
 
 let helper_defs predicates fields n =
-  let fields = List.map Field.show fields in
+  let fields = List.map PopperEncoding.field fields in
   let aux expected current =
     if Int.equal expected current then "V"
     else "_"
@@ -65,7 +65,7 @@ let helper_defs predicates fields n =
   in
   let target_def = String.concat "\n" @@ List.map (fun f -> Format.sprintf "target(R,T ) :- body_literal(R, %s, 2, (_, T))." f) fields in
   let established_def = String.concat "\n" @@ List.map (fun (p, n) ->
-          Format.sprintf "established(R, V) :- body_literal(R, %s, %d, %s)." p n (gen n 0)
+    Format.sprintf "established(R, V) :- body_literal(R, %s, %d, %s)." p n (gen n 0)
     ) predicates
   in
   root_def +++ head_def +++ target_def +++ established_def
@@ -82,13 +82,16 @@ let setting () =
 
 let replace ~sub ~by str = snd @@ BatString.replace ~sub ~by ~str
 
-let generate predicates name n fields =
+let generate ctx =
+  let n = List.length ctx.vars in
+  let preds = List.map (fun id -> InductiveDefinition.name id, InductiveDefinition.arity id) ctx.predicates in
+  let preds_with_self = (ctx.pred, n) :: preds in
   template
   |> replace ~sub:"__SETTING__" ~by:(setting ())
-  |> replace ~sub:"__HEAD_PRED__" ~by:name
-  |> replace ~sub:"__HEAD_PRED_DEF__" ~by:(predicate_def name n)
-  |> replace ~sub:"__BODY_PRED_DEFS__" ~by:(body_predicate_defs (List.tl predicates))
-  |> replace ~sub:"__HELPER_DEFS__" ~by:(helper_defs predicates fields n)
-  |> replace ~sub:"__FIELD_DEFS__" ~by:(fields_defs fields)
-  |> replace ~sub:"__FIELD_CONSTRAINTS__" ~by:(field_constraints name n fields)
-  |> replace ~sub:"__PREDICATE_CONSTRAINTS__" ~by:(predicate_constraints name n)
+  |> replace ~sub:"__HEAD_PRED__" ~by:ctx.pred
+  |> replace ~sub:"__HEAD_PRED_DEF__" ~by:(predicate_def ctx.pred n)
+  |> replace ~sub:"__BODY_PRED_DEFS__" ~by:(body_predicate_defs preds)
+  |> replace ~sub:"__HELPER_DEFS__" ~by:(helper_defs preds_with_self ctx.fields n)
+  |> replace ~sub:"__FIELD_DEFS__" ~by:(fields_defs ctx.fields)
+  |> replace ~sub:"__FIELD_CONSTRAINTS__" ~by:(field_constraints ctx.pred n ctx.fields)
+  |> replace ~sub:"__PREDICATE_CONSTRAINTS__" ~by:(predicate_constraints ctx.pred n)

@@ -574,8 +574,7 @@ let parse_extension ctx extension = match parse_id extension.name with
     let mapping = List.map (parse_heap_sort ctx) extension.args in
     Logger.debug "Heap sort: %s\n" (HeapSort.show @@ HeapSort.of_list mapping);
     Context.declare_heap_sort ctx mapping
-  | "compute-abstraction" ->
-    Synthesiser.compute_abstraction ctx
+  | "compute-abstraction" -> Abstraction.compute_and_print ctx
   | other ->
     ParserException.raise_syntax_error None ("Unknown extension '" ^ other ^ "'")
 
