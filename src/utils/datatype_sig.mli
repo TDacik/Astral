@@ -80,6 +80,8 @@ module type MONO_LIST = sig
 
   val sort : t -> t
 
+  val diff : t -> t -> t
+
   val inter : t -> t -> t
   (** Does not preserve element's ordering. *)
 
