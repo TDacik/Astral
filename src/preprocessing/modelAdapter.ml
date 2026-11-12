@@ -33,9 +33,13 @@ let add_fresh_vars self vars =
 let add_skolem_vars self vars =
   {self with skolem_vars = SL.Variable.Set.union vars self.skolem_vars}
 
-let apply_fresh adapter model = failwith "not implemented"
+let apply_fresh adapter model =
+  if not @@ SL.Variable.Set.is_empty adapter.fresh_vars then failwith "TODO"
+  else model
 
-let apply_substitutions adapter model = failwith "not implemented"
+let apply_substitutions adapter model =
+  if not @@ Substitution.is_empty adapter.substitution then failwith "TODO"
+  else model
 
 let apply_skolem adapter model =
   StackHeapModel.filter_vars (fun var ->
