@@ -56,8 +56,11 @@ let check_inductive_definitions () =
 let check_formula ctx =
   if SLID.has_user_defined_predicates ctx.phi then
     match SL.classify_fragment ctx.phi with
-      | Atomic | SL.SymbolicHeap_SAT | SL.SymbolicHeap_ENTL -> Result.Ok ()
-      | _ -> Result.error "User-defined inductive predicates supported only in the symbolic heap fragment"
+      | Atomic | SL.SymbolicHeap_SAT | SL.SymbolicHeap_ENTL  -> Result.Ok ()
+      | _ ->
+        match SL.view ctx.phi with
+        | Or shs when List.for_all SL.is_symbolic_heap shs -> Result.Ok ()
+        | _ -> Result.error "User-defined inductive predicates supported only in the symbolic heap fragment"
   else Result.Ok ()
 
 let check ctx =
