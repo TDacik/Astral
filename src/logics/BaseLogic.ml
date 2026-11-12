@@ -916,7 +916,7 @@ let header with_decls phi source status options =
   source ++ status +++ options +++ vars
 
 let binder_var var =
-  Sexp.List [Sexp.Atom (Variable.show var); sort_to_sexp @@ Variable.get_sort var]
+  Sexp.List [Sexp.Atom (Variable.escaped_name var); sort_to_sexp @@ Variable.get_sort var]
 
 (* TODO: names *)
 type sexp_action =
@@ -937,7 +937,7 @@ let app_to_sexp app xs = match app with
   | app -> App (Application.show app)
 
 let rec to_sexp = function
-  | Variable v -> Sexp.Atom (Variable.show v)
+  | Variable v -> Sexp.Atom (Variable.escaped_name v)
   | Application (app, []) -> Sexp.Atom (Application.show app)
   | Application (app, xs) ->
     begin match app_to_sexp app xs, xs with

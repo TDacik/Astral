@@ -76,6 +76,8 @@ module type VARIABLE = sig
 
   val get_name : t -> string
 
+  val escaped_name : t -> string
+
   val describe : t -> string * sort
 
   val of_description : string * sort -> t
