@@ -2,10 +2,7 @@ module Field = struct
 
   module ID = Identifier.Make ()
 
-  type t = Identifier.t * Sort.t
-
-  (* TODO: compare also sorts? *)
-  let compare (id1, sort1) (id2, sort2) = Identifier.compare id1 id2
+  type t = Identifier.t * Sort.t [@@deriving compare, equal]
 
   let show (id, _) = Identifier.show id
 
