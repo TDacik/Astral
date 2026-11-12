@@ -124,7 +124,8 @@ let get_structs visited get_continue name = match find name with
 
 let has_unique_footprint name = match find name with
   | Builtin (module B : BUILTIN) -> B.unique_footprint
-  | UserDefined id -> failwith "TODO: SID.unique_fp"
+  | UserDefined id ->
+    List.length (InductiveDefinition.cases id) <= 1
 
 (** ==== BUILTINS: General ==== *)
 

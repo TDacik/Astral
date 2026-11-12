@@ -2,11 +2,11 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2024 *)
 
-module Logger = Debug.QueryDir
+module Logger = Logging.WithOutput
   (struct
-    let dirname = "small-models"
     let name = "small-models"
     let level = 1
+    let path = `Query "small-models"
   end)
 
 module Abstraction = PredicateAbstraction
@@ -224,12 +224,16 @@ module Derivation = struct
     let pure2 = get_pure der2 in
     SL_graph.Set.equal pure1 pure2
 
+  let disj_expand phi = match SL.view phi with
+    | Or psis -> List.concat_map (fun psi -> snd @@ SL.as_quantified_symbolic_heap psi) psis
+    | _ when SL.is_symbolic_heap phi -> snd @@ SL.as_quantified_symbolic_heap phi
+
   let negated phi id =
     let name = InductiveDefinition.name id in
     match SL.view phi with
     | _ when SL.is_negation_free phi -> []
-    | GuardedNeg (_, rhs) when SL.is_symbolic_heap rhs ->
-      let _, atoms = SL.as_quantified_symbolic_heap rhs in
+    | GuardedNeg (_, rhs) ->
+      let atoms = disj_expand rhs in
       List.filter_map (fun atom -> match SL.view atom with
         | PointsTo _ -> Some atom
         | Predicate (name', _, 0, _) when String.equal name name' -> Some atom

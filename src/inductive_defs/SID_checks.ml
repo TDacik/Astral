@@ -2,15 +2,15 @@
  *
  * Author: Tomas Dacik (idacik@fit.vut.cz), 2025 *)
 
+module Logger = Logging.Make (struct
+  let name = "SID checker"
+  let level = 2
+end)
+
 type distinguisher =
   | Sort
   | Field
   | No
-
-module Logger = Logger.Make(struct
-  let name = "SID checker"
-  let level = 2
-end)
 
 module M = struct
   include Map.Make

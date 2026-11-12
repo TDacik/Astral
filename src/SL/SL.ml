@@ -321,6 +321,7 @@ let is_low_level = exists_app (function BlockBegin | BlockEnd -> true | _ -> fal
 
 (* TODO: will require normalisation for user-defined *)
 let get_root phi = match view phi with
+  | PointsTo (x, _, _) -> x
   | Predicate (_, x :: _, _,_) -> x
 
 let get_struct_def phi = match view phi with
@@ -356,6 +357,15 @@ let get_loc_terms ?(with_free_vars=true) phi heap_sort =
 let get_terms_of_sort sort phi =
   get_terms phi
   |> List.filter (has_sort sort)
+
+let rec find_atoms_by_root phi root =
+  let find phi = find_atoms_by_root phi root in
+  match view phi with
+  | Exists (_, phi) -> find phi
+  | Star psis -> List.concat_map find psis
+  | Emp | Pure _ | Eq _ | Distinct _ -> []
+  | PointsTo (x, _, _) | Predicate (_, x :: _, _, _) ->
+    if Term.equal root x then [phi] else []
 
 let rec is_symbolic_heap phi = match phi with
   | Variable _ -> true

@@ -28,6 +28,8 @@ module Location = struct
 
   let get_sort = snd
 
+  let is_nil (_, sort) = Sort.is_nil sort
+
   let show (loc, _) = match loc with
     | Implicit i -> string_of_int i
     | SMT const -> Constant.show const
@@ -205,7 +207,7 @@ let stack_inverse sh loc =
   Stack.M.fold
     (fun x loc' acc ->
       if Location.equal loc loc'
-      then SL.Term.show x :: acc else acc
+      then x :: acc else acc
   ) sh.stack.stack []
 
 (** {2 Pretty printers} *)
@@ -274,7 +276,7 @@ module Vertex = struct
     | Loc loc ->
       Format.asprintf "%s : %s"
         (Location.show loc)
-        (String.concat "," (stack_inverse (Option.get !model) loc))
+        (String.concat "," @@ List.map SL.Term.show (stack_inverse (Option.get !model) loc))
     | Data c -> Constant.show c
     | Nil n -> !UnicodeSymbols.bottom
 
@@ -375,7 +377,7 @@ module HeapGraph = struct
       TODO: add nils directly
   *)
   let prettify_nils sh g =
-    let is_nil loc = List.mem "nil" @@ stack_inverse sh loc in
+    let is_nil loc = List.mem SL.Term.nil @@ stack_inverse sh loc in
     let fresh_nil =
       let cnt = ref 0 in (* TODO *)
       (fun () -> cnt := !cnt - 1; Vertex.Nil !cnt)
@@ -400,6 +402,15 @@ module HeapGraph = struct
     Dot.output_graph channel g
 
 end
+
+(* TODO: do not recompute heap graph every time. *)
+let get_roots sh =
+  let g = HeapGraph.get sh in
+  HeapGraph.fold_vertex List.cons g []
+  |> List.filter (fun v -> HeapGraph.out_degree g v > 0)
+  |> List_utils.argmin (HeapGraph.in_degree g)
+  |> List.map (fun (Vertex.Loc l) -> l)
+  |> List.filter (fun l -> not @@ Location.is_nil l)
 
 let succ_field sh field loc =
   Heap.find_field field loc sh.heap

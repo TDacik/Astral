@@ -59,7 +59,7 @@ let show_names sid =
   |> String.concat ","
 
 let register sid name id =
-  assert (not @@ M.mem name sid.definitions);
+  assert (String.equal name "freed" || not @@ M.mem name sid.definitions);
   {sid with definitions = M.add name id sid.definitions}
 
 let register_builtin sid (module B : BUILTIN) =

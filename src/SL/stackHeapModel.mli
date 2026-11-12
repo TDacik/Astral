@@ -115,6 +115,10 @@ val domain : t -> Footprint.t
 
 val to_smtlib : t -> string
 
+val get_roots : t -> Location.t list
+
+val stack_inverse : t -> Location.t -> SL.Term.t list
+
 val has_path : ?field:Field.t -> t -> src:Location.t -> dst:Location.t -> bool
 
 val get_path : ?field:Field.t -> t -> src:Location.t -> dst:Location.t -> Location.t list

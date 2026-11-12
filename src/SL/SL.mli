@@ -310,6 +310,10 @@ val get_terms_of_sort : Sort.t -> t -> Term.t list
 
 val get_root : t -> Term.t
 
+val find_atoms_by_root : t -> Term.t -> t list
+(** For a symbolic heap phi, this functions returns all spatial atoms
+    with the given root. *)
+
 (** {2 Operations requiring the sort of heap *)
 
 val get_loc_terms : ?with_free_vars:bool -> t -> HeapSort.t -> Term.t list
