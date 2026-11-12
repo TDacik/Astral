@@ -25,7 +25,7 @@ let json_repr context =
     "Input",                input_to_json context;
     "Solved by",            `String (Option.value ~default:"?" context.solved_by);
     "Quantifiers",          `String (Option.value ~default:"no" context.quantifiers);
-    "Bounds",               LocationBounds.to_json context.location_bounds;
+    "Bounds",               LocationBounds0.to_json context.location_bounds;
     "Formula size",         `String (size context);
     "Status",               `String (Context.show_status context);
     "Model verified",       `String "-";
