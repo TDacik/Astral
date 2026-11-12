@@ -46,11 +46,8 @@ module Result = struct
 
   let add_field_value ctx field (v : string) =
     let fields = ParserContext.get_fields ctx.input in
-    Format.printf "Looking for: %s\n" field;
-    Format.printf "In: %s\n" (String.concat ", " @@ List.map PopperEncoding.field fields);
     let field = List.find
       (fun f -> String.equal (Field.show f) field) fields in
-
     let v =
       if String.equal v "nil" then SL.Term.nil
       else
@@ -60,8 +57,6 @@ module Result = struct
           HT.add !existentials n sort);
         SL.Term.mk_var v sort
     in
-
-    Format.printf "Adding term %s learned from field %s" (SL.Term.show_with_sort v) (Field.show field);
     {ctx with field_values = MemoryModel.Field.Map.add field v ctx.field_values}
 
   let add_atom ctx atom = {ctx with rest = atom :: ctx.rest}
@@ -77,9 +72,6 @@ module Result = struct
         try MemoryModel.Field.Map.find f ctx.field_values
         with Not_found -> failwith @@ Format.sprintf "Fail for field %s" (Field.show f)
       ) fields in
-      Format.printf "Going to create pointer of type: %a\n" StructDef.pp struct_def;
-    Format.printf "  root: %a\n" SL.Term.pp_with_sort ctx.root;
-    Format.printf "  params: %a\n" SL.Term.pp_with_sort (List.hd values);
     let pto = SL.mk_pto_struct ctx.root struct_def values in
     let es =
       HT.fold
@@ -151,7 +143,7 @@ let parse_atom ctx atom =
     ctx
 
 let parse_body ctx params body =
-  Format.printf "Parsing body: %s\n" body;
+  Logger.debug "Parsing body: %s\n" body;
   let weight s =
     if PopperEncoding.is_declared_field ctx.input s
        || PopperEncoding.is_declared_field_nil ctx.input s
@@ -195,7 +187,7 @@ let parse_stats stats =
   Scanf.sscanf stats "Precision:%f Recall:%f" (fun precision recall -> precision, recall)
 
 let convert input ctx popper_out =
-  Format.printf "%s" popper_out;
+  Logger.debug "%s" popper_out;
   if BatString.exists popper_out "NO SOLUTION" then None
   else
     let _ = HT.clear !existentials in

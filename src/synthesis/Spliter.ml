@@ -206,7 +206,7 @@ let group vars (components : SL.t list list list) : (SL.Term.t * SL.t list) list
     |> List.concat_map get_component_root
     |> SL.Term.MonoList.unique
   in
-  Format.printf "Roots used to group components: %a\n" SL.Term.pp_list roots;
+  Logger.debug "Roots used to group components: %a\n" SL.Term.pp_list roots;
   List.map (fun root -> root, get_component_with_root cmp components root) roots
 
 
@@ -262,9 +262,9 @@ let compute_frame (examples : SL.t list) = match examples with
 let split (examples : SL.t list) vars : (SL.t list * (SL.Term.t * SL.t list) list) =
   let examples = List.map add_implicit_disequalities examples in
   let frame, examples = compute_frame examples in
-  Format.printf "Before split:\n";
+  Logger.debug "Before split:\n";
   List.iteri (fun i phi ->
-    Format.printf "  example %d: %s\n" (i+1) (SL_printer.pretty phi);
+    Logger.debug "  example %d: %s\n" (i+1) (SL_printer.pretty phi);
   ) examples;
   let components =
     List.mapi (fun i e ->
@@ -273,9 +273,9 @@ let split (examples : SL.t list) vars : (SL.t list * (SL.Term.t * SL.t list) lis
       SplitGraph.get_components e g) examples
   in
   List.iteri (fun i cs ->
-    Format.printf "Example %d:\n" (i+1);
+    Logger.debug "Example %d:\n" (i+1);
     List.iteri (fun i c ->
-      Format.printf "  Component %d:\n  - %s\n" (i+1) (SL_printer.pretty_list ~sep:"\n  - " c)
+      Logger.debug "  Component %d:\n  - %s\n" (i+1) (SL_printer.pretty_list ~sep:"\n  - " c)
     ) cs
   ) components;
   let formulae = group vars components in
@@ -296,6 +296,6 @@ let split (examples : SL.t list) vars : (SL.t list * (SL.Term.t * SL.t list) lis
     ) top)) formulae*)
   in
   List.iteri (fun i (r, fs) ->
-    Format.printf "Query %d for root %a:\n" (i+1) SL.Term.pp r;
-    List.iter (fun f -> Format.printf " - %s\n" (SL_printer.pretty f)) fs) formulae;
+    Logger.debug "Query %d for root %a:\n" (i+1) SL.Term.pp r;
+    List.iter (fun f -> Logger.debug " - %s\n" (SL_printer.pretty f)) fs) formulae;
   frame, formulae

@@ -80,7 +80,6 @@ let compute_aux ctx =
   let examples = ctx.positive_examples in
 
   let frame, chunk_classes = Spliter.split examples vars in
-  SL.print_list ~prefix:"Frame:" frame;
   let res = List.map (compute_chunk ctx) chunk_classes in
   match List.fold_left concat_results None res with
   | None -> None

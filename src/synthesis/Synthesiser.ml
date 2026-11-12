@@ -9,7 +9,6 @@ end)
 module ID = Identifier.Make()
 
 let get_example ctx phi =
-  SL.print ~prefix:"Target" phi;
   let res = Engine.solve {ctx with assertions = [phi]; produce_models = true} in
   match res.model with
   | Some model -> model
