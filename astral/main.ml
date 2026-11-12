@@ -26,12 +26,11 @@ let run () =
   Checker.check result
 
 let () =
-  try run ()
-  with
-    | Astral.Exceptions.InternalError (trace, reason, details) ->
-      Astral.Exceptions.pretty_internal_error reason ~trace ~details
-    | Astral.Config.CmdOptionError msg ->
-      user_error "%s\n" msg
-    | Astral.BaseLogic.TypeError error ->
-      Format.eprintf "Unhandled type error: %s\n" (Astral.BaseLogic.show_type_error error);
-      Printexc.print_backtrace stderr
+  try run () with
+  | Astral.Exceptions.InternalError (trace, reason, details) ->
+    internal_error_from_lib reason ~trace ~details
+  | Astral.Config.CmdOptionError msg ->
+    user_error "%s\n" msg
+  | Astral.BaseLogic.TypeError error ->
+    Format.eprintf "Unhandled type error: %s\n" (Astral.BaseLogic.show_type_error error);
+    Printexc.print_backtrace stderr

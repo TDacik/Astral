@@ -9,3 +9,5 @@ val user_error : ('a, Format.formatter, unit, 'b) format4 -> 'a
 (** Print an error message and exit with return code 2. *)
 
 val internal_error : ?backtrace:bool -> exit_code:int -> string -> _
+
+val internal_error_from_lib : ?trace:Printexc.raw_backtrace -> string -> details:string -> _
