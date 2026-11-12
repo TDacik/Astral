@@ -171,7 +171,7 @@ let smt2_decl id =
     Sexp.Atom id.name;
     Sexp.List (List.map decl_to_sexp id.header);
     Sexp.Atom "Bool";
-    SL.to_sexp @@ SL.mk_or @@ cases id
+    SL.to_sexp @@ SL.mk_or @@ cases ~refresh:false id
   ]
   in
   Sexp.to_string_hum sexp

@@ -75,10 +75,15 @@ let compute_abstraction_aux ctx =
   if not ok
   then Exceptions.internal_error "Popper failed" ~details:response
   else
-    let res = SolutionConvertor.convert ctx synth_ctx response in
+    let res =
+      SolutionConvertor.convert ctx synth_ctx response
+    in
     match res with
       | None -> None
       | Some res -> (
+        let res = SynthesisResult.canonic_var_names res in
+        Logger.debug "%s\n" (InductiveDefinition.smt2_decl @@ List.hd res.predicates);
+
         (if not @@ SynthesisResult.is_precise res then
           ReportUtils.warning "Synthesis result is only approximate (precision: %0.1f, recall: %0.1f)\n"
             res.precision

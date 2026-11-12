@@ -58,7 +58,6 @@ let compute_signature vars models =
     | [[x]] -> x
     | [_] -> assert false
     | xs :: rest ->
-      List.iter (SL.Variable.print_list ~prefix:"\n") (xs :: rest);
       List.find (fun x -> List.exists (fun ys -> SL.Variable.MonoList.mem x ys) rest) xs
   in
   root :: SL.Variable.MonoList.remove vars root
