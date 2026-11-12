@@ -4,7 +4,7 @@
 
 open Location_sig
 
-module Logger = Logger.Make(struct let name = "LocationBuilder" let level = 2 end)
+module Logger = Logging.Make(struct let name = "LocationBuilder" let level = 2 end)
 
 module Make (Locations : LOCATIONS_BASE) = struct
 

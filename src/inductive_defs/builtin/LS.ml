@@ -11,7 +11,7 @@ open StackHeapModel
 module G = SL_graph
 module SH = StackHeapModel
 
-module Logger = Logger.Make(struct let name = "Translation:LS" let level = 1 end)
+module Logger = Logging.Make(struct let name = "Translation:LS" let level = 1 end)
 
 let loc_ls = Sort.loc_ls
 

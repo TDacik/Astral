@@ -13,6 +13,8 @@ open Dolmen_smtlib2.Script.Latest
 open Term
 open Statement
 
+module Logger = Logging.Make(struct let name = "parser" let level = 5 end)
+
 let rec show_what = function
   | ParserException.Builtin b -> "builtin " ^ (show_what b)
   | Variable -> "variable"
@@ -78,8 +80,6 @@ module Extension = struct
 end
 
 module Parser = Make(Loc)(Id)(Term)(Statement)(Extension)
-
-module Logger = Logger.Make (struct let name = "parser" let level = 3 end)
 
 (** Parser AST *)
 

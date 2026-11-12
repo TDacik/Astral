@@ -9,7 +9,7 @@ module Make (Backend : SMTLIB_BACKEND) = struct
 
   include Backend
 
-  module Logger = Logger.Make(struct let name = Backend.name ^ "-backend" let level = 2 end)
+  module Logger = Logging.Make(struct let name = Backend.name ^ "-backend" let level = 2 end)
 
   (** Formula is represented as string in SMT-LIB format. *)
   type formula = string

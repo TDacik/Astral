@@ -8,7 +8,7 @@ open SL_graph0
 
 module TermSet = SL.Term.Set
 
-module Logger = Logger.Make(struct let name = "Path bound" let level = 2 end)
+module Logger = Logging.Make(struct let name = "Path bound" let level = 2 end)
 
 exception NoPath
 

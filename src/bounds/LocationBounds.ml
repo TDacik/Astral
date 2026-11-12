@@ -9,14 +9,9 @@
 open SL
 open SortBound
 
-module Logger = Logger.Make(struct let name = "Bounds" let level = 2 end)
+module Logger = Logging.Make(struct let name = "Bounds" let level = 2 end)
 
 include LocationBounds0
-
-let to_json bounds =
-  bindings bounds
-  |> List.map (fun (sort, bound) -> (Sort.show sort, `String (SortBound.show bound)))
-  |> (fun xs -> `Assoc xs)
 
 (** Representation of location bounds *)
 

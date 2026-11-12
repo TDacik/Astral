@@ -13,10 +13,10 @@ end
 
 module Make (Solver : INCREMENTAL_SOLVER) = struct
 
-  module Logger = Debug.QueryDir (struct
+  module Logger = Logging.WithOutput (struct
       let name = "Backend:" ^ Solver.name
       let level = 2
-      let dirname = "incremental_queries"
+      let path = `CurrentSubquery "incremental_queries"
     end)
 
   (** Query counter *)

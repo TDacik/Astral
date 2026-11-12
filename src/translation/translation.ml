@@ -8,10 +8,10 @@ open StackHeapModel
 module Input = Context
 module Context = Translation_context
 
-module Logger = Debug.SubQueryDir (struct
-  let dirname = "translation"
+module Logger = Logging.WithOutput (struct
   let name = "Translation"
   let level = 1
+  let path = `CurrentSubquery "translation"
 end)
 
 module Make (Encoding : Translation_sig.ENCODING) (Backend : Backend_sig.BACKEND) = struct

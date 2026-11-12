@@ -6,7 +6,7 @@ open Context
 open Result_syntax
 open InductiveDefinition
 
-module Logger = Logger.Make(struct let name = "FragmentChecker" let level = 2 end)
+module Logger = Logging.Make(struct let name = "FragmentChecker" let level = 2 end)
 
 let check_low_level_sl ctx =
   if SL.is_low_level ctx.phi && not @@ HeapSort.is_bitvector_model ctx.raw_input.heap_sort then

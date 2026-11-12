@@ -8,7 +8,11 @@ open Context
 open Backend_sig
 open Translation_sig
 
-module Logger = Logger.Make(struct let name = "Solver" let level = 1 end)
+module Logger = Logging.WithOutput (struct
+  let name = "Solver"
+  let level = 1
+  let path = `CurrentSubquery ""
+end)
 
 let debug_info input = match SL.classify_fragment input.phi with
   | Atomic -> Logger.debug "Solving as atomic formula\n"
@@ -53,7 +57,7 @@ let solve_translation (input : Context.t) =
     let sm = SmallModels.compute input.phi distinguishers in
     Profiler.add "Small-models";
     GlobalSID.cache := sm;
-    Debug.context "input" input;
+    Logger.context "input" input;
 
     BaseLogic.use_simplification true;
     GlobalSID.preprocess_user_definitions PredicatePreprocessing.preprocess;
@@ -72,7 +76,7 @@ let solve_translation (input : Context.t) =
     else
       let res = run_solver input in
       let res' = Context.apply_model_adapter res in
-      (match res'.model with None -> () | Some sh -> Debug.sl_model "model" sh);
+      (match res'.model with None -> () | Some sh -> Logger.sl_model "model" sh);
       res'
 
 let solve (input : Context.t) =
@@ -104,3 +108,9 @@ let solve input =
     Context.set_result (`Unknown reason) ctx
   | Exceptions.UnsupportedFragment (reason, _) ->
     Context.set_result (`Unknown ("Unsupported fragment (" ^ reason ^ ")")) ctx
+
+let solve input =
+  LoggerState.new_subquery `Sat;
+  let res = solve input in
+  LoggerState.finish_subquery ();
+  res

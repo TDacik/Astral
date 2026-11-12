@@ -13,7 +13,7 @@ open Location_sig
 
 module SH = StackHeapModel
 
-module Logger = Logger.Make(struct let name = "Heap encoding" let level = 2 end)
+module Logger = Logging.Make(struct let name = "Heap encoding" let level = 2 end)
 
 module Make (Locations : LOCATIONS) = struct
 

@@ -4,6 +4,12 @@
 
 module Input = ParserContext
 
+module Logger = Logging.WithOutput (struct
+  let name = "Solver"
+  let level = 1
+  let path = `Query "" (* Call of the solver is always toplevel query *)
+end)
+
 type solver = {
   backend : Config.Backend.t;
   encoding : Config.Encoding.t;
@@ -117,7 +123,7 @@ let add_inductive_definition solver def =
 let _solve solver phi =
   reset ();
   activate solver;
-  LoggerState.next_query ();
+  LoggerState.new_query `Sat;
   Profiler.reset ();
   Profiler.add "Start";
   let vars = SL.free_vars ~with_nil:false phi in
@@ -129,10 +135,10 @@ let _solve solver phi =
     Input.add_vars input vars
   in
   (*Debug.input "input" ?source:solver.source input;*)
-  Debug.sl_benchmark "input" ?source:solver.source input;
+  Logger.sl_benchmark "input" ?source:solver.source input;
   let result = Engine.solve input in
   Profiler.finish ();
-  Debug.result result;
+  Logger.result result;
   solver.stats <- Profiler.total_time () :: solver.stats;
   match Option.get result.status with
   | `Sat -> `Sat (result.model)

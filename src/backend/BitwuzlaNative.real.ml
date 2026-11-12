@@ -4,10 +4,10 @@
 
 open Backend_sig
 
-module Logger = Debug.QueryDir (struct
+module Logger = Logging.WithOutput (struct
   let name = "Backend:Bitwuzla-native"
   let level = 1
-  let dirname = "unfolding_queries"
+  let path = `CurrentSubquery "unfolding_queries"
 end)
 
 module Bitwuzla = Bitwuzla_cxx

@@ -13,7 +13,7 @@ end
 
 module Parser = Make(Loc)(Id)(Term)(Statement)(Extension)
 
-module Logger = Logger.Make(struct let name = "ModelParser" let level = 1 end)
+module Logger = Logging.Make(struct let name = "ModelParser" let level = 1 end)
 
 let parse_id id = Format.asprintf "%a" Id.print id
 let parse_sort_name = function
