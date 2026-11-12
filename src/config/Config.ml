@@ -12,7 +12,7 @@ module Version = Action(struct
   let name = "--version"
   let short_name = Some 'v'
   let help = "Print version and exit"
-  let action = (fun () -> print_string !_version; exit 0)
+  let action = (fun () -> Format.printf "%s\n" !_version; exit 0)
 end)
 
 module BackendHelp = Action(struct
