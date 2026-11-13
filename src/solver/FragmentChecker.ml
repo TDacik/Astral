@@ -54,13 +54,20 @@ let check_inductive_definitions () =
   ) (Result.ok ())
 
 let check_formula ctx =
+  let is_disjunction_of_symbolic_heaps phi = match SL.view phi with
+    | _ when SL.is_symbolic_heap phi -> true
+    | Or shs when List.for_all SL.is_symbolic_heap shs -> true
+    | _ -> false
+  in
   if SLID.has_user_defined_predicates ctx.phi then
     match SL.classify_fragment ctx.phi with
       | Atomic | SL.SymbolicHeap_SAT | SL.SymbolicHeap_ENTL  -> Result.Ok ()
       | _ ->
         match SL.view ctx.phi with
-        | Or shs when List.for_all SL.is_symbolic_heap shs -> Result.Ok ()
-        | _ -> Result.error "User-defined inductive predicates supported only in the symbolic heap fragment"
+        | _ when is_disjunction_of_symbolic_heaps ctx.phi -> Result.Ok ()
+        | GuardedNeg (lhs, rhs) when List.for_all is_disjunction_of_symbolic_heaps [lhs; rhs] -> Result.Ok ()
+        | _ ->
+          Result.error "User-defined inductive predicates supported only in the symbolic heap fragment"
   else Result.Ok ()
 
 let check ctx =
