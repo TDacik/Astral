@@ -194,13 +194,21 @@ let parse_predicates ctx lines =
 let parse_stats stats =
   Scanf.sscanf stats "Precision:%f Recall:%f" (fun precision recall -> precision, recall)
 
+let prefix_re = Str.regexp "^[ \t]*[0-9]+\\(\\.[0-9]+\\)?s[ \t]+"
+
+(** Some versions of Popper prints time marks at the start of lines
+    with solution. This functions removes them. *)
+let strip_debug_prefix = Str.global_replace prefix_re ""
+
+let solution_re = Str.regexp "\\*+ SOLUTION \\*+[\n]+\\([^*]+\\)[\n]*\\*+"
+
 let convert input ctx popper_out =
   Format.printf "%s" popper_out;
   if BatString.exists popper_out "NO SOLUTION" then None
   else
     let _ = HT.clear !existentials in
-    let re = Str.regexp "\\*+ SOLUTION \\*+[\n]+\\([^*]+\\)[\n]*\\*+" in
-    let _ = Str.search_forward re popper_out 0 in
+    let popper_out = strip_debug_prefix popper_out in
+    let _ = Str.search_forward solution_re popper_out 0 in
     let solution = Str.matched_group 1 popper_out in
     let lines = String.split_on_char '\n' solution in
     let precision, recall = parse_stats @@ List.hd lines in
