@@ -245,6 +245,15 @@ module SolverStrategy = Enum(struct
   let default = `Auto
 end)
 
+(** Synthesis *)
+
+module PopperPath = Path(struct
+  let name = "--popper-path"
+  let short_name = None
+  let help = ""
+  let default = ""
+end)
+
 module Verbosity = PositiveInt(struct
   let name = "--verbosity"
   let short_name = Some 'V'
