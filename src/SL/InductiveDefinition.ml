@@ -45,6 +45,8 @@ let mk name header def =
 
 let arity self = List.length self.header
 
+let signature self = List.map SL.Variable.get_sort self.header
+
 let cases id = id.base_cases @ id.inductive_cases
 
 let is_ite id = List.length (cases id) == 1

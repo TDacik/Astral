@@ -65,6 +65,26 @@ let as_symbolic_heap_test2 () =
   let phi = SL.mk_exists [e] psi in
   check phi ([e], [psi])
 
+(** Variable conversion to SMT + sat checks *)
+
+module SMT = SMT_testable
+
+let translate_var_to_smt_test1 () =
+  let sort_name = Sort.name SL_builtins.loc_ls in
+  let loc_sort = Sort.mk_loc sort_name in
+  let smt_sort = Sort.mk_uninterpreted sort_name in
+  let input = SL.Variable.mk "x" loc_sort in
+  let expected = SMT.Variable.mk "x" smt_sort in
+  SMT.Var.check_equal (SL.Variable.translate_to_smt input) expected
+
+let translate_var_to_smt_test2 () =
+  let sort_name = Sort.name SL_builtins.loc_ls in
+  let loc_sort = Sort.mk_loc sort_name in
+  let smt_sort = Sort.mk_uninterpreted sort_name in
+  let input = SL.Variable.nil in
+  let expected = SMT.Variable.mk "nil" smt_sort in
+  SMT.Var.check_equal (SL.Variable.translate_to_smt ~sort_of_nil:loc_sort input) expected
+
 let () =
   run "SL" [
     "Fragment classification", [
@@ -76,9 +96,12 @@ let () =
       test_case "Symbolic heap: x = y /\ x = y"   `Quick is_symbolic_heap_test6;
       test_case "Symbolic heap: E x y. x -> y"    `Quick is_symbolic_heap_test7;
     ];
-
     "As symbolic heap", [
       test_case "x -> y"       `Quick as_symbolic_heap_test1;
       test_case "E e. x -> e"  `Quick as_symbolic_heap_test2;
+    ];
+    "Translate pure to SMT", [
+      test_case "ok: var"      `Quick translate_var_to_smt_test1;
+      test_case "ok: nil"      `Quick translate_var_to_smt_test2;
     ];
   ]

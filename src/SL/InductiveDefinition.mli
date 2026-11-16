@@ -38,6 +38,10 @@ val mk_call : t -> SL.Term.t list -> SL.t
 
 val arity : t -> int
 
+val signature : t -> Sort.t list
+(** Return a list of sorts which are expected at the corresponding positions
+    when constructing an instance of this predicate. *)
+
 val fields : t -> Field.t list
 
 val dependencies : t -> string list

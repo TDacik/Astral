@@ -46,6 +46,8 @@ val get_user_defined : t -> InductiveDefinition.t list
 
 val get_builtin : t -> (module BUILTIN) list
 
+val get_signature : t -> string -> Sort.t list
+
 val filter_map : (ID.t -> ID.t option) -> t -> t
 
 val fold : (ID.t -> 'a -> 'a) -> t -> 'a -> 'a

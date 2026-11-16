@@ -22,10 +22,11 @@ let synthesize ~bias ~knowledge ~examples () =
   write temp_dir "exs.pl" examples;
   let answer_filename, answer_channel = Filename.open_temp_file ~temp_dir "result" ".out" in
   let output = Unix.descr_of_out_channel answer_channel in
+  let popper_path = FileUtils.(Config.PopperPath.get () / "popper-ilp") in
   let res =
     Unix.create_process
-      "popper-ilp"
-      [|"popper-ilp"; temp_dir|]
+      popper_path
+      [|popper_path; temp_dir|]
       Unix.stdin
       output
       output

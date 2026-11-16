@@ -17,9 +17,10 @@ module Variable : sig
 
   val is_pure : t -> bool
 
-  val translate_to_smt : t -> SMT.Variable.t
+  val translate_to_smt : ?sort_of_nil:Sort.t -> t -> SMT.Variable.t
   (** Translate a variable to SMT variable. If it has a location sort, this
-      sort is converted to an uninterpreted sort of the same name. *)
+      sort is converted to an uninterpreted sort of the same name. If the
+      variable is nil, its sort must be provide. *)
 
 end
 

@@ -57,11 +57,11 @@ module Init () = struct
   (* === Translation === *)
 
   let rec translate_var var =
-    Z3.Expr.mk_const_s !context (SMT.Variable.show var) (translate_sort @@ SMT.Variable.get_sort var)
+    Z3.Expr.mk_const_s !context (BackendUtils.var_unique_name var) (translate_sort @@ SMT.Variable.get_sort var)
 
   and translate t = match SMT.view t with
     | SMT.Constant (name, sort) -> find_const name sort
-    | SMT.Variable var ->  translate_var var
+    | SMT.Variable var -> translate_var var
 
     | SMT.True -> Z3.Boolean.mk_true !context
     | SMT.False -> Z3.Boolean.mk_false !context
@@ -172,6 +172,7 @@ module Init () = struct
     | Sort.Bitvector n -> Z3.BitVector.mk_sort !context n
     | Sort.Set (elem_sort) -> Z3.Set.mk_sort !context (translate_sort elem_sort)
     | Sort.Array (d, r) -> Z3.Z3Array.mk_sort !context (translate_sort d) (translate_sort r)
+    | Sort.Uninterpreted name -> Z3.Sort.mk_uninterpreted_s name
     | Sort.Finite (name, constants) ->
       begin match !enum_sort with
         | Some sort -> sort

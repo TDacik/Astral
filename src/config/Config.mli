@@ -100,6 +100,10 @@ module Solver : ENUM
 module SolverStrategy : ENUM
   with type t = [`Auto | `SingleQuery | `MultiQuery]
 
+(** Synthesis *)
+
+module PopperPath : STRING
+
 module Verbosity : INT
 
 module Debug : BOOL

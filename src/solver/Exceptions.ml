@@ -8,8 +8,7 @@ exception UserError of string * string
 
 exception InternalError of Printexc.raw_backtrace * string * string
 
-exception NotImplemented of string
- [@@warning "-38"]
+exception NotImplemented of string [@@warning "-38"]
 
 (** Internal exceptions. *)
 

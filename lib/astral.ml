@@ -10,6 +10,7 @@ module SL = struct
   module Printer = SL_printer
 end
 
+module SLID = SLID
 
 module SL_builtins = SL_builtins
 
@@ -40,6 +41,4 @@ module Solver = Solver
 module AstralConfig = Config
 
 module Abstraction = Abstraction
-module SymbolicHeap = SymbolicHeap
-
 module LowLevelSeplog = LowLevelSeplog
