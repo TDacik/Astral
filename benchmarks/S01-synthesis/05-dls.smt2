@@ -13,8 +13,7 @@
 
 (assert (! (exists ((n1 Ref_DLS))
   (sep
-    (distinct x y)
-    (distinct xp yp)
+    (distinct x n1 xp y yp)
     (pto x  (c_DLS n1 yp))
     (pto n1 (c_DLS xp x))
     (pto xp (c_DLS y n1))

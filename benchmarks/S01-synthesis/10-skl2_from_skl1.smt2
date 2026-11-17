@@ -22,8 +22,8 @@
 
 (assert (! (exists ((n1 Ref_SKL) (n2 Ref_SKL))
   (sep
-    (distinct x y nil)
-    (pto x  (c_SKL n1 n2))
+    (distinct x y n1 n2 nil)
+    (pto x (c_SKL n1 n2))
     (skl1 n1 n2)
     (pto n2 (c_SKL y y))
   )
