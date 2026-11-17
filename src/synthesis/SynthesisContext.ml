@@ -8,9 +8,6 @@ module Logger = Logging.WithOutput (struct
   let path = `Toplevel ""
 end)
 
-(** Identifiers for predicates to be learned. *)
-module ID = Identifier.Make()
-
 type t = {
   (* Existing definitions *)
   fields : MemoryModel.Field.t list;
@@ -52,15 +49,13 @@ let get_unique_root sh =
     Logger.sl_model "multiple_roots" sh;
     failwith "multiple roots"
 
-let compute_signature vars models =
-  let root = match List.filter_map get_unique_root models with
-    | [] -> assert false
-    | [[x]] -> x
-    | [_] -> assert false
-    | xs :: rest ->
-      List.find (fun x -> List.exists (fun ys -> SL.Variable.MonoList.mem x ys) rest) xs
-  in
-  root :: SL.Variable.MonoList.remove vars root
+let next_name =
+  let cnt = ref 1 in
+  fun () ->
+    while GlobalSID.mem (Format.asprintf "pred%d" !cnt) do
+      incr cnt
+    done;
+    Format.asprintf "pred%d" !cnt
 
 let init pos_examples neg_examples pos_models neg_models =
   let examples = pos_examples @ neg_examples in
@@ -70,7 +65,6 @@ let init pos_examples neg_examples pos_models neg_models =
     |> MemoryModel.Field.MonoList.unique
   in
   let predicates = GlobalSID.get_user_defined ~original:true () in
-  let vars = compute_signature vars_aux pos_models in
-  let pred = ID.show @@ ID.mk_fresh "pred" in
+  let pred = next_name () in
   let pred = BatString.nreplace ~str:pred ~sub:"!" ~by:"" in
   {fields; predicates; pos_examples; neg_examples; pos_models; neg_models; pred; vars}
