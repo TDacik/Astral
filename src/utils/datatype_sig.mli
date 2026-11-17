@@ -35,6 +35,8 @@ module type PRINTABLE = sig
 
   val pp_list : Format.formatter -> t list -> unit
 
+  val pp_list_sep : string -> Format.formatter -> t list -> unit
+
   val print_list : ?separator:string -> ?prefix:string -> t list -> unit
 
 

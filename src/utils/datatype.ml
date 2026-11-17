@@ -32,7 +32,9 @@ module Printable (M : SHOW) = struct
     | [] -> "[]"
     | xs -> String.concat separator @@ List.map M.show xs
 
-  let pp_list (*(separator=", ")*) fmt xs = Format.fprintf fmt "%s" (show_list ~separator:"," xs)
+  let pp_list fmt xs = Format.fprintf fmt "%s" (show_list ~separator:"," xs)
+
+  let pp_list_sep separator fmt xs = Format.fprintf fmt "%s" (show_list ~separator xs)
 
   let print_list ?(separator=", ") ?(prefix="") xs = Format.printf "%s%s\n" prefix (show_list ~separator xs)
 
