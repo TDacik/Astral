@@ -22,9 +22,10 @@ let not_garbage query =
 let is_simple query = match query.examples with
   | [e] -> (
     let [], atoms = SL.as_quantified_symbolic_heap e in
-    if List.for_all SL.is_pure atoms then
+    if List.for_all SL.is_pure atoms then (
       Logging.warning "Silently droping synthesis query withou spatial atoms";
       true (* TODO: should not happen *)
+    )
     else
       let atoms = List.filter SL.is_spatial_atom atoms in
       match atoms with
