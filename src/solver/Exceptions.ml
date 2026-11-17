@@ -16,6 +16,16 @@ exception UnknownResult of string * string
 
 exception UnsupportedFragment of string * string
 
+let () =
+  Printexc.register_printer (function
+    | InternalError (_, what, details) ->
+      let msg = Format.asprintf "Astral internal error: %s\n\nDetails:\n%s\n"
+        what details
+      in
+      Some msg
+    | _ -> None
+  )
+
 
 let unsupported_fragment ?(details="") =
   Format.kasprintf (fun s -> raise @@ UnsupportedFragment (s, details))
