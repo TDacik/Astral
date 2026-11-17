@@ -227,12 +227,9 @@ module Model = struct
 
   let rec eval model t = match view t with
     | Variable var ->
-      begin
-        try find var model
-        with Not_found ->
-          let _ =Format.printf "Not found %s in:\n%s" (Variable.show_with_sort var) (show_with_sorts model) in
-          raise Not_found
-      end
+      (* TODO: should we perform saturation of missing variables
+               here or later as done currently? *)
+      find var model
     | IntConst i -> Constant.mk_int i
     | Constant (c, sort) -> Constant.mk_const sort c
     | BitConst bv -> Constant.mk_bitvector bv

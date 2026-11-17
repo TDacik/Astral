@@ -138,7 +138,9 @@ module Make (Locations : LOCATIONS) = struct
     let locs = List.map (fun field ->
         let sort = Field.get_sort field in
         Locations.inverse_translate self.locs model
-        (SMT.Model.eval model (mk_succ self field loc))
+        @@ match SMT.Model.eval model (mk_succ self field loc) with
+          | v -> v
+          | exception Not_found -> Constant.default sort
       ) fields
     in
     let def = HeapSort.find_target sort self.heap_sort in

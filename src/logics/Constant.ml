@@ -85,6 +85,10 @@ let rec map fn = function
   | Set (elems) -> Set (List.map (map fn) elems)
   | Array _ -> failwith "TODO: map array"
 
+let default = function
+  | Sort.Bitvector n -> mk_bitvector_of_int 0 n
+  | _ -> failwith "TODO"
+
 (** Lazily enumerate all constants of the given sort. *)
 let enumerate : Sort.t -> t Seq.t = function
   | Sort.Bool -> List.to_seq [tt; ff]
