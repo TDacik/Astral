@@ -167,6 +167,9 @@ let parse_atom ctx atom =
   | pred when String.starts_with pred ~prefix:"pred" || ParserContext.is_declared_pred ctx.input pred ->
     (*let params = BatList.take (List.length vars - 1) vars in*)
     Result.add_atom ctx @@ SL.mk_predicate name @@ List.map (parse_var ctx) vars
+  | "any" ->
+    Logger.debug "Ignoring %s during conversion\n" atom;
+    ctx
   | atom ->
     Logger.warning "Ignoring %s during conversion\n" atom;
     ctx
