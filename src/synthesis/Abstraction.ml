@@ -66,7 +66,6 @@ let compute_chunk ctx (query : Query.t) =
       assert (List.length res.predicates == 1);
       let pred = List.hd res.predicates in
       let params = List.map SL.Term.of_var res.concrete_vars in
-      InductiveDefinition.print pred;
       GlobalSID.register_user_defined pred;
       match PredicateMapping.check_instance ctx pred params with
       | Some phi -> Some (phi, [pred])
