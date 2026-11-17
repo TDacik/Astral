@@ -84,34 +84,42 @@ module Result = struct
 
   let replace ~sub ~by str = snd @@ BatString.replace ~sub ~by ~str
 
-  let gen_fields fields =
-    let field_predicates f =
-      let field = PopperEncoding.field f in
-      [
-        Format.sprintf "%s_is_nil(X) :- %s(X, Y), is_null(Y)." field field
-      ]
-    in
-    List.map field_predicates fields
-    |> BatList.transpose
-    |> List.map (String.concat "\n")
-    |> String.concat "\n\n"
-
-  let gen_preds preds =
-    String.concat "\n\n" @@ List.map id_to_prolog preds
-
-  let generate_knowledge preds self fields =
-    let heap = String.concat "\n" self.knowledge in
-    let fields = gen_fields fields in
-    let template = [%blob "bk_template.pl"] in
-    template
-    |> replace ~sub:"__HEAP_DEFS__" ~by:heap
-    |> replace ~sub:"__PREDICATE_DEFS__" ~by:(gen_preds preds)
-    |> replace ~sub:"__FIELD_DEFS__" ~by:fields
-
-  let generate_examples self =
-    String.concat "\n" self.examples
-
 end
+
+open Result
+
+(** Definitions *)
+
+let gen_preds preds =
+  String.concat "\n\n" @@ List.map id_to_prolog preds
+
+let generate_examples self =
+  String.concat "\n" self.examples
+
+let field_definitions field =
+  let name = PopperEncoding.field field in
+  let sort = Field.get_sort field in
+  if Sort.is_loc sort then
+    [Format.sprintf "%s_is_nil(X) :- %s(X, Y), is_null(Y)." name name]
+  else
+    (* Without constraining values, this should work for any sort which
+       in bias we simply call "data". *)
+    [Format.sprintf "%s_is_any(_)." name]
+
+let gen_fields fields =
+  List.map field_definitions fields
+  |> BatList.transpose
+  |> List.map (String.concat "\n")
+  |> String.concat "\n\n"
+
+let generate_knowledge preds self fields =
+  let heap = String.concat "\n" self.knowledge in
+  let fields = gen_fields fields in
+  let template = [%blob "bk_template.pl"] in
+  template
+  |> replace ~sub:"__HEAP_DEFS__" ~by:heap
+  |> replace ~sub:"__PREDICATE_DEFS__" ~by:(gen_preds preds)
+  |> replace ~sub:"__FIELD_DEFS__" ~by:fields
 
 (** Conversions *)
 
@@ -120,7 +128,8 @@ let unique_name loc =
 
 let convert_loc loc = match fst loc with
   | Implicit n -> Format.asprintf "loc%d_%d" n !cnt
-  | SMT const -> failwith "Not implemented: smt locations"
+  | SMT (Bitvector bv) -> Format.asprintf "%s" (string_of_int @@ Bitvector.to_int bv)
+  | _ -> failwith "Not implemented: smt locations"
 
 let convert_value = function
   | Struct (def, locs) -> List.combine def.fields locs
@@ -158,6 +167,6 @@ let convert ctx =
   let res0 = Result.empty in
   let res = List.fold_left2 (convert_model ctx) res0 ctx.pos_examples ctx.pos_models in
 
-  let knowledge = Result.generate_knowledge ctx.predicates res ctx.fields in
-  let examples = Result.generate_examples res in
+  let knowledge = generate_knowledge ctx.predicates res ctx.fields in
+  let examples = generate_examples res in
   (knowledge, examples)

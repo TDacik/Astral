@@ -88,12 +88,15 @@ let declare_struct ?loc ctx name cons fields =
     let def = StructDef.mk name ~cons fields in
     {ctx with struct_defs = M.add cons def ctx.struct_defs}
 
-let is_declared_field ctx name =
-  (* TODO: may store declared fields directly inside ctx? *)
-  M.exists (fun _ def ->
+(* TODO: this should be keyed also by struct_def to prevent collisions. *)
+let get_field ctx name =
+  M.bindings ctx.struct_defs
+  |> List.find_map (fun (_, def) ->
     let fields = StructDef.get_fields def in
-    List.exists (fun f -> String.equal name @@ Field.get_name f) fields
-  ) ctx.struct_defs
+    List.find_opt (fun f -> String.equal name @@ Field.get_name f) fields
+  )
+
+let is_declared_field ctx name = Option.is_some @@ get_field ctx name
 
 let find_struct_def_by_cons ?loc ctx cs_name =
   try M.find cs_name ctx.struct_defs

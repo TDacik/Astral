@@ -24,18 +24,52 @@ let body_predicate_defs predicates =
     +++ Format.asprintf "direction(%s, (%s))." p direction
   ) predicates
 
+let field_defs_specific name sort : string =
+  if Sort.is_loc sort then String.concat "\n" [
+    Format.asprintf "body_pred(%s_is_nil, 1)." name;
+    Format.asprintf "direction(%s_is_nil, (in, ))." name;
+    Format.asprintf "type(%s_is_nil, (node, ))." name;
+  ]
+  else String.concat "\n" [
+    Format.asprintf "body_pred(%s_is_any, 1)." name;
+    Format.asprintf "direction(%s_is_any, (in, ))." name;
+    Format.asprintf "type(%s_is_any, (node, ))." name;
+  ]
+
+let field_intro name sort : string =
+  let target_sort =
+    if Sort.is_loc sort then "node"
+    else "data"
+  in
+  String.concat "\n" [
+    Format.asprintf "body_pred(%s,2)." name;
+    Format.asprintf "direction(%s, (in, out))." name;
+    Format.asprintf "type(%s, (node, %s))." name target_sort
+  ]
+
+let field_class name sort : string =
+  if Sort.is_loc sort then String.concat "\n" [
+    Format.asprintf "%s_class(%s)." name name;
+    Format.asprintf "%s_class(%s_is_nil)." name name;
+  ]
+  else String.concat "\n" [
+    Format.asprintf "%s_class(%s)." name name;
+    Format.asprintf "%s_class(%s_is_any)." name name;
+  ]
+
+let field_def field : string =
+  let open MemoryModel in
+  let name = PopperEncoding.field field in
+  let sort = Field.get_sort field in
+  let intro = field_intro name sort in
+  let specific = field_defs_specific name sort in
+  let class_def = field_class name sort in
+  let comment = Format.asprintf "%% Definitions for field %s" (Field.show field) in
+  comment +++ String.concat "\n\n" [intro; specific; class_def]
+
 let fields_defs fields =
-  String.concat "\n" @@ List.map (fun f ->
-    let f = PopperEncoding.field f in
-        Format.asprintf "body_pred(%s,2)." f
-    +++ Format.asprintf "type(%s, (node, node))." f
-    +++ Format.asprintf "direction(%s, (in, out))." f
-    +++ Format.asprintf "body_pred(%s_is_nil, 1)." f
-    +++ Format.asprintf "type(%s_is_nil, (node, ))." f
-    +++ Format.asprintf "direction(%s_is_nil, (in, ))." f
-    +++ Format.asprintf "%s_class(%s)." f f
-    +++ Format.asprintf "%s_class(%s_is_nil)." f f
-  ) fields
+  List.map field_def fields
+  |> String.concat "\n\n"
 
 let field_constraints name n fields =
   let gen field =
@@ -86,6 +120,7 @@ let generate ctx =
   let n = List.length ctx.vars in
   let preds = List.map (fun id -> InductiveDefinition.name id, InductiveDefinition.arity id) ctx.predicates in
   let preds_with_self = (ctx.pred, n) :: preds in
+  let root_fields = SynthesisContext.root_fields ctx in
   template
   |> replace ~sub:"__SETTING__" ~by:(setting ())
   |> replace ~sub:"__HEAD_PRED__" ~by:ctx.pred
@@ -93,5 +128,5 @@ let generate ctx =
   |> replace ~sub:"__BODY_PRED_DEFS__" ~by:(body_predicate_defs preds)
   |> replace ~sub:"__HELPER_DEFS__" ~by:(helper_defs preds_with_self ctx.fields n)
   |> replace ~sub:"__FIELD_DEFS__" ~by:(fields_defs ctx.fields)
-  |> replace ~sub:"__FIELD_CONSTRAINTS__" ~by:(field_constraints ctx.pred n ctx.fields)
+  |> replace ~sub:"__FIELD_CONSTRAINTS__" ~by:(field_constraints ctx.pred n root_fields)
   |> replace ~sub:"__PREDICATE_CONSTRAINTS__" ~by:(predicate_constraints ctx.pred n)

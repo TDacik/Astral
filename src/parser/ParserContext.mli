@@ -42,6 +42,8 @@ val is_declared_pred : t -> string -> bool
 
 val is_declared_field : t -> string -> bool
 
+val get_field : t -> string -> Field.t option
+
 val find_var : ?loc:loc -> t -> string -> SL.Variable.t
 
 val find_struct_def_by_cons : ?loc:loc -> t -> string -> StructDef.t

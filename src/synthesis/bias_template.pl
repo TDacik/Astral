@@ -25,6 +25,10 @@ body_pred(any, 1).
 type(any, (node, )).
 direction(any, (in,)).
 
+body_pred(nil, 1).
+type(nil, (node,)).
+direction(nil, (out,)).
+
 __FIELD_DEFS__
 
 %% --------------------------------------------
@@ -53,6 +57,19 @@ established(R, T) :- head_var(R, T).
 %% Base cases only contain pure constraints.
 
 :- base_case(C), body_literal(C, P, _, _), P != eq, P != neq, P != eq_nil, P != neq_nil, P != any.
+
+%% ----------------------------------------------------------------------------
+%% Handling of nil-terminated predicates.
+%%
+%%   When the definition needs e.g. P(x, nil) where P is an existing predicate,
+%%   we need a way to introduce nil variable.
+%% ----------------------------------------------------------------------------
+
+%% true if variable was introduced by nil()
+nil_var(R, V) :- body_literal(R, nil, 1, (V,)).
+
+%% nil() appears at most once in each rule
+:- clause(R), #count{V : body_literal(R, nil, 1, (V,))} > 1.
 
 %% Inductive case syntax restrictions
 

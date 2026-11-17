@@ -44,22 +44,27 @@ module Result = struct
       rest = [];
     }
 
-  let add_field_value ctx field (v : string) =
-    let fields = ParserContext.get_fields ctx.input in
+  let add_field_value ctx (field : Field.t) (v : string) =
+    (*let fields = ParserContext.get_fields ctx.input in
     let field = List.find
-      (fun f -> String.equal (Field.show f) field) fields in
+      (fun f -> String.equal (PopperEncoding.field f) encoded_field) fields in
+    let v =*)
     let v =
       if String.equal v "nil" then SL.Term.nil
       else
         let n = int_of_string @@ BatString.lchop v in
         let sort = Field.get_sort field in
-        (if n >= List.length ctx.signature && not @@ String.equal v "nil" then
-          HT.add !existentials n sort);
+        (if n >= List.length ctx.signature then HT.add !existentials n sort);
         SL.Term.mk_var v sort
     in
     {ctx with field_values = MemoryModel.Field.Map.add field v ctx.field_values}
 
   let add_atom ctx atom = {ctx with rest = atom :: ctx.rest}
+
+  let add_nil ctx nil =
+    let n = int_of_string @@ BatString.lchop nil in
+    HT.add !existentials n Sort.loc_nil;
+    ctx
 
   let gen_body ctx =
     match ctx.field_values with
@@ -70,12 +75,14 @@ module Result = struct
       let fields = StructDef.get_fields struct_def in
       let values = List.map (fun f ->
         try MemoryModel.Field.Map.find f ctx.field_values
-        with Not_found -> failwith @@ Format.sprintf "Fail for field %s" (Field.show f)
+        with Not_found -> failwith @@ Format.sprintf "Fail for field %s" (Field.show_with_sort f)
       ) fields in
     let pto = SL.mk_pto_struct ctx.root struct_def values in
     let es =
       HT.fold
-        (fun n sort acc -> (SL.Variable.mk (Format.asprintf "V%d" n) sort) :: acc)
+        (fun n sort acc ->
+          if Sort.is_nil sort then acc
+          else (SL.Variable.mk (Format.asprintf "V%d" n) sort) :: acc)
         !existentials []
     in
     SL.mk_exists es @@ SL.mk_star (pto :: ctx.rest)
@@ -87,7 +94,7 @@ open Result
 
 let check_types what terms =
   let sorts = List.map SL.Term.get_sort terms in
-  if List_utils.all_equal SL.Sort.equal sorts then true
+  if List_utils.all_equal SL.Sort.equal_mod_nil sorts then true
   else (
     Logger.warning "Silently ignoring incorrectly typed '%s(%s)'"
       what
@@ -96,14 +103,20 @@ let check_types what terms =
     false
   )
 
-let parse_var ctx name =
-  let n = int_of_string @@ BatString.lchop name in
-  let sort =
+let parse_var ?force_sort ctx name =
+  let lookup_sort n =
     if n < List.length ctx.signature
     then List.nth ctx.signature n
     else HT.find !existentials n
   in
-  SL.Term.mk_var name sort
+  let n = int_of_string @@ BatString.lchop name in
+  let sort = match force_sort with
+  | Some sort -> sort
+  | None -> lookup_sort n
+  in
+  match sort with
+  | sort when Sort.is_nil sort -> SL.Term.nil
+  | sort -> SL.Term.mk_var name sort
 
 let parse_call header =
   Logger.debug "Parsing call: %s\n" header;
@@ -111,6 +124,10 @@ let parse_call header =
   match String.split_on_char '(' call with
   | [name; params] -> name, String.split_on_char ',' params
   | _ -> failwith header
+
+(** Counter for hidden existential variables, with large number we should never
+    cause conflict as Popper handles around 9 variables. *)
+let cnt = ref 200
 
 let parse_atom ctx atom =
   let name, vars = parse_call atom in
@@ -125,16 +142,28 @@ let parse_atom ctx atom =
     if check_types "neq" vars
     then Result.add_atom ctx @@ SL.mk_distinct vars
     else ctx
-  | field when PopperEncoding.is_declared_field ctx.input field ->
-    let field = PopperEncoding.decode_field field in
-    let target = List.nth vars 1 in
-    Logger.debug "Adding target %s for %s\n" target field;
-    Result.add_field_value ctx field target
+  | "eq_nil" ->
+    let var = parse_var ctx @@ List.hd vars in
+    Result.add_atom ctx @@ SL.mk_eq [var; SL.Term.nil]
+  | "nil" ->
+    let var = parse_var ~force_sort:Sort.loc_nil ctx @@ List.hd vars in
+    Result.add_nil ctx @@ List.hd vars
+  | "neq_nil" ->
+    let var = parse_var ctx @@ List.hd vars in
+    Result.add_atom ctx @@ SL.mk_distinct [var; SL.Term.nil]
   | field when PopperEncoding.is_declared_field_nil ctx.input field ->
-    let field = PopperEncoding.decode_field field in
-    Logger.debug "Adding target nil for %s\n" field;
+    let field = PopperEncoding.decode_field ctx.input field in
+    Logger.debug "Adding target nil for %a\n" Field.pp field;
     Result.add_field_value ctx field "nil"
-
+  | field when PopperEncoding.is_declared_field_any ctx.input field ->
+    let field = PopperEncoding.decode_field ctx.input field in
+    incr cnt;
+    Result.add_field_value ctx field @@ Format.asprintf "V%d" !cnt
+  | field when PopperEncoding.is_declared_field ctx.input field ->
+    let field = PopperEncoding.decode_field ctx.input field in
+    let target = List.nth vars 1 in
+    Logger.debug "Adding target %s for %a\n" target Field.pp field;
+    Result.add_field_value ctx field target
   | pred when String.starts_with pred ~prefix:"pred" || ParserContext.is_declared_pred ctx.input pred ->
     (*let params = BatList.take (List.length vars - 1) vars in*)
     Result.add_atom ctx @@ SL.mk_predicate name @@ List.map (parse_var ctx) vars

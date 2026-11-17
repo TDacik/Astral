@@ -9,6 +9,8 @@ module Logger = Logging.WithOutput (struct
 end)
 
 type t = {
+  heap_sort : HeapSort.t;
+
   (* Existing definitions *)
   fields : MemoryModel.Field.t list;
   predicates : InductiveDefinition.t list;
@@ -28,10 +30,16 @@ type t = {
 
 let show ctx =
   Format.asprintf "Context:\n  fields: %s\n  vars: %s\n"
-    (MemoryModel.Field.show_list ctx.fields)
+    (String.concat ", " @@ List.map MemoryModel.Field.show_with_sort ctx.fields)
     (SL.Variable.show_list ctx.vars)
 
 let root ctx = List.hd ctx.vars
+
+let root_fields ctx =
+  root ctx
+  |> SL.Variable.get_sort
+  |> (fun s -> HeapSort.find_target s ctx.heap_sort)
+  |> MemoryModel.StructDef.get_fields
 
 (* TODO: think more about what is relevant... *)
 let get_relevant_vars phi =
@@ -57,14 +65,12 @@ let next_name =
     done;
     Format.asprintf "pred%d" !cnt
 
-let init pos_examples neg_examples pos_models neg_models =
+let init ctx pos_examples neg_examples pos_models neg_models vars =
   let examples = pos_examples @ neg_examples in
   let vars_aux = get_relevant_vars @@ SL.mk_star examples in
-  let fields =
-    List.concat_map SL.get_fields examples
-    |> MemoryModel.Field.MonoList.unique
-  in
+  let fields = ParserContext.get_fields ctx in
+  let heap_sort = ParserContext.get_heap_sort ctx in
   let predicates = GlobalSID.get_user_defined ~original:true () in
   let pred = next_name () in
   let pred = BatString.nreplace ~str:pred ~sub:"!" ~by:"" in
-  {fields; predicates; pos_examples; neg_examples; pos_models; neg_models; pred; vars}
+  {heap_sort; fields; predicates; pos_examples; neg_examples; pos_models; neg_models; pred; vars}

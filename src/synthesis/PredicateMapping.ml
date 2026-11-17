@@ -10,13 +10,13 @@ let rec instance_generator n xs =
 
 let check_entl ctx rhs lhs =
   let phi = SL.mk_gneg lhs rhs in
-  let res = Engine.solve {ctx with assertions = [phi]; produce_models = true} in
+  let res = Engine.solve {ctx with assertions = [phi]; produce_models = false} in
   let res = match res.status with
     | Some (`Unsat) -> true
     | Some (`Sat) -> false
     | Some (`Unknown reason) -> failwith reason
   in
-  (*Format.prin "%s |= %s: %b\n" (SL.show lhs) (SL.show rhs) res;*)
+  (*Format.printf "%s |= %s: %b\n" (SL.show lhs) (SL.show rhs) res;*)
   res
 
   (*match ModelChecker.check sh phi with
@@ -37,7 +37,7 @@ let match_predicate ctx id =
   let instances = instance_generator arity xs in
   Seq.find_map (check_instance ctx id) instances
 
-let mmatch ctx =
+let mmatch ctx : SL.t option =
   GlobalSID.fold_user_defined (fun pred acc ->
     match acc with
     | None -> match_predicate ctx pred

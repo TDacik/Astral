@@ -8,11 +8,11 @@ end)
 
 module ID = Identifier.Make()
 
-let get_example ctx phi =
+let get_model ctx phi =
   let res = Engine.solve {ctx with assertions = [phi]; produce_models = true} in
   match res.model with
   | Some model -> model
-  |  _ -> failwith "No model"
+  |  _ -> failwith @@ Format.asprintf "No model: %s" (SL.show phi)
 
 let common_and_rest (lists : 'a list list) : 'a list * 'a list list =
   match lists with
@@ -46,24 +46,10 @@ let reduce_examples formulae =
   let frame, rest = common_and_rest candidate_atoms in
   frame, List.mapi (fun i es -> SL.mk_exists es @@ SL.mk_star (List.nth rest i @ List.nth rest_atoms i)) qfs
 
-let compute_abstraction_aux ctx =
-  Logger.debug "Starting synthesis\n";
-  Logger.debug "Positive examples:\n";
-  List.iter (fun phi -> Logger.debug "  %s\n" (SL.show phi)) ctx.positive_examples;
-  Logger.debug "Negative examples:\n";
-  List.iter (fun phi -> Logger.debug "  %s\n" (SL.show phi)) ctx.negative_examples;
-
-  let frame, pexamples_ = reduce_examples ctx.positive_examples in
-  Logger.debug "Frame: %s\n" (SL.show @@ SL.mk_star frame);
-  Logger.debug "Reduced examples:\n";
-  List.iter (fun phi -> Logger.debug "  %s\n" (SL.show phi)) pexamples_;
-
-  let pexamples = List.map (get_example ctx) pexamples_ in
-
-  List.iteri (fun i sh -> Logger.sl_formula (Format.asprintf "positive_%d" i) sh) pexamples_;
-  List.iteri (fun i sh -> Logger.sl_model (Format.asprintf "positive_%d" i) sh) pexamples;
-
-  let synth_ctx = SynthesisContext.init ctx.positive_examples ctx.negative_examples pexamples [] in
+let compute ctx root positive_examples =
+  Logger.debug "Starting synthesis for root %s\n" (SL.Variable.show_list root);
+  let positive_models = List.map (get_model ctx) positive_examples in
+  let synth_ctx = SynthesisContext.init ctx positive_examples [] positive_models [] root in
   Logger.debug "%s" (SynthesisContext.show synth_ctx);
 
   (* Generate popper files *)
@@ -73,7 +59,7 @@ let compute_abstraction_aux ctx =
   (* Run popper *)
   let ok, response = PopperDriver.synthesize ~bias ~knowledge ~examples () in
   if not ok
-  then Exceptions.internal_error "Popper failed" ~details:response
+  then Exceptions.internal_error "Synthesis failed" ~details:response
   else
     let res =
       SolutionConvertor.convert ctx synth_ctx response
@@ -89,22 +75,10 @@ let compute_abstraction_aux ctx =
             res.precision
             res.recall
         );
-        Some (frame, res))
+        Some res)
 
-
-  (*
-
-  let arity = List.length vars in
-  let signature = List.map SL.Variable.get_sort vars in (* TODO: what is the correct order? *)
-  let predicates = (name, arity) :: (GlobalSID.get_signatures () |> List.map (fun (p, xs) -> p, List.length xs)) in
-  let bias = BiasGenerator.generate predicates name arity fields in
-
-  Logger.debug "Running Popper\n";
-  *)
-
-let compute_abstraction ctx =
-  let _ = compute_abstraction_aux ctx in
-  exit 0
-
-let compute_abstraction' ctx =
-  compute_abstraction_aux ctx
+let compute ctx root examples =
+  LoggerState.new_subquery `Synthesis;
+  let res = compute ctx root examples in
+  LoggerState.finish_subquery ();
+  res

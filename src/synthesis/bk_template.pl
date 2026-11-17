@@ -5,6 +5,7 @@
 eq(X,X).
 neq(X,Y) :- X \= Y.
 
+nil(X) :- is_null(X).
 eq_nil(X) :- is_null(X).
 neq_nil(X) :- \+ is_null(X).
 
