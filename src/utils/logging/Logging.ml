@@ -36,7 +36,7 @@ module Make (C : CONFIG) = struct
 
   let debug_aux () = Config.Debug.get () || Config.Verbosity.get () >= C.level
 
-  let debug () = debug_aux () && match_key ()
+  let do_debug () = debug_aux () && match_key ()
 
   let info = Format.fprintf
 
@@ -52,9 +52,15 @@ module Make (C : CONFIG) = struct
 
   let debug fmt =
     Format.kasprintf (fun msg ->
-      if debug () && not @@ Config.Interactive.get ()
+      if do_debug () && not @@ Config.Interactive.get ()
       then Format.printf "[%s] %s%!" C.name msg
-    ) fmt;
+    ) fmt
+
+  let debug_np fmt =
+    Format.kasprintf (fun msg ->
+      if do_debug () && not @@ Config.Interactive.get ()
+      then Format.printf "%s%!" msg
+    ) fmt
 
 end
 

@@ -4,11 +4,12 @@
 
 open FileUtils
 
-type query = [`Sat | `Abstraction] [@@deriving compare]
+type query = [`Sat | `Abstraction | `Synthesis] [@@deriving compare]
 
 let show_query = function
   | `Sat -> "query"
   | `Abstraction -> "abstraction"
+  | `Synthesis -> "synthesis"
 
 (** Toplevel directory used only when Astral is used as a library *)
 let session = ref ""
@@ -82,7 +83,7 @@ let new_subquery kind =
   SubQueries.increment ();
   let subquery = Format.asprintf "%s_%04d" (show_query kind) (Stack.next ()) in
   Stack.push subquery;
-  if Config.Debug.get () then FileUtils.mk_dir @@ !session / !query / (Stack.get_path ())
+  if Config.Debug.get () then FileUtils.mk_dir_p @@ !session / !query / (Stack.get_path ())
 
 let finish_subquery () =
   ignore @@ Stack.pop ()

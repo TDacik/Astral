@@ -48,6 +48,9 @@ module type LOGGER = sig
 
   val debug : ('a, Format.formatter, unit, unit) format4 -> 'a
 
+  val debug_np : ('a, Format.formatter, unit, unit) format4 -> 'a
+  (** Debug without prefix *)
+
 end
 
 type status = [`Sat | `Unsat | `Unknown]
