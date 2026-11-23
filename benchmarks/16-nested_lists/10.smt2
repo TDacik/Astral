@@ -1,15 +1,15 @@
 (set-info :source Astral)
 (set-info :status unsat)
 
-(set-option :use-builtin-definitions)
+(include "predicates/nested_singly_linked_list.smt2")
 
-(declare-const x1 NLS_t)
-(declare-const x1_1 Loc)
+(declare-const x1 Ref_NLS)
+(declare-const x1_1 Ref_LS)
 
 (assert
   (sep
-    (pto x1 (c_nls nil x1_1))
     (distinct x1_1 nil)
+    (pto x1 (c_NLS nil x1_1))
     (ls x1_1 nil)
   )
 )

@@ -1,12 +1,12 @@
 (set-info :source Astral)
 (set-info :status unsat)
 
-(set-option :use-builtin-definitions)
+(include "predicates/singly_linked_list.smt2")
 
-(declare-const a Loc)
-(declare-const b Loc)
-(declare-const c Loc)
-(declare-const d Loc)
+(declare-const a Ref_LS)
+(declare-const b Ref_LS)
+(declare-const c Ref_LS)
+(declare-const d Ref_LS)
 
 (assert
   (sep

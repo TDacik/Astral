@@ -1,10 +1,10 @@
 (set-info :source Astral)
 (set-info :status unsat)
 
-(set-option :use-builtin-definitions)
+(include "predicates/doubly_linked_list.smt2")
 
-(declare-const x DLS_t)
-(declare-const y DLS_t)
+(declare-const x Ref_DLS)
+(declare-const y Ref_DLS)
 
 (assert (dls x y nil nil))
 (assert (not (dls x y nil nil)))
