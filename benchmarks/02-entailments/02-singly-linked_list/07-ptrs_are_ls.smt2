@@ -1,7 +1,7 @@
 (set-info :source Astral)
 (set-info :status unsat)
 
-(include "predicates/singly_linked_list.smt2")
+(include "predicates/singly-linked_list.smt2")
 
 (declare-const x1 Ref_LS)
 (declare-const x2 Ref_LS)
