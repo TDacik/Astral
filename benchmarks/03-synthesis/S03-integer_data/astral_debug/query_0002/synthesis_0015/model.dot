@@ -1,0 +1,19 @@
+digraph G {
+  "0" [shape=box, label="0 : y,nil", ];
+  "1" [shape=box, label="1 : x", ];
+  "2" [shape=box, label="2 : ", ];
+  "3" [shape=box, label="3 : ", ];
+  "data_#b00000000" [shape=circle, label="#b00000000", ];
+  "data_#b01000000" [shape=circle, label="#b01000000", ];
+  "data_#b11000000" [shape=circle, label="#b11000000", ];
+  "nil_-1" [shape=plaintext, label="_|_", ];
+  
+  
+  "1" -> "2" [label="next", ];
+  "1" -> "data_#b01000000" [label="data", ];
+  "2" -> "3" [label="next", ];
+  "2" -> "data_#b11000000" [label="data", ];
+  "3" -> "data_#b00000000" [label="data", ];
+  "3" -> "nil_-1" [label="next", ];
+  
+  }

@@ -1,0 +1,8 @@
+Sorts: {Ref_LS -> (Loc Ref_LS)}
+  Structs: {LS := c_LS(next)}
+ Heap sort: ((Loc Ref_LS) -> LS := c_LS(next))
+  Variables: {x : (Loc Ref_LS), y : (Loc Ref_LS), z : (Loc Ref_LS)}
+  Attributes: {}
+  Assertions: {	
+(exists (e!15) (star (pto z (LS := c_LS(next) e!15)) (eq x y) (eq y z)))
+}

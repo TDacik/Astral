@@ -1,0 +1,41 @@
+digraph G {
+  rankdir=TB;
+  "1: existsd2, d1, n1" [label="existsd2, d1, n1", ];
+  "4: x" [label="x", ];
+  "5: n1" [label="n1", ];
+  "6: y" [label="y", ];
+  "8: x" [label="x", ];
+  "10: n1" [label="n1", ];
+  "11: d1" [label="d1", ];
+  "13: n1" [label="n1", ];
+  "15: y" [label="y", ];
+  "16: d2" [label="d2", ];
+  "3: neq" [label="neq", ];
+  "17: x neq n1" [label="x neq n1", ];
+  "9: c_LS" [label="c_LS", ];
+  "14: c_LS" [label="c_LS", ];
+  "7: |->" [label="|->", ];
+  "12: |->" [label="|->", ];
+  "0: *" [label="*", ];
+  "2: *" [label="*", ];
+  
+  
+  "1: existsd2, d1, n1" -> "2: *" [label="0", arrowhead=none, ];
+  "3: neq" -> "4: x" [label="0", arrowhead=none, ];
+  "3: neq" -> "5: n1" [label="1", arrowhead=none, ];
+  "3: neq" -> "6: y" [label="2", arrowhead=none, ];
+  "9: c_LS" -> "10: n1" [label="0", arrowhead=none, ];
+  "9: c_LS" -> "11: d1" [label="1", arrowhead=none, ];
+  "14: c_LS" -> "15: y" [label="0", arrowhead=none, ];
+  "14: c_LS" -> "16: d2" [label="1", arrowhead=none, ];
+  "7: |->" -> "8: x" [label="0", arrowhead=none, ];
+  "7: |->" -> "9: c_LS" [label="1", arrowhead=none, ];
+  "12: |->" -> "13: n1" [label="0", arrowhead=none, ];
+  "12: |->" -> "14: c_LS" [label="1", arrowhead=none, ];
+  "0: *" -> "1: existsd2, d1, n1" [label="0", arrowhead=none, ];
+  "0: *" -> "17: x neq n1" [label="1", arrowhead=none, ];
+  "2: *" -> "3: neq" [label="0", arrowhead=none, ];
+  "2: *" -> "7: |->" [label="1", arrowhead=none, ];
+  "2: *" -> "12: |->" [label="2", arrowhead=none, ];
+  
+  }

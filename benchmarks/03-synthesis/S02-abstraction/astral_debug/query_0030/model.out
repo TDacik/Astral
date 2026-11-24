@@ -1,0 +1,14 @@
+Stack:
+	nil -> 0
+	x -> 3
+	y -> 2
+	z -> 3
+
+Heap:
+{
+    1 : c_LS(3)
+    2 : c_LS(7)
+    7 : c_LS(1)
+  }
+Footprints:
+

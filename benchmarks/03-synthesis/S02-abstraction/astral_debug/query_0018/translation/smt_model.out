@@ -1,0 +1,9 @@
+nil := #b00
+x := #b00
+y := #b00
+z := #b00
+Ref_LS := {#b00, #b01}
+footprint0 := {}
+field_next := {_ |-> #b00}
+footprint2 := {}
+footprint3 := {}

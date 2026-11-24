@@ -1,0 +1,12 @@
+Stack:
+	nil -> 0
+	x -> 1
+	y -> 0
+
+Heap:
+{
+    1 : c_LS(2 #b11111111)
+    2 : c_LS(0 #b01111111)
+  }
+Footprints:
+

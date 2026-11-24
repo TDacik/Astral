@@ -1,0 +1,8 @@
+Sorts: {Ref_LS -> (Loc Ref_LS), Ref_NLS -> (Loc Ref_NLS)}
+  Structs: {LS := c_LS(next), NLS := c_NLS(top, down)}
+ Heap sort: ((Loc Ref_LS) -> LS := c_LS(next), (Loc Ref_NLS) -> NLS := c_NLS(top, down))
+  Variables: {x : (Loc Ref_NLS), y : (Loc Ref_NLS), z : (Loc Ref_LS)}
+  Attributes: {}
+  Assertions: {	
+(gneg (star (distinct nil x) (distinct nil (top[.] x)) (distinct nil y) (distinct nil (down[.] x)) (distinct nil (down[.] (top[.] x))) (distinct nil z) (distinct x (top[.] x)) (distinct x y) (distinct (top[.] x) y) (distinct (down[.] x) (down[.] (top[.] x))) (distinct (down[.] x) z) (distinct (down[.] (top[.] x)) z) (distinct x (top[.] x)) (distinct x y) (distinct (top[.] x) y) (distinct (down[.] x) z) (distinct (down[.] x) nil) (distinct z nil) (distinct (down[.] (top[.] x)) z) (distinct (down[.] (top[.] x)) nil) (distinct z nil) (pto x (NLS := c_NLS(top, down) (top[.] x) (down[.] x))) (pto (top[.] x) (NLS := c_NLS(top, down) y (down[.] (top[.] x)))) (pto (down[.] x) (LS := c_LS(next) z)) (ls (down[.] (top[.] x)) z)) (ls z z))
+}

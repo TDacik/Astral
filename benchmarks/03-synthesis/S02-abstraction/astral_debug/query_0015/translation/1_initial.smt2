@@ -1,0 +1,22 @@
+(set-info :status unknown)
+
+(declare-const footprint2 (Set (_ BitVec 3)))
+(declare-const footprint3 (Set (_ BitVec 3)))
+(declare-const footprint4 (Set (_ BitVec 3)))
+(declare-const footprint0 (Set (_ BitVec 3)))
+(declare-const nil (_ BitVec 3))
+(declare-const |e!15| (_ BitVec 3))
+(declare-const x (_ BitVec 3))
+(declare-const y (_ BitVec 3))
+(declare-const z (_ BitVec 3))
+(declare-const Ref_LS (Set (_ BitVec 3)))
+(declare-const field_next (Array (_ BitVec 3) (_ BitVec 3)))
+
+(assert
+ (and (= footprint2 (set z)) (= (select field_next z) |e!15|) (= x y)
+  (= footprint3 set) (= y z) (= footprint4 set)
+  (disjoint footprint2 footprint3 footprint4)
+  (= footprint0 (union footprint2 footprint3 footprint4))
+  (not (mem (as nil Bool) footprint0)) (= #b000 (as nil Bitvector3))
+  (mem |e!15| Ref_LS) (mem x Ref_LS) (mem y Ref_LS) (mem z Ref_LS)
+  (= Ref_LS (set #b000 #b001 #b010)) (= #b000 (select field_next #b000))))

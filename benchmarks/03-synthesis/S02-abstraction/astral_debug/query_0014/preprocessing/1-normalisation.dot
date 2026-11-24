@@ -1,0 +1,21 @@
+digraph G {
+  rankdir=TB;
+  "0: existse!14" [label="existse!14", ];
+  "3: y" [label="y", ];
+  "5: e!14" [label="e!14", ];
+  "6: x = y" [label="x = y", ];
+  "7: y = z" [label="y = z", ];
+  "4: c_LS" [label="c_LS", ];
+  "2: |->" [label="|->", ];
+  "1: *" [label="*", ];
+  
+  
+  "0: existse!14" -> "1: *" [label="0", arrowhead=none, ];
+  "4: c_LS" -> "5: e!14" [label="0", arrowhead=none, ];
+  "2: |->" -> "3: y" [label="0", arrowhead=none, ];
+  "2: |->" -> "4: c_LS" [label="1", arrowhead=none, ];
+  "1: *" -> "6: x = y" [label="1", arrowhead=none, ];
+  "1: *" -> "7: y = z" [label="2", arrowhead=none, ];
+  "1: *" -> "2: |->" [label="0", arrowhead=none, ];
+  
+  }

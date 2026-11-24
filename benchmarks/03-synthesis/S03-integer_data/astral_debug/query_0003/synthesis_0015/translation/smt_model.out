@@ -1,0 +1,16 @@
+nil := #b0000
+x := #b0001
+y := #b0000
+Ref_LS := {#b0000, #b0001, #b0010, #b0011}
+footprint0 := {#b0001, #b0010}
+field_next := {#b0001 |-> #b0010, _ |-> #b0000}
+field_data := {#b0010 |-> #b01111111, #b0001 |-> #b11111111, _ |-> #b00000000}
+footprint2 := {}
+footprint3 := {}
+footprint4 := {}
+footprint5 := {}
+footprint6 := {}
+footprint7 := {}
+footprint8 := {}
+footprint9 := {#b0001}
+footprint10 := {#b0010}

@@ -1,0 +1,48 @@
+(set-info :status unknown)
+
+(declare-const footprint2 (Set (_ BitVec 6)))
+(declare-const footprint3 (Set (_ BitVec 6)))
+(declare-const footprint4 (Set (_ BitVec 6)))
+(declare-const footprint5 (Set (_ BitVec 6)))
+(declare-const footprint6 (Set (_ BitVec 6)))
+(declare-const footprint7 (Set (_ BitVec 6)))
+(declare-const footprint8 (Set (_ BitVec 6)))
+(declare-const footprint9 (Set (_ BitVec 6)))
+(declare-const footprint10 (Set (_ BitVec 6)))
+(declare-const footprint11 (Set (_ BitVec 6)))
+(declare-const footprint12 (Set (_ BitVec 6)))
+(declare-const footprint13 (Set (_ BitVec 6)))
+(declare-const footprint14 (Set (_ BitVec 6)))
+(declare-const footprint15 (Set (_ BitVec 6)))
+(declare-const footprint0 (Set (_ BitVec 6)))
+(declare-const nil (_ BitVec 6))
+(declare-const z (_ BitVec 6))
+(declare-const x (_ BitVec 6))
+(declare-const y (_ BitVec 6))
+(declare-const Ref_LS (Set (_ BitVec 6)))
+(declare-const field_next (Array (_ BitVec 6) (_ BitVec 6)))
+
+(assert
+ (and (distinct x (select field_next x)) (= footprint2 set) (distinct x y)
+  (= footprint3 set) (distinct x (select field_next y)) (= footprint4 set)
+  (distinct (select field_next x) y) (= footprint5 set)
+  (distinct (select field_next x) (select field_next y)) (= footprint6 set)
+  (distinct y (select field_next y)) (= footprint7 set)
+  (distinct x (select field_next x)) (= footprint8 set) (distinct x y)
+  (= footprint9 set) (distinct (select field_next x) y) (= footprint10 set)
+  (distinct y (select field_next y)) (= footprint11 set) (distinct y z)
+  (= footprint12 set) (distinct (select field_next y) z) (= footprint13 set)
+  (= footprint14 (set x)) (= footprint15 (set (select field_next x)))
+  (= (select field_next (select field_next x)) y)
+  (disjoint footprint2 footprint3 footprint4 footprint5 footprint6 footprint7
+   footprint8 footprint9 footprint10 footprint11 footprint12 footprint13
+   footprint14 footprint15)
+  (= footprint0
+   (union footprint2 footprint3 footprint4 footprint5 footprint6 footprint7
+    footprint8 footprint9 footprint10 footprint11 footprint12 footprint13
+    footprint14 footprint15))
+  (not (mem (as nil Bool) footprint0)) (= #b000000 (as nil Bitvector6))
+  (mem (select field_next y) Ref_LS) (mem z Ref_LS) (mem x Ref_LS)
+  (mem (select field_next x) Ref_LS) (mem y Ref_LS)
+  (= Ref_LS (set #b000000 #b000001 #b000010 #b000011 #b000100 #b000101))
+  (= #b000000 (select field_next #b000000))))

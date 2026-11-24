@@ -1,0 +1,20 @@
+(set-info :status unknown)
+
+(declare-const footprint2 (_ BitVec 2))
+(declare-const footprint3 (_ BitVec 2))
+(declare-const footprint0 (_ BitVec 2))
+(declare-const nil (_ BitVec 2))
+(declare-const x (_ BitVec 2))
+(declare-const y (_ BitVec 2))
+(declare-const z (_ BitVec 2))
+(declare-const Ref_LS (_ BitVec 2))
+(declare-const field_next (Array (_ BitVec 2) (_ BitVec 2)))
+
+(assert
+ (and (= x y) (= footprint2 #b00) (= y z) (= footprint3 #b00)
+  (= (bit-and footprint2 footprint3) #b00)
+  (= footprint0 (bit-or footprint2 footprint3))
+  (not (bit-check footprint0 (as nil Bool))) (= #b00 (as nil Bitvector2))
+  (bit-check Ref_LS x) (bit-check Ref_LS y) (bit-check Ref_LS z)
+  (= Ref_LS (bit-or (>> #b01 #b00) (>> #b01 #b01)))
+  (= #b00 (select field_next #b00))))

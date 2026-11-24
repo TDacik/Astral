@@ -1,0 +1,17 @@
+digraph G {
+  "(top[.] x)" [style="solid", ];
+  "(down[.] x)" [style="solid", ];
+  "(down[.] (top[.] x))" [style="solid", ];
+  "x" [style="dashed", ];
+  "y" [style="dashed", ];
+  "z" [style="dashed", ];
+  
+  
+  "(top[.] x)" -> "(down[.] (top[.] x))" [style="solid", ];
+  "(top[.] x)" -> "y" [style="dashed", ];
+  "(down[.] x)" -> "z" [style="dashed", ];
+  "(down[.] (top[.] x))" -> "z" [style="dashed", ];
+  "x" -> "(top[.] x)" [style="solid", ];
+  "x" -> "(down[.] x)" [style="solid", ];
+  
+  }

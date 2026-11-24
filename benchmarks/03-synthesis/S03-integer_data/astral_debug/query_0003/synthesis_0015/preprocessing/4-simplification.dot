@@ -1,0 +1,65 @@
+digraph G {
+  rankdir=TB;
+  "2: x" [label="x", ];
+  "11: y" [label="y", ];
+  "13: x" [label="x", ];
+  "18: y" [label="y", ];
+  "20: x" [label="x", ];
+  "27: y" [label="y", ];
+  "1: neq" [label="neq", ];
+  "4: x neq y" [label="x neq y", ];
+  "5: neq" [label="neq", ];
+  "9: neq" [label="neq", ];
+  "12: neq" [label="neq", ];
+  "15: x neq y" [label="x neq y", ];
+  "16: neq" [label="neq", ];
+  "21: c_LS" [label="c_LS", ];
+  "26: c_LS" [label="c_LS", ];
+  "19: |->" [label="|->", ];
+  "24: |->" [label="|->", ];
+  "3: next^1[x]" [label="next^1[x]", ];
+  "8: next^1[x]" [label="next^1[x]", ];
+  "10: next^1[x]" [label="next^1[x]", ];
+  "14: next^1[x]" [label="next^1[x]", ];
+  "17: next^1[x]" [label="next^1[x]", ];
+  "22: next^1[x]" [label="next^1[x]", ];
+  "25: next^1[x]" [label="next^1[x]", ];
+  "29: next^1[x]" [label="next^1[x]", ];
+  "6: data^1[x]" [label="data^1[x]", ];
+  "7: data^1" [label="data^1", ];
+  "23: data^1[x]" [label="data^1[x]", ];
+  "28: data^1" [label="data^1", ];
+  "0: *" [label="*", ];
+  
+  
+  "1: neq" -> "2: x" [label="0", arrowhead=none, ];
+  "1: neq" -> "3: next^1[x]" [label="1", arrowhead=none, ];
+  "5: neq" -> "6: data^1[x]" [label="0", arrowhead=none, ];
+  "5: neq" -> "7: data^1" [label="1", arrowhead=none, ];
+  "9: neq" -> "11: y" [label="1", arrowhead=none, ];
+  "9: neq" -> "10: next^1[x]" [label="0", arrowhead=none, ];
+  "12: neq" -> "13: x" [label="0", arrowhead=none, ];
+  "12: neq" -> "14: next^1[x]" [label="1", arrowhead=none, ];
+  "16: neq" -> "18: y" [label="1", arrowhead=none, ];
+  "16: neq" -> "17: next^1[x]" [label="0", arrowhead=none, ];
+  "21: c_LS" -> "22: next^1[x]" [label="0", arrowhead=none, ];
+  "21: c_LS" -> "23: data^1[x]" [label="1", arrowhead=none, ];
+  "26: c_LS" -> "27: y" [label="0", arrowhead=none, ];
+  "26: c_LS" -> "28: data^1" [label="1", arrowhead=none, ];
+  "19: |->" -> "20: x" [label="0", arrowhead=none, ];
+  "19: |->" -> "21: c_LS" [label="1", arrowhead=none, ];
+  "24: |->" -> "26: c_LS" [label="1", arrowhead=none, ];
+  "24: |->" -> "25: next^1[x]" [label="0", arrowhead=none, ];
+  "7: data^1" -> "8: next^1[x]" [label="0", arrowhead=none, ];
+  "28: data^1" -> "29: next^1[x]" [label="0", arrowhead=none, ];
+  "0: *" -> "1: neq" [label="0", arrowhead=none, ];
+  "0: *" -> "4: x neq y" [label="1", arrowhead=none, ];
+  "0: *" -> "5: neq" [label="2", arrowhead=none, ];
+  "0: *" -> "9: neq" [label="3", arrowhead=none, ];
+  "0: *" -> "12: neq" [label="4", arrowhead=none, ];
+  "0: *" -> "15: x neq y" [label="5", arrowhead=none, ];
+  "0: *" -> "16: neq" [label="6", arrowhead=none, ];
+  "0: *" -> "19: |->" [label="7", arrowhead=none, ];
+  "0: *" -> "24: |->" [label="8", arrowhead=none, ];
+  
+  }

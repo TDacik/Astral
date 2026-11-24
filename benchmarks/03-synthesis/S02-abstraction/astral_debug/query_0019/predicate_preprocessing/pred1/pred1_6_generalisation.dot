@@ -1,0 +1,29 @@
+digraph G {
+  rankdir=TB;
+  "4: V0" [label="V0", ];
+  "9: V1" [label="V1", ];
+  "10: V2" [label="V2", ];
+  "1: V0 = V2" [label="V0 = V2", ];
+  "11: V2 neq V0" [label="V2 neq V0", ];
+  "0: or" [label="or", ];
+  "5: c_LS" [label="c_LS", ];
+  "3: |->" [label="|->", ];
+  "7: pred1" [label="pred1", ];
+  "6: next^1[V0]" [label="next^1[V0]", ];
+  "8: next^1[V0]" [label="next^1[V0]", ];
+  "2: *" [label="*", ];
+  
+  
+  "0: or" -> "1: V0 = V2" [label="0", arrowhead=none, ];
+  "0: or" -> "2: *" [label="1", arrowhead=none, ];
+  "5: c_LS" -> "6: next^1[V0]" [label="0", arrowhead=none, ];
+  "3: |->" -> "4: V0" [label="0", arrowhead=none, ];
+  "3: |->" -> "5: c_LS" [label="1", arrowhead=none, ];
+  "7: pred1" -> "9: V1" [label="1", arrowhead=none, ];
+  "7: pred1" -> "10: V2" [label="2", arrowhead=none, ];
+  "7: pred1" -> "8: next^1[V0]" [label="0", arrowhead=none, ];
+  "2: *" -> "11: V2 neq V0" [label="2", arrowhead=none, ];
+  "2: *" -> "3: |->" [label="0", arrowhead=none, ];
+  "2: *" -> "7: pred1" [label="1", arrowhead=none, ];
+  
+  }

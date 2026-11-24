@@ -1,0 +1,8 @@
+Sorts: {Ref_LS -> (Loc Ref_LS)}
+  Structs: {LS := c_LS(next, data)}
+ Heap sort: ((Loc Ref_LS) -> LS := c_LS(next, data))
+  Variables: {x : (Loc Ref_LS), y : (Loc Ref_LS)}
+  Attributes: {}
+  Assertions: {	
+(star (distinct x (next[.] x)) (distinct x (next[.] (next[.] x))) (distinct x y) (distinct (data[.] x) (data[.] (next[.] x))) (distinct (data[.] x) (data[.] (next[.] (next[.] x)))) (distinct (next[.] x) (next[.] (next[.] x))) (distinct (next[.] x) y) (distinct (data[.] (next[.] x)) (data[.] (next[.] (next[.] x)))) (distinct (next[.] (next[.] x)) y) (distinct x (next[.] x)) (distinct x (next[.] (next[.] x))) (distinct x y) (distinct (next[.] x) (next[.] (next[.] x))) (distinct (next[.] x) y) (distinct (next[.] (next[.] x)) y) (pto x (LS := c_LS(next, data) (next[.] x) (data[.] x))) (pto (next[.] x) (LS := c_LS(next, data) (next[.] (next[.] x)) (data[.] (next[.] x)))) (pto (next[.] (next[.] x)) (LS := c_LS(next, data) y (data[.] (next[.] (next[.] x))))))
+}

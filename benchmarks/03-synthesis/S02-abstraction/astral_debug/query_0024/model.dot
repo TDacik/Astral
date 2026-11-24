@@ -1,0 +1,14 @@
+digraph G {
+  "0" [shape=box, label="0 : z,nil", ];
+  "1" [shape=box, label="1 : ", ];
+  "3" [shape=box, label="3 : ", ];
+  "5" [shape=box, label="5 : x", ];
+  "7" [shape=box, label="7 : y", ];
+  "nil_-1" [shape=plaintext, label="_|_", ];
+  
+  
+  "1" -> "3" [label="next", ];
+  "3" -> "nil_-1" [label="next", ];
+  "7" -> "1" [label="next", ];
+  
+  }

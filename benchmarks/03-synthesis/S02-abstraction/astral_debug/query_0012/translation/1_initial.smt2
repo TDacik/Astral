@@ -1,0 +1,41 @@
+(set-info :status unknown)
+
+(declare-const footprint4 (Set (_ BitVec 7)))
+(declare-const footprint5 (Set (_ BitVec 7)))
+(declare-const footprint6 (Set (_ BitVec 7)))
+(declare-const footprint7 (Set (_ BitVec 7)))
+(declare-const footprint8 (Set (_ BitVec 7)))
+(declare-const footprint9 (Set (_ BitVec 7)))
+(declare-const footprint2 (Set (_ BitVec 7)))
+(declare-const footprint3 (Set (_ BitVec 7)))
+(declare-const footprint0 (Set (_ BitVec 7)))
+(declare-const nil (_ BitVec 7))
+(declare-const |e!12| (_ BitVec 7))
+(declare-const x (_ BitVec 7))
+(declare-const n1 (_ BitVec 7))
+(declare-const y (_ BitVec 7))
+(declare-const n2 (_ BitVec 7))
+(declare-const z (_ BitVec 7))
+(declare-const Ref_LS (Set (_ BitVec 7)))
+(declare-const field_next (Array (_ BitVec 7) (_ BitVec 7)))
+
+(assert
+ (and (= footprint2 (set z)) (= (select field_next z) |e!12|)
+  (distinct x n1 y) (= footprint4 set) (= footprint5 (set x))
+  (= (select field_next x) n1) (= footprint6 (set n1))
+  (= (select field_next n1) y) (distinct y n2 z) (= footprint7 set)
+  (= footprint8 (set y)) (= (select field_next y) n2) (= footprint9 (set n2))
+  (= (select field_next n2) z)
+  (disjoint footprint4 footprint5 footprint6 footprint7 footprint8
+   footprint9)
+  (= footprint3
+   (union footprint4 footprint5 footprint6 footprint7 footprint8 footprint9))
+  (disjoint footprint2 footprint3)
+  (= footprint0 (union footprint2 footprint3))
+  (not (mem (as nil Bool) footprint0)) (= #b0000000 (as nil Bitvector7))
+  (mem |e!12| Ref_LS) (mem x Ref_LS) (mem n1 Ref_LS) (mem y Ref_LS)
+  (mem n2 Ref_LS) (mem z Ref_LS)
+  (= Ref_LS
+   (set #b0000000 #b0000001 #b0000010 #b0000011 #b0000100 #b0000101
+    #b0000110))
+  (= #b0000000 (select field_next #b0000000))))

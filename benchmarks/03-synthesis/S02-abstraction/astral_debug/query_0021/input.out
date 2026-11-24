@@ -1,0 +1,8 @@
+Sorts: {Ref_LS -> (Loc Ref_LS)}
+  Structs: {LS := c_LS(next)}
+ Heap sort: ((Loc Ref_LS) -> LS := c_LS(next))
+  Variables: {x : (Loc Ref_LS), y : (Loc Ref_LS), z : (Loc Ref_LS)}
+  Attributes: {}
+  Assertions: {	
+(gneg (star (eq x y) (eq y z)) (pred1 x z y))
+}

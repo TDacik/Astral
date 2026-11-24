@@ -1,0 +1,8 @@
+Sorts: {Ref_LS -> (Loc Ref_LS)}
+  Structs: {LS := c_LS(next, data)}
+ Heap sort: ((Loc Ref_LS) -> LS := c_LS(next, data))
+  Variables: {x : (Loc Ref_LS), y : (Loc Ref_LS)}
+  Attributes: {}
+  Assertions: {	
+(eq x y)
+}

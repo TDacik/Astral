@@ -1,0 +1,8 @@
+Sorts: {Ref_LS -> (Loc Ref_LS)}
+  Structs: {LS := c_LS(next)}
+ Heap sort: ((Loc Ref_LS) -> LS := c_LS(next))
+  Variables: {x : (Loc Ref_LS), y : (Loc Ref_LS), z : (Loc Ref_LS)}
+  Attributes: {}
+  Assertions: {	
+(exists (e!7) (star (pto z (LS := c_LS(next) e!7)) (exists (n4 n3 n2 n1) (star (distinct x n1 n2 y) (pto x (LS := c_LS(next) n1)) (pto n1 (LS := c_LS(next) n2)) (pto n2 (LS := c_LS(next) y)) (distinct y n3 n4 z) (pto y (LS := c_LS(next) n3)) (pto n3 (LS := c_LS(next) n4)) (pto n4 (LS := c_LS(next) z))))))
+}

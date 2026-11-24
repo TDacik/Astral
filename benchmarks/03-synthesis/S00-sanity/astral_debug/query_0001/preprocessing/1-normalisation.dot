@@ -1,0 +1,67 @@
+digraph G {
+  rankdir=TB;
+  "1: existsd2, d1, n1" [label="existsd2, d1, n1", ];
+  "4: x" [label="x", ];
+  "5: n1" [label="n1", ];
+  "6: y" [label="y", ];
+  "8: d1" [label="d1", ];
+  "9: z" [label="z", ];
+  "10: nil" [label="nil", ];
+  "12: d2" [label="d2", ];
+  "13: z" [label="z", ];
+  "14: nil" [label="nil", ];
+  "16: x" [label="x", ];
+  "18: n1" [label="n1", ];
+  "19: d1" [label="d1", ];
+  "21: n1" [label="n1", ];
+  "23: y" [label="y", ];
+  "24: d2" [label="d2", ];
+  "26: d1" [label="d1", ];
+  "28: z" [label="z", ];
+  "3: neq" [label="neq", ];
+  "7: neq" [label="neq", ];
+  "11: neq" [label="neq", ];
+  "30: d2 neq z" [label="d2 neq z", ];
+  "27: c_LS" [label="c_LS", ];
+  "17: c_NLS" [label="c_NLS", ];
+  "22: c_NLS" [label="c_NLS", ];
+  "15: |->" [label="|->", ];
+  "20: |->" [label="|->", ];
+  "25: |->" [label="|->", ];
+  "29: ls_0(d2, z)" [label="ls_0(d2, z)", ];
+  "0: *" [label="*", ];
+  "2: *" [label="*", ];
+  
+  
+  "1: existsd2, d1, n1" -> "2: *" [label="0", arrowhead=none, ];
+  "3: neq" -> "4: x" [label="0", arrowhead=none, ];
+  "3: neq" -> "5: n1" [label="1", arrowhead=none, ];
+  "3: neq" -> "6: y" [label="2", arrowhead=none, ];
+  "7: neq" -> "8: d1" [label="0", arrowhead=none, ];
+  "7: neq" -> "9: z" [label="1", arrowhead=none, ];
+  "7: neq" -> "10: nil" [label="2", arrowhead=none, ];
+  "11: neq" -> "12: d2" [label="0", arrowhead=none, ];
+  "11: neq" -> "13: z" [label="1", arrowhead=none, ];
+  "11: neq" -> "14: nil" [label="2", arrowhead=none, ];
+  "27: c_LS" -> "28: z" [label="0", arrowhead=none, ];
+  "17: c_NLS" -> "18: n1" [label="0", arrowhead=none, ];
+  "17: c_NLS" -> "19: d1" [label="1", arrowhead=none, ];
+  "22: c_NLS" -> "23: y" [label="0", arrowhead=none, ];
+  "22: c_NLS" -> "24: d2" [label="1", arrowhead=none, ];
+  "15: |->" -> "16: x" [label="0", arrowhead=none, ];
+  "15: |->" -> "17: c_NLS" [label="1", arrowhead=none, ];
+  "20: |->" -> "21: n1" [label="0", arrowhead=none, ];
+  "20: |->" -> "22: c_NLS" [label="1", arrowhead=none, ];
+  "25: |->" -> "26: d1" [label="0", arrowhead=none, ];
+  "25: |->" -> "27: c_LS" [label="1", arrowhead=none, ];
+  "0: *" -> "1: existsd2, d1, n1" [label="0", arrowhead=none, ];
+  "0: *" -> "30: d2 neq z" [label="1", arrowhead=none, ];
+  "2: *" -> "3: neq" [label="0", arrowhead=none, ];
+  "2: *" -> "7: neq" [label="1", arrowhead=none, ];
+  "2: *" -> "11: neq" [label="2", arrowhead=none, ];
+  "2: *" -> "15: |->" [label="3", arrowhead=none, ];
+  "2: *" -> "20: |->" [label="4", arrowhead=none, ];
+  "2: *" -> "25: |->" [label="5", arrowhead=none, ];
+  "2: *" -> "29: ls_0(d2, z)" [label="6", arrowhead=none, ];
+  
+  }

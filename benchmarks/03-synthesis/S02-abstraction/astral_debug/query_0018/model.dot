@@ -1,0 +1,6 @@
+digraph G {
+  "0" [shape=box, label="0 : z,y,x,nil", ];
+  
+  
+  
+  }

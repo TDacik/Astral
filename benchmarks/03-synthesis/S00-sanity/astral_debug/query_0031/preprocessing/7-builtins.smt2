@@ -1,0 +1,6 @@
+(set-info :status unknown)
+
+(declare-const x Ref_NLS)
+(declare-const y Ref_NLS)
+
+(assert (= x y))

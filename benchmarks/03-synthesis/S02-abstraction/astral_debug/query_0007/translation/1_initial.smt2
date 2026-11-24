@@ -1,0 +1,48 @@
+(set-info :status unknown)
+
+(declare-const footprint4 (Set (_ BitVec 9)))
+(declare-const footprint5 (Set (_ BitVec 9)))
+(declare-const footprint6 (Set (_ BitVec 9)))
+(declare-const footprint7 (Set (_ BitVec 9)))
+(declare-const footprint8 (Set (_ BitVec 9)))
+(declare-const footprint9 (Set (_ BitVec 9)))
+(declare-const footprint10 (Set (_ BitVec 9)))
+(declare-const footprint11 (Set (_ BitVec 9)))
+(declare-const footprint2 (Set (_ BitVec 9)))
+(declare-const footprint3 (Set (_ BitVec 9)))
+(declare-const footprint0 (Set (_ BitVec 9)))
+(declare-const nil (_ BitVec 9))
+(declare-const |e!7| (_ BitVec 9))
+(declare-const x (_ BitVec 9))
+(declare-const n1 (_ BitVec 9))
+(declare-const n2 (_ BitVec 9))
+(declare-const y (_ BitVec 9))
+(declare-const n3 (_ BitVec 9))
+(declare-const n4 (_ BitVec 9))
+(declare-const z (_ BitVec 9))
+(declare-const Ref_LS (Set (_ BitVec 9)))
+(declare-const field_next (Array (_ BitVec 9) (_ BitVec 9)))
+
+(assert
+ (and (= footprint2 (set z)) (= (select field_next z) |e!7|)
+  (distinct x n1 n2 y) (= footprint4 set) (= footprint5 (set x))
+  (= (select field_next x) n1) (= footprint6 (set n1))
+  (= (select field_next n1) n2) (= footprint7 (set n2))
+  (= (select field_next n2) y) (distinct y n3 n4 z) (= footprint8 set)
+  (= footprint9 (set y)) (= (select field_next y) n3)
+  (= footprint10 (set n3)) (= (select field_next n3) n4)
+  (= footprint11 (set n4)) (= (select field_next n4) z)
+  (disjoint footprint4 footprint5 footprint6 footprint7 footprint8 footprint9
+   footprint10 footprint11)
+  (= footprint3
+   (union footprint4 footprint5 footprint6 footprint7 footprint8 footprint9
+    footprint10 footprint11))
+  (disjoint footprint2 footprint3)
+  (= footprint0 (union footprint2 footprint3))
+  (not (mem (as nil Bool) footprint0)) (= #b000000000 (as nil Bitvector9))
+  (mem |e!7| Ref_LS) (mem x Ref_LS) (mem n1 Ref_LS) (mem n2 Ref_LS)
+  (mem y Ref_LS) (mem n3 Ref_LS) (mem n4 Ref_LS) (mem z Ref_LS)
+  (= Ref_LS
+   (set #b000000000 #b000000001 #b000000010 #b000000011 #b000000100
+    #b000000101 #b000000110 #b000000111 #b000001000))
+  (= #b000000000 (select field_next #b000000000))))

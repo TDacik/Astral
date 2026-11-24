@@ -1,0 +1,27 @@
+digraph G {
+  rankdir=TB;
+  "5: x" [label="x", ];
+  "10: y" [label="y", ];
+  "1: x = y" [label="x = y", ];
+  "0: ite" [label="ite", ];
+  "6: c_LS" [label="c_LS", ];
+  "2: emp" [label="emp", ];
+  "4: |->" [label="|->", ];
+  "8: ls" [label="ls", ];
+  "7: next^1[x]" [label="next^1[x]", ];
+  "9: next^1[x]" [label="next^1[x]", ];
+  "3: *" [label="*", ];
+  
+  
+  "0: ite" -> "1: x = y" [label="cond", arrowhead=none, ];
+  "0: ite" -> "2: emp" [label="then", arrowhead=none, ];
+  "0: ite" -> "3: *" [label="else", arrowhead=none, ];
+  "6: c_LS" -> "7: next^1[x]" [label="0", arrowhead=none, ];
+  "4: |->" -> "5: x" [label="0", arrowhead=none, ];
+  "4: |->" -> "6: c_LS" [label="1", arrowhead=none, ];
+  "8: ls" -> "10: y" [label="1", arrowhead=none, ];
+  "8: ls" -> "9: next^1[x]" [label="0", arrowhead=none, ];
+  "3: *" -> "4: |->" [label="0", arrowhead=none, ];
+  "3: *" -> "8: ls" [label="1", arrowhead=none, ];
+  
+  }

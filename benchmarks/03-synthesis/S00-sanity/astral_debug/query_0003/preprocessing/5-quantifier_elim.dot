@@ -1,0 +1,65 @@
+digraph G {
+  rankdir=TB;
+  "3: x" [label="x", ];
+  "4: n1" [label="n1", ];
+  "5: y" [label="y", ];
+  "7: d1" [label="d1", ];
+  "8: z" [label="z", ];
+  "9: nil" [label="nil", ];
+  "11: d2" [label="d2", ];
+  "12: z" [label="z", ];
+  "13: nil" [label="nil", ];
+  "15: x" [label="x", ];
+  "17: n1" [label="n1", ];
+  "18: d1" [label="d1", ];
+  "20: n1" [label="n1", ];
+  "22: y" [label="y", ];
+  "23: d2" [label="d2", ];
+  "25: d1" [label="d1", ];
+  "27: z" [label="z", ];
+  "2: neq" [label="neq", ];
+  "6: neq" [label="neq", ];
+  "10: neq" [label="neq", ];
+  "29: d1 neq d2" [label="d1 neq d2", ];
+  "26: c_LS" [label="c_LS", ];
+  "16: c_NLS" [label="c_NLS", ];
+  "21: c_NLS" [label="c_NLS", ];
+  "14: |->" [label="|->", ];
+  "19: |->" [label="|->", ];
+  "24: |->" [label="|->", ];
+  "28: ls_0(d2, z)" [label="ls_0(d2, z)", ];
+  "0: *" [label="*", ];
+  "1: *" [label="*", ];
+  
+  
+  "2: neq" -> "3: x" [label="0", arrowhead=none, ];
+  "2: neq" -> "4: n1" [label="1", arrowhead=none, ];
+  "2: neq" -> "5: y" [label="2", arrowhead=none, ];
+  "6: neq" -> "7: d1" [label="0", arrowhead=none, ];
+  "6: neq" -> "8: z" [label="1", arrowhead=none, ];
+  "6: neq" -> "9: nil" [label="2", arrowhead=none, ];
+  "10: neq" -> "11: d2" [label="0", arrowhead=none, ];
+  "10: neq" -> "12: z" [label="1", arrowhead=none, ];
+  "10: neq" -> "13: nil" [label="2", arrowhead=none, ];
+  "26: c_LS" -> "27: z" [label="0", arrowhead=none, ];
+  "16: c_NLS" -> "17: n1" [label="0", arrowhead=none, ];
+  "16: c_NLS" -> "18: d1" [label="1", arrowhead=none, ];
+  "21: c_NLS" -> "22: y" [label="0", arrowhead=none, ];
+  "21: c_NLS" -> "23: d2" [label="1", arrowhead=none, ];
+  "14: |->" -> "15: x" [label="0", arrowhead=none, ];
+  "14: |->" -> "16: c_NLS" [label="1", arrowhead=none, ];
+  "19: |->" -> "20: n1" [label="0", arrowhead=none, ];
+  "19: |->" -> "21: c_NLS" [label="1", arrowhead=none, ];
+  "24: |->" -> "25: d1" [label="0", arrowhead=none, ];
+  "24: |->" -> "26: c_LS" [label="1", arrowhead=none, ];
+  "0: *" -> "29: d1 neq d2" [label="1", arrowhead=none, ];
+  "0: *" -> "1: *" [label="0", arrowhead=none, ];
+  "1: *" -> "2: neq" [label="0", arrowhead=none, ];
+  "1: *" -> "6: neq" [label="1", arrowhead=none, ];
+  "1: *" -> "10: neq" [label="2", arrowhead=none, ];
+  "1: *" -> "14: |->" [label="3", arrowhead=none, ];
+  "1: *" -> "19: |->" [label="4", arrowhead=none, ];
+  "1: *" -> "24: |->" [label="5", arrowhead=none, ];
+  "1: *" -> "28: ls_0(d2, z)" [label="6", arrowhead=none, ];
+  
+  }

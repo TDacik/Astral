@@ -1,0 +1,14 @@
+digraph G {
+  "(next[.] x)" [style="solid", ];
+  "(data[.] x)" [style="solid", ];
+  "(data[.] (next[.] x))" [style="solid", ];
+  "x" [style="dashed", ];
+  "y" [style="dashed", ];
+  
+  
+  "(next[.] x)" -> "(data[.] (next[.] x))" [style="solid", ];
+  "(next[.] x)" -> "y" [style="dashed", ];
+  "x" -> "(next[.] x)" [style="solid", ];
+  "x" -> "(data[.] x)" [style="solid", ];
+  
+  }
