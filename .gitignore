@@ -1,5 +1,6 @@
 # Build directory
 _build
+_benchmarks
 
 # Custom files & directories
 TODOS.md

@@ -1,8 +1,18 @@
 (data_only_dirs
-  ;benchmarks
   unused
   scripts
 )
+
+; Rule for generating benchmarks
+(rule
+  (alias benchmarks)
+  (targets (dir _benchmarks))
+  (deps (source_tree benchmarks))
+  (action
+    (run python3 %{dep:scripts/benchmarks/build.py}
+         --source benchmarks --target _benchmarks))
+)
+
 
 (env
     (dev

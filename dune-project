@@ -4,6 +4,7 @@
 (version 2.0)
 
 (using menhir 2.0)
+(using directory-targets 0.1)
 
 (wrapped_executables false)
 

@@ -55,6 +55,13 @@ A formula $x \mapsto y -\kern-.46em{\circledast}$ $\mathsf{ls}(x,y)$ can be repr
 ## Installation & Usage
 After cloning the repository, run `opam install .` to install Astral. Then the solver can be run by the command `astral formula.smt2`.
 
+## Benchmarks
+The repository contains a set of benchmarks used as regression tests for Astral. Those benchmarks uses non-standard extensions of the SMT-LIB 2 format, such as an `(include path)` command. To obtain benchmarks without this extension, run:
+```shellSession
+./scripts/benchmarks/build.py [--target=target_dir]
+```
+This command will generate benchmarks into `target_dir` directory (`_benchmarks` by default).
+
 ## Related Papers
 * Tomáš Dacík, Adam Rogalewicz, Tomáš Vojnar, and Florian Zuleger. [Deciding Boolean Separation Logic via Small Models](https://link.springer.com/content/pdf/10.1007/978-3-031-57246-3_11?pdf=chapter%20toc). In TACAS 2024. [Technical report](https://arxiv.org/abs/2403.18999). [Artifact](https://doi.org/10.5281/zenodo.10447097).
 
